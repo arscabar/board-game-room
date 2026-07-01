@@ -708,6 +708,67 @@ button:disabled {
   line-height: 1.55;
 }
 
+.detail-summary-card {
+  display: grid;
+  gap: 10px;
+  margin-bottom: calc(var(--space) * 2);
+  border: 1px solid color-mix(in srgb, var(--game-accent) 26%, var(--line));
+  border-radius: var(--radius);
+  padding: 12px;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--game-accent) 8%, white), #fbfcfa);
+}
+
+.detail-summary-card .summary {
+  margin: 0;
+  color: var(--ink);
+}
+
+.detail-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.detail-meta-grid span {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--ink-2);
+  font-size: 0.82rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.detail-meta-grid strong {
+  display: block;
+  margin-bottom: 3px;
+  color: var(--ink);
+  font-size: 0.76rem;
+}
+
+.detail-learn-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: fit-content;
+  min-height: 44px;
+  border: 1px solid color-mix(in srgb, var(--game-accent) 45%, var(--line));
+  border-radius: var(--radius);
+  padding: 0 12px;
+  background: color-mix(in srgb, var(--game-accent) 88%, var(--ink));
+  color: white;
+  font-weight: 900;
+  text-decoration: none;
+}
+
+.detail-learn-link:hover {
+  filter: brightness(1.04);
+}
+
 .info-list {
   border-top: 1px solid var(--line);
   padding-top: calc(var(--space) * 1.5);
@@ -1439,6 +1500,14 @@ button:disabled {
   .game-row .status-pill {
     grid-column: 2;
     width: fit-content;
+  }
+
+  .detail-meta-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .detail-learn-link {
+    width: 100%;
   }
 
   .mini-grid {

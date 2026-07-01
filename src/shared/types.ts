@@ -22,6 +22,7 @@ export interface GameDefinition {
   genre: string;
   board: string;
   docFile: string;
+  learnUrl: string;
   accent: string;
   summary: string;
   components: string[];

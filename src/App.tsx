@@ -4,6 +4,7 @@ import {
   Copy,
   Dice5,
   DoorOpen,
+  ExternalLink,
   Gamepad2,
   History,
   LogIn,
@@ -907,7 +908,28 @@ function GameDetailPanel({ game, playerCount }: { game: GameDefinition | null; p
           {formatAllowedPlayers(game)}
         </span>
       </div>
-      <p className="summary">{game.summary}</p>
+      <section className="detail-summary-card" style={{ "--game-accent": game.accent } as CSSProperties}>
+        <span className="eyebrow">선택한 게임 설명</span>
+        <p className="summary">{game.summary}</p>
+        <div className="detail-meta-grid" aria-label="게임 요약">
+          <span>
+            <strong>장르</strong>
+            {game.genre}
+          </span>
+          <span>
+            <strong>보드</strong>
+            {game.board}
+          </span>
+          <span>
+            <strong>기록</strong>
+            {game.scoreState}
+          </span>
+        </div>
+        <a className="detail-learn-link" href={game.learnUrl} target="_blank" rel="noreferrer">
+          <ExternalLink size={16} aria-hidden="true" />
+          설명
+        </a>
+      </section>
       <InfoList title="세팅" items={game.setup} />
       <InfoList title="턴 진행" items={game.turnFlow} />
       <InfoList title="구현 판정" items={game.implementation} />
