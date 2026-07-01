@@ -2,6 +2,7 @@ node_modules/
 dist/
 data/
 .omx/
+.local-host/
 *.log
 .server.*.log
 .web.*.log
