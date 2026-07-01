@@ -1,0 +1,247 @@
+import type { GameDefinition } from "./types";
+
+export const games: GameDefinition[] = [
+  {
+    id: "guryongtu",
+    title: "구룡투",
+    original: "Guryongtu / Nine Dragon Duel",
+    allowedPlayerCounts: [2],
+    scoreState: "승수제",
+    priority: "높음",
+    genre: "1대1 숫자 심리전, 타일 선택",
+    board: "중앙 대결장",
+    docFile: "01-guryongtu.md",
+    accent: "#111827",
+    summary: "1~9 타일을 비공개 선택한 뒤 동시에 공개해 승수를 겨루는 숫자 심리전.",
+    components: ["플레이어별 1~9 숫자 타일", "중앙 대결장", "승수 표시"],
+    setup: ["각자 1~9 타일 세트 지급", "타일은 상대에게 숨김", "최대 9라운드 진행"],
+    turnFlow: ["양쪽이 타일 1개 선택", "동시 공개", "숫자 비교", "승자에게 라운드 승수 +1"],
+    winCondition: "9라운드 후 승수가 많거나 남은 라운드로 역전 불가하면 승리.",
+    implementation: ["비공개 선택", "동시 공개", "1은 9를 이기는 예외 판정", "사용 타일 재사용 금지"],
+    table: {
+      kind: "duel",
+      primaryMetric: "남은 타일",
+      secondaryMetric: "라운드 승수",
+      uiHint: "양쪽 선택 완료 후 동시에 공개하는 테이블"
+    }
+  },
+  {
+    id: "quoridor",
+    title: "쿼리도",
+    original: "Quoridor",
+    allowedPlayerCounts: [2, 4],
+    scoreState: "점수제 아님",
+    priority: "높음",
+    genre: "추상전략, 경로 차단",
+    board: "9 x 9",
+    docFile: "02-quoridor.md",
+    accent: "#a66a2f",
+    summary: "말을 전진시키거나 벽을 배치해 상대 경로를 늦추는 경로 차단 게임.",
+    components: ["9x9 보드", "플레이어 말", "벽 20개"],
+    setup: ["2인은 각자 반대편 중앙", "4인은 각 변 중앙", "2인은 벽 10개, 4인은 벽 5개"],
+    turnFlow: ["말 1칸 이동", "또는 벽 1개 배치", "모든 플레이어에게 목표 경로가 남아야 함"],
+    winCondition: "자기 시작 변의 반대쪽 끝줄에 먼저 도착.",
+    implementation: ["벽/말 충돌 검사", "점프와 대각 우회", "벽 배치 후 BFS 경로 보장", "목표 줄 도달 판정"],
+    table: {
+      kind: "maze",
+      primaryMetric: "남은 벽",
+      secondaryMetric: "목표 줄",
+      uiHint: "9x9 칸과 벽 슬롯이 함께 보이는 경로 보드"
+    }
+  },
+  {
+    id: "abalone-classic",
+    title: "아발론 클래식",
+    original: "Abalone Classic",
+    allowedPlayerCounts: [2],
+    scoreState: "점수제 아님",
+    priority: "중간",
+    genre: "추상전략, 밀어내기",
+    board: "육각형 61칸",
+    docFile: "03-abalone-classic.md",
+    accent: "#4b5563",
+    summary: "1~3개 구슬을 6방향으로 밀어 상대 구슬을 보드 밖으로 내보내는 추상전략.",
+    components: ["육각 보드", "검은 구슬 14개", "흰 구슬 14개"],
+    setup: ["흑은 자기 쪽 2줄과 3개 중앙 전진 배치", "백은 반대쪽 대칭 배치", "흑 선공"],
+    turnFlow: ["자기 구슬 1~3개 선택", "6방향 중 1방향 선택", "한 칸 이동 또는 상대 구슬 밀기"],
+    winCondition: "상대 구슬 6개를 먼저 보드 밖으로 밀어내면 승리.",
+    implementation: ["육각 좌표계", "일렬/측면 이동 구분", "수적 우위 밀기", "보드 밖 제거"],
+    table: {
+      kind: "hex",
+      primaryMetric: "밀어낸 구슬",
+      secondaryMetric: "선택 구슬",
+      uiHint: "육각 홈 위의 흑백 구슬 전장"
+    }
+  },
+  {
+    id: "ghosts",
+    title: "고스트",
+    original: "Ghosts",
+    allowedPlayerCounts: [2],
+    scoreState: "점수제 아님",
+    priority: "높음",
+    genre: "비공개 정보, 추상전략",
+    board: "6 x 6",
+    docFile: "04-ghosts.md",
+    accent: "#6d5bd0",
+    summary: "좋은 유령과 나쁜 유령의 정체를 숨기고 탈출/포획 조건을 노리는 2인 게임.",
+    components: ["6x6 보드", "플레이어별 유령 8개", "좋은 유령/나쁜 유령 표시"],
+    setup: ["각자 좋은 유령 4개와 나쁜 유령 4개를 비공개 배치", "상대는 정체를 볼 수 없음"],
+    turnFlow: ["자기 유령 1개 선택", "상하좌우 1칸 이동", "상대 유령이 있으면 포획"],
+    winCondition: "상대 좋은 유령 모두 포획, 자기 나쁜 유령 모두 포획당함, 또는 좋은 유령 탈출.",
+    implementation: ["소유자만 정체 확인", "포획 후 공개", "탈출 칸 판정", "복수 승리조건 검사"],
+    table: {
+      kind: "hidden",
+      primaryMetric: "남은 유령",
+      secondaryMetric: "탈출 후보",
+      uiHint: "상대에게는 정체가 숨겨진 유령 보드"
+    }
+  },
+  {
+    id: "qawale",
+    title: "카왈레",
+    original: "Qawale",
+    allowedPlayerCounts: [2],
+    scoreState: "점수제 아님",
+    priority: "높음",
+    genre: "추상전략, 스택 분배, 4목",
+    board: "4 x 4",
+    docFile: "05-qawale.md",
+    accent: "#315c8c",
+    summary: "돌 스택을 집어 인접 칸에 분배하고 윗돌 기준 4목을 만드는 전략 게임.",
+    components: ["4x4 보드", "중립 돌 8개", "플레이어별 돌 8개"],
+    setup: ["네 모서리에 중립 돌 2개씩", "각자 자기 돌 8개 보유", "선공 무작위"],
+    turnFlow: ["자기 돌 1개를 기존 스택 위에 올림", "스택 전체를 집음", "인접 칸에 하나씩 분배"],
+    winCondition: "보이는 자기 돌 4개를 가로/세로/대각선으로 연결.",
+    implementation: ["빈칸 새 돌 배치 금지", "즉시 되돌아가기 금지", "스택 하단부터 분배", "윗돌 4목 검사"],
+    table: {
+      kind: "stack",
+      primaryMetric: "남은 돌",
+      secondaryMetric: "스택 높이",
+      uiHint: "4x4 보드와 분배 경로 미리보기"
+    }
+  },
+  {
+    id: "davinci-code-plus",
+    title: "다빈치 코드 플러스",
+    original: "Da Vinci Code Plus",
+    allowedPlayerCounts: [2, 3, 4],
+    scoreState: "점수제 아님",
+    priority: "중간",
+    genre: "숫자 추리, 비공개 정보",
+    board: "개인 타일 랙",
+    docFile: "06-davinci-code-plus.md",
+    accent: "#d33f49",
+    summary: "상대의 비공개 숫자 타일을 추리해 공개시키는 숫자 추리 게임.",
+    components: ["숫자 타일 36개", "조커 타일 3개", "보너스 카드 4장"],
+    setup: ["타일을 섞어 비공개 더미 생성", "인원별 초기 타일 지급", "오름차순으로 자기 앞에 세움"],
+    turnFlow: ["타일 1개를 뽑음", "상대 타일 하나를 지목해 숫자를 추측", "맞히면 공개, 틀리면 자기 타일 공개"],
+    winCondition: "자기 타일이 모두 공개되지 않고 마지막까지 살아남으면 승리.",
+    implementation: ["비공개 정보 분리", "오름차순 자동 정렬", "추측 성공/실패 공개", "탈락 처리"],
+    table: {
+      kind: "deduction",
+      primaryMetric: "비공개 타일",
+      secondaryMetric: "더미",
+      uiHint: "플레이어별 랙과 공개/비공개 숫자 타일"
+    }
+  },
+  {
+    id: "blokus",
+    title: "블로커스",
+    original: "Blokus",
+    allowedPlayerCounts: [2, 3, 4],
+    scoreState: "점수제",
+    priority: "높음",
+    genre: "추상전략, 영역 배치",
+    board: "20 x 20",
+    docFile: "07-blokus.md",
+    accent: "#2364aa",
+    summary: "색상별 폴리오미노를 꼭짓점으로만 이어 보드에 최대한 많이 배치하는 게임.",
+    components: ["20x20 보드", "4색 블록 84개", "색상별 21개 조각"],
+    setup: ["각 색상은 시작 모서리 지정", "2인은 각자 2색 담당", "3인은 4번째 색상 미사용 기본"],
+    turnFlow: ["현재 색상의 미사용 블록 선택", "회전/뒤집기", "합법 위치에 배치"],
+    winCondition: "모든 활성 색상이 배치 불가일 때 미배치 칸 감점 후 최고점 승리.",
+    implementation: ["회전/뒤집기 중복 제거", "첫 블록 모서리 포함", "자기 색 변 접촉 금지", "자기 색 꼭짓점 접촉 필수"],
+    table: {
+      kind: "polyomino",
+      primaryMetric: "남은 블록",
+      secondaryMetric: "현재 점수",
+      uiHint: "20x20 격자와 색상별 블록 팔레트"
+    }
+  },
+  {
+    id: "yacht-dice",
+    title: "요트 다이스",
+    original: "Yacht / Yacht Dice",
+    allowedPlayerCounts: [1, 2, 3, 4],
+    scoreState: "점수제",
+    priority: "높음",
+    genre: "주사위 조합, 점수 최적화",
+    board: "주사위 5개 + 점수표",
+    docFile: "09-yacht-dice.md",
+    accent: "#2f6f73",
+    summary: "최대 3번 굴린 주사위 5개를 12개 점수 카테고리에 배분하는 점수 게임.",
+    components: ["6면체 주사위 5개", "플레이어별 점수표", "보류 영역"],
+    setup: ["각자 빈 점수표를 받음", "12개 카테고리 미사용", "선공 결정"],
+    turnFlow: ["주사위 5개 굴림", "원하는 주사위 보류", "최대 3번까지 재굴림", "미사용 카테고리에 기록"],
+    winCondition: "12개 카테고리를 모두 채운 뒤 총점 최고.",
+    implementation: ["굴림 횟수 제한", "보류 토글", "카테고리별 점수 함수", "0점 기록도 사용 처리"],
+    table: {
+      kind: "dice",
+      primaryMetric: "굴림 횟수",
+      secondaryMetric: "총점",
+      uiHint: "큰 주사위 5개와 즉시 점수 미리보기"
+    }
+  },
+  {
+    id: "yinsh",
+    title: "인쉬",
+    original: "YINSH",
+    allowedPlayerCounts: [2],
+    scoreState: "점수제 아님",
+    priority: "높음",
+    genre: "추상전략, 링 이동, 마커 뒤집기, 5목",
+    board: "85개 교차점 삼각 격자",
+    docFile: "10-yinsh.md",
+    accent: "#3b82a0",
+    summary: "링을 움직이며 마커를 남기고, 지나간 마커를 뒤집어 5목을 만드는 GIPF 계열 게임.",
+    components: ["보드 1개", "흰/검은 링 5개씩", "양면 마커 51개"],
+    setup: ["빈 보드에서 시작", "흰색부터 링 5개씩 교차점에 배치", "마커는 공용 풀"],
+    turnFlow: ["자기 링에 마커 놓기", "링만 직선 이동", "지나간 마커 뒤집기", "5목 완성 시 줄과 링 제거"],
+    winCondition: "자기 링 3개를 먼저 제거하면 승리.",
+    implementation: ["85개 교차점 그래프", "6방향 경로 스캔", "마커 점프 후 첫 빈칸 정지", "동시 줄 처리 큐"],
+    table: {
+      kind: "rings",
+      primaryMetric: "제거 링",
+      secondaryMetric: "공용 마커",
+      uiHint: "차가운 삼각 격자 위의 링과 양면 마커"
+    }
+  },
+  {
+    id: "hangman-board-game",
+    title: "행맨 보드게임",
+    original: "Word Hangman / Hangman",
+    allowedPlayerCounts: [2],
+    scoreState: "승수제",
+    priority: "중간",
+    genre: "단어 추리, 철자 기억, 라운드 승부",
+    board: "플레이어별 콘솔",
+    docFile: "11-hangman-board-game.md",
+    accent: "#9d3f47",
+    summary: "서로 비밀 단어를 만들고 글자 또는 전체 단어를 추측하는 2인 단어 대결.",
+    components: ["게임 콘솔 2개", "게임 페그 84개", "글자 타일 144개", "행맨 슬라이더"],
+    setup: ["각자 콘솔과 페그 42개 준비", "목표 라운드 승수 합의", "최대 8글자 비밀 단어 작성"],
+    turnFlow: ["글자 1개 추측 또는 전체 단어 추측", "맞으면 모든 위치 공개", "틀리면 슬라이더 1단계 진행"],
+    winCondition: "상대 단어를 맞히거나 상대가 행맨 완료되면 라운드 승리, 목표 승수 선취.",
+    implementation: ["비밀 단어 클라이언트 노출 금지", "중복 추측 차단", "모든 일치 위치 공개", "오답 단계 관리"],
+    table: {
+      kind: "word",
+      primaryMetric: "오답 단계",
+      secondaryMetric: "라운드 승수",
+      uiHint: "두 콘솔이 마주 보는 비밀 단어 추리 화면"
+    }
+  }
+];
+
+export const getGameById = (id: string | null | undefined) =>
+  games.find((game) => game.id === id) ?? null;

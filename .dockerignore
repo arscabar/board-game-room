@@ -1,0 +1,11 @@
+node_modules
+dist
+data
+android
+.git
+.omx
+*.log
+.server.*.log
+.web.*.log
+.dev.*.log
+npm-debug.log*

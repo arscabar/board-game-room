@@ -1,0 +1,10 @@
+node_modules/
+dist/
+data/
+.omx/
+*.log
+.server.*.log
+.web.*.log
+.dev.*.log
+android/app/build/
+android/build/
