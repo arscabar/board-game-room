@@ -553,12 +553,14 @@ const quoridorStyles = `
   grid-template-columns: minmax(280px, 1fr) 260px;
   gap: 16px;
   align-items: start;
+  min-width: 0;
 }
 .qdr-board {
   display: grid;
-  grid-template-columns: repeat(9, minmax(30px, 1fr));
+  grid-template-columns: repeat(9, minmax(44px, 1fr));
   gap: 3px;
   width: min(100%, 520px);
+  min-width: 436px;
   aspect-ratio: 1;
   padding: 8px;
   border: 1px solid rgba(23, 32, 29, 0.2);
@@ -598,6 +600,7 @@ const quoridorStyles = `
 .qdr-panel {
   display: grid;
   gap: 14px;
+  min-width: 0;
 }
 .qdr-players {
   display: grid;
@@ -630,6 +633,8 @@ const quoridorStyles = `
 .qdr-wall-controls {
   display: grid;
   gap: 10px;
+  min-width: 0;
+  overflow-x: auto;
   border: 1px solid rgba(23, 32, 29, 0.14);
   border-radius: 8px;
   padding: 10px;
@@ -657,9 +662,11 @@ const quoridorStyles = `
   display: grid;
   grid-template-columns: repeat(8, 1fr);
   gap: 4px;
+  min-width: 380px;
 }
 .qdr-wall-grid button {
-  min-height: 30px;
+  min-width: 44px;
+  min-height: 44px;
   padding: 0;
   font-size: 0.72rem;
 }
@@ -671,9 +678,15 @@ const quoridorStyles = `
   color: #8f2c25;
   background: #faedea;
 }
-@media (max-width: 780px) {
+@media (max-width: 1320px) {
   .qdr-layout {
     grid-template-columns: 1fr;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+  .qdr-board {
+    width: 436px;
+    max-width: none;
   }
 }
 `;

@@ -522,6 +522,7 @@ button:disabled {
 .room-section {
   display: grid;
   gap: calc(var(--space) * 2);
+  min-width: 0;
 }
 
 .room-command {
@@ -529,7 +530,12 @@ button:disabled {
   justify-content: space-between;
   align-items: center;
   gap: 12px;
+  min-width: 0;
   padding: calc(var(--space) * 1.5);
+}
+
+.room-command > div {
+  min-width: 0;
 }
 
 .room-code {
@@ -538,10 +544,12 @@ button:disabled {
   line-height: 1;
   font-weight: 900;
   color: var(--ink);
+  overflow-wrap: anywhere;
 }
 
 .command-actions {
   display: flex;
+  flex-shrink: 0;
   gap: 8px;
 }
 
@@ -550,11 +558,13 @@ button:disabled {
   grid-template-columns: 280px minmax(0, 1fr) 340px;
   gap: calc(var(--space) * 2);
   align-items: start;
+  min-width: 0;
 }
 
 .seat-panel,
 .work-panel,
 .detail-panel {
+  min-width: 0;
   padding: calc(var(--space) * 2);
 }
 
@@ -740,6 +750,7 @@ button:disabled {
 }
 
 .game-module-shell {
+  min-width: 0;
   border: 1px solid var(--line-strong);
   border-radius: var(--radius);
   overflow: hidden;
@@ -749,7 +760,30 @@ button:disabled {
 .game-module {
   display: grid;
   gap: 12px;
+  min-width: 0;
   padding: calc(var(--space) * 2);
+}
+
+.yacht-dice-module,
+.yacht-top-grid,
+.yacht-dice-panel,
+.yacht-score-panel,
+.yacht-scoreboard {
+  min-width: 0;
+}
+
+.yacht-score-panel > div,
+.yacht-scoreboard > div {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.yacht-score-table {
+  min-width: 520px;
+}
+
+.yacht-player-table {
+  min-width: 920px;
 }
 
 .game-module-toolbar,

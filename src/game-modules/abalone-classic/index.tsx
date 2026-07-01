@@ -575,6 +575,7 @@ const abaloneStyles = `
   grid-template-columns: minmax(320px, 560px) minmax(220px, 1fr);
   gap: 16px;
   align-items: start;
+  min-width: 0;
 }
 .abl-board {
   display: grid;
@@ -684,13 +685,17 @@ const abaloneStyles = `
   .abl-layout {
     grid-template-columns: 1fr;
   }
+  .abl-board {
+    justify-content: start;
+    max-width: 100%;
+    overflow-x: auto;
+  }
   .abl-row {
-    grid-template-columns: repeat(var(--row-size), minmax(28px, 44px));
+    grid-template-columns: repeat(var(--row-size), 44px);
   }
   .abl-cell {
-    width: 100%;
-    height: auto;
-    aspect-ratio: 1;
+    width: 44px;
+    height: 44px;
   }
 }
 `;

@@ -15,7 +15,8 @@
     "preview": "vite preview --host 0.0.0.0 --port 4173",
     "start": "tsx server/index.ts",
     "android:sync": "npm run build && cap sync android",
-    "android:open": "cap open android"
+    "android:open": "cap open android",
+    "qa:games": "tsx scripts/qa-all-games.ts"
   },
   "dependencies": {
     "@capacitor/android": "^7.4.4",
