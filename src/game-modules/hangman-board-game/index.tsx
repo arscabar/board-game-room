@@ -582,7 +582,10 @@ export function Component({
             })}
           </div>
 
-          <article className="hangman-guess-panel" style={styles.panel}>
+          <article
+            className="hangman-guess-panel"
+            style={{ ...styles.panel, "--misses": myProgress?.misses ?? 0 } as CSSProperties}
+          >
             <div className="hangman-turn-meta" style={styles.meta}>
               <strong>
                 {state.phase === "complete" ? "Round complete" : `Guessing: ${getPlayerName(players, state.activePlayerId)}`}
@@ -598,6 +601,25 @@ export function Component({
                   {state.lastGuess.hit ? "hit" : "miss"})
                 </span>
               ) : null}
+            </div>
+
+            <div className="hangman-console-top" aria-hidden="true">
+              <div className="hangman-gallows">
+                <span className="hangman-post" />
+                <span className="hangman-beam" />
+                <span className="hangman-rope" />
+                <span className={`hangman-figure head ${myProgress && myProgress.misses >= 1 ? "lit" : ""}`} />
+                <span className={`hangman-figure body ${myProgress && myProgress.misses >= 2 ? "lit" : ""}`} />
+                <span className={`hangman-figure arm-left ${myProgress && myProgress.misses >= 3 ? "lit" : ""}`} />
+                <span className={`hangman-figure arm-right ${myProgress && myProgress.misses >= 4 ? "lit" : ""}`} />
+                <span className={`hangman-figure leg-left ${myProgress && myProgress.misses >= 5 ? "lit" : ""}`} />
+                <span className={`hangman-figure leg-right ${myProgress && myProgress.misses >= 6 ? "lit" : ""}`} />
+              </div>
+              <div className="hangman-miss-track">
+                {Array.from({ length: state.maxMisses }, (_, index) => (
+                  <span className={myProgress && index < myProgress.misses ? "lit" : ""} key={index} />
+                ))}
+              </div>
             </div>
 
             <div className="hangman-alphabet" style={styles.alphabet}>

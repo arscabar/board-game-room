@@ -558,6 +558,9 @@ function BlokusStyles() {
         display: grid;
         gap: 1rem;
         color: #172033;
+        background:
+          linear-gradient(135deg, rgba(35, 100, 170, 0.08), transparent 38%),
+          #f7fbff;
       }
 
       .blokus-status {
@@ -566,8 +569,10 @@ function BlokusStyles() {
         align-items: center;
         justify-content: space-between;
         gap: 0.75rem;
-        padding: 0.75rem 0;
-        border-bottom: 1px solid rgba(15, 23, 42, 0.12);
+        padding: 0.75rem;
+        border: 1px solid rgba(15, 23, 42, 0.12);
+        border-radius: 8px;
+        background: linear-gradient(180deg, #ffffff, #e7f0fb);
       }
 
       .blokus-status strong {
@@ -585,10 +590,14 @@ function BlokusStyles() {
         display: grid;
         grid-template-columns: repeat(20, minmax(10px, 1fr));
         width: min(100%, 680px);
-        border: 1px solid rgba(15, 23, 42, 0.24);
-        background: #dbe4f0;
+        border: 1px solid rgba(35, 100, 170, 0.28);
+        background:
+          linear-gradient(180deg, #ffffff, #dfe9f6);
         border-radius: 8px;
         overflow: hidden;
+        box-shadow:
+          inset 0 0 0 5px rgba(255, 255, 255, 0.82),
+          0 14px 26px rgba(35, 100, 170, 0.13);
       }
 
       .blokus-cell {
@@ -596,10 +605,18 @@ function BlokusStyles() {
         aspect-ratio: 1;
         min-width: 0;
         border: 0;
-        border-right: 1px solid rgba(15, 23, 42, 0.12);
-        border-bottom: 1px solid rgba(15, 23, 42, 0.12);
-        background: var(--cell-color, #f8fafc);
+        border-right: 1px solid rgba(35, 100, 170, 0.12);
+        border-bottom: 1px solid rgba(35, 100, 170, 0.12);
+        background:
+          linear-gradient(135deg, rgba(255, 255, 255, 0.35), transparent 45%),
+          var(--cell-color, #f8fafc);
         cursor: pointer;
+      }
+
+      .blokus-cell[style*="--cell-color"] {
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.42),
+          inset 0 -3px 0 rgba(15, 23, 42, 0.12);
       }
 
       .blokus-cell:disabled {
@@ -610,7 +627,7 @@ function BlokusStyles() {
         content: "";
         position: absolute;
         inset: 23%;
-        border: 2px solid rgba(15, 23, 42, 0.35);
+        border: 2px solid rgba(35, 100, 170, 0.4);
         border-radius: 50%;
       }
 
@@ -640,6 +657,10 @@ function BlokusStyles() {
       .blokus-palette {
         display: grid;
         gap: 0.65rem;
+        border: 1px solid rgba(35, 100, 170, 0.14);
+        border-radius: 8px;
+        padding: 0.75rem;
+        background: linear-gradient(180deg, #ffffff, #e8f1fb);
       }
 
       .blokus-controls-row {
@@ -651,9 +672,9 @@ function BlokusStyles() {
       .blokus-controls button,
       .blokus-palette button {
         min-height: 2.35rem;
-        border: 1px solid rgba(15, 23, 42, 0.16);
+        border: 1px solid rgba(35, 100, 170, 0.18);
         border-radius: 8px;
-        background: #ffffff;
+        background: linear-gradient(180deg, #ffffff, #edf5ff);
         color: #172033;
         font: inherit;
         cursor: pointer;
@@ -706,6 +727,9 @@ function BlokusStyles() {
       .blokus-piece-mini .filled {
         background: var(--piece-color);
         border-radius: 2px;
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.45),
+          inset 0 -2px 0 rgba(15, 23, 42, 0.16);
       }
 
       .blokus-player-row {

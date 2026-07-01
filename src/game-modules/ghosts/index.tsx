@@ -605,10 +605,11 @@ const ghostsStyles = `
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  border: 1px solid rgba(23, 32, 29, 0.14);
+  border: 1px solid rgba(46, 77, 132, 0.24);
   border-radius: 8px;
   padding: 12px;
-  background: #fbfcfa;
+  background:
+    linear-gradient(180deg, #eef5ff, #d8e7fa);
 }
 .gho-status strong,
 .gho-status span {
@@ -632,6 +633,11 @@ const ghostsStyles = `
   display: grid;
   gap: 8px;
   justify-items: center;
+  border: 1px solid rgba(46, 77, 132, 0.2);
+  border-radius: 8px;
+  padding: 10px;
+  background:
+    linear-gradient(180deg, #f3f8ff, #dfeeff);
 }
 .gho-board,
 .gho-exits {
@@ -642,27 +648,35 @@ const ghostsStyles = `
 }
 .gho-board {
   aspect-ratio: 1;
-  padding: 8px;
-  border: 1px solid rgba(23, 32, 29, 0.2);
+  padding: 10px;
+  border: 1px solid rgba(46, 77, 132, 0.38);
   border-radius: 8px;
   background:
-    linear-gradient(45deg, rgba(109, 91, 208, 0.09), transparent 45%),
-    #dfe8e4;
+    linear-gradient(90deg, rgba(255, 255, 255, 0.14) 0 1px, transparent 1px 32px),
+    linear-gradient(0deg, rgba(255, 255, 255, 0.12) 0 1px, transparent 1px 32px),
+    linear-gradient(135deg, #5d74bd, #29457d);
+  box-shadow:
+    inset 0 0 0 4px rgba(255, 255, 255, 0.14),
+    0 14px 24px rgba(26, 45, 83, 0.18);
 }
 .gho-cell {
   display: grid;
   place-items: center;
   min-height: 0;
   aspect-ratio: 1;
-  border: 1px solid rgba(23, 32, 29, 0.16);
-  border-radius: 7px;
+  border: 1px solid rgba(255, 255, 255, 0.34);
+  border-radius: 4px;
   padding: 0;
-  background: #fbfcfa;
+  background:
+    radial-gradient(circle at center, rgba(255, 255, 255, 0.16), transparent 58%),
+    #334f91;
   color: #17201d;
 }
 .gho-cell.legal {
-  border-color: #28777c;
-  background: #e7f5ef;
+  border-color: #e5c55c;
+  background:
+    radial-gradient(circle at center, rgba(229, 197, 92, 0.42), transparent 62%),
+    #334f91;
 }
 .gho-cell.selected {
   outline: 3px solid #d69b2d;
@@ -671,25 +685,51 @@ const ghostsStyles = `
 .gho-token {
   display: grid;
   place-items: center;
-  width: 72%;
-  aspect-ratio: 1;
-  border: 2px solid color-mix(in srgb, var(--ghost-color) 72%, #17201d);
-  border-radius: 999px 999px 45% 45%;
-  background: color-mix(in srgb, var(--ghost-color) 18%, white);
+  position: relative;
+  width: 70%;
+  aspect-ratio: 0.82;
+  border: 2px solid rgba(38, 54, 91, 0.22);
+  border-radius: 999px 999px 42% 42%;
+  background:
+    radial-gradient(circle at 35% 22%, rgba(255, 255, 255, 0.96), transparent 26%),
+    #f9fbff;
   color: #17201d;
   font-weight: 900;
+  box-shadow:
+    inset 0 -7px 9px rgba(44, 62, 104, 0.12),
+    0 7px 10px rgba(26, 45, 83, 0.24);
+}
+.gho-token::after {
+  content: "";
+  position: absolute;
+  right: 18%;
+  bottom: 14%;
+  width: 25%;
+  aspect-ratio: 1;
+  border-radius: 999px;
+  background: var(--ghost-color);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.82);
 }
 .gho-token.good {
-  background: #e4f4ed;
+  background:
+    radial-gradient(circle at 35% 22%, rgba(255, 255, 255, 0.96), transparent 26%),
+    #f7fff8;
 }
 .gho-token.bad {
-  background: #faedea;
+  background:
+    radial-gradient(circle at 35% 22%, rgba(255, 255, 255, 0.96), transparent 26%),
+    #fff8f5;
 }
 .gho-token.hidden {
-  background: #f2f0ff;
+  background:
+    radial-gradient(circle at 35% 22%, rgba(255, 255, 255, 0.96), transparent 26%),
+    #f9fbff;
 }
 .gho-token.opponent {
   border-style: dashed;
+}
+.gho-token.opponent::after {
+  background: #9aa9c4;
 }
 .gho-move-dot {
   width: 28%;
@@ -699,16 +739,16 @@ const ghostsStyles = `
 }
 .gho-exits button {
   min-height: 36px;
-  border: 1px dashed rgba(23, 32, 29, 0.22);
+  border: 1px dashed rgba(46, 77, 132, 0.32);
   border-radius: 8px;
-  background: #edf2ed;
-  color: #52625d;
+  background: #e9f2ff;
+  color: #29457d;
   font-size: 0.82rem;
   font-weight: 800;
 }
 .gho-exits button.legal {
-  border-color: #28777c;
-  background: #17201d;
+  border-color: #e5c55c;
+  background: #29457d;
   color: white;
 }
 .gho-panel {
@@ -722,7 +762,7 @@ const ghostsStyles = `
   border: 1px solid rgba(23, 32, 29, 0.14);
   border-radius: 8px;
   padding: 10px;
-  background: #fbfcfa;
+  background: linear-gradient(180deg, #fbfcff, #e8f0fb);
 }
 .gho-swatch {
   width: 18px;

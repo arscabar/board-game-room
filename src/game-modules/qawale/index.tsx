@@ -457,10 +457,11 @@ const qawaleStyles = `
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  border: 1px solid rgba(23, 32, 29, 0.14);
+  border: 1px solid rgba(24, 24, 24, 0.18);
   border-radius: 8px;
   padding: 12px;
-  background: #f5f8fb;
+  background:
+    linear-gradient(180deg, #f7f1e6, #e6d4b5);
 }
 .qaw-status strong,
 .qaw-status span {
@@ -482,49 +483,66 @@ const qawaleStyles = `
 .qaw-board {
   display: grid;
   grid-template-columns: repeat(4, minmax(56px, 1fr));
-  gap: 8px;
+  gap: 10px;
   width: min(100%, 420px);
   aspect-ratio: 1;
-  padding: 10px;
-  border: 1px solid rgba(23, 32, 29, 0.18);
+  padding: 16px;
+  border: 1px solid rgba(12, 12, 12, 0.52);
   border-radius: 8px;
-  background: #d8e4ed;
+  background:
+    radial-gradient(circle at 25% 20%, rgba(255, 255, 255, 0.12), transparent 24%),
+    linear-gradient(145deg, #2b2b2a, #0f1112);
+  box-shadow:
+    inset 0 0 0 5px rgba(255, 255, 255, 0.08),
+    inset 0 0 20px rgba(0, 0, 0, 0.42),
+    0 14px 24px rgba(12, 12, 12, 0.18);
 }
 .qaw-cell {
   position: relative;
   display: grid;
   place-items: center;
   min-height: 0;
-  border: 1px solid rgba(23, 32, 29, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 8px;
-  background: #fbfcfa;
-  color: #17201d;
+  background:
+    radial-gradient(circle at 50% 42%, rgba(255, 255, 255, 0.08), transparent 58%),
+    #181b1c;
+  color: #f9f3e6;
+  box-shadow: inset 0 4px 10px rgba(0, 0, 0, 0.42);
 }
 .qaw-cell.selected {
-  outline: 3px solid #315c8c;
+  outline: 3px solid #e5c55c;
   outline-offset: 1px;
 }
 .qaw-cell.path {
-  background: #f9f3d5;
+  background:
+    radial-gradient(circle at 50% 42%, rgba(229, 197, 92, 0.26), transparent 62%),
+    #222425;
 }
 .qaw-cell.next {
-  box-shadow: inset 0 0 0 3px #28777c;
+  box-shadow:
+    inset 0 0 0 3px #e5c55c,
+    inset 0 4px 10px rgba(0, 0, 0, 0.42);
 }
 .qaw-top {
   display: grid;
   place-items: center;
   width: 58%;
   aspect-ratio: 1;
-  border: 2px solid rgba(23, 32, 29, 0.2);
+  border: 2px solid rgba(15, 15, 15, 0.28);
   border-radius: 999px;
   background: var(--stone-color);
   font-weight: 900;
+  box-shadow:
+    inset 0 8px 10px rgba(255, 255, 255, 0.24),
+    inset 0 -8px 10px rgba(0, 0, 0, 0.22),
+    0 6px 9px rgba(0, 0, 0, 0.32);
 }
 .qaw-height {
   position: absolute;
   right: 7px;
   bottom: 5px;
-  color: #52625d;
+  color: #e8dcc4;
   font-family: "Cascadia Mono", Consolas, monospace;
   font-size: 0.8rem;
   font-weight: 800;
@@ -545,7 +563,7 @@ const qawaleStyles = `
   border: 1px solid rgba(23, 32, 29, 0.14);
   border-radius: 8px;
   padding: 9px;
-  background: #fbfcfa;
+  background: linear-gradient(180deg, #fffaf0, #eadabe);
 }
 .qaw-player strong,
 .qaw-player span {
@@ -566,7 +584,7 @@ const qawaleStyles = `
   border: 1px solid rgba(23, 32, 29, 0.14);
   border-radius: 8px;
   padding: 10px;
-  background: #fbfcfa;
+  background: linear-gradient(180deg, #fffaf0, #eadabe);
 }
 .qaw-route > span {
   color: #52625d;
@@ -584,7 +602,7 @@ const qawaleStyles = `
   border: 1px solid rgba(23, 32, 29, 0.14);
   border-radius: 8px;
   padding: 0 8px;
-  background: #edf2ed;
+  background: #f4e5c6;
   font-size: 0.84rem;
   font-weight: 800;
 }
@@ -594,14 +612,14 @@ const qawaleStyles = `
   gap: 8px;
 }
 .qaw-actions button {
-  border: 1px solid rgba(23, 32, 29, 0.16);
+  border: 1px solid rgba(24, 24, 24, 0.2);
   border-radius: 8px;
-  background: #edf2ed;
+  background: linear-gradient(180deg, #fff4d6, #d9b574);
   color: #17201d;
 }
 .qaw-actions button:last-child {
   color: white;
-  background: #17201d;
+  background: linear-gradient(180deg, #333333, #111111);
 }
 @media (max-width: 760px) {
   .qaw-layout {

@@ -532,10 +532,12 @@ const quoridorStyles = `
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  border: 1px solid rgba(23, 32, 29, 0.14);
+  border: 1px solid rgba(98, 58, 28, 0.22);
   border-radius: 8px;
   padding: 12px;
-  background: #fffaf3;
+  background:
+    linear-gradient(180deg, rgba(255, 248, 226, 0.92), rgba(226, 189, 130, 0.44)),
+    #fffaf3;
 }
 .qdr-status strong,
 .qdr-status span {
@@ -562,34 +564,50 @@ const quoridorStyles = `
   width: min(100%, 520px);
   min-width: 436px;
   aspect-ratio: 1;
-  padding: 8px;
-  border: 1px solid rgba(23, 32, 29, 0.2);
+  padding: 12px;
+  border: 1px solid rgba(87, 47, 24, 0.38);
   border-radius: 8px;
-  background: #c89a62;
+  background:
+    linear-gradient(90deg, rgba(90, 49, 23, 0.18) 0 1px, transparent 1px 18px),
+    linear-gradient(0deg, rgba(90, 49, 23, 0.14) 0 1px, transparent 1px 22px),
+    linear-gradient(135deg, #a66832, #d0a166 42%, #8a552b);
+  box-shadow:
+    inset 0 0 0 5px rgba(255, 239, 194, 0.28),
+    inset 0 0 24px rgba(65, 37, 20, 0.24),
+    0 14px 26px rgba(61, 36, 20, 0.18);
 }
 .qdr-cell {
   display: grid;
   place-items: center;
   min-height: 0;
   aspect-ratio: 1;
-  border: 3px solid rgba(255, 255, 255, 0.35);
-  border-radius: 6px;
-  background: #f6dfb7;
+  border: 3px solid rgba(89, 50, 28, 0.34);
+  border-radius: 4px;
+  background:
+    radial-gradient(circle at 34% 25%, rgba(255, 246, 217, 0.86), transparent 34%),
+    linear-gradient(180deg, #f5d99c, #d49b57);
   color: #17201d;
   padding: 0;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.36);
 }
 .qdr-cell.legal {
-  background: #f9f3d5;
-  box-shadow: inset 0 0 0 2px #28777c;
+  background:
+    radial-gradient(circle at center, rgba(40, 119, 124, 0.25), transparent 58%),
+    linear-gradient(180deg, #f8edbb, #d7aa60);
+  box-shadow: inset 0 0 0 3px #28777c;
 }
 .qdr-pawn {
   display: grid;
   place-items: center;
-  width: 70%;
+  width: 68%;
   aspect-ratio: 1;
-  border: 2px solid rgba(17, 24, 39, 0.25);
+  border: 2px solid rgba(17, 24, 39, 0.34);
   border-radius: 999px;
   font-weight: 900;
+  box-shadow:
+    inset 0 7px 10px rgba(255, 255, 255, 0.32),
+    inset 0 -8px 10px rgba(0, 0, 0, 0.18),
+    0 5px 8px rgba(42, 24, 12, 0.32);
 }
 .qdr-dot {
   width: 36%;
@@ -611,10 +629,10 @@ const quoridorStyles = `
   grid-template-columns: 18px minmax(0, 1fr);
   gap: 9px;
   align-items: center;
-  border: 1px solid rgba(23, 32, 29, 0.14);
+  border: 1px solid rgba(98, 58, 28, 0.18);
   border-radius: 8px;
   padding: 9px;
-  background: #fbfcfa;
+  background: #fffaf0;
 }
 .qdr-player strong,
 .qdr-player span {
@@ -635,10 +653,11 @@ const quoridorStyles = `
   gap: 10px;
   min-width: 0;
   overflow-x: auto;
-  border: 1px solid rgba(23, 32, 29, 0.14);
+  border: 1px solid rgba(98, 58, 28, 0.18);
   border-radius: 8px;
   padding: 10px;
-  background: #fbfcfa;
+  background:
+    linear-gradient(180deg, rgba(255, 250, 240, 0.94), rgba(239, 217, 178, 0.72));
 }
 .qdr-segment {
   display: grid;
@@ -648,14 +667,14 @@ const quoridorStyles = `
 .qdr-segment button,
 .qdr-action,
 .qdr-wall-grid button {
-  border: 1px solid rgba(23, 32, 29, 0.18);
+  border: 1px solid rgba(84, 50, 27, 0.24);
   border-radius: 8px;
-  background: #edf2ed;
+  background: linear-gradient(180deg, #fff4d6, #d9b574);
   color: #17201d;
 }
 .qdr-segment button.active,
 .qdr-action {
-  background: #17201d;
+  background: linear-gradient(180deg, #5b3b25, #241915);
   color: white;
 }
 .qdr-wall-grid {

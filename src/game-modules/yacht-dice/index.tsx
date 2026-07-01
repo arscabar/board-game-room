@@ -4,6 +4,15 @@ import type { PlayerSnapshot } from "../../shared/types";
 
 const DICE_COUNT = 5;
 const MAX_ROLLS = 3;
+const DIE_PIP_MAP: Record<DieValue, number[]> = {
+  0: [],
+  1: [4],
+  2: [0, 8],
+  3: [0, 4, 8],
+  4: [0, 2, 6, 8],
+  5: [0, 2, 4, 6, 8],
+  6: [0, 2, 3, 5, 6, 8]
+};
 
 const CATEGORIES = [
   { id: "ones", label: "Ones", description: "Sum of 1s" },
@@ -388,21 +397,24 @@ export function Component({
           <div className="yacht-dice-grid" style={styles.diceGrid}>
             {state.dice.map((die, index) => (
               <button
-                className="yacht-die-button"
-                style={{
-                  ...styles.dieButton,
-                  background: state.held[index] ? "rgba(20, 184, 166, 0.16)" : "rgba(255, 255, 255, 0.9)"
-                }}
+                className={`yacht-die-button ${state.held[index] ? "held" : ""}`}
+                style={styles.dieButton}
                 type="button"
                 key={index}
                 disabled={!canAct || state.rollsThisTurn === 0}
                 aria-pressed={state.held[index]}
-                aria-label={`Toggle hold for die ${index + 1}`}
+                aria-label={`Toggle hold for die ${index + 1}, value ${die || "not rolled"}`}
                 onClick={() => onAction({ type: "yacht-dice/toggle-hold", payload: { index } })}
               >
-                <span>Die {index + 1}</span>
-                <strong>{die || "-"}</strong>
-                <span>{state.held[index] ? "Held" : "Free"}</span>
+                <span className="yacht-die-face" aria-hidden="true">
+                  {Array.from({ length: 9 }, (_, pipIndex) => (
+                    <span
+                      className={`yacht-pip ${DIE_PIP_MAP[die].includes(pipIndex) ? "on" : ""}`}
+                      key={pipIndex}
+                    />
+                  ))}
+                </span>
+                <span className="yacht-die-label">{state.held[index] ? "Held" : "Free"}</span>
               </button>
             ))}
           </div>

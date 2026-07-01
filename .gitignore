@@ -3,6 +3,7 @@ dist/
 data/
 .omx/
 .local-host/
+qa-screenshots/
 *.log
 .server.*.log
 .web.*.log

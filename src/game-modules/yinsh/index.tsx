@@ -611,6 +611,9 @@ function YinshStyles() {
         display: grid;
         gap: 1rem;
         color: #142033;
+        background:
+          linear-gradient(135deg, rgba(59, 130, 160, 0.08), transparent 40%),
+          #f7faf8;
       }
 
       .yinsh-status {
@@ -619,8 +622,10 @@ function YinshStyles() {
         align-items: center;
         justify-content: space-between;
         gap: 0.75rem;
-        padding: 0.75rem 0;
-        border-bottom: 1px solid rgba(15, 23, 42, 0.12);
+        padding: 0.75rem;
+        border: 1px solid rgba(45, 78, 92, 0.14);
+        border-radius: 8px;
+        background: linear-gradient(180deg, #ffffff, #e8f1ee);
       }
 
       .yinsh-layout {
@@ -632,10 +637,15 @@ function YinshStyles() {
 
       .yinsh-board-wrap {
         width: min(100%, 680px);
-        background: #eef4f3;
-        border: 1px solid rgba(15, 23, 42, 0.14);
+        background:
+          radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.94), transparent 26%),
+          linear-gradient(180deg, #fbfbf4, #e1e8df);
+        border: 1px solid rgba(45, 78, 92, 0.18);
         border-radius: 8px;
         overflow: hidden;
+        box-shadow:
+          inset 0 0 0 5px rgba(255, 255, 255, 0.72),
+          0 14px 26px rgba(45, 78, 92, 0.12);
       }
 
       .yinsh-board {
@@ -646,13 +656,13 @@ function YinshStyles() {
       }
 
       .yinsh-edge {
-        stroke: rgba(45, 78, 92, 0.26);
-        stroke-width: 1.4;
+        stroke: rgba(45, 78, 92, 0.32);
+        stroke-width: 1.55;
       }
 
       .yinsh-point {
-        fill: #f8fafc;
-        stroke: rgba(15, 23, 42, 0.28);
+        fill: #fffdf1;
+        stroke: rgba(45, 78, 92, 0.28);
         stroke-width: 1;
       }
 
@@ -676,20 +686,21 @@ function YinshStyles() {
       }
 
       .yinsh-marker.white {
-        fill: #f8fafc;
+        fill: url(#yinsh-white-marker);
         stroke: #334155;
         stroke-width: 1.4;
       }
 
       .yinsh-marker.black {
-        fill: #111827;
+        fill: url(#yinsh-black-marker);
         stroke: #111827;
         stroke-width: 1.4;
       }
 
       .yinsh-ring {
         fill: transparent;
-        stroke-width: 5.5;
+        stroke-width: 5.8;
+        filter: drop-shadow(0 2px 2px rgba(15, 23, 42, 0.18));
       }
 
       .yinsh-ring.white {
@@ -702,8 +713,8 @@ function YinshStyles() {
 
       .yinsh-ring-outline {
         fill: transparent;
-        stroke: rgba(15, 23, 42, 0.44);
-        stroke-width: 7.5;
+        stroke: rgba(15, 23, 42, 0.38);
+        stroke-width: 8;
       }
 
       .yinsh-ring.selected {
@@ -718,6 +729,10 @@ function YinshStyles() {
       .yinsh-panel {
         display: grid;
         gap: 0.55rem;
+        border: 1px solid rgba(45, 78, 92, 0.14);
+        border-radius: 8px;
+        padding: 0.75rem;
+        background: linear-gradient(180deg, #ffffff, #e8f1ee);
       }
 
       .yinsh-player-row {
@@ -887,6 +902,18 @@ export function Component({
       <div className="yinsh-layout">
         <div className="yinsh-board-wrap">
           <svg className="yinsh-board" viewBox={viewBox} role="img" aria-label="인쉬 85점 보드">
+            <defs>
+              <radialGradient id="yinsh-white-marker" cx="34%" cy="28%" r="70%">
+                <stop offset="0%" stopColor="#ffffff" />
+                <stop offset="68%" stopColor="#f8fafc" />
+                <stop offset="100%" stopColor="#d6dde4" />
+              </radialGradient>
+              <radialGradient id="yinsh-black-marker" cx="34%" cy="28%" r="70%">
+                <stop offset="0%" stopColor="#526071" />
+                <stop offset="48%" stopColor="#172033" />
+                <stop offset="100%" stopColor="#05070a" />
+              </radialGradient>
+            </defs>
             {GRID_EDGES.map((edge) => {
               const from = POINT_POSITIONS.get(edge.from);
               const to = POINT_POSITIONS.get(edge.to);
@@ -1017,4 +1044,3 @@ export function Component({
     </div>
   );
 }
-
