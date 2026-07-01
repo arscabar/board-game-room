@@ -2,6 +2,7 @@ import cors from "cors";
 import express from "express";
 import { createServer } from "node:http";
 import { randomUUID } from "node:crypto";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { Server, type Socket } from "socket.io";
@@ -829,6 +830,18 @@ io.on("connection", (socket) => {
 });
 
 const port = Number(process.env.PORT ?? 3001);
-httpServer.listen(port, () => {
+const host = process.env.HOST ?? "0.0.0.0";
+
+function localNetworkUrls(serverPort: number) {
+  return Object.values(os.networkInterfaces())
+    .flatMap((interfaces) => interfaces ?? [])
+    .filter((networkInterface) => networkInterface.family === "IPv4" && !networkInterface.internal)
+    .map((networkInterface) => `http://${networkInterface.address}:${serverPort}`);
+}
+
+httpServer.listen(port, host, () => {
   console.log(`Board Game Room server listening on http://localhost:${port}`);
+  for (const url of localNetworkUrls(port)) {
+    console.log(`LAN access: ${url}`);
+  }
 });
