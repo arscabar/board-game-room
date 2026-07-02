@@ -15,18 +15,18 @@ const DIE_PIP_MAP: Record<DieValue, number[]> = {
 };
 
 const CATEGORIES = [
-  { id: "ones", label: "에이스", description: "1 눈의 합" },
-  { id: "twos", label: "둘", description: "2 눈의 합" },
-  { id: "threes", label: "셋", description: "3 눈의 합" },
-  { id: "fours", label: "넷", description: "4 눈의 합" },
-  { id: "fives", label: "다섯", description: "5 눈의 합" },
-  { id: "sixes", label: "여섯", description: "6 눈의 합" },
-  { id: "choice", label: "초이스", description: "모든 주사위 합" },
-  { id: "fourKind", label: "포카드", description: "같은 눈 4개 이상이면 합산" },
-  { id: "fullHouse", label: "풀하우스", description: "3개+2개 조합이면 25점" },
-  { id: "smallStraight", label: "스몰 스트레이트", description: "연속 4개면 15점" },
-  { id: "largeStraight", label: "라지 스트레이트", description: "연속 5개면 30점" },
-  { id: "yacht", label: "요트", description: "같은 눈 5개면 50점" }
+  { id: "ones", label: "1" },
+  { id: "twos", label: "2" },
+  { id: "threes", label: "3" },
+  { id: "fours", label: "4" },
+  { id: "fives", label: "5" },
+  { id: "sixes", label: "6" },
+  { id: "choice", label: "초이스" },
+  { id: "fourKind", label: "포카드" },
+  { id: "fullHouse", label: "풀하우스" },
+  { id: "smallStraight", label: "스몰" },
+  { id: "largeStraight", label: "라지" },
+  { id: "yacht", label: "요트" }
 ] as const;
 
 type CategoryId = (typeof CATEGORIES)[number]["id"];
@@ -37,7 +37,7 @@ const UPPER_BONUS_THRESHOLD = 63;
 const UPPER_BONUS_SCORE = 35;
 
 const scoreSheetLabels: Record<CategoryId, string> = {
-  ones: "A",
+  ones: "1",
   twos: "2",
   threes: "3",
   fours: "4",
@@ -530,7 +530,7 @@ export function Component({
               <thead>
                 <tr>
                   <th style={styles.cell}>칸</th>
-                  <th style={styles.cell}>예상</th>
+                  <th style={styles.cell}>점수</th>
                   <th style={styles.cell}>기록</th>
                 </tr>
               </thead>
@@ -542,8 +542,6 @@ export function Component({
                     <tr key={category.id}>
                       <td style={styles.cell}>
                         <strong>{category.label}</strong>
-                        <br />
-                        <span>{category.description}</span>
                       </td>
                       <td style={styles.cell}>{usedScore ?? preview}</td>
                       <td style={styles.cell}>
@@ -554,9 +552,10 @@ export function Component({
                             type="button"
                             className="yacht-score-button"
                             disabled={!canAct || state.rollsThisTurn === 0}
+                            aria-label={`${category.label} ${preview}점 기록`}
                             onClick={() => onAction({ type: "yacht-dice/score-category", payload: { category: category.id } })}
                           >
-                            {preview}점 기록
+                            기록
                           </button>
                         )}
                       </td>

@@ -226,6 +226,40 @@
   overflow-wrap: anywhere !important;
 }
 
+.yacht-score-table th:first-child,
+.yacht-score-table td:first-child {
+  width: 36% !important;
+  text-align: left !important;
+}
+
+.yacht-score-table th:nth-child(2),
+.yacht-score-table td:nth-child(2) {
+  width: 22% !important;
+  text-align: center !important;
+}
+
+.yacht-score-table th:nth-child(3),
+.yacht-score-table td:nth-child(3) {
+  width: 42% !important;
+  text-align: center !important;
+}
+
+.yacht-score-table td:first-child strong {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  color: #1f3438;
+  font-size: 0.9rem;
+  line-height: 1.1;
+}
+
+.yacht-score-table .yacht-score-button {
+  width: min(100%, 72px);
+  min-height: 34px;
+  padding: 0 8px;
+  white-space: nowrap;
+}
+
 .yacht-player-table th:first-child,
 .yacht-player-table td:first-child {
   width: 72px !important;
