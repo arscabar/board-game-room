@@ -39,8 +39,9 @@ Options:
 After generation:
   1. Add the printed GameDefinition snippet to src/shared/games.ts.
   2. Add the printed import/register lines to src/game-modules/catalog.ts.
-  3. Replace the starter rules and UI with the real game.
-  4. Run npm run qa:catalog && npm run build.
+  3. Pick a visual.iconKind, thumbnailHint, motionHint, and object texture.
+  4. Replace the starter rules and UI with the real game.
+  5. Run npm run qa:catalog && npm run build.
 `.trim());
 }
 
@@ -223,6 +224,12 @@ function gameDefinitionSnippet(id: string, title: string, players: number[]) {
     primaryMetric: "주요 상태",
     secondaryMetric: "보조 상태",
     uiHint: "테이블 UI 힌트를 입력하세요"
+  },
+  visual: {
+    iconKind: "duel",
+    thumbnailHint: "로비/설명 패널에 보일 미니 보드 힌트",
+    motionHint: "flip, snap, glide, drop, tumble 중 핵심 조작 모션",
+    texture: "wood"
   }
 }`;
 }
@@ -267,6 +274,7 @@ async function main() {
   console.log(`import { module as ${camelName}Module, Component as ${pascalName}Component } from "./${id}";`);
   console.log(`registerGame("${id}", ${camelName}Module, ${pascalName}Component),`);
   console.log("\nThen run:");
+  console.log("Check DESIGN_UPGRADE_PLAN.md for thumbnail, icon, motion, privacy, and mobile capture items.");
   console.log("npm run qa:catalog");
   console.log("npm run build");
 }

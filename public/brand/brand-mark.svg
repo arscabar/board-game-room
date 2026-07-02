@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="wood" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#5b3822"/>
+      <stop offset="1" stop-color="#1f1008"/>
+    </linearGradient>
+    <linearGradient id="felt" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0" stop-color="#0e6b48"/>
+      <stop offset="1" stop-color="#063225"/>
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" rx="22" fill="url(#wood)"/>
+  <path d="M16 18h96M22 42h84M18 77h92M34 8v112M72 8v112M104 18v92" stroke="#e0ad62" stroke-opacity=".2" stroke-width="2"/>
+  <rect x="24" y="24" width="80" height="80" rx="13" fill="url(#felt)" stroke="#8ee0a0" stroke-opacity=".65" stroke-width="3"/>
+  <path d="M40 26v76M56 26v76M72 26v76M88 26v76M26 40h76M26 56h76M26 72h76M26 88h76" stroke="#fff0cf" stroke-opacity=".15"/>
+  <rect x="28" y="64" width="35" height="35" rx="7" fill="#fff0cf" stroke="#2b170d" stroke-width="2"/>
+  <circle cx="39" cy="75" r="3.3" fill="#27170e"/><circle cx="52" cy="75" r="3.3" fill="#27170e"/><circle cx="45.5" cy="81.5" r="3.3" fill="#27170e"/><circle cx="39" cy="88" r="3.3" fill="#27170e"/><circle cx="52" cy="88" r="3.3" fill="#27170e"/>
+  <rect x="72" y="55" width="27" height="43" rx="5" fill="#b53d36" stroke="#f5d18a" stroke-opacity=".8" stroke-width="2"/>
+  <circle cx="78" cy="37" r="9" fill="#e0ad62"/><ellipse cx="78" cy="51" rx="14" ry="7" fill="#e0ad62"/>
+</svg>

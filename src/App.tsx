@@ -10,10 +10,13 @@ import {
   Crown,
   Dice5,
   DoorOpen,
+  Eye,
+  EyeOff,
   ExternalLink,
   FastForward,
   Flag,
   Gamepad2,
+  Gauge,
   Grid2X2,
   History,
   Hexagon,
@@ -32,9 +35,13 @@ import {
   Send,
   ShieldQuestion,
   Sparkles,
+  Star,
   Target,
+  TimerOff,
   Trophy,
+  UserCheck,
   Users,
+  WifiOff,
   type LucideIcon
 } from "lucide-react";
 import { type CSSProperties, type FormEvent, useEffect, useMemo, useState } from "react";
@@ -148,7 +155,7 @@ const gameKindIcons: Record<GameDefinition["table"]["kind"], LucideIcon> = {
 };
 
 function GameKindIcon({ game, size = 17 }: { game: GameDefinition; size?: number }) {
-  const Icon = gameKindIcons[game.table.kind] ?? Gamepad2;
+  const Icon = gameKindIcons[game.visual?.iconKind ?? game.table.kind] ?? Gamepad2;
   return <Icon size={size} aria-hidden="true" />;
 }
 
@@ -160,6 +167,21 @@ function foldIconFor(title: string) {
   };
   return icons[title] ?? ListChecks;
 }
+
+const hiddenInformationGameIds = new Set(["guryongtu", "ghosts", "davinci-code-plus", "hangman-board-game"]);
+
+const visualCueByKind: Record<GameDefinition["table"]["kind"], { label: string; motion: string; Icon: LucideIcon }> = {
+  duel: { label: "비공개 타일 공개", motion: "flip", Icon: ShieldQuestion },
+  maze: { label: "말과 벽 배치", motion: "snap", Icon: Route },
+  hex: { label: "육각 구슬 밀기", motion: "slide", Icon: Hexagon },
+  hidden: { label: "정체 숨김", motion: "peek", Icon: EyeOff },
+  stack: { label: "스택 분배", motion: "drop", Icon: Layers3 },
+  deduction: { label: "타일 랙 추리", motion: "reveal", Icon: Brain },
+  polyomino: { label: "블록 배치", motion: "snap", Icon: Puzzle },
+  dice: { label: "주사위 굴림", motion: "tumble", Icon: Dice5 },
+  rings: { label: "링과 마커", motion: "glide", Icon: CircleDot },
+  word: { label: "글자 공개", motion: "press", Icon: BookOpen }
+};
 
 function stateRecord(value: unknown) {
   return value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : null;
@@ -494,7 +516,7 @@ function App() {
       </a>
       <header className="topbar">
         <div className="brand-mark" aria-hidden="true">
-          <Gamepad2 size={22} />
+          <img src="/brand/brand-mark.svg" alt="" />
         </div>
         <div>
           <h1>Board Game Room</h1>
@@ -584,6 +606,20 @@ function HomeView({
         <p>
           한 방은 최대 4명까지 들어올 수 있고, 방 안에서는 현재 인원수에 맞는 게임만 선택됩니다.
         </p>
+        <div className="tabletop-still-life" aria-hidden="true">
+          <span className="still-card card-a" />
+          <span className="still-card card-b" />
+          <span className="still-die">
+            <i />
+            <i />
+            <i />
+            <i />
+            <i />
+          </span>
+          <span className="still-pawn" />
+          <span className="still-tile tile-a" />
+          <span className="still-tile tile-b" />
+        </div>
         <div className="catalog-strip" aria-label="등록된 게임">
           {games.slice(0, 10).map((game) => (
             <span key={game.id}>{game.title}</span>
@@ -753,14 +789,34 @@ function StatsDashboard({ playerName, clientKey }: { playerName: string; clientK
               <table className="stat-table">
                 <thead>
                   <tr>
-                    <th>순위</th>
-                    <th>플레이어</th>
-                    <th>게임</th>
-                    <th>승률</th>
-                    <th>전적</th>
-                    <th>평균</th>
-                    <th>최고</th>
-                  </tr>
+                  <th>순위</th>
+                  <th>플레이어</th>
+                  <th>게임</th>
+                  <th>
+                    <span className="stat-th-label">
+                      <Trophy size={13} aria-hidden="true" />
+                      승률
+                    </span>
+                  </th>
+                  <th>
+                    <span className="stat-th-label">
+                      <History size={13} aria-hidden="true" />
+                      전적
+                    </span>
+                  </th>
+                  <th>
+                    <span className="stat-th-label">
+                      <Gauge size={13} aria-hidden="true" />
+                      평균
+                    </span>
+                  </th>
+                  <th>
+                    <span className="stat-th-label">
+                      <Star size={13} aria-hidden="true" />
+                      최고
+                    </span>
+                  </th>
+                </tr>
                 </thead>
                 <tbody>
                   {leaderboard.map((entry, index) => (
@@ -795,15 +851,21 @@ function StatsDashboard({ playerName, clientKey }: { playerName: string; clientK
           </div>
           {playerStats?.entries.length ? (
             <div className="player-stat-list">
-              {playerStats.entries.slice(0, 5).map((entry) => (
-                <div className="player-stat-row" key={`${entry.playerKey}-${entry.gameId}`}>
-                  <div>
-                    <strong>{entry.gameTitle}</strong>
-                    <span>{entry.gamesPlayed}전 · 최근 {formatDateTime(entry.lastPlayedAt)}</span>
+              {playerStats.entries.slice(0, 5).map((entry) => {
+                const game = getGameById(entry.gameId);
+                return (
+                  <div className="player-stat-row" key={`${entry.playerKey}-${entry.gameId}`}>
+                    <span className="stat-game-icon" aria-hidden="true">
+                      {game ? <GameKindIcon game={game} size={15} /> : <Gamepad2 size={15} />}
+                    </span>
+                    <div>
+                      <strong>{entry.gameTitle}</strong>
+                      <span>{entry.gamesPlayed}전 · 최근 {formatDateTime(entry.lastPlayedAt)}</span>
+                    </div>
+                    <span className="rate-pill">{formatPercent(entry.winRate)}</span>
                   </div>
-                  <span className="rate-pill">{formatPercent(entry.winRate)}</span>
-                </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
             <p className="helper-text">{loading ? "전적을 확인하고 있습니다." : "이 이름으로 저장된 전적이 없습니다."}</p>
@@ -817,18 +879,24 @@ function StatsDashboard({ playerName, clientKey }: { playerName: string; clientK
           </div>
           {recentMatches.length > 0 ? (
             <div className="recent-match-list">
-              {recentMatches.map((match) => (
-                <div className="recent-match-row" key={match.id}>
-                  <div>
-                    <strong>{match.gameTitle}</strong>
-                    <span>{formatDateTime(match.finishedAt)}</span>
+              {recentMatches.map((match) => {
+                const game = getGameById(match.gameId);
+                return (
+                  <div className="recent-match-row" key={match.id}>
+                    <span className="stat-game-icon" aria-hidden="true">
+                      {game ? <GameKindIcon game={game} size={15} /> : <Gamepad2 size={15} />}
+                    </span>
+                    <div>
+                      <strong>{match.gameTitle}</strong>
+                      <span>{formatDateTime(match.finishedAt)}</span>
+                    </div>
+                    <div className="match-result">
+                      <span>{winnerLabel(match)}</span>
+                      <small>{match.players.map((player) => `${player.playerName} ${formatScore(player.score)}`).join(" · ")}</small>
+                    </div>
                   </div>
-                  <div className="match-result">
-                    <span>{winnerLabel(match)}</span>
-                    <small>{match.players.map((player) => `${player.playerName} ${formatScore(player.score)}`).join(" · ")}</small>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
             <p className="helper-text">{loading ? "최근 경기를 불러오는 중입니다." : "최근 경기 기록이 없습니다."}</p>
@@ -949,20 +1017,23 @@ function SeatRow({
   player?: PlayerSnapshot;
   currentPlayerId: string;
 }) {
-  const RoleIcon = player?.isHost ? Crown : player ? Users : null;
+  const isCurrent = player?.id === currentPlayerId;
+  const RoleIcon = player?.isHost ? Crown : isCurrent ? UserCheck : player ? Users : null;
+  const ConnectionIcon = player ? (player.connected ? CheckCircle2 : WifiOff) : null;
   const roleLabel = player?.isHost ? "방장" : player ? "참가자" : "대기";
+  const connectionLabel = player?.connected ? "연결됨" : player ? "재접속 대기" : "";
 
   return (
-    <div className={`seat-row ${player ? "filled" : ""}`}>
+    <div className={`seat-row ${player ? "filled" : ""} ${isCurrent ? "current" : ""} ${player && !player.connected ? "offline" : ""}`}>
       <span className="seat-number">{seat}</span>
       <div>
         <strong>{player?.name ?? "빈 좌석"}</strong>
         <span>
           {RoleIcon ? <RoleIcon className="seat-role-icon" size={14} aria-hidden="true" /> : null}
-          {roleLabel} {player?.id === currentPlayerId ? "· 나" : ""}
+          {roleLabel} {isCurrent ? "· 나" : ""}
         </span>
       </div>
-      {player?.connected ? <CheckCircle2 size={18} aria-label="연결됨" /> : null}
+      {ConnectionIcon ? <ConnectionIcon className="seat-connection-icon" size={18} aria-label={connectionLabel} /> : null}
     </div>
   );
 }
@@ -1010,6 +1081,9 @@ function LobbyPanel({
               type="button"
               onClick={() => onSelectGame(game.id)}
               disabled={!available || !isHost}
+              aria-pressed={selected}
+              aria-current={selected ? "true" : undefined}
+              aria-label={`${game.title}, ${formatAllowedPlayers(game)}, ${gameAvailabilityLabel(game, playerCount)}`}
               style={{ "--game-accent": game.accent } as CSSProperties}
             >
               <span className="game-row-icon" aria-hidden="true">
@@ -1030,6 +1104,7 @@ function LobbyPanel({
                   </span>
                 </span>
               </span>
+              <GameMiniThumbnail game={game} />
               <span className={available ? "status-pill ok" : "status-pill muted"}>
                 {available ? <CheckCircle2 size={13} aria-hidden="true" /> : <Users size={13} aria-hidden="true" />}
                 {gameAvailabilityLabel(game, playerCount)}
@@ -1074,11 +1149,14 @@ function PlayPanel({
   const timerAnchor = paused ? room.gameState.pausedAt ?? now : now;
   const remainingMs = room.gameState.turnDeadlineAt ? room.gameState.turnDeadlineAt - timerAnchor : 0;
   const timerExpired = !isFinished && !paused && Boolean(room.gameState.turnDeadlineAt) && remainingMs <= 0;
+  const timerUrgent =
+    !isFinished && !paused && Boolean(room.gameState.turnDeadlineAt) && remainingMs > 0 && remainingMs <= 10_000;
   const timeoutCount = activePlayer ? room.gameState.timeoutCounts?.[activePlayer.id] ?? 0 : 0;
   const canAdvanceTurn = !paused && !isFinished && (isMyTurn || (isHost && timerExpired && Boolean(activePlayer)));
   const canClaimTimeout = timerExpired && !isMyTurn && Boolean(activePlayer);
   const winnerLabel = winnerNames.length > 0 ? winnerNames.join(", ") : isFinished ? "무승부 또는 종료" : null;
   const message = runtimeMessage(room);
+  const latestMove = room.gameState.moveLog.at(-1);
   const guideTitle = isFinished
     ? "게임이 끝났습니다"
     : paused
@@ -1164,6 +1242,11 @@ function PlayPanel({
 
   return (
     <section className="work-panel play-panel" aria-labelledby="play-title">
+      <p className="visually-hidden" role="status" aria-live="polite">
+        {latestMove
+          ? `${selectedGame?.title ?? "게임"} 진행: ${latestMove.playerName} ${latestMove.action}`
+          : `${selectedGame?.title ?? "게임"} ${phaseName(phase)} ${activePlayer?.name ?? "플레이어 없음"}`}
+      </p>
       <div className="panel-header">
         <div>
           <h2 id="play-title">{selectedGame?.title ?? "게임 진행"}</h2>
@@ -1192,10 +1275,13 @@ function PlayPanel({
         <div className="turn-guide-reason">{guideReason}</div>
       </div>
 
-      <div className={`table-control-panel ${paused ? "paused" : ""} ${timerExpired ? "expired" : ""}`} aria-label="게임 진행 제어">
+      <div
+        className={`table-control-panel ${paused ? "paused" : ""} ${timerExpired ? "expired" : ""} ${timerUrgent ? "urgent" : ""}`}
+        aria-label="게임 진행 제어"
+      >
         <div className="turn-timer-card">
           <div className="turn-timer-head">
-            <Clock3 size={18} aria-hidden="true" />
+            {timerExpired ? <TimerOff size={18} aria-hidden="true" /> : <Clock3 size={18} aria-hidden="true" />}
             <div>
               <strong>{paused ? "일시정지" : timerExpired ? "시간 초과" : "턴 타이머"}</strong>
               <span>
@@ -1238,7 +1324,12 @@ function PlayPanel({
           ) : (
             <span className="control-note">{paused ? `${room.gameState.pausedBy ?? "방장"}님이 정지` : "방장 제어"}</span>
           )}
-          <button className="secondary-button danger" type="button" onClick={claimTimeout} disabled={!canClaimTimeout}>
+          <button
+            className={`secondary-button danger ${canClaimTimeout ? "timeout-claimable" : ""}`}
+            type="button"
+            onClick={claimTimeout}
+            disabled={!canClaimTimeout}
+          >
             <FastForward size={18} />
             타임아웃 처리
           </button>
@@ -1254,6 +1345,8 @@ function PlayPanel({
           const active = player.id === activePlayer?.id;
           const current = player.id === currentPlayer?.id;
           const won = winnerIds.includes(player.id);
+          const StatusIcon = won ? Trophy : active ? Radio : current ? UserCheck : player.connected ? Clock3 : WifiOff;
+          const statusLabel = won ? "승자" : active ? "현재 차례" : current ? "나" : player.connected ? "대기" : "오프라인";
           return (
             <div
               key={player.id}
@@ -1262,7 +1355,10 @@ function PlayPanel({
             >
               <span className="player-turn-swatch" aria-hidden="true" />
               <strong>{player.name}</strong>
-              <span>{won ? "승자" : active ? "현재 차례" : current ? "나" : player.connected ? "대기" : "오프라인"}</span>
+              <span className="turn-chip-status">
+                <StatusIcon size={12} aria-hidden="true" />
+                {statusLabel}
+              </span>
             </div>
           );
         })}
@@ -1326,14 +1422,18 @@ function PlayPanel({
 }
 
 function RuleChecklist({ game, phase }: { game: GameDefinition; phase: string }) {
-  const hiddenInfoGames = new Set(["guryongtu", "ghosts", "davinci-code-plus", "hangman-board-game"]);
-  const privacyLabel = hiddenInfoGames.has(game.id) ? "비공개 정보 분리 적용" : "공개 정보 게임";
+  const hasHiddenInfo = hiddenInformationGameIds.has(game.id);
+  const privacyLabel = hasHiddenInfo ? "비공개 정보 분리 적용" : "공개 정보 게임";
+  const PrivacyIcon = hasHiddenInfo ? EyeOff : Eye;
 
   return (
     <section className="rule-check-panel" aria-label="적용된 룰 체크">
       <div>
-        <strong>룰 적용 체크</strong>
-        <span>{phaseName(phase)} · {privacyLabel}</span>
+        <PrivacyIcon size={17} aria-hidden="true" />
+        <span>
+          <strong>룰 적용 체크</strong>
+          <span>{phaseName(phase)} · {privacyLabel}</span>
+        </span>
       </div>
       <ul>
         {game.implementation.slice(0, 6).map((item) => (
@@ -1347,39 +1447,246 @@ function RuleChecklist({ game, phase }: { game: GameDefinition; phase: string })
   );
 }
 
+function previewCellsFor(game: GameDefinition) {
+  return Array.from({ length: game.table.kind === "polyomino" ? 64 : 25 }, (_, index) => index);
+}
+
+function GameMiniThumbnail({ game }: { game: GameDefinition }) {
+  return (
+    <span className={`game-row-thumb thumb-${game.table.kind} thumb-${game.id}`} aria-hidden="true">
+      <BoardPreviewStage game={game} cells={previewCellsFor(game)} />
+    </span>
+  );
+}
+
 function BoardPreview({
   game,
-  activePlayer
+  activePlayer,
+  previewLabel = "대기"
 }: {
   game: GameDefinition | null;
   activePlayer: PlayerSnapshot | null;
+  previewLabel?: string;
 }) {
   if (!game) {
     return <div className="board-preview empty">게임을 선택해주세요.</div>;
   }
 
-  const cells = Array.from({ length: game.table.kind === "polyomino" ? 64 : 25 }, (_, index) => index);
+  const cells = previewCellsFor(game);
   return (
-    <div className={`board-preview ${game.table.kind}`} style={{ "--game-accent": game.accent } as CSSProperties}>
+    <div className={`board-preview ${game.table.kind} preview-${game.id}`} style={{ "--game-accent": game.accent } as CSSProperties}>
       <div className="board-header">
         <span>{game.table.primaryMetric}</span>
-        <strong>{activePlayer?.name ?? "대기"}</strong>
+        <strong>{activePlayer?.name ?? previewLabel}</strong>
         <span>{game.table.secondaryMetric}</span>
       </div>
-      <div className="board-stage" aria-label={game.table.uiHint}>
-        {game.table.kind === "dice" ? (
-          <DiceBoard />
-        ) : game.table.kind === "word" ? (
-          <WordBoard />
-        ) : game.table.kind === "rings" ? (
-          <RingBoard />
-        ) : (
-          <div className={`mini-grid ${game.table.kind}`}>
-            {cells.map((cell) => (
-              <span key={cell} className={cell % 7 === 0 ? "accent-cell" : ""} />
-            ))}
-          </div>
-        )}
+      <div className={`board-stage stage-${game.id}`} role="img" aria-label={`${game.title} 미리보기: ${game.table.uiHint}`}>
+        <BoardPreviewStage game={game} cells={cells} />
+      </div>
+    </div>
+  );
+}
+
+function BoardPreviewStage({ game, cells }: { game: GameDefinition; cells: number[] }) {
+  if (game.id === "guryongtu") return <TileDuelBoard />;
+  if (game.id === "quoridor") return <QuoridorMiniBoard />;
+  if (game.id === "abalone-classic") return <AbaloneMiniBoard />;
+  if (game.id === "ghosts") return <GhostsMiniBoard />;
+  if (game.id === "qawale") return <QawaleMiniBoard />;
+  if (game.id === "davinci-code-plus") return <DavinciMiniRack />;
+  if (game.id === "blokus") return <BlokusMiniBoard />;
+  if (game.id === "yacht-dice") return <YachtMiniBoard />;
+  if (game.id === "yinsh") return <YinshMiniBoard />;
+  if (game.id === "hangman-board-game") return <HangmanMiniBoard />;
+  if (game.table.kind === "dice") return <DiceBoard />;
+  if (game.table.kind === "word") return <WordBoard />;
+  if (game.table.kind === "rings") return <RingBoard />;
+
+  return (
+    <div className={`mini-grid ${game.table.kind}`}>
+      {cells.map((cell) => (
+        <span key={cell} className={cell % 7 === 0 ? "accent-cell" : ""} />
+      ))}
+    </div>
+  );
+}
+
+function TileDuelBoard() {
+  return (
+    <div className="tile-duel-board">
+      {Array.from({ length: 9 }, (_, index) => (
+        <span key={index} className={index === 2 || index === 6 ? "used" : index === 4 ? "chosen" : ""}>
+          {index + 1}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function QuoridorMiniBoard() {
+  const pawns = new Map([
+    ["1-4", "blue"],
+    ["7-4", "red"]
+  ]);
+  const walls = new Set(["2-3", "4-5", "5-2", "6-6"]);
+
+  return (
+    <div className="quoridor-mini-board">
+      {Array.from({ length: 81 }, (_, index) => {
+        const row = Math.floor(index / 9);
+        const col = index % 9;
+        const key = `${row}-${col}`;
+        return (
+          <span key={key} className={walls.has(key) ? "wall-cell" : ""}>
+            {pawns.has(key) ? <i className={pawns.get(key)} /> : null}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
+function AbaloneMiniBoard() {
+  const rows = [5, 6, 7, 6, 5];
+  return (
+    <div className="abalone-mini-board">
+      {rows.map((count, row) => (
+        <div key={row} style={{ "--mini-row": count } as CSSProperties}>
+          {Array.from({ length: count }, (_, col) => {
+            const color = row < 2 ? "black" : row > 2 ? "white" : col === 2 || col === 4 ? "brass" : "";
+            return <span key={`${row}-${col}`} className={color} />;
+          })}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function GhostsMiniBoard() {
+  return (
+    <div className="ghosts-mini-board">
+      {Array.from({ length: 36 }, (_, index) => {
+        const row = Math.floor(index / 6);
+        const col = index % 6;
+        const topToken = row === 0 && col > 0 && col < 5;
+        const bottomToken = row === 5 && col > 0 && col < 5;
+        const kind = topToken ? "hidden" : bottomToken ? (col % 2 === 0 ? "good" : "bad") : "";
+        return <span key={index} className={kind} />;
+      })}
+    </div>
+  );
+}
+
+function QawaleMiniBoard() {
+  const stacks = [2, 0, 1, 3, 0, 4, 1, 0, 1, 0, 3, 1, 2, 1, 0, 2];
+  return (
+    <div className="qawale-mini-board">
+      {stacks.map((height, index) => (
+        <span key={index} className={height > 0 ? "stacked" : ""}>
+          {height > 0 ? Array.from({ length: Math.min(height, 4) }, (_, layer) => <i key={layer} />) : null}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function DavinciMiniRack() {
+  return (
+    <div className="davinci-mini-rack">
+      {["hidden", "white", "black", "hidden", "joker"].map((kind, index) => (
+        <span key={`${kind}-${index}`} className={kind}>
+          {kind === "hidden" ? "?" : kind === "joker" ? "J" : index + 1}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function BlokusMiniBoard() {
+  const filled = new Map([
+    ["0-0", "blue"],
+    ["1-0", "blue"],
+    ["1-1", "blue"],
+    ["6-0", "yellow"],
+    ["6-1", "yellow"],
+    ["7-1", "yellow"],
+    ["0-6", "red"],
+    ["1-6", "red"],
+    ["1-7", "red"],
+    ["6-6", "green"],
+    ["7-6", "green"],
+    ["7-7", "green"]
+  ]);
+  return (
+    <div className="blokus-mini-board">
+      {Array.from({ length: 64 }, (_, index) => {
+        const row = Math.floor(index / 8);
+        const col = index % 8;
+        const key = `${row}-${col}`;
+        return <span key={key} className={filled.get(key) ?? ""} />;
+      })}
+    </div>
+  );
+}
+
+function YachtMiniBoard() {
+  const dice = [6, 4, 4, 2, 1];
+  const rows = ["Aces", "Full", "Yacht"];
+
+  return (
+    <div className="yacht-mini-board">
+      <div className="yacht-mini-dice">
+        {dice.map((value, index) => (
+          <span key={`${value}-${index}`} className={index === 1 || index === 2 ? "held" : ""}>
+            {value}
+          </span>
+        ))}
+      </div>
+      <div className="yacht-mini-score">
+        {rows.map((row, index) => (
+          <span key={row}>
+            <strong>{row}</strong>
+            <i>{index === 0 ? "3" : index === 1 ? "25" : "-"}</i>
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function YinshMiniBoard() {
+  const rings = new Set([2, 8, 14, 20]);
+  const black = new Set([6, 12, 18]);
+  const white = new Set([10, 16, 22]);
+
+  return (
+    <div className="yinsh-mini-board">
+      {Array.from({ length: 25 }, (_, index) => (
+        <span key={index} className={rings.has(index) ? "ring" : black.has(index) ? "black-marker" : white.has(index) ? "white-marker" : ""} />
+      ))}
+    </div>
+  );
+}
+
+function HangmanMiniBoard() {
+  return (
+    <div className="hangman-mini-board">
+      <div className="hangman-mini-word">
+        {["B", "O", "A", "_", "D"].map((letter, index) => (
+          <span key={`${letter}-${index}`}>{letter}</span>
+        ))}
+      </div>
+      <div className="hangman-mini-alpha">
+        {["A", "E", "M", "R", "S", "T"].map((letter, index) => (
+          <span key={letter} className={index < 3 ? "used" : ""}>
+            {letter}
+          </span>
+        ))}
+      </div>
+      <div className="hangman-mini-track">
+        {Array.from({ length: 6 }, (_, index) => (
+          <span key={index} className={index < 2 ? "lit" : ""} />
+        ))}
       </div>
     </div>
   );
@@ -1429,6 +1736,11 @@ function GameDetailPanel({ game, playerCount }: { game: GameDefinition | null; p
     );
   }
 
+  const visualCue = visualCueByKind[game.visual?.iconKind ?? game.table.kind];
+  const VisualCueIcon = visualCue.Icon;
+  const hasHiddenInfo = hiddenInformationGameIds.has(game.id);
+  const PrivacyCueIcon = hasHiddenInfo ? EyeOff : Eye;
+
   return (
     <aside className="detail-panel detail-fold-panel" aria-label="게임 정보">
       <div className="panel-header">
@@ -1450,6 +1762,21 @@ function GameDetailPanel({ game, playerCount }: { game: GameDefinition | null; p
             <ChevronDown className="fold-chevron" size={16} aria-hidden="true" />
           </summary>
           <div className="fold-content">
+            <div className="detail-board-preview">
+              <BoardPreview game={game} activePlayer={null} previewLabel="미리보기" />
+            </div>
+            <div className="detail-visual-cues" aria-label="시각적 조작 힌트">
+              <span>
+                <VisualCueIcon size={14} aria-hidden="true" />
+                <strong>{game.visual?.thumbnailHint ?? visualCue.label}</strong>
+                <small>{game.visual?.motionHint ?? visualCue.motion}</small>
+              </span>
+              <span>
+                <PrivacyCueIcon size={14} aria-hidden="true" />
+                <strong>{hasHiddenInfo ? "비공개 정보" : "공개 정보"}</strong>
+                <small>{hasHiddenInfo ? "viewer 분리" : "공유 상태"}</small>
+              </span>
+            </div>
             <p className="summary">{game.summary}</p>
             <div className="detail-meta-grid" aria-label="게임 요약">
               <span>

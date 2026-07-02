@@ -93,14 +93,14 @@
 
 작업 항목:
 
-- [ ] `public/` 폴더 생성
-- [ ] `favicon.svg` 또는 `favicon.ico` 추가
-- [ ] `manifest.webmanifest` 추가
-- [ ] `apple-touch-icon.png` 추가
-- [ ] 공유용 `og-board-game-room.png` 추가
-- [ ] `index.html`에 favicon, manifest, theme color, OG meta 연결
-- [ ] Android `mipmap-*` 앱 아이콘 교체
-- [ ] Android `drawable*/splash.png` 스플래시 교체
+- [x] `public/` 폴더 생성
+- [x] `favicon.svg` 또는 `favicon.ico` 추가
+- [x] `manifest.webmanifest` 추가
+- [x] `apple-touch-icon.png` 추가
+- [x] 공유용 `og-board-game-room.png` 추가
+- [x] `index.html`에 favicon, manifest, theme color, OG meta 연결
+- [x] Android `mipmap-*` 앱 아이콘 교체
+- [x] Android `drawable*/splash.png` 스플래시 교체
 
 권장 이미지 콘셉트:
 
@@ -120,24 +120,24 @@
 
 작업 항목:
 
-- [ ] 기존 `BoardPreview`를 로비 상세 패널에서 재사용 가능하게 리팩터링
-- [ ] `BoardPreview`를 fallback 용도에서 게임 설명용 미니 썸네일로 승격
-- [ ] 게임 목록 hover/selected 상태에서 작은 썸네일 또는 컴포넌트 힌트 노출
-- [ ] 360px 모바일에서 썸네일이 설명보다 먼저 과하게 커지지 않도록 제한
-- [ ] 1280px 데스크톱에서 오른쪽 설명 패널 안에 안정적으로 배치
+- [x] 기존 `BoardPreview`를 로비 상세 패널에서 재사용 가능하게 리팩터링
+- [x] `BoardPreview`를 fallback 용도에서 게임 설명용 미니 썸네일로 승격
+- [x] 게임 목록 hover/selected 상태에서 작은 썸네일 또는 컴포넌트 힌트 노출
+- [x] 360px 모바일에서 썸네일이 설명보다 먼저 과하게 커지지 않도록 제한
+- [x] 1280px 데스크톱에서 오른쪽 설명 패널 안에 안정적으로 배치
 
 게임별 썸네일 체크:
 
-- [ ] 구룡투: 1-9 타일 선택 판
-- [ ] 쿼리도: 9x9 길과 벽
-- [ ] 아발론 클래식: 육각 구슬 보드
-- [ ] 고스트: 6x6 격자와 비공개 유령
-- [ ] 카왈레: 4x4 홈과 돌 스택
-- [ ] 다빈치 코드 플러스: 숨겨진 숫자 타일 랙
-- [ ] 블로커스: 20x20 격자와 폴리오미노 조각
-- [ ] 요트 다이스: 5개 주사위와 점수표
-- [ ] 인쉬: 링/마커 네트워크
-- [ ] 행맨 보드게임: 알파벳 타일과 단어 슬롯
+- [x] 구룡투: 1-9 타일 선택 판
+- [x] 쿼리도: 9x9 길과 벽
+- [x] 아발론 클래식: 육각 구슬 보드
+- [x] 고스트: 6x6 격자와 비공개 유령
+- [x] 카왈레: 4x4 홈과 돌 스택
+- [x] 다빈치 코드 플러스: 숨겨진 숫자 타일 랙
+- [x] 블로커스: 20x20 격자와 폴리오미노 조각
+- [x] 요트 다이스: 5개 주사위와 점수표
+- [x] 인쉬: 링/마커 네트워크
+- [x] 행맨 보드게임: 알파벳 타일과 단어 슬롯
 
 완료 기준:
 
@@ -150,11 +150,11 @@
 
 작업 항목:
 
-- [ ] 방장, 내 좌석, 참가자, 오프라인, 재접속 아이콘 정리
-- [ ] 선택 가능, 선택 불가, 현재 차례, 대기, 승자 아이콘 정리
-- [ ] 비공개 정보 보호, 공개 정보, 추측 가능, 타임아웃 가능 아이콘 정리
+- [x] 방장, 내 좌석, 참가자, 오프라인, 재접속 아이콘 정리
+- [x] 선택 가능, 선택 불가, 현재 차례, 대기, 승자 아이콘 정리
+- [x] 비공개 정보 보호, 공개 정보, 추측 가능, 타임아웃 가능 아이콘 정리
 - [ ] 공유/초대/복사/QR 코드 아이콘 추가 검토
-- [ ] 통계 화면에 최고점, 평균점, 최근 전적, 승률, 랭킹 아이콘 추가
+- [x] 통계 화면에 최고점, 평균점, 최근 전적, 승률, 랭킹 아이콘 추가
 
 필요 아이콘 후보:
 
@@ -182,15 +182,15 @@
 
 작업 항목:
 
-- [ ] `--motion-pop`, `--motion-shift`, `--motion-flip`, `--motion-alert` 토큰 정리
-- [ ] 게임 선택 selected glow 추가
-- [ ] 상세 패널 전환 시 opacity/translateY 진입 모션 추가
-- [ ] 좌석 입장/퇴장 시 짧은 slide/fade 추가
-- [ ] 현재 턴 변경 시 player chip pulse 추가
-- [ ] 타이머 10초 이하일 때 낮은 강도의 pulse 추가
-- [ ] 타임아웃 가능 상태에서 버튼 강조 추가
-- [ ] 승리 확정 시 winner chip highlight 추가
-- [ ] `prefers-reduced-motion: reduce`에서 모든 반복 모션 제거
+- [x] `--motion-pop`, `--motion-shift`, `--motion-flip`, `--motion-alert` 토큰 정리
+- [x] 게임 선택 selected glow 추가
+- [x] 상세 패널 전환 시 opacity/translateY 진입 모션 추가
+- [x] 좌석 입장/퇴장 시 짧은 slide/fade 추가
+- [x] 현재 턴 변경 시 player chip pulse 추가
+- [x] 타이머 10초 이하일 때 낮은 강도의 pulse 추가
+- [x] 타임아웃 가능 상태에서 버튼 강조 추가
+- [x] 승리 확정 시 winner chip highlight 추가
+- [x] `prefers-reduced-motion: reduce`에서 모든 반복 모션 제거
 
 완료 기준:
 
@@ -234,11 +234,11 @@ src/assets/icons/
 
 작업 항목:
 
-- [ ] 브랜드 아이콘 원본 보관
-- [ ] 게임별 썸네일 원본 보관
-- [ ] 목재/펠트/종이/타일 질감 토큰화
-- [ ] 신규 게임 추가 템플릿에 썸네일/아이콘 필수 항목 추가
-- [ ] `src/game-modules/README.md`에 디자인 에셋 추가 규칙 작성
+- [x] 브랜드 아이콘 원본 보관
+- [x] 게임별 썸네일 원본 보관
+- [x] 목재/펠트/종이/타일 질감 토큰화
+- [x] 신규 게임 추가 템플릿에 썸네일/아이콘 필수 항목 추가
+- [x] `src/game-modules/README.md`에 디자인 에셋 추가 규칙 작성
 
 완료 기준:
 
@@ -266,9 +266,9 @@ src/assets/icons/
 
 ### 접근성
 
-- [ ] 아이콘만 있는 버튼은 `aria-label` 유지 여부 확인
+- [x] 아이콘만 있는 버튼은 `aria-label` 유지 여부 확인
 - [ ] 모션 추가 후 키보드 포커스가 사라지지 않는지 확인
-- [ ] 색상 상태는 아이콘/텍스트와 함께 표시
+- [x] 색상 상태는 아이콘/텍스트와 함께 표시
 - [ ] 주사위/타일/보드 변화가 스크린리더에서 최소한 상태 메시지로 전달되는지 검토
 
 ### 반응형
@@ -287,9 +287,9 @@ src/assets/icons/
 
 ### 게임 추가성
 
-- [ ] `create-game-module` 출력 안내에 디자인 체크리스트 추가
-- [ ] 새 `GameDefinition`에 `thumbnail`, `iconKind`, `motionHint` 같은 메타 필드가 필요한지 검토
-- [ ] 기존 10개 게임과 신규 게임이 같은 썸네일/아이콘 API를 쓰도록 설계
+- [x] `create-game-module` 출력 안내에 디자인 체크리스트 추가
+- [x] 새 `GameDefinition`에 `thumbnail`, `iconKind`, `motionHint` 같은 메타 필드가 필요한지 검토
+- [x] 기존 10개 게임과 신규 게임이 같은 썸네일/아이콘 API를 쓰도록 설계
 
 ### 배포
 
@@ -347,3 +347,27 @@ npm run qa:games
 - 10개 게임 모두 스크린샷 검증 완료
 - 전체 QA 명령 통과
 
+## 10. 2026-07-02 진행 기록
+
+### 완료
+
+- 웹 favicon, manifest, Apple touch icon, 192/512 설치 아이콘, OG 이미지 경로를 Board Game Room 브랜드 자산으로 정리했습니다.
+- Android 런처 아이콘, round icon, adaptive foreground, splash PNG를 Board Game Room 목재 타일 심볼로 교체했습니다.
+- 헤더 브랜드 마크를 전용 SVG로 교체했습니다.
+- 게임 설명 패널에 `BoardPreview` 기반 미니 보드 썸네일을 추가했습니다.
+- 구룡투, 쿼리도, 아발론, 고스트, 카왈레, 다빈치 코드 플러스, 블로커스는 게임별 미니 보드 형태를 별도로 렌더링합니다.
+- 플레이어 턴 칩에 승자, 현재 차례, 내 좌석, 대기, 오프라인 상태 아이콘을 추가했습니다.
+- 룰 체크 패널에 비공개 정보/공개 정보 아이콘을 추가했습니다.
+- 공통 모션 토큰과 reduced-motion 방어 규칙을 보강했습니다.
+- 기존 게임 모듈의 상태 클래스에 저위험 CSS 모션을 추가했습니다.
+
+### 서브에이전트 감사 반영
+
+- `guryongtu-tile-button`, `qdr-cell.legal`, `qdr-pawn`, `qdr-wall-piece`, `abl-cell.selected`, `gho-token.hidden`, `qaw-cell.path`, `dvc-tile.revealed`, `blokus-cell.preview`, `yacht-die-button.held`, `yinsh-point.row`, `hangman-figure.lit` 같은 기존 훅을 활용했습니다.
+- 이번 변경은 룰 로직과 서버 상태 모델을 건드리지 않는 CSS/표시 중심 보강으로 제한했습니다.
+
+### 남은 고위험/후속 항목
+
+- 실제 말 이동 좌표를 이전 위치와 비교해 부드럽게 보간하는 FLIP 애니메이션은 각 게임 컴포넌트 상태 추적이 필요하므로 별도 작업으로 남깁니다.
+- 아발론 방향 버튼, 요트 다이스 굴림 버튼, 다빈치 코드 추측/보너스 버튼처럼 모듈 내부 버튼에 아이콘을 직접 넣는 작업은 파일별 JSX 변경이 필요하므로 다음 라운드에서 분리합니다.
+- 게임별 캡처는 빌드와 로컬 플레이 검증 이후 `reports/`에 저장해야 합니다.

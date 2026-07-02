@@ -36,6 +36,12 @@ export interface GameDefinition {
     secondaryMetric: string;
     uiHint: string;
   };
+  visual?: {
+    iconKind?: GameTableKind;
+    thumbnailHint?: string;
+    motionHint?: string;
+    texture?: "wood" | "felt" | "paper" | "tile" | "card" | "dice" | "stone";
+  };
 }
 
 export interface PlayerSnapshot {
