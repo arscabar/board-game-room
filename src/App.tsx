@@ -1,29 +1,41 @@
 import {
   BarChart3,
   BookOpen,
+  Brain,
   CheckCircle2,
   ChevronDown,
+  CircleDot,
   Clock3,
   Copy,
+  Crown,
   Dice5,
   DoorOpen,
   ExternalLink,
   FastForward,
   Flag,
   Gamepad2,
+  Grid2X2,
   History,
+  Hexagon,
+  Layers3,
   ListChecks,
   LogIn,
   Medal,
   Pause,
   Play,
   Plus,
+  Puzzle,
   Radio,
   RefreshCw,
   RotateCcw,
+  Route,
   Send,
+  ShieldQuestion,
+  Sparkles,
+  Target,
   Trophy,
-  Users
+  Users,
+  type LucideIcon
 } from "lucide-react";
 import { type CSSProperties, type FormEvent, useEffect, useMemo, useState } from "react";
 import { socket } from "./lib/socket";
@@ -121,6 +133,33 @@ function formatScore(score: number | null | undefined) {
 }
 
 const seatAccentColors = ["#2364aa", "#d69b2d", "#d94f45", "#258a5b"];
+
+const gameKindIcons: Record<GameDefinition["table"]["kind"], LucideIcon> = {
+  duel: Target,
+  maze: Route,
+  hex: Hexagon,
+  hidden: ShieldQuestion,
+  stack: Layers3,
+  deduction: Brain,
+  polyomino: Puzzle,
+  dice: Dice5,
+  rings: CircleDot,
+  word: BookOpen
+};
+
+function GameKindIcon({ game, size = 17 }: { game: GameDefinition; size?: number }) {
+  const Icon = gameKindIcons[game.table.kind] ?? Gamepad2;
+  return <Icon size={size} aria-hidden="true" />;
+}
+
+function foldIconFor(title: string) {
+  const icons: Record<string, LucideIcon> = {
+    세팅: Layers3,
+    "턴 진행": FastForward,
+    "구현 판정": CheckCircle2
+  };
+  return icons[title] ?? ListChecks;
+}
 
 function stateRecord(value: unknown) {
   return value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : null;
@@ -910,13 +949,17 @@ function SeatRow({
   player?: PlayerSnapshot;
   currentPlayerId: string;
 }) {
+  const RoleIcon = player?.isHost ? Crown : player ? Users : null;
+  const roleLabel = player?.isHost ? "방장" : player ? "참가자" : "대기";
+
   return (
     <div className={`seat-row ${player ? "filled" : ""}`}>
       <span className="seat-number">{seat}</span>
       <div>
         <strong>{player?.name ?? "빈 좌석"}</strong>
         <span>
-          {player?.isHost ? "방장" : player ? "참가자" : "대기"} {player?.id === currentPlayerId ? "· 나" : ""}
+          {RoleIcon ? <RoleIcon className="seat-role-icon" size={14} aria-hidden="true" /> : null}
+          {roleLabel} {player?.id === currentPlayerId ? "· 나" : ""}
         </span>
       </div>
       {player?.connected ? <CheckCircle2 size={18} aria-label="연결됨" /> : null}
@@ -969,12 +1012,26 @@ function LobbyPanel({
               disabled={!available || !isHost}
               style={{ "--game-accent": game.accent } as CSSProperties}
             >
-              <span className="game-swatch" aria-hidden="true" />
-              <span>
+              <span className="game-row-icon" aria-hidden="true">
+                <GameKindIcon game={game} />
+                <span className="game-swatch" />
+              </span>
+              <span className="game-row-copy">
                 <strong>{game.title}</strong>
                 <small>{game.genre}</small>
+                <span className="game-row-meta">
+                  <span>
+                    <Users size={12} aria-hidden="true" />
+                    {formatAllowedPlayers(game)}
+                  </span>
+                  <span>
+                    <Trophy size={12} aria-hidden="true" />
+                    {game.scoreState}
+                  </span>
+                </span>
               </span>
               <span className={available ? "status-pill ok" : "status-pill muted"}>
+                {available ? <CheckCircle2 size={13} aria-hidden="true" /> : <Users size={13} aria-hidden="true" />}
                 {gameAvailabilityLabel(game, playerCount)}
               </span>
             </button>
@@ -1396,14 +1453,17 @@ function GameDetailPanel({ game, playerCount }: { game: GameDefinition | null; p
             <p className="summary">{game.summary}</p>
             <div className="detail-meta-grid" aria-label="게임 요약">
               <span>
+                <Sparkles size={14} aria-hidden="true" />
                 <strong>장르</strong>
                 {game.genre}
               </span>
               <span>
+                <Grid2X2 size={14} aria-hidden="true" />
                 <strong>보드</strong>
                 {game.board}
               </span>
               <span>
+                <Trophy size={14} aria-hidden="true" />
                 <strong>기록</strong>
                 {game.scoreState}
               </span>
@@ -1435,11 +1495,13 @@ function GameDetailPanel({ game, playerCount }: { game: GameDefinition | null; p
 }
 
 function FoldList({ title, items, defaultOpen = false }: { title: string; items: string[]; defaultOpen?: boolean }) {
+  const Icon = foldIconFor(title);
+
   return (
     <details className="fold-card info-list" open={defaultOpen}>
       <summary>
         <span>
-          <ListChecks size={15} aria-hidden="true" />
+          <Icon size={15} aria-hidden="true" />
           {title}
         </span>
         <ChevronDown className="fold-chevron" size={16} aria-hidden="true" />
