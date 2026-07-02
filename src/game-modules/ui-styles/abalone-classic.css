@@ -75,3 +75,36 @@
 .abl-cell.selected .abl-marble {
   transform: translateY(-5px) scale(1.04);
 }
+
+@media (max-width: 540px) {
+  .abl-layout {
+    overflow-x: hidden !important;
+  }
+
+  .abl-board {
+    --abl-cell-size: clamp(28px, calc((100vw - 104px) / 9), 40px);
+    justify-content: center !important;
+    width: min(100%, calc(100vw - 54px)) !important;
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+    gap: 3px !important;
+    padding: 10px !important;
+    border-width: 6px !important;
+  }
+
+  .abl-row {
+    grid-template-columns: repeat(var(--row-size), var(--abl-cell-size)) !important;
+    gap: 3px !important;
+  }
+
+  .abl-cell {
+    width: var(--abl-cell-size) !important;
+    height: var(--abl-cell-size) !important;
+    min-height: var(--abl-cell-size) !important;
+  }
+
+  .abl-marble {
+    width: 80% !important;
+    border-width: 1px !important;
+  }
+}

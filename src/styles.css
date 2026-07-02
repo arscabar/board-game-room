@@ -5811,3 +5811,77 @@ a:focus-visible,
     justify-self: stretch;
   }
 }
+
+/* Final compact room game selector: icon + name only, with details kept in the fold panel. */
+.work-panel.lobby-panel .game-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(138px, 1fr));
+  gap: 7px;
+}
+
+.work-panel.lobby-panel .game-row {
+  min-height: 46px;
+  grid-template-columns: 30px minmax(0, 1fr) !important;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 8px;
+}
+
+.work-panel.lobby-panel .game-row-icon {
+  width: 30px;
+  height: 30px;
+  align-self: center;
+  border-radius: 7px;
+}
+
+.work-panel.lobby-panel .game-row-icon .game-swatch {
+  width: 5px;
+  height: 14px;
+  right: 3px;
+  bottom: 3px;
+}
+
+.work-panel.lobby-panel .game-row-copy {
+  min-width: 0;
+  display: block;
+}
+
+.work-panel.lobby-panel .game-row strong {
+  display: block;
+  min-width: 0;
+  color: #fff8e7;
+  font-size: 0.88rem;
+  line-height: 1.1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.work-panel.lobby-panel .game-row small,
+.work-panel.lobby-panel .game-row-meta,
+.work-panel.lobby-panel .status-pill,
+.work-panel.lobby-panel .game-row-thumb {
+  display: none !important;
+}
+
+@media (max-width: 380px) {
+  .work-panel.lobby-panel .game-list {
+    grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+  }
+
+  .work-panel.lobby-panel .game-row {
+    min-height: 44px;
+    grid-template-columns: 28px minmax(0, 1fr) !important;
+    gap: 7px;
+    padding: 6px 7px;
+  }
+
+  .work-panel.lobby-panel .game-row-icon {
+    width: 28px;
+    height: 28px;
+  }
+
+  .work-panel.lobby-panel .game-row strong {
+    font-size: 0.82rem;
+  }
+}

@@ -84,3 +84,26 @@
 .yinsh-marker {
   animation: tile-flip var(--motion-flip);
 }
+
+@media (max-width: 540px) {
+  .yinsh-layout {
+    overflow-x: hidden !important;
+  }
+
+  .yinsh-board-wrap {
+    width: min(100%, calc(100vw - 54px)) !important;
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+    padding: 0 !important;
+  }
+
+  .yinsh-board {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  .yinsh-ring {
+    stroke-width: 6.4 !important;
+  }
+}

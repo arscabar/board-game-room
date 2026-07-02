@@ -519,6 +519,64 @@
   background: #ff9d8f;
 }
 
+@media (max-width: 540px) {
+  .hangman-module {
+    min-width: 0 !important;
+    overflow-x: hidden !important;
+    border-width: 4px !important;
+  }
+
+  .hangman-setup-panel,
+  .hangman-word-panel,
+  .hangman-guess-panel {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+    padding: 10px !important;
+  }
+
+  .hangman-toy-board {
+    grid-template-columns: 1fr !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+    gap: 8px !important;
+    padding: 8px !important;
+    border-width: 4px !important;
+  }
+
+  .hangman-toy-letters {
+    grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
+    gap: 5px !important;
+    padding: 6px !important;
+  }
+
+  .hangman-toy-letters span,
+  .hangman-letter-button {
+    min-height: 31px !important;
+  }
+
+  .hangman-toy-figure,
+  .hangman-gallows,
+  .hangman-miss-track {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  .hangman-console-top {
+    grid-template-columns: 1fr !important;
+  }
+
+  .hangman-miss-track {
+    grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
+    gap: 4px !important;
+  }
+}
+
 .hangman-target-card {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;

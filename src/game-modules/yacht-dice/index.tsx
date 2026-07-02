@@ -525,82 +525,53 @@ export function Component({
             <span>상단 합계 {activeUpperTotal}/{UPPER_BONUS_THRESHOLD}</span>
             <strong>{activeUpperBonus > 0 ? `보너스 +${activeUpperBonus}` : `보너스까지 ${Math.max(0, UPPER_BONUS_THRESHOLD - activeUpperTotal)}`}</strong>
           </div>
-          <div style={styles.tableWrap}>
-            <table className="yacht-score-table" style={styles.table}>
-              <thead>
-                <tr>
-                  <th style={styles.cell}>칸</th>
-                  <th style={styles.cell}>점수</th>
-                  <th style={styles.cell}>기록</th>
-                </tr>
-              </thead>
-              <tbody>
-                {CATEGORIES.map((category) => {
-                  const usedScore = activeScores[category.id];
-                  const preview = state.rollsThisTurn > 0 ? scoreCategory(category.id, state.dice) : 0;
-                  return (
-                    <tr key={category.id}>
-                      <td style={styles.cell}>
-                        <strong>{category.label}</strong>
-                      </td>
-                      <td style={styles.cell}>{usedScore ?? preview}</td>
-                      <td style={styles.cell}>
-                        {usedScore !== undefined ? (
-                          <span>{usedScore}</span>
-                        ) : (
-                          <button
-                            type="button"
-                            className="yacht-score-button"
-                            disabled={!canAct || state.rollsThisTurn === 0}
-                            aria-label={`${category.label} ${preview}점 기록`}
-                            onClick={() => onAction({ type: "yacht-dice/score-category", payload: { category: category.id } })}
-                          >
-                            기록
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+          <div className="yacht-score-choice-list" aria-label="이번 턴 점수칸">
+            {CATEGORIES.map((category) => {
+              const usedScore = activeScores[category.id];
+              const preview = state.rollsThisTurn > 0 ? scoreCategory(category.id, state.dice) : 0;
+              const score = usedScore ?? preview;
+              const locked = usedScore !== undefined;
+              return (
+                <button
+                  type="button"
+                  className={`yacht-score-choice ${locked ? "used" : ""}`}
+                  key={category.id}
+                  disabled={locked || !canAct || state.rollsThisTurn === 0}
+                  aria-label={`${category.label} ${score}점 선택`}
+                  onClick={() => onAction({ type: "yacht-dice/score-category", payload: { category: category.id } })}
+                >
+                  <span className="yacht-score-choice-label">{category.label}</span>
+                  <strong className="yacht-score-choice-value">{score}</strong>
+                </button>
+              );
+            })}
           </div>
         </article>
       </div>
 
       <article className="yacht-scoreboard" style={styles.panel}>
         <h3>점수판</h3>
-        <div style={styles.tableWrap}>
-          <table className="yacht-player-table" style={styles.table}>
-            <thead>
-              <tr>
-                <th style={styles.cell}>플레이어</th>
-                <th style={styles.cell}>총점</th>
-                <th style={styles.cell} title="에이스부터 여섯까지의 상단 합계">상</th>
-                <th style={styles.cell} title="상단 합계 63점 이상 보너스">+35</th>
+        <div className="yacht-player-scorecards">
+          {state.playerIds.map((playerId) => (
+            <article className="yacht-player-scorecard" key={playerId}>
+              <header>
+                <strong>{getPlayerName(players, playerId)}</strong>
+                <span>{state.totals[playerId] ?? 0}점</span>
+              </header>
+              <div className="yacht-player-score-summary">
+                <span>상 {state.upperTotals[playerId] ?? 0}</span>
+                <span>+35 {state.upperBonuses[playerId] ? `+${state.upperBonuses[playerId]}` : "-"}</span>
+              </div>
+              <div className="yacht-player-category-grid" aria-label={`${getPlayerName(players, playerId)} 점수`}>
                 {CATEGORIES.map((category) => (
-                  <th style={styles.cell} key={category.id} title={category.label}>
-                    {scoreSheetLabels[category.id]}
-                  </th>
+                  <span key={category.id}>
+                    <i>{scoreSheetLabels[category.id]}</i>
+                    <b>{state.scores[playerId]?.[category.id] ?? "-"}</b>
+                  </span>
                 ))}
-              </tr>
-            </thead>
-            <tbody>
-              {state.playerIds.map((playerId) => (
-                <tr key={playerId}>
-                  <td style={styles.cell} data-label="플레이어">{getPlayerName(players, playerId)}</td>
-                  <td style={styles.cell} data-label="총점">{state.totals[playerId] ?? 0}</td>
-                  <td style={styles.cell} data-label="상">{state.upperTotals[playerId] ?? 0}</td>
-                  <td style={styles.cell} data-label="+35">{state.upperBonuses[playerId] ? `+${state.upperBonuses[playerId]}` : "-"}</td>
-                  {CATEGORIES.map((category) => (
-                    <td style={styles.cell} key={category.id} data-label={scoreSheetLabels[category.id]}>
-                      {state.scores[playerId]?.[category.id] ?? "-"}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
+              </div>
+            </article>
+          ))}
         </div>
         {state.phase === "complete" ? (
           <p>승자: {state.winnerId ? getPlayerName(players, state.winnerId) : "무승부"}</p>

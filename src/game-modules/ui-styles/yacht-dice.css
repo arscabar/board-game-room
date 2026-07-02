@@ -205,6 +205,169 @@
   color: #fffdf4;
 }
 
+.yacht-score-choice-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.yacht-score-choice {
+  min-height: 48px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid rgba(57, 100, 116, 0.24);
+  border-radius: 8px;
+  padding: 8px 10px;
+  color: #1f3438;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(245, 239, 217, 0.94));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.76),
+    0 3px 0 rgba(70, 52, 28, 0.08);
+}
+
+.yacht-score-choice:not(:disabled):hover,
+.yacht-score-choice:not(:disabled):focus-visible {
+  border-color: rgba(47, 111, 115, 0.58);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(232, 245, 238, 0.96));
+}
+
+.yacht-score-choice:disabled {
+  cursor: not-allowed;
+  opacity: 0.82;
+}
+
+.yacht-score-choice.used {
+  color: #526167;
+  background:
+    linear-gradient(180deg, rgba(235, 235, 225, 0.8), rgba(219, 217, 202, 0.88));
+}
+
+.yacht-score-choice-label {
+  min-width: 0;
+  color: inherit;
+  font-size: 0.94rem;
+  font-weight: 950;
+  line-height: 1.1;
+  overflow-wrap: normal;
+  word-break: keep-all;
+  white-space: nowrap;
+}
+
+.yacht-score-choice-value {
+  min-width: 38px;
+  min-height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 7px;
+  color: #fffdf4;
+  background: #2f6f73;
+  font-size: 1rem;
+  font-weight: 950;
+  font-variant-numeric: tabular-nums;
+}
+
+.yacht-score-choice.used .yacht-score-choice-value {
+  color: #26464c;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.yacht-player-scorecards {
+  display: grid;
+  gap: 8px;
+}
+
+.yacht-player-scorecard {
+  display: grid;
+  gap: 7px;
+  border: 1px solid rgba(57, 100, 116, 0.26);
+  border-radius: 8px;
+  padding: 8px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(245, 239, 217, 0.94));
+}
+
+.yacht-player-scorecard header,
+.yacht-player-score-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.yacht-player-scorecard header {
+  min-height: 34px;
+  border-radius: 7px;
+  padding: 0 8px;
+  color: #fffdf4;
+  background: linear-gradient(180deg, #2f6f73, #254f54);
+}
+
+.yacht-player-scorecard header strong,
+.yacht-player-scorecard header span {
+  min-width: 0;
+  color: inherit;
+  font-weight: 950;
+}
+
+.yacht-player-scorecard header span {
+  flex: 0 0 auto;
+  font-variant-numeric: tabular-nums;
+}
+
+.yacht-player-score-summary {
+  color: #294950;
+  font-size: 0.82rem;
+  font-weight: 900;
+}
+
+.yacht-player-score-summary span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  border: 1px solid rgba(57, 100, 116, 0.16);
+  border-radius: 999px;
+  padding: 0 8px;
+  background: rgba(255, 255, 255, 0.66);
+}
+
+.yacht-player-category-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.yacht-player-category-grid span {
+  min-width: 0;
+  min-height: 36px;
+  display: grid;
+  place-items: center;
+  gap: 1px;
+  border: 1px solid rgba(57, 100, 116, 0.16);
+  border-radius: 6px;
+  padding: 3px 2px;
+  color: #1f3438;
+  background: rgba(255, 255, 255, 0.62);
+  font-variant-numeric: tabular-nums;
+}
+
+.yacht-player-category-grid i {
+  color: #52727b;
+  font-size: 0.64rem;
+  font-style: normal;
+  font-weight: 950;
+  line-height: 1;
+}
+
+.yacht-player-category-grid b {
+  color: #1f3438;
+  font-size: 0.82rem;
+  line-height: 1;
+}
+
 .yacht-score-panel,
 .yacht-scoreboard {
   overflow-x: visible !important;

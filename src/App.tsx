@@ -1175,22 +1175,6 @@ function LobbyPanel({
               </span>
               <span className="game-row-copy">
                 <strong>{game.title}</strong>
-                <small>{game.genre}</small>
-                <span className="game-row-meta">
-                  <span>
-                    <Users size={12} aria-hidden="true" />
-                    {formatAllowedPlayers(game)}
-                  </span>
-                  <span>
-                    <Trophy size={12} aria-hidden="true" />
-                    {game.scoreState}
-                  </span>
-                </span>
-              </span>
-              <GameMiniThumbnail game={game} />
-              <span className={available ? "status-pill ok" : "status-pill muted"}>
-                {available ? <CheckCircle2 size={13} aria-hidden="true" /> : <Users size={13} aria-hidden="true" />}
-                {gameAvailabilityLabel(game, playerCount)}
               </span>
             </button>
           );
