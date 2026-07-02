@@ -7224,3 +7224,236 @@ textarea::placeholder {
     animation: none !important;
   }
 }
+
+/* Readability guardrail: texture should frame controls, never fight the text. */
+:root {
+  --readable-text: #fff8e8;
+  --readable-title: #fff1c7;
+  --readable-muted: #f2d6a8;
+  --readable-faint: #d9b77c;
+  --readable-surface: rgba(32, 18, 10, 0.97);
+  --readable-surface-strong: rgba(18, 10, 6, 0.985);
+  --readable-border: rgba(232, 181, 101, 0.34);
+  --readable-focus: #ffe08a;
+}
+
+.app-shell {
+  background:
+    linear-gradient(rgba(10, 6, 3, 0.2), rgba(10, 6, 3, 0.2)),
+    linear-gradient(90deg, rgba(255, 221, 143, 0.035) 0 1px, transparent 1px 76px),
+    repeating-linear-gradient(96deg, rgba(255, 219, 142, 0.04) 0 2px, transparent 2px 20px),
+    radial-gradient(circle at 18% 0%, rgba(15, 106, 69, 0.18), transparent 34%),
+    linear-gradient(135deg, #4a2c1a, #24140b 48%, #0f0704);
+}
+
+.topbar,
+.room-command,
+.seat-panel,
+.work-panel,
+.detail-panel,
+.stats-panel,
+.entry-panel,
+.intro-panel,
+.seat-row,
+.metric-chip,
+.stats-block,
+.player-stat-row,
+.recent-match-row,
+.detail-summary-card,
+.detail-meta-grid span,
+.win-condition,
+.detail-panel .fold-card,
+.play-panel .turn-guide,
+.play-panel .table-control-panel,
+.play-panel .rule-check-panel,
+.play-panel .game-message-strip,
+.play-panel .action-form,
+.play-panel .turn-actions,
+.play-panel .move-log,
+.player-turn-chip,
+.lobby-panel .game-row {
+  color: var(--readable-text);
+  border-color: var(--readable-border);
+  background:
+    linear-gradient(90deg, rgba(255, 224, 153, 0.025) 0 1px, transparent 1px 48px),
+    linear-gradient(180deg, rgba(76, 45, 25, 0.98), var(--readable-surface));
+}
+
+.app-shell.is-playing .topbar,
+.room-section.is-playing .room-command,
+.room-section.is-playing .work-panel.play-panel {
+  color: var(--readable-text);
+  border-color: rgba(232, 181, 101, 0.28);
+  background:
+    linear-gradient(90deg, rgba(255, 224, 153, 0.018) 0 1px, transparent 1px 54px),
+    linear-gradient(180deg, rgba(55, 31, 17, 0.98), rgba(18, 10, 6, 0.96));
+}
+
+.room-section.is-playing .work-panel.play-panel {
+  background: transparent;
+}
+
+.topbar h1,
+.panel-header h2,
+.intro-panel h2,
+.game-row strong,
+.seat-row strong,
+.stats-block-title h3,
+.recent-match-row strong,
+.player-stat-row strong,
+.metric-chip strong,
+.detail-summary-card strong,
+.win-condition strong,
+.detail-panel .fold-card summary,
+.detail-panel .detail-meta-grid strong,
+.detail-panel .info-list h3,
+label {
+  color: var(--readable-title);
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.54);
+}
+
+.topbar p,
+.panel-header p,
+.intro-panel p,
+.helper-text,
+.game-row small,
+.seat-row span,
+.recent-match-row span,
+.recent-match-row small,
+.player-stat-row span,
+.metric-chip span,
+.summary,
+.detail-summary-card span,
+.win-condition span,
+.info-list,
+.info-list li,
+.eyebrow,
+.game-row-meta span,
+.detail-panel .fold-content p,
+.detail-panel .detail-summary-card .summary,
+.detail-panel .info-list ul,
+.detail-panel .win-condition span,
+.detail-panel .detail-meta-grid span,
+.detail-visual-cues small,
+.turn-guide-reason,
+.control-note {
+  color: var(--readable-muted);
+}
+
+.lobby-panel .game-row:not(:disabled):hover,
+.seat-row.filled {
+  border-color: rgba(247, 206, 133, 0.52);
+  background:
+    linear-gradient(90deg, rgba(255, 224, 153, 0.035) 0 1px, transparent 1px 44px),
+    linear-gradient(180deg, rgba(92, 55, 31, 0.99), rgba(31, 17, 9, 0.99));
+}
+
+.lobby-panel .game-row.selected,
+.player-turn-chip.active {
+  border-color: rgba(142, 224, 163, 0.58);
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--game-accent, #0f7a54) 30%, transparent), transparent 60%),
+    linear-gradient(180deg, rgba(18, 96, 67, 0.98), rgba(6, 42, 30, 0.99));
+}
+
+.game-row:disabled {
+  opacity: 1;
+  filter: saturate(0.82);
+}
+
+.game-row:disabled strong {
+  color: rgba(255, 241, 207, 0.9);
+}
+
+.game-row:disabled small,
+.game-row:disabled .game-row-meta span {
+  color: rgba(242, 214, 168, 0.82);
+}
+
+.status-pill,
+.rate-pill,
+.game-row-meta span,
+.detail-visual-cues span {
+  color: var(--readable-text);
+  border-color: rgba(232, 181, 101, 0.32);
+  background: rgba(14, 8, 5, 0.66);
+}
+
+.status-pill.muted {
+  color: var(--readable-muted);
+  border-color: rgba(232, 181, 101, 0.26);
+  background: rgba(12, 7, 4, 0.72);
+}
+
+.status-pill.ok,
+.rate-pill {
+  color: #efffe4;
+  border-color: rgba(139, 222, 151, 0.44);
+  background: rgba(8, 82, 54, 0.72);
+}
+
+input,
+select,
+textarea {
+  color: var(--readable-text);
+  border-color: rgba(232, 181, 101, 0.42);
+  background:
+    linear-gradient(180deg, rgba(29, 16, 9, 0.99), var(--readable-surface-strong));
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--readable-faint);
+  opacity: 1;
+}
+
+.primary-button,
+.secondary-button,
+.icon-button,
+.saved-room-button,
+.detail-learn-link {
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.42);
+}
+
+button:disabled,
+.primary-button:disabled,
+.secondary-button:disabled,
+.icon-button:disabled {
+  color: rgba(255, 241, 210, 0.66);
+  cursor: not-allowed;
+}
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+a:focus-visible,
+.detail-panel .fold-card summary:focus-visible {
+  outline: 2px solid var(--readable-focus);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(255, 224, 138, 0.22);
+}
+
+@media (max-width: 820px) {
+  .app-shell {
+    background:
+      linear-gradient(rgba(10, 6, 3, 0.28), rgba(10, 6, 3, 0.28)),
+      linear-gradient(135deg, #432818, #211209 52%, #0d0603);
+  }
+
+  .topbar,
+  .room-command,
+  .seat-panel,
+  .work-panel,
+  .detail-panel,
+  .lobby-panel .game-row {
+    background:
+      linear-gradient(180deg, rgba(73, 43, 25, 0.99), rgba(22, 12, 7, 0.99));
+  }
+
+  .game-row-meta span,
+  .detail-panel .fold-content p,
+  .detail-panel .info-list ul {
+    color: #f4ddb4;
+  }
+}
