@@ -8,7 +8,7 @@ import { fileURLToPath } from "node:url";
 import { Server, type Socket } from "socket.io";
 import { games, getGameById } from "../src/shared/games";
 import { canPlayGame, ROOM_MAX_PLAYERS } from "../src/shared/eligibility";
-import type { Ack, GameRuntimeState, MoveEntry, PlayerSnapshot, RoomSnapshot } from "../src/shared/types";
+import type { Ack, GameRuntimeState, MoveEntry, PlayerSnapshot, PublicRoomListItem, RoomSnapshot } from "../src/shared/types";
 import { getGameRegistration } from "../src/game-modules/registry";
 import type { GameAction, GameActionResult, GameContext, GameSystemAction } from "../src/game-modules/types";
 import type { MatchRecord, MatchResult } from "../src/shared/stats";
@@ -65,6 +65,10 @@ app.get("/api/health", (_request, response) => {
 
 app.get("/api/games", (_request, response) => {
   response.json(games);
+});
+
+app.get("/api/rooms", (_request, response) => {
+  response.json(publicRoomList());
 });
 
 app.get("/api/stats/summary", async (_request, response) => {
@@ -314,6 +318,45 @@ function connectedPlayers(room: RoomRecord) {
   return room.players.filter((player) => player.connected).sort((a, b) => a.seat - b.seat);
 }
 
+function publicRoomList(): PublicRoomListItem[] {
+  const list: PublicRoomListItem[] = [];
+
+  for (const room of rooms.values()) {
+    const connected = connectedPlayers(room);
+    if (connected.length === 0) {
+      continue;
+    }
+
+    const selectedGame = getGameById(room.selectedGameId);
+    const host = connected.find((player) => player.isHost) ?? connected[0] ?? null;
+    list.push({
+      code: room.code,
+      playerCount: connected.length,
+      maxPlayers: room.maxPlayers,
+      status: room.status,
+      selectedGameId: room.selectedGameId,
+      selectedGameTitle: selectedGame?.title ?? null,
+      hostName: host?.name ?? null,
+      createdAt: room.createdAt,
+      canJoin: room.status === "lobby" && connected.length < room.maxPlayers
+    });
+  }
+
+  return list.sort((a, b) => {
+    if (a.canJoin !== b.canJoin) {
+      return a.canJoin ? -1 : 1;
+    }
+    if (a.status !== b.status) {
+      return a.status === "lobby" ? -1 : 1;
+    }
+    return b.createdAt - a.createdAt;
+  });
+}
+
+function broadcastRoomList() {
+  io.emit("rooms:list", publicRoomList());
+}
+
 function clearEmptyRoomCleanup(code: string) {
   const timer = emptyRoomCleanupTimers.get(code);
   if (!timer) {
@@ -328,6 +371,7 @@ function deleteRoom(room: RoomRecord) {
   clearEmptyRoomCleanup(room.code);
   void recordRoomStatsIfFinished(room);
   rooms.delete(room.code);
+  broadcastRoomList();
 }
 
 function scheduleEmptyRoomCleanup(room: RoomRecord) {
@@ -910,6 +954,8 @@ async function recordRoomStatsIfFinished(room: RoomRecord) {
 }
 
 io.on("connection", (socket) => {
+  socket.emit("rooms:list", publicRoomList());
+
   socket.on("room:create", (payload: { name?: string; clientKey?: string }, ack?: (response: Ack<{ room: RoomSnapshot; playerId: string }>) => void) => {
     const name = normalizeName(payload?.name);
     const clientKey = normalizeClientKey(payload?.clientKey);
@@ -945,6 +991,7 @@ io.on("connection", (socket) => {
     attachSocketToPlayer(socket, room, player);
     reply(ack, { ok: true, data: { room: snapshotRoom(room), playerId: player.id } });
     broadcastRoom(room);
+    broadcastRoomList();
   });
 
   socket.on("room:join", (payload: { code?: string; name?: string; playerId?: string; clientKey?: string }, ack?: (response: Ack<{ room: RoomSnapshot; playerId: string }>) => void) => {
@@ -971,6 +1018,7 @@ io.on("connection", (socket) => {
       attachSocketToPlayer(socket, room, returningPlayer, name);
       reply(ack, { ok: true, data: { room: snapshotRoom(room, returningPlayer.id), playerId: returningPlayer.id } });
       broadcastRoom(room);
+      broadcastRoomList();
       return;
     }
 
@@ -998,6 +1046,7 @@ io.on("connection", (socket) => {
     attachSocketToPlayer(socket, room, player);
     reply(ack, { ok: true, data: { room: snapshotRoom(room, player.id), playerId: player.id } });
     broadcastRoom(room);
+    broadcastRoomList();
   });
 
   socket.on("room:resume", (payload: { code?: string; name?: string; playerId?: string; clientKey?: string }, ack?: (response: Ack<{ room: RoomSnapshot; playerId: string }>) => void) => {
@@ -1022,6 +1071,7 @@ io.on("connection", (socket) => {
     attachSocketToPlayer(socket, room, player, name);
     reply(ack, { ok: true, data: { room: snapshotRoom(room, player.id), playerId: player.id } });
     broadcastRoom(room);
+    broadcastRoomList();
   });
 
   socket.on("room:leave", (payload: { code?: string }, ack?: (response: Ack<{ code: string; empty: boolean }>) => void) => {
@@ -1052,6 +1102,7 @@ io.on("connection", (socket) => {
       void broadcastRoom(room);
     }
     reply(ack, { ok: true, data: { code, empty } });
+    broadcastRoomList();
   });
 
   socket.on("room:select-game", (payload: { code?: string; gameId?: string }, ack?: (response: Ack<RoomSnapshot>) => void) => {
@@ -1086,6 +1137,7 @@ io.on("connection", (socket) => {
     result.room.selectedGameId = game.id;
     reply(ack, { ok: true, data: snapshotRoom(result.room) });
     broadcastRoom(result.room);
+    broadcastRoomList();
   });
 
   socket.on("room:start-game", (payload: { code?: string }, ack?: (response: Ack<RoomSnapshot>) => void) => {
@@ -1127,6 +1179,7 @@ io.on("connection", (socket) => {
     appendLog(result.room, result.player, `${game.title} 게임 시작`);
     reply(ack, { ok: true, data: snapshotRoom(result.room, result.player.id) });
     broadcastRoom(result.room);
+    broadcastRoomList();
   });
 
   socket.on("game:action", (payload: { code?: string; action?: GameAction }, ack?: (response: Ack<RoomSnapshot>) => void) => {
@@ -1390,6 +1443,7 @@ io.on("connection", (socket) => {
     result.room.statsRecorded = false;
     reply(ack, { ok: true, data: snapshotRoom(result.room, result.player.id) });
     broadcastRoom(result.room);
+    broadcastRoomList();
   });
 
   socket.on("disconnect", () => {
@@ -1418,6 +1472,7 @@ io.on("connection", (socket) => {
       scheduleTurnTimeout(room);
     }
     broadcastRoom(room);
+    broadcastRoomList();
 
     const pruneTimer = setTimeout(() => {
       const staleRoom = rooms.get(code);
@@ -1432,6 +1487,7 @@ io.on("connection", (socket) => {
       }
 
       broadcastRoom(staleRoom);
+      broadcastRoomList();
     }, DISCONNECT_GRACE_MS);
     pruneTimer.unref?.();
   });

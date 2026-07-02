@@ -48,7 +48,7 @@ import { Suspense, type CSSProperties, type FormEvent, useEffect, useMemo, useSt
 import { socket } from "./lib/socket";
 import { games, getGameById } from "./shared/games";
 import { canPlayGame, formatAllowedPlayers, gameAvailabilityLabel } from "./shared/eligibility";
-import type { Ack, GameDefinition, PlayerSnapshot, RoomSnapshot } from "./shared/types";
+import type { Ack, GameDefinition, PlayerSnapshot, PublicRoomListItem, RoomSnapshot } from "./shared/types";
 import { getGameComponent } from "./game-modules/ui-registry";
 import type { GameAction } from "./game-modules/types";
 import type { LeaderboardEntry, MatchRecord, PlayerStatsResponse, StatsSummary } from "./shared/stats";
@@ -107,7 +107,7 @@ async function fetchJson<T>(path: string) {
   const response = await fetch(resolveApiUrl(path));
   if (!response.ok) {
     const body = (await response.json().catch(() => null)) as { error?: string } | null;
-    throw new Error(body?.error ?? "통계를 불러올 수 없습니다.");
+    throw new Error(body?.error ?? "서버 데이터를 불러올 수 없습니다.");
   }
   return (await response.json()) as T;
 }
@@ -385,24 +385,35 @@ function App() {
   const [clientKey, setClientKey] = useState(() => readOrCreateClientKey());
   const [lastRoomCode, setLastRoomCode] = useState(() => localStorage.getItem(storageKeys.roomCode) ?? "");
   const [connection, setConnection] = useState<"connecting" | "connected" | "offline">("connecting");
+  const [roomList, setRoomList] = useState<PublicRoomListItem[]>([]);
+  const [roomListLoading, setRoomListLoading] = useState(true);
   const [notice, setNotice] = useState("");
-  const [restoreTried, setRestoreTried] = useState(false);
 
   useEffect(() => {
     socket.connect();
 
-    const handleConnect = () => setConnection("connected");
+    const handleConnect = () => {
+      setConnection("connected");
+      void refreshRoomList(false);
+    };
     const handleDisconnect = () => setConnection("offline");
     const handleRoomState = (nextRoom: RoomSnapshot) => setRoom(nextRoom);
+    const handleRoomList = (nextRooms: PublicRoomListItem[]) => {
+      setRoomList(nextRooms);
+      setRoomListLoading(false);
+    };
 
     socket.on("connect", handleConnect);
     socket.on("disconnect", handleDisconnect);
     socket.on("room:state", handleRoomState);
+    socket.on("rooms:list", handleRoomList);
+    void refreshRoomList(false);
 
     return () => {
       socket.off("connect", handleConnect);
       socket.off("disconnect", handleDisconnect);
       socket.off("room:state", handleRoomState);
+      socket.off("rooms:list", handleRoomList);
       socket.disconnect();
     };
   }, []);
@@ -423,43 +434,25 @@ function App() {
     }
   }, [lastRoomCode]);
 
-  useEffect(() => {
-    if (connection !== "connected" || restoreTried || room || !lastRoomCode) {
-      return;
-    }
-
-    let active = true;
-    setRestoreTried(true);
-    emitWithAck<JoinResult>("room:resume", {
-      code: lastRoomCode,
-      name,
-      playerId,
-      clientKey
-    }).then((response) => {
-      if (!active) return;
-      if (!response.ok || !response.data) {
-        setNotice("저장된 방을 찾을 수 없습니다. 방이 닫혔다면 새로 입장해주세요.");
-        return;
-      }
-
-      setPlayerId(response.data.playerId);
-      setRoom(response.data.room);
-      setLastRoomCode(response.data.room.code);
-      setRoomCode(response.data.room.code);
-      setNotice("저장된 플레이어로 다시 연결했습니다.");
-    });
-
-    return () => {
-      active = false;
-    };
-  }, [clientKey, connection, lastRoomCode, name, playerId, restoreTried, room]);
-
   const currentPlayer = useMemo(
     () => room?.players.find((player) => player.id === playerId) ?? null,
     [playerId, room]
   );
 
   const selectedGame = useMemo(() => getGameById(room?.selectedGameId), [room?.selectedGameId]);
+
+  async function refreshRoomList(showError = true) {
+    setRoomListLoading(true);
+    try {
+      setRoomList(await fetchJson<PublicRoomListItem[]>("/api/rooms"));
+    } catch (error) {
+      if (showError) {
+        setNotice(error instanceof Error ? error.message : "방 목록을 불러올 수 없습니다.");
+      }
+    } finally {
+      setRoomListLoading(false);
+    }
+  }
 
   async function handleCreateRoom(event: FormEvent) {
     event.preventDefault();
@@ -476,10 +469,12 @@ function App() {
     setRoomCode(response.data.room.code);
   }
 
-  async function handleJoinRoom(event: FormEvent) {
-    event.preventDefault();
+  async function joinRoomByCode(code: string) {
+    const normalizedCode = code.trim().toUpperCase();
+    if (!normalizedCode) return;
     setNotice("");
-    const response = await emitWithAck<JoinResult>("room:join", { code: roomCode, name, playerId, clientKey });
+    setRoomCode(normalizedCode);
+    const response = await emitWithAck<JoinResult>("room:join", { code: normalizedCode, name, playerId, clientKey });
     if (!response.ok || !response.data) {
       setNotice(response.error ?? "방에 입장할 수 없습니다.");
       return;
@@ -489,6 +484,11 @@ function App() {
     setRoom(response.data.room);
     setLastRoomCode(response.data.room.code);
     setRoomCode(response.data.room.code);
+  }
+
+  async function handleJoinRoom(event: FormEvent) {
+    event.preventDefault();
+    await joinRoomByCode(roomCode);
   }
 
   async function resumeSavedRoom() {
@@ -544,7 +544,6 @@ function App() {
       }
     }
     setRoom(null);
-    setRestoreTried(true);
     setNotice("플레이어 정보는 이 브라우저에 저장되어 있습니다. 같은 방에 다시 들어가면 같은 좌석으로 복귀합니다.");
   }
 
@@ -562,7 +561,6 @@ function App() {
     setLastRoomCode("");
     setRoomCode("");
     setRoom(null);
-    setRestoreTried(true);
     setNotice("이 브라우저의 저장된 방/플레이어 연결을 지우고 새 손님으로 시작합니다.");
   }
 
@@ -577,9 +575,8 @@ function App() {
         </div>
         <div>
           <h1>Board Game Room</h1>
-          <p>문서화된 보드게임을 실시간 방에서 선택하고 진행합니다.</p>
+          <p>방에 들어가서 인원에 맞는 보드게임을 선택합니다.</p>
         </div>
-        <ConnectionBadge connection={connection} />
       </header>
 
       <main id="main">
@@ -601,12 +598,15 @@ function App() {
             roomCode={roomCode}
             notice={notice}
             connection={connection}
-            clientKey={clientKey}
             lastRoomCode={lastRoomCode}
+            rooms={roomList}
+            roomsLoading={roomListLoading}
             onNameChange={setName}
             onRoomCodeChange={setRoomCode}
             onCreateRoom={handleCreateRoom}
             onJoinRoom={handleJoinRoom}
+            onJoinListedRoom={joinRoomByCode}
+            onRefreshRooms={() => void refreshRoomList()}
             onResumeSavedRoom={resumeSavedRoom}
             onResetLocalIdentity={resetLocalIdentity}
           />
@@ -616,27 +616,20 @@ function App() {
   );
 }
 
-function ConnectionBadge({ connection }: { connection: "connecting" | "connected" | "offline" }) {
-  const label = connection === "connected" ? "서버 연결됨" : connection === "connecting" ? "연결 중" : "오프라인";
-  return (
-    <div className={`connection-badge ${connection}`} aria-live="polite">
-      <Radio size={16} />
-      <span>{label}</span>
-    </div>
-  );
-}
-
 function HomeView({
   name,
   roomCode,
   notice,
   connection,
-  clientKey,
   lastRoomCode,
+  rooms,
+  roomsLoading,
   onNameChange,
   onRoomCodeChange,
   onCreateRoom,
   onJoinRoom,
+  onJoinListedRoom,
+  onRefreshRooms,
   onResumeSavedRoom,
   onResetLocalIdentity
 }: {
@@ -644,48 +637,43 @@ function HomeView({
   roomCode: string;
   notice: string;
   connection: "connecting" | "connected" | "offline";
-  clientKey: string;
   lastRoomCode: string;
+  rooms: PublicRoomListItem[];
+  roomsLoading: boolean;
   onNameChange: (value: string) => void;
   onRoomCodeChange: (value: string) => void;
   onCreateRoom: (event: FormEvent) => void;
   onJoinRoom: (event: FormEvent) => void;
+  onJoinListedRoom: (code: string) => void;
+  onRefreshRooms: () => void;
   onResumeSavedRoom: () => void;
   onResetLocalIdentity: () => void;
 }) {
   const disabled = connection !== "connected";
+  const hasRooms = rooms.length > 0;
 
   return (
-    <section className="home-grid" aria-labelledby="home-title">
-      <div className="intro-panel">
-        <span className="eyebrow">실시간 보드게임 테이블</span>
-        <h2 id="home-title">이름을 정하고 방으로 들어가세요.</h2>
-        <p>
-          한 방은 최대 4명까지 들어올 수 있고, 방 안에서는 현재 인원수에 맞는 게임만 선택됩니다.
-        </p>
-        <div className="tabletop-still-life" aria-hidden="true">
-          <span className="still-card card-a" />
-          <span className="still-card card-b" />
-          <span className="still-die">
-            <i />
-            <i />
-            <i />
-            <i />
-            <i />
-          </span>
-          <span className="still-pawn" />
-          <span className="still-tile tile-a" />
-          <span className="still-tile tile-b" />
+    <section className="home-grid room-first-home" aria-labelledby="home-title">
+      <div className="room-list-panel">
+        <div className="panel-header room-list-heading">
+          <div>
+            <span className="eyebrow">실시간 방 목록</span>
+            <h2 id="home-title">참여할 방을 먼저 선택하세요.</h2>
+            <p>게임 종류는 방에 들어간 뒤, 현재 인원수에 맞는 항목만 고릅니다.</p>
+          </div>
+          <button
+            className="icon-button"
+            type="button"
+            onClick={onRefreshRooms}
+            disabled={roomsLoading}
+            aria-label="방 목록 새로고침"
+            title="방 목록 새로고침"
+          >
+            <RefreshCw size={18} />
+          </button>
         </div>
-        <div className="catalog-strip" aria-label="등록된 게임">
-          {games.slice(0, 10).map((game) => (
-            <span key={game.id}>{game.title}</span>
-          ))}
-        </div>
-      </div>
 
-      <div className="entry-stack">
-        <form className="entry-panel" onSubmit={onCreateRoom}>
+        <div className="home-name-row">
           <label htmlFor="player-name">플레이어 이름</label>
           <input
             id="player-name"
@@ -693,13 +681,90 @@ function HomeView({
             maxLength={16}
             onChange={(event) => onNameChange(event.target.value)}
           />
-          <button className="primary-button" type="submit" disabled={disabled || !name.trim()}>
-            <Plus size={18} />
-            방 만들기
-          </button>
-        </form>
+        </div>
 
-        <form className="entry-panel" onSubmit={onJoinRoom}>
+        {roomsLoading ? (
+          <div className="room-list-placeholder" role="status">
+            방 목록을 확인하고 있습니다.
+          </div>
+        ) : hasRooms ? (
+          <div className="room-list" aria-label="입장 가능한 방">
+            {rooms.map((openRoom) => {
+              const canResume = lastRoomCode === openRoom.code;
+              const canUseRoom = openRoom.canJoin || canResume;
+              return (
+                <article className={`room-card ${openRoom.canJoin ? "" : "is-locked"}`} key={openRoom.code}>
+                  <div className="room-card-main">
+                    <div className="room-card-title">
+                      <span className="room-code-chip">
+                        <DoorOpen size={17} aria-hidden="true" />
+                        {openRoom.code}
+                      </span>
+                      <span className={`room-state-chip ${openRoom.status}`}>
+                        {openRoom.status === "playing" ? "게임 중" : openRoom.canJoin ? "입장 가능" : "만석"}
+                      </span>
+                    </div>
+                    <div className="room-card-meta">
+                      <span>
+                        <Users size={16} aria-hidden="true" />
+                        {openRoom.playerCount}/{openRoom.maxPlayers}명
+                      </span>
+                      <span>
+                        <Crown size={16} aria-hidden="true" />
+                        {openRoom.hostName ?? "방장 미정"}
+                      </span>
+                      <span>
+                        <Clock3 size={16} aria-hidden="true" />
+                        {formatTime(openRoom.createdAt)}
+                      </span>
+                    </div>
+                    <p className="room-card-game">
+                      <Gamepad2 size={16} aria-hidden="true" />
+                      {openRoom.selectedGameTitle ?? "방 안에서 게임 선택"}
+                    </p>
+                  </div>
+                  <button
+                    className={openRoom.canJoin ? "primary-button" : "secondary-button"}
+                    type="button"
+                    disabled={disabled || !name.trim() || !canUseRoom}
+                    onClick={canResume ? onResumeSavedRoom : () => onJoinListedRoom(openRoom.code)}
+                  >
+                    <LogIn size={18} />
+                    {canResume ? "복귀" : openRoom.canJoin ? "입장" : "대기"}
+                  </button>
+                </article>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="empty-room-state">
+            <DoorOpen size={30} aria-hidden="true" />
+            <div>
+              <h3>열린 방이 없습니다.</h3>
+              <p>첫 방을 만들면 다른 플레이어가 이 목록에서 바로 들어올 수 있습니다.</p>
+            </div>
+            <form className="room-empty-action" onSubmit={onCreateRoom}>
+              <button className="primary-button" type="submit" disabled={disabled || !name.trim()}>
+                <Plus size={18} />
+                방 만들기
+              </button>
+            </form>
+          </div>
+        )}
+      </div>
+
+      <div className="entry-stack room-entry-stack">
+        {hasRooms ? (
+          <form className="entry-panel compact-entry-panel" onSubmit={onCreateRoom}>
+            <span className="entry-panel-title">새 테이블</span>
+            <button className="secondary-button" type="submit" disabled={disabled || !name.trim()}>
+              <Plus size={18} />
+              새 방 만들기
+            </button>
+          </form>
+        ) : null}
+
+        <form className="entry-panel compact-entry-panel" onSubmit={onJoinRoom}>
           <label htmlFor="room-code">방 코드</label>
           <input
             id="room-code"
@@ -724,8 +789,6 @@ function HomeView({
         </button>
         {notice ? <p className="notice" role="alert">{notice}</p> : null}
       </div>
-
-      <StatsDashboard playerName={name} clientKey={clientKey} />
     </section>
   );
 }

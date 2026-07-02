@@ -94,6 +94,18 @@ export interface RoomSnapshot {
   createdAt: number;
 }
 
+export interface PublicRoomListItem {
+  code: string;
+  playerCount: number;
+  maxPlayers: number;
+  status: RoomStatus;
+  selectedGameId: string | null;
+  selectedGameTitle: string | null;
+  hostName: string | null;
+  createdAt: number;
+  canJoin: boolean;
+}
+
 export interface Ack<T = unknown> {
   ok: boolean;
   data?: T;
