@@ -637,9 +637,9 @@ function HomeView({
       <div className="room-list-panel">
         <div className="panel-header room-list-heading">
           <div>
-            <span className="eyebrow">실시간 방 목록</span>
-            <h2 id="home-title">참여할 방을 먼저 선택하세요.</h2>
-            <p>게임 종류는 방에 들어간 뒤, 현재 인원수에 맞는 항목만 고릅니다.</p>
+            <span className="eyebrow">방 목록</span>
+            <h2 id="home-title">같이 할 방을 고르세요.</h2>
+            <p>열린 방에 바로 들어가거나, 새 방을 만들어 친구를 기다리세요.</p>
           </div>
           <button
             className="icon-button"
@@ -654,7 +654,7 @@ function HomeView({
         </div>
 
         <div className="home-name-row">
-          <label htmlFor="player-name">플레이어 이름</label>
+          <label htmlFor="player-name">내 이름</label>
           <input
             id="player-name"
             value={name}
@@ -717,13 +717,13 @@ function HomeView({
           <div className="empty-room-state">
             <DoorOpen size={30} aria-hidden="true" />
             <div>
-              <h3>열린 방이 없습니다.</h3>
-              <p>첫 방을 만들면 다른 플레이어가 이 목록에서 바로 들어올 수 있습니다.</p>
+              <h3>아직 열린 방이 없어요.</h3>
+              <p>새 방을 만들면 친구들이 이 목록에서 바로 들어올 수 있습니다.</p>
             </div>
             <form className="room-empty-action" onSubmit={onCreateRoom}>
               <button className="primary-button" type="submit" disabled={disabled || !name.trim()}>
                 <Plus size={18} />
-                방 만들기
+                새 방 만들기
               </button>
             </form>
           </div>
@@ -733,7 +733,7 @@ function HomeView({
       <div className="entry-stack room-entry-stack">
         {hasRooms ? (
           <form className="entry-panel compact-entry-panel" onSubmit={onCreateRoom}>
-            <span className="entry-panel-title">새 테이블</span>
+            <span className="entry-panel-title">다른 방 열기</span>
             <button className="secondary-button" type="submit" disabled={disabled || !name.trim()}>
               <Plus size={18} />
               새 방 만들기
