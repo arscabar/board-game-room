@@ -8,6 +8,7 @@ import { module as abaloneModule } from "../src/game-modules/abalone-classic";
 import { module as blokusModule } from "../src/game-modules/blokus";
 import { module as quoridorModule } from "../src/game-modules/quoridor";
 import { module as yinshModule } from "../src/game-modules/yinsh";
+import { validateGameCatalog } from "../src/game-modules/catalog";
 import { games, getGameById } from "../src/shared/games";
 import type { Ack, GameDefinition, RoomSnapshot } from "../src/shared/types";
 import type { GameAction, GameContext, GameModule } from "../src/game-modules/types";
@@ -1210,6 +1211,11 @@ function printResults(results: QaResult[]) {
 }
 
 async function main() {
+  const catalogErrors = validateGameCatalog();
+  if (catalogErrors.length > 0) {
+    throw new Error(`Game catalog validation failed:\n${catalogErrors.map((error) => `- ${error}`).join("\n")}`);
+  }
+
   runYinshMarkerPoolChecks();
   if (process.argv.includes("--yinsh-marker-pool-only") || process.env.QA_MODE === "yinsh-marker-pool") {
     return;

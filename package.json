@@ -16,6 +16,7 @@
     "start": "tsx server/index.ts",
     "android:sync": "npm run build && cap sync android",
     "android:open": "cap open android",
+    "qa:catalog": "tsx scripts/qa-game-catalog.ts",
     "qa:games": "tsx scripts/qa-all-games.ts",
     "qa:privacy": "tsx scripts/qa-privacy.ts",
     "qa:max": "tsx scripts/qa-all-games.ts --max-runs"
