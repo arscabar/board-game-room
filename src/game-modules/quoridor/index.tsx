@@ -500,6 +500,13 @@ export function Component(props: GameComponentProps) {
 
       <div className="qdr-layout">
         <div className="qdr-board" aria-label="쿼리도 보드">
+          {activeModulePlayer ? (
+            <span
+              className={`qdr-goal-edge ${activeModulePlayer.goal}`}
+              style={{ "--goal-color": activeModulePlayer.color } as CSSProperties}
+              aria-hidden="true"
+            />
+          ) : null}
           {Array.from({ length: BOARD_SIZE }, (_, row) =>
             Array.from({ length: BOARD_SIZE }, (_, col) => {
               const pawn = publicState.players.find((player) => player.row === row && player.col === col);
@@ -553,6 +560,13 @@ export function Component(props: GameComponentProps) {
               />
             );
           })}
+          {canAct ? (
+            <span
+              aria-hidden="true"
+              className={`qdr-wall-preview ${orientation} ${selectedWallBlocked ? "blocked" : "valid"}`}
+              style={wallPieceStyle(wallRow, wallCol)}
+            />
+          ) : null}
         </div>
 
         <aside className="qdr-panel">
@@ -590,7 +604,7 @@ export function Component(props: GameComponentProps) {
                 세로
               </button>
             </div>
-            <div className="qdr-wall-grid">
+            <div className={`qdr-wall-grid ${orientation}`} aria-label="벽 후보 위치">
               {Array.from({ length: WALL_GRID }, (_, row) =>
                 Array.from({ length: WALL_GRID }, (_, col) => {
                   const selected = row === wallRow && col === wallCol;
@@ -599,7 +613,7 @@ export function Component(props: GameComponentProps) {
                     !wallPreservesPaths(publicState, orientation, row, col);
                   return (
                     <button
-                      className={`${selected ? "selected" : ""} ${blocked ? "blocked" : ""}`}
+                      className={`${selected ? "selected" : ""} ${blocked ? "blocked" : "valid"}`}
                       disabled={!canAct}
                       key={key(row, col)}
                       onClick={() => {
@@ -607,6 +621,11 @@ export function Component(props: GameComponentProps) {
                         setWallCol(col);
                       }}
                       type="button"
+                      aria-pressed={selected}
+                      aria-label={`${row + 1}행 ${col + 1}열 ${orientation === "horizontal" ? "가로" : "세로"} 벽 ${
+                        blocked ? "불가" : "가능"
+                      }`}
+                      title={`${row + 1}-${col + 1} ${blocked ? "불가" : "가능"}`}
                     >
                       {orientation === "horizontal" ? "가" : "세"}
                     </button>
@@ -693,6 +712,40 @@ const quoridorStyles = `
     inset 0 0 32px rgba(0, 0, 0, 0.34),
     0 18px 28px rgba(35, 17, 12, 0.34);
 }
+.qdr-goal-edge {
+  position: absolute;
+  z-index: 3;
+  pointer-events: none;
+  border-radius: 999px;
+  background: var(--goal-color);
+  box-shadow:
+    0 0 0 2px rgba(255, 247, 209, 0.62),
+    0 0 18px color-mix(in srgb, var(--goal-color) 60%, transparent);
+}
+.qdr-goal-edge.top,
+.qdr-goal-edge.bottom {
+  left: var(--qdr-padding);
+  right: var(--qdr-padding);
+  height: 6px;
+}
+.qdr-goal-edge.top {
+  top: 5px;
+}
+.qdr-goal-edge.bottom {
+  bottom: 5px;
+}
+.qdr-goal-edge.left,
+.qdr-goal-edge.right {
+  top: var(--qdr-padding);
+  bottom: var(--qdr-padding);
+  width: 6px;
+}
+.qdr-goal-edge.left {
+  left: 5px;
+}
+.qdr-goal-edge.right {
+  right: 5px;
+}
 .qdr-cell {
   display: grid;
   place-items: center;
@@ -756,6 +809,40 @@ const quoridorStyles = `
   height: calc(var(--qdr-gap) * 0.9);
 }
 .qdr-wall-piece.vertical {
+  left: calc(var(--qdr-padding) + ((var(--wall-col) + 1) * var(--qdr-cell)) + (var(--wall-col) * var(--qdr-gap)) + (var(--qdr-gap) * 0.05));
+  top: calc(var(--qdr-padding) + (var(--wall-row) * (var(--qdr-cell) + var(--qdr-gap))) + (var(--qdr-cell) * 0.08));
+  width: calc(var(--qdr-gap) * 0.9);
+  height: calc((var(--qdr-cell) * 1.84) + var(--qdr-gap));
+}
+.qdr-wall-preview {
+  position: absolute;
+  z-index: 4;
+  pointer-events: none;
+  border-radius: 999px;
+  opacity: 0.88;
+  background:
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.32) 0 4px, transparent 4px 8px),
+    linear-gradient(180deg, #f9df80, #b06a2d);
+  box-shadow:
+    0 0 0 2px rgba(255, 247, 209, 0.74),
+    0 0 14px rgba(249, 223, 128, 0.5);
+}
+.qdr-wall-preview.blocked {
+  opacity: 0.72;
+  background:
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.34) 0 4px, transparent 4px 8px),
+    linear-gradient(180deg, #b74a3b, #5e2b24);
+  box-shadow:
+    0 0 0 2px rgba(255, 215, 190, 0.58),
+    0 0 12px rgba(183, 74, 59, 0.42);
+}
+.qdr-wall-preview.horizontal {
+  left: calc(var(--qdr-padding) + (var(--wall-col) * (var(--qdr-cell) + var(--qdr-gap))) + (var(--qdr-cell) * 0.08));
+  top: calc(var(--qdr-padding) + ((var(--wall-row) + 1) * var(--qdr-cell)) + (var(--wall-row) * var(--qdr-gap)) + (var(--qdr-gap) * 0.05));
+  width: calc((var(--qdr-cell) * 1.84) + var(--qdr-gap));
+  height: calc(var(--qdr-gap) * 0.9);
+}
+.qdr-wall-preview.vertical {
   left: calc(var(--qdr-padding) + ((var(--wall-col) + 1) * var(--qdr-cell)) + (var(--wall-col) * var(--qdr-gap)) + (var(--qdr-gap) * 0.05));
   top: calc(var(--qdr-padding) + (var(--wall-row) * (var(--qdr-cell) + var(--qdr-gap))) + (var(--qdr-cell) * 0.08));
   width: calc(var(--qdr-gap) * 0.9);
@@ -856,12 +943,27 @@ const quoridorStyles = `
     inset 0 -3px 0 rgba(101, 55, 22, 0.24),
     0 2px 0 rgba(0, 0, 0, 0.16);
 }
+.qdr-wall-grid.vertical button::before {
+  width: 9px;
+  height: 72%;
+}
 .qdr-wall-grid button.selected {
   outline: 2px solid #fdf7c3;
   outline-offset: 1px;
 }
+.qdr-wall-grid button.valid {
+  box-shadow:
+    inset 0 -3px 0 rgba(90, 45, 16, 0.18),
+    0 0 0 1px rgba(28, 117, 76, 0.22),
+    0 2px 0 rgba(42, 20, 10, 0.18);
+}
 .qdr-wall-grid button.blocked {
   background: #5e3a32;
+}
+.qdr-wall-grid button.blocked::before {
+  background:
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.24) 0 4px, transparent 4px 8px),
+    #9b3d34;
 }
 .qdr-wall-hint {
   color: #155847;

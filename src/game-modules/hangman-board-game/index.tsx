@@ -547,8 +547,8 @@ function HangmanToyBoard({ misses = 0, maxMisses = MAX_MISSES }: { misses?: numb
   return (
     <div className="hangman-toy-board" aria-hidden="true">
       <div className="hangman-toy-letters">
-        {ALPHABET.map((letter) => (
-          <span key={letter}>
+        {ALPHABET.map((letter, index) => (
+          <span className={index % 2 === 0 ? "red" : "blue"} key={letter}>
             {letter}
           </span>
         ))}
@@ -575,6 +575,23 @@ function HangmanToyBoard({ misses = 0, maxMisses = MAX_MISSES }: { misses?: numb
   );
 }
 
+function HangmanMissCounter({ misses, maxMisses }: { misses: number; maxMisses: number }) {
+  const remaining = Math.max(0, maxMisses - misses);
+  return (
+    <div className="hangman-miss-counter" aria-label={`남은 기회 ${remaining}개, 오답 ${misses}개`}>
+      <div>
+        <strong>{remaining}</strong>
+        <span>남은 기회</span>
+      </div>
+      <div className="hangman-miss-pips" aria-hidden="true">
+        {Array.from({ length: maxMisses }, (_, index) => (
+          <span className={index < misses ? "spent" : ""} key={index} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function Component({
   players,
   currentPlayer,
@@ -591,7 +608,10 @@ export function Component({
   const isMyTurn = Boolean(myId && state.activePlayerId === myId && state.phase === "guessing");
   const canGuess = !disabled && isMyTurn;
   const guessedLetters = new Set(myProgress?.guessedLetters ?? []);
+  const missedLetters = new Set(myProgress?.missedLetters ?? []);
+  const hitLetters = new Set((myProgress?.guessedLetters ?? []).filter((letter) => !missedLetters.has(letter)));
   const roundWinnerName = getPlayerName(players, state.roundWinnerId);
+  const targetName = myProgress ? getPlayerName(players, myProgress.targetId) : null;
 
   function submitSecret(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -702,6 +722,14 @@ export function Component({
               ) : null}
             </div>
 
+            <div className="hangman-target-card">
+              <div>
+                <strong>{targetName ? `${targetName}님의 단어 추측` : "추측 대상 대기"}</strong>
+                <span>{canGuess ? "글자 버튼이나 전체 단어 중 하나를 선택하세요." : "차례가 오면 글자판이 켜집니다."}</span>
+              </div>
+              <HangmanMissCounter misses={myProgress?.misses ?? 0} maxMisses={state.maxMisses} />
+            </div>
+
             {state.phase === "round-complete" ? (
               <div className="hangman-round-complete">
                 <strong>{roundWinnerName} 라운드 승리</strong>
@@ -730,7 +758,14 @@ export function Component({
             <div className="hangman-alphabet" style={styles.alphabet}>
               {ALPHABET.map((letter) => (
                 <button
-                  className="hangman-letter-button"
+                  className={[
+                    "hangman-letter-button",
+                    missedLetters.has(letter) ? "missed" : "",
+                    hitLetters.has(letter) ? "hit" : "",
+                    guessedLetters.has(letter) ? "used" : ""
+                  ]
+                    .filter(Boolean)
+                    .join(" ")}
                   style={styles.letterButton}
                   type="button"
                   key={letter}
@@ -775,10 +810,10 @@ export function Component({
             </form>
 
             {myProgress ? (
-              <p>
-                틀린 글자: {myProgress.missedLetters.join(", ") || "없음"} | 전체 단어 추측:{" "}
-                {myProgress.wholeWordGuesses.join(", ") || "없음"}
-              </p>
+              <div className="hangman-history-strip">
+                <span>틀린 글자: {myProgress.missedLetters.join(", ") || "없음"}</span>
+                <span>전체 단어: {myProgress.wholeWordGuesses.join(", ") || "없음"}</span>
+              </div>
             ) : null}
 
             {state.phase === "complete" ? <p>승자: {state.winnerId ? getPlayerName(players, state.winnerId) : "승자 없음"}</p> : null}

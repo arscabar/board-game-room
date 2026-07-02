@@ -7457,3 +7457,243 @@ a:focus-visible,
     color: #f4ddb4;
   }
 }
+
+/* Play UX pass: make the current goal, possible action, and blockers explicit. */
+.turn-guide {
+  align-items: stretch;
+}
+
+.turn-guide-coach {
+  flex: 1 1 48%;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 6px;
+  min-width: min(100%, 420px);
+}
+
+.turn-guide-coach span {
+  display: grid;
+  grid-template-columns: 15px minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  align-items: center;
+  gap: 5px;
+  min-height: 34px;
+  border: 1px solid rgba(232, 181, 101, 0.26);
+  border-radius: 7px;
+  padding: 5px 7px;
+  color: var(--readable-muted);
+  background: rgba(14, 8, 5, 0.58);
+  font-size: 0.72rem;
+  line-height: 1.25;
+}
+
+.turn-guide-coach svg {
+  grid-row: 1 / span 2;
+  color: var(--readable-focus);
+}
+
+.turn-guide-coach strong {
+  color: var(--readable-title);
+  font-size: 0.68rem;
+}
+
+.turn-guide-coach small {
+  min-width: 0;
+  color: var(--readable-muted);
+  font-size: 0.72rem;
+  font-weight: 750;
+  line-height: 1.28;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.play-panel .turn-guide-coach {
+  grid-template-columns: 1fr;
+  min-width: 0;
+}
+
+.play-panel .turn-guide {
+  display: grid;
+  grid-template-columns: 1fr;
+}
+
+.play-panel .turn-guide-main,
+.play-panel .turn-guide-coach {
+  width: 100%;
+  min-width: 0;
+}
+
+.game-module-loading {
+  min-height: 220px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 8px;
+  border: 1px solid rgba(232, 181, 101, 0.3);
+  border-radius: 8px;
+  color: var(--readable-text);
+  background:
+    linear-gradient(90deg, rgba(255, 224, 153, 0.025) 0 1px, transparent 1px 44px),
+    linear-gradient(180deg, rgba(41, 24, 13, 0.98), rgba(14, 8, 5, 0.99));
+}
+
+.game-module-loading span {
+  color: var(--readable-muted);
+  font-size: 0.86rem;
+}
+
+@media (max-width: 1100px) {
+  .turn-guide-coach {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 820px) {
+  .play-panel {
+    padding-bottom: 8px;
+  }
+
+  .game-module-shell {
+    max-width: 100%;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-gutter: stable;
+  }
+
+  .play-panel > .turn-actions {
+    position: sticky;
+    bottom: 6px;
+    z-index: 8;
+    border-color: rgba(255, 224, 138, 0.36);
+    background:
+      linear-gradient(180deg, rgba(52, 31, 18, 0.98), rgba(18, 10, 6, 0.99));
+    box-shadow:
+      inset 0 1px 0 rgba(255, 235, 188, 0.12),
+      0 -6px 18px rgba(10, 5, 2, 0.28);
+  }
+
+  .turn-guide-coach span {
+    grid-template-columns: 15px minmax(0, 1fr);
+  }
+}
+
+/* Targeted board-game clarity pass: Blokus, Quoridor, Hangman. */
+.hangman-target-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  margin: 10px 0;
+  border: 1px solid rgba(31, 75, 102, 0.24);
+  border-radius: 8px;
+  padding: 10px;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.58), transparent 54%),
+    linear-gradient(180deg, rgba(237, 249, 255, 0.96), rgba(189, 226, 242, 0.92));
+}
+
+.hangman-target-card strong,
+.hangman-target-card span {
+  display: block;
+}
+
+.hangman-target-card span {
+  color: #315168;
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
+.hangman-miss-counter {
+  min-width: 126px;
+  display: grid;
+  gap: 6px;
+  border: 1px solid rgba(31, 75, 102, 0.22);
+  border-radius: 8px;
+  padding: 8px;
+  background:
+    linear-gradient(180deg, #fff8de, #e2c774);
+  color: #241912;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.58),
+    inset 0 -3px 0 rgba(91, 55, 22, 0.16);
+}
+
+.hangman-miss-counter > div:first-child {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.hangman-miss-counter strong {
+  font-size: 1.4rem;
+  line-height: 1;
+}
+
+.hangman-miss-counter span {
+  font-size: 0.74rem;
+  font-weight: 950;
+}
+
+.hangman-miss-pips {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 4px;
+}
+
+.hangman-miss-pips span {
+  min-height: 8px;
+  border-radius: 999px;
+  background: #288fc1;
+}
+
+.hangman-miss-pips span.spent {
+  background: #b91427;
+}
+
+.hangman-letter-button.hit {
+  background:
+    radial-gradient(circle at 24% 18%, rgba(255, 255, 255, 0.38), transparent 22%),
+    linear-gradient(180deg, #41b875, #157247) !important;
+}
+
+.hangman-letter-button.missed {
+  background:
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.16) 0 4px, transparent 4px 8px),
+    linear-gradient(180deg, #dd554b, #8c1820) !important;
+}
+
+.hangman-letter-button.used {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.hangman-history-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.hangman-history-strip span {
+  min-height: 28px;
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid rgba(31, 75, 102, 0.2);
+  border-radius: 999px;
+  padding: 0 9px;
+  color: #20384a;
+  background: rgba(255, 255, 255, 0.72);
+  font-size: 0.78rem;
+  font-weight: 850;
+}
+
+@media (max-width: 820px) {
+  .hangman-target-card {
+    grid-template-columns: 1fr;
+  }
+
+  .hangman-miss-counter {
+    width: 100%;
+  }
+}

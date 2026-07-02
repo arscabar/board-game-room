@@ -44,12 +44,12 @@ import {
   WifiOff,
   type LucideIcon
 } from "lucide-react";
-import { type CSSProperties, type FormEvent, useEffect, useMemo, useState } from "react";
+import { Suspense, type CSSProperties, type FormEvent, useEffect, useMemo, useState } from "react";
 import { socket } from "./lib/socket";
 import { games, getGameById } from "./shared/games";
 import { canPlayGame, formatAllowedPlayers, gameAvailabilityLabel } from "./shared/eligibility";
 import type { Ack, GameDefinition, PlayerSnapshot, RoomSnapshot } from "./shared/types";
-import { getGameRegistration } from "./game-modules/registry";
+import { getGameComponent } from "./game-modules/ui-registry";
 import type { GameAction } from "./game-modules/types";
 import type { LeaderboardEntry, MatchRecord, PlayerStatsResponse, StatsSummary } from "./shared/stats";
 
@@ -278,6 +278,29 @@ function actionHintFor(gameId: string | null | undefined, phase: string) {
     return "알파벳 하나를 누르거나 전체 단어를 추측하세요.";
   }
   return "현재 차례의 행동을 선택하세요.";
+}
+
+function objectiveFor(gameId: string | null | undefined, phase: string, isFinished: boolean) {
+  if (isFinished) return "결과를 확인하고 로비에서 다음 게임을 고르세요.";
+  if (gameId === "guryongtu") return "상대보다 높은 숫자를 숨겨 내고 라운드 승수를 쌓으세요.";
+  if (gameId === "quoridor") return "내 말을 목표 줄까지 먼저 보내되, 상대 길은 완전히 막지 않게 좁히세요.";
+  if (gameId === "abalone-classic") return "자기 구슬 줄을 밀어 상대 구슬을 보드 밖으로 내보내세요.";
+  if (gameId === "ghosts") return "좋은 유령은 탈출시키고, 나쁜 유령은 상대가 잡게 유도하세요.";
+  if (gameId === "qawale") return "스택을 분배해 내 색 돌 4개가 한 줄이 되게 만드세요.";
+  if (gameId === "davinci-code-plus") return "상대 타일의 색 단서를 보고 숨은 숫자를 먼저 밝혀내세요.";
+  if (gameId === "blokus") return "모서리만 맞닿게 넓게 펼쳐 남은 칸을 가장 적게 만드세요.";
+  if (gameId === "yacht-dice") return "굴림 3번 안에 가장 높은 점수 조합을 기록하세요.";
+  if (gameId === "yinsh") {
+    if (phase === "ring-placement") return "링 5개를 좋은 출발점에 배치하세요.";
+    if (phase === "remove-row") return "완성한 5목 줄을 제거하고 자기 링 하나를 가져오세요.";
+    return "링 이동으로 마커를 뒤집어 5목 줄을 만드세요.";
+  }
+  if (gameId === "hangman-board-game") {
+    if (phase === "setup") return "상대가 바로 맞히기 어렵지만 규칙에 맞는 비밀 단어를 준비하세요.";
+    if (phase === "round-complete") return "라운드 결과를 확인하고 다음 비밀 단어 준비로 넘어가세요.";
+    return "오답 6번 전에 상대 단어를 글자 또는 전체 단어로 맞히세요.";
+  }
+  return "현재 게임의 승리 조건을 향해 이번 턴 행동을 고르세요.";
 }
 
 function formatTimer(ms: number) {
@@ -1136,7 +1159,7 @@ function PlayPanel({
   const [action, setAction] = useState("");
   const [now, setNow] = useState(() => Date.now());
   const isMyTurn = currentPlayer?.id === activePlayer?.id;
-  const registration = getGameRegistration(selectedGame?.id);
+  const GameComponent = getGameComponent(selectedGame?.id);
   const phase = runtimePhase(room);
   const winnerIds = runtimeWinnerIds(room);
   const winnerId = runtimeWinnerId(room);
@@ -1177,6 +1200,8 @@ function PlayPanel({
     gameId: selectedGame?.id,
     paused
   });
+  const guideObjective = objectiveFor(selectedGame?.id, phase, isFinished);
+  const guideAction = actionHintFor(selectedGame?.id, phase);
   const hangmanOpenPhase = selectedGame?.id === "hangman-board-game" && (phase === "setup" || phase === "round-complete");
   const simultaneousChoicePhase = selectedGame?.id === "guryongtu" && phase === "selecting";
   const setupOpenPhase = selectedGame?.id === "ghosts" && phase === "setup";
@@ -1269,10 +1294,26 @@ function PlayPanel({
           </span>
           <div>
             <strong>{guideTitle}</strong>
-            <p>{actionHintFor(selectedGame?.id, phase)}</p>
+            <p>{guideAction}</p>
           </div>
         </div>
-        <div className="turn-guide-reason">{guideReason}</div>
+        <div className="turn-guide-coach" aria-label="이번 턴 안내">
+          <span>
+            <Target size={13} aria-hidden="true" />
+            <strong>목표</strong>
+            <small>{guideObjective}</small>
+          </span>
+          <span>
+            <ListChecks size={13} aria-hidden="true" />
+            <strong>가능</strong>
+            <small>{guideAction}</small>
+          </span>
+          <span>
+            <ShieldQuestion size={13} aria-hidden="true" />
+            <strong>주의</strong>
+            <small>{guideReason}</small>
+          </span>
+        </div>
       </div>
 
       <div
@@ -1364,17 +1405,19 @@ function PlayPanel({
         })}
       </div>
 
-      {registration && selectedGame ? (
+      {GameComponent && selectedGame ? (
         <div className="game-module-shell">
-          <registration.Component
-            game={selectedGame}
-            players={room.players}
-            currentPlayer={currentPlayer}
-            activePlayer={activePlayer}
-            publicState={room.gameState.publicState}
-            disabled={moduleDisabled}
-            onAction={sendGameAction}
-          />
+          <Suspense fallback={<GameModuleLoading game={selectedGame} />}>
+            <GameComponent
+              game={selectedGame}
+              players={room.players}
+              currentPlayer={currentPlayer}
+              activePlayer={activePlayer}
+              publicState={room.gameState.publicState}
+              disabled={moduleDisabled}
+              onAction={sendGameAction}
+            />
+          </Suspense>
         </div>
       ) : (
         <BoardPreview game={selectedGame} activePlayer={activePlayer} />
@@ -1444,6 +1487,16 @@ function RuleChecklist({ game, phase }: { game: GameDefinition; phase: string })
         ))}
       </ul>
     </section>
+  );
+}
+
+function GameModuleLoading({ game }: { game: GameDefinition }) {
+  return (
+    <div className="game-module-loading" role="status" aria-live="polite">
+      <GameKindIcon game={game} size={18} />
+      <strong>{game.title} 보드를 준비하는 중입니다.</strong>
+      <span>{game.table.uiHint}</span>
+    </div>
   );
 }
 

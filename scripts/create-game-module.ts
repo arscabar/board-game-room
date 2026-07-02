@@ -273,6 +273,8 @@ async function main() {
   console.log("\nAdd these lines to src/game-modules/catalog.ts:\n");
   console.log(`import { module as ${camelName}Module, Component as ${pascalName}Component } from "./${id}";`);
   console.log(`registerGame("${id}", ${camelName}Module, ${pascalName}Component),`);
+  console.log("\nAdd this lazy UI entry to src/game-modules/ui-registry.ts:\n");
+  console.log(`"${id}": lazy(() => import("./${id}").then((module) => ({ default: module.Component as GameComponent }))),`);
   console.log("\nThen run:");
   console.log("Check DESIGN_UPGRADE_PLAN.md for thumbnail, icon, motion, privacy, and mobile capture items.");
   console.log("npm run qa:catalog");

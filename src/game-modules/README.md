@@ -35,8 +35,13 @@ src/game-modules/my-game/index.tsx
 3. `src/game-modules/catalog.ts`
    - 새 모듈을 import합니다.
    - `gameCatalog`에 `registerGame("<game-id>", module, Component)` 한 줄을 추가합니다.
+   - 이 카탈로그는 서버 룰 처리와 QA에서 사용됩니다.
 
-4. 디자인/모션
+4. `src/game-modules/ui-registry.ts`
+   - `gameComponents`에 `"<game-id>": lazy(() => import("./<game-id>").then(...))` 한 줄을 추가합니다.
+   - 이 등록은 브라우저 화면용입니다. 선택한 게임 컴포넌트만 늦게 불러와 초기 로딩과 모바일 번들 크기를 줄입니다.
+
+5. 디자인/모션
    - `GameDefinition.table.kind`가 로비 아이콘과 미니 보드 톤을 결정하므로 실제 보드와 가장 가까운 값을 고릅니다.
    - `GameDefinition.visual.iconKind`로 아이콘 계열을 덮어쓸 수 있습니다. `thumbnailHint`는 설명 패널의 시각 힌트 문구, `motionHint`는 핵심 조작 모션, `texture`는 주 오브젝트 질감입니다.
    - 로비 설명 패널의 `BoardPreview`가 충분히 직관적이지 않으면 `src/App.tsx`의 `BoardPreviewStage`에 게임별 미니 썸네일을 추가합니다.
@@ -46,7 +51,7 @@ src/game-modules/my-game/index.tsx
    - 모션은 `transform`과 `opacity` 중심으로 만들고, `prefers-reduced-motion: reduce`에서 반복 모션이 꺼지는지 확인합니다.
    - 비공개 정보가 있는 게임은 숨김 상태가 데이터뿐 아니라 UI에서도 뒷면/마스크/잠금 표현으로 명확해야 합니다.
 
-5. QA
+6. QA
    - 최소 `npm run qa:catalog`를 통과해야 합니다.
    - 비공개 정보가 있으면 `scripts/qa-privacy.ts`에 노출 방지 테스트를 추가합니다.
    - 자동 플레이가 가능하면 `scripts/qa-all-games.ts`에 playthrough 시나리오를 추가합니다.

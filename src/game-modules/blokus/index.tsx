@@ -646,8 +646,8 @@ function isBlokusPublicState(state: unknown): state is BlokusPublicState {
   return Boolean(state && typeof state === "object" && Array.isArray((state as BlokusPublicState).board));
 }
 
-function PieceMini({ piece, color }: { piece: BlokusPiece; color: string }) {
-  const cells = normalizeCells(piece.cells);
+function PieceMini({ piece, color, cells: displayCells, large = false }: { piece: BlokusPiece; color: string; cells?: Point[]; large?: boolean }) {
+  const cells = normalizeCells(displayCells ?? piece.cells);
   const width = Math.max(...cells.map((cell) => cell.x)) + 1;
   const height = Math.max(...cells.map((cell) => cell.y)) + 1;
   const occupied = new Set(cells.map((cell) => `${cell.x},${cell.y}`));
@@ -655,6 +655,7 @@ function PieceMini({ piece, color }: { piece: BlokusPiece; color: string }) {
   return (
     <span
       className="blokus-piece-mini"
+      data-large={large ? "true" : undefined}
       style={{
         "--piece-color": color,
         "--piece-width": width,
@@ -700,6 +701,66 @@ function BlokusStyles() {
         font-size: 1rem;
       }
 
+      .blokus-coach-card {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        gap: 0.75rem;
+        align-items: center;
+        border: 1px solid color-mix(in srgb, var(--player-color, #64748b) 28%, rgba(15, 23, 42, 0.16));
+        border-radius: 8px;
+        padding: 0.7rem;
+        background:
+          linear-gradient(90deg, color-mix(in srgb, var(--player-color, #64748b) 12%, transparent), transparent 46%),
+          linear-gradient(180deg, #ffffff, #e8f1fb);
+      }
+
+      .blokus-coach-card strong,
+      .blokus-coach-card p {
+        margin: 0;
+      }
+
+      .blokus-coach-card p {
+        margin-top: 0.2rem;
+        color: #425466;
+        font-size: 0.86rem;
+        line-height: 1.35;
+      }
+
+      .blokus-piece-preview {
+        display: grid;
+        place-items: center;
+        min-width: 68px;
+        min-height: 62px;
+        border: 1px solid rgba(15, 23, 42, 0.12);
+        border-radius: 8px;
+        background:
+          linear-gradient(90deg, rgba(35, 100, 170, 0.06) 1px, transparent 1px),
+          linear-gradient(0deg, rgba(35, 100, 170, 0.06) 1px, transparent 1px),
+          #f8fbff;
+        background-size: 12px 12px;
+      }
+
+      .blokus-state-chips {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 0.35rem;
+      }
+
+      .blokus-state-chips span {
+        min-height: 26px;
+        display: inline-flex;
+        align-items: center;
+        border: 1px solid rgba(15, 23, 42, 0.12);
+        border-radius: 999px;
+        padding: 0 0.55rem;
+        color: #172033;
+        background: rgba(255, 255, 255, 0.74);
+        font-size: 0.78rem;
+        font-weight: 800;
+        white-space: nowrap;
+      }
+
       .blokus-layout {
         display: grid;
         grid-template-columns: 1fr;
@@ -740,7 +801,7 @@ function BlokusStyles() {
         cursor: pointer;
       }
 
-      .blokus-cell[style*="--cell-color"] {
+      .blokus-cell.occupied {
         box-shadow:
           inset 0 2px 0 rgba(255, 255, 255, 0.48),
           inset 0 -3px 0 rgba(15, 23, 42, 0.16);
@@ -877,6 +938,16 @@ function BlokusStyles() {
         height: 0.42rem;
       }
 
+      .blokus-piece-mini[data-large="true"] {
+        grid-template-columns: repeat(var(--piece-width), 0.72rem);
+        grid-template-rows: repeat(var(--piece-height), 0.72rem);
+      }
+
+      .blokus-piece-mini[data-large="true"] span {
+        width: 0.72rem;
+        height: 0.72rem;
+      }
+
       .blokus-piece-mini .filled {
         background: var(--piece-color);
         border-radius: 2px;
@@ -913,6 +984,15 @@ function BlokusStyles() {
       }
 
       @media (max-width: 860px) {
+        .blokus-coach-card {
+          grid-template-columns: auto minmax(0, 1fr);
+        }
+
+        .blokus-state-chips {
+          grid-column: 1 / -1;
+          justify-content: flex-start;
+        }
+
         .blokus-layout {
           grid-template-columns: 1fr;
           overflow-x: auto;
@@ -930,6 +1010,14 @@ function BlokusStyles() {
       }
 
       @media (max-width: 520px) {
+        .blokus-coach-card {
+          grid-template-columns: 1fr;
+        }
+
+        .blokus-piece-preview {
+          justify-self: start;
+        }
+
         .blokus-controls-row {
           grid-template-columns: 1fr;
         }
@@ -1004,6 +1092,14 @@ export function Component({
     }
     return anchors;
   }, [canInteract, currentBlokusPlayer, flipped, rotation, selectedPiece, state]);
+  const orientedPieceCells = selectedPiece ? transformCells(selectedPiece.cells, rotation, flipped) : [];
+  const orientationLabel = `${rotation * 90}도 ${flipped ? "뒤집힘" : "기본면"}`;
+  const placementStatus =
+    !canInteract
+      ? "내 차례가 되면 보드 후보가 켜집니다."
+      : legalAnchors.size === 0
+        ? "현재 방향으로 놓을 수 있는 위치가 없습니다. 회전하거나 다른 블록을 고르세요."
+        : `${legalAnchors.size}곳에 놓을 수 있습니다. 초록 점은 합법적인 기준 칸입니다.`;
 
   useEffect(() => {
     setPendingPlacement(null);
@@ -1077,6 +1173,23 @@ export function Component({
         ) : null}
       </div>
 
+      <div className="blokus-coach-card" style={{ "--player-color": currentBlokusPlayer?.color ?? "#64748b" } as CSSProperties}>
+        <div className="blokus-piece-preview">
+          {selectedPiece ? (
+            <PieceMini piece={selectedPiece} color={currentBlokusPlayer?.color ?? "#64748b"} cells={orientedPieceCells} large />
+          ) : null}
+        </div>
+        <div>
+          <strong>{selectedPiece ? `${selectedPiece.name} 블록` : "블록 선택 필요"}</strong>
+          <p>{placementStatus}</p>
+        </div>
+        <div className="blokus-state-chips" aria-label="블록 상태">
+          <span>{orientationLabel}</span>
+          <span>{pendingPlacement ? "위치 고정됨" : "미리보기 대기"}</span>
+          <span>{currentBlokusPlayer ? `${currentBlokusPlayer.remainingPieceIds.length}개 남음` : "대기"}</span>
+        </div>
+      </div>
+
       <div className="blokus-layout">
         <div className="blokus-board" onMouseLeave={() => setHoveredCell(null)} aria-label="블로커스 20x20 보드">
           {state.board.flatMap((row, y) =>
@@ -1091,6 +1204,7 @@ export function Component({
                   key={key}
                   className={[
                     "blokus-cell",
+                    owner ? "occupied" : "",
                     cornerOwner ? "corner" : "",
                     isAnchor ? "anchor" : "",
                     isPreview ? "preview" : "",
@@ -1108,7 +1222,7 @@ export function Component({
                     "--preview-color": currentBlokusPlayer?.color ?? "#94a3b8"
                   } as CSSProperties}
                   title={`${x + 1}, ${y + 1}${cornerOwner ? ` · ${cornerOwner.name} 시작 모서리` : ""}${isAnchor ? " · 놓을 수 있음" : ""}`}
-                  aria-label={`${x + 1}열 ${y + 1}행`}
+                  aria-label={`${x + 1}열 ${y + 1}행${owner ? ` ${owner.colorName} 블록` : ""}${isAnchor ? " 배치 가능" : ""}`}
                 />
               );
             })
