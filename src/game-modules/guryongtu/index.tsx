@@ -60,7 +60,7 @@ const styles: Record<string, CSSProperties> = {
   },
   tileGrid: {
     display: "grid",
-    gridTemplateColumns: "repeat(9, minmax(2.25rem, 1fr))",
+    gridTemplateColumns: "repeat(auto-fit, minmax(3rem, 1fr))",
     gap: "0.35rem"
   },
   tileButton: {
@@ -83,6 +83,7 @@ const styles: Record<string, CSSProperties> = {
 
 function orderedPlayers(players: PlayerSnapshot[], count: number) {
   return [...players]
+    .filter((player) => player.connected)
     .sort((a, b) => a.seat - b.seat || a.joinedAt - b.joinedAt)
     .slice(0, count)
     .map((player) => player.id);
@@ -124,19 +125,19 @@ function compareTiles(firstTile: Tile, secondTile: Tile) {
 
 function roundReason(firstTile: Tile, secondTile: Tile, result: number) {
   if (result === 0) {
-    return "Matched tiles tie the round.";
+    return "같은 숫자라 무승부입니다.";
   }
   if ((firstTile === 1 && secondTile === 9) || (firstTile === 9 && secondTile === 1)) {
-    return "The 1 beats 9 exception decides the round.";
+    return "1이 9를 이기는 예외 규칙으로 승부가 났습니다.";
   }
-  return "The higher tile wins the round.";
+  return "더 높은 숫자가 라운드를 이겼습니다.";
 }
 
 function getPlayerName(players: PlayerSnapshot[], playerId: string | null) {
   if (!playerId) {
-    return "No winner";
+    return "승자 없음";
   }
-  return players.find((player) => player.id === playerId)?.name ?? "Player";
+  return players.find((player) => player.id === playerId)?.name ?? "플레이어";
 }
 
 function finishStatus(state: GuryongtuState, roundNumber: number) {
@@ -210,48 +211,46 @@ export const module: GameModule = {
     const current = state as GuryongtuState;
 
     if (action.type !== "guryongtu/select-tile") {
-      return { state: current, message: "Unsupported Guryongtu action." };
+      return { state: current, message: "지원하지 않는 구룡투 행동입니다." };
     }
 
     if (current.phase === "complete") {
-      return { state: current, activePlayerId: null, message: "This duel is already complete." };
+      return { state: current, activePlayerId: null, message: "이미 끝난 대결입니다." };
     }
 
     const playerId = context.currentPlayerId;
     if (!current.playerIds.includes(playerId)) {
-      return { state: current, message: "Only seated duel players can choose a tile." };
+      return { state: current, message: "대결에 참여한 플레이어만 타일을 고를 수 있습니다." };
     }
-    if (current.activePlayerId !== playerId) {
-      return { state: current, activePlayerId: current.activePlayerId, message: "Wait for your private choice turn." };
-    }
-
     const tile = readTile(action);
     if (tile === null) {
-      return { state: current, activePlayerId: current.activePlayerId, message: "Choose a tile from 1 to 9." };
+      return { state: current, activePlayerId: current.activePlayerId, message: "1부터 9 사이의 타일을 골라주세요." };
     }
     if ((current.usedTiles[playerId] ?? []).includes(tile)) {
-      return { state: current, activePlayerId: current.activePlayerId, message: "That tile has already been used." };
+      return { state: current, activePlayerId: current.activePlayerId, message: "이미 사용한 타일입니다." };
     }
     if (current.choices[playerId] !== null) {
-      return { state: current, activePlayerId: current.activePlayerId, message: "You have already selected this round." };
+      return { state: current, activePlayerId: current.activePlayerId, message: "이번 라운드에서는 이미 선택했습니다." };
     }
 
     const choices = { ...current.choices, [playerId]: tile };
     const waitingPlayerId = current.playerIds.find((id) => choices[id] === null) ?? null;
 
     if (waitingPlayerId) {
+      const activePlayerId = choices[current.activePlayerId ?? ""] === null ? current.activePlayerId : waitingPlayerId;
       const nextState: GuryongtuState = {
         ...current,
         choices,
-        activePlayerId: waitingPlayerId
+        activePlayerId
       };
 
       return {
         state: nextState,
-        log: `${getPlayerName(context.players, playerId)} locked in a tile.`,
-        activePlayerId: waitingPlayerId,
+        log: `${getPlayerName(context.players, playerId)} 타일 선택 완료`,
+        activePlayerId,
         turnNumber: context.turnNumber + 1,
-        phase: nextState.phase
+        phase: nextState.phase,
+        message: "상대의 비공개 선택을 기다리는 중입니다."
       };
     }
 
@@ -286,7 +285,7 @@ export const module: GameModule = {
       rounds: [...current.rounds, revealedRound]
     };
     const completion = finishStatus(provisionalState, roundNumber);
-    const activePlayerId = completion.finished ? null : current.playerIds[roundNumber % current.playerIds.length];
+    const activePlayerId = completion.finished ? null : roundWinnerId ?? current.activePlayerId;
     const nextState: GuryongtuState = {
       ...provisionalState,
       phase: completion.finished ? "complete" : "selecting",
@@ -294,11 +293,11 @@ export const module: GameModule = {
       winnerId: completion.finished ? completion.winnerId : null
     };
 
-    const winnerName = roundWinnerId ? getPlayerName(context.players, roundWinnerId) : "No one";
+    const winnerName = roundWinnerId ? getPlayerName(context.players, roundWinnerId) : "승자 없음";
 
     return {
       state: nextState,
-      log: `Round ${roundNumber}: ${firstTile} vs ${secondTile}. ${winnerName} wins the reveal.`,
+      log: `${roundNumber}라운드: ${firstTile} 대 ${secondTile}. ${winnerName} 승리`,
       activePlayerId,
       turnNumber: context.turnNumber + 1,
       roundNumber: completion.finished ? roundNumber : roundNumber + 1,
@@ -317,10 +316,15 @@ export function Component({
 }: GameComponentProps<GuryongtuPublicState>) {
   const state = publicState;
   const myId = currentPlayer?.id ?? null;
-  const isMyTurn = Boolean(myId && state.phase === "selecting" && state.activePlayerId === myId);
+  const canChoose = Boolean(
+    myId &&
+      state.phase === "selecting" &&
+      state.playerIds.includes(myId) &&
+      state.pendingChoices[myId]?.selected !== true
+  );
   const myUsedTiles = myId ? state.usedTiles[myId] ?? [] : [];
   const myPendingTile = myId ? state.pendingChoices[myId]?.tile ?? null : null;
-  const actionDisabled = disabled || !isMyTurn;
+  const actionDisabled = disabled || !canChoose;
   const activeName = getPlayerName(players, state.activePlayerId);
 
   return (
@@ -333,10 +337,10 @@ export function Component({
 
           return (
             <article className="guryongtu-player-panel" style={styles.panel} key={playerId}>
-              <h3>{player?.name ?? "Player"}</h3>
-              <p>Wins: {score}</p>
-              <p>{pending?.selected ? (pending.tile ? `Locked: ${pending.tile}` : "Tile locked") : "Choosing"}</p>
-              <p>Used: {(state.usedTiles[playerId] ?? []).join(", ") || "None"}</p>
+              <h3>{player?.name ?? "플레이어"}</h3>
+              <p>승수: {score}</p>
+              <p>{pending?.selected ? (pending.tile ? `내 선택: ${pending.tile}` : "선택 완료") : "선택 중"}</p>
+              <p>사용: {(state.usedTiles[playerId] ?? []).join(", ") || "없음"}</p>
             </article>
           );
         })}
@@ -344,8 +348,8 @@ export function Component({
 
       <div className="guryongtu-choice-panel" style={styles.panel}>
         <div className="guryongtu-turn-meta" style={styles.meta}>
-          <strong>{state.phase === "complete" ? "Duel complete" : `Choosing: ${activeName}`}</strong>
-          {myPendingTile ? <span>Your pending tile: {myPendingTile}</span> : null}
+          <strong>{state.phase === "complete" ? "대결 종료" : `${activeName} 대기 기준 · 각자 비공개 선택`}</strong>
+          {myPendingTile ? <span>내가 고른 타일: {myPendingTile}</span> : null}
         </div>
 
         <div className="guryongtu-tile-grid" style={styles.tileGrid}>
@@ -369,25 +373,24 @@ export function Component({
       </div>
 
       <div className="guryongtu-history" style={styles.panel}>
-        <h3>Reveals</h3>
+        <h3>공개 기록</h3>
         <div style={styles.history}>
-          {state.rounds.length === 0 ? <p>No tiles have been revealed yet.</p> : null}
+          {state.rounds.length === 0 ? <p>아직 공개된 타일이 없습니다.</p> : null}
           {state.rounds.map((round) => (
             <div className="guryongtu-round-row" key={round.roundNumber}>
-              <strong>Round {round.roundNumber}</strong>{" "}
+              <strong>{round.roundNumber}라운드</strong>{" "}
               {state.playerIds.map((playerId) => `${getPlayerName(players, playerId)}: ${round.tiles[playerId]}`).join(" / ")}
               {" - "}
-              {round.winnerId ? `${getPlayerName(players, round.winnerId)} wins` : "Tie"}
+              {round.winnerId ? `${getPlayerName(players, round.winnerId)} 승리` : "무승부"}
             </div>
           ))}
         </div>
         {state.phase === "complete" ? (
           <p>
-            Winner: {state.winnerId ? getPlayerName(players, state.winnerId) : "Draw"}
+            승자: {state.winnerId ? getPlayerName(players, state.winnerId) : "무승부"}
           </p>
         ) : null}
       </div>
     </section>
   );
 }
-

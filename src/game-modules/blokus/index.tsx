@@ -1,5 +1,5 @@
 import { FlipHorizontal, RotateCw, SkipForward } from "lucide-react";
-import { type CSSProperties, useMemo, useState } from "react";
+import { type CSSProperties, useEffect, useMemo, useState } from "react";
 import type { GameComponentProps, GameModule } from "../types";
 
 type Point = {
@@ -17,8 +17,13 @@ type BlokusPiece = {
 
 type BlokusPlayerState = {
   id: string;
+  ownerId: string;
+  ownerName: string;
+  scoreOwnerId: string | null;
   name: string;
   color: string;
+  colorName: string;
+  shared: boolean;
   corner: Point;
   placedPieceIds: string[];
 };
@@ -26,6 +31,9 @@ type BlokusPlayerState = {
 type BlokusState = {
   board: Array<Array<string | null>>;
   players: BlokusPlayerState[];
+  sharedControllers: Array<{ id: string; name: string }>;
+  sharedControllerIndex: number;
+  activeColorId: string | null;
   phase: BlokusPhase;
   message: string;
   winnerIds: string[];
@@ -35,12 +43,16 @@ type BlokusPublicPlayer = BlokusPlayerState & {
   remainingPieceIds: string[];
   placedCells: number;
   remainingCells: number;
+  score: number;
   canMove: boolean;
 };
 
 type BlokusPublicState = {
   board: Array<Array<string | null>>;
   players: BlokusPublicPlayer[];
+  sharedControllers: Array<{ id: string; name: string }>;
+  sharedControllerIndex: number;
+  activeColorId: string | null;
   phase: BlokusPhase;
   message: string;
   winnerIds: string[];
@@ -50,6 +62,7 @@ type BlokusPublicState = {
 const BOARD_SIZE = 20;
 
 const PLAYER_COLORS = ["#2364aa", "#e0a11a", "#d94f45", "#258a5b"];
+const COLOR_NAMES = ["파랑", "노랑", "빨강", "초록"];
 
 const CORNERS_BY_PLAYER_COUNT: Record<number, Point[]> = {
   2: [
@@ -69,8 +82,7 @@ const CORNERS_BY_PLAYER_COUNT: Record<number, Point[]> = {
   ]
 };
 
-// Full 21-piece Blokus catalog. Two-player games are represented as one color per player
-// on opposite corners, rather than the official two-colors-per-player variant.
+// Full 21-piece Blokus catalog. In two-player games, each player controls two opposite colors.
 const PIECES: BlokusPiece[] = [
   { id: "i1", name: "1", cells: [{ x: 0, y: 0 }] },
   { id: "i2", name: "2", cells: [{ x: 0, y: 0 }, { x: 1, y: 0 }] },
@@ -180,6 +192,9 @@ function cloneState(state: BlokusState): BlokusState {
       corner: { ...player.corner },
       placedPieceIds: [...player.placedPieceIds]
     })),
+    sharedControllers: state.sharedControllers.map((controller) => ({ ...controller })),
+    sharedControllerIndex: state.sharedControllerIndex,
+    activeColorId: state.activeColorId,
     phase: state.phase,
     message: state.message,
     winnerIds: [...state.winnerIds]
@@ -200,6 +215,18 @@ function getRemainingPieces(player: BlokusPlayerState) {
 
 function getRemainingCellCount(player: BlokusPlayerState) {
   return getRemainingPieces(player).reduce((total, piece) => total + piece.cells.length, 0);
+}
+
+function scoreForColor(player: BlokusPlayerState) {
+  const remaining = getRemainingCellCount(player);
+  if (remaining > 0) {
+    return -remaining;
+  }
+  return 15 + (player.placedPieceIds[player.placedPieceIds.length - 1] === "i1" ? 5 : 0);
+}
+
+function controllerName(player: BlokusPlayerState) {
+  return player.shared ? `${player.name} (${player.ownerName} 담당)` : player.name;
 }
 
 function getPlacementError(
@@ -260,12 +287,41 @@ function canPlace(
   return getPlacementError(state, player, pieceId, x, y, rotation, flipped) === null;
 }
 
+function getCandidateAnchors(state: Pick<BlokusState, "board">, player: Pick<BlokusPlayerState, "id" | "corner" | "placedPieceIds">) {
+  if (player.placedPieceIds.length === 0) {
+    return [player.corner];
+  }
+
+  const anchors = new Map<string, Point>();
+  for (let y = 0; y < BOARD_SIZE; y += 1) {
+    for (let x = 0; x < BOARD_SIZE; x += 1) {
+      if (state.board[y][x] !== player.id) {
+        continue;
+      }
+      for (const direction of CORNER_DIRECTIONS) {
+        const anchor = { x: x + direction.x, y: y + direction.y };
+        if (!inBounds(anchor) || state.board[anchor.y][anchor.x] !== null) {
+          continue;
+        }
+        const touchesOwnEdge = EDGE_DIRECTIONS.some(
+          (edgeDirection) => state.board[anchor.y + edgeDirection.y]?.[anchor.x + edgeDirection.x] === player.id
+        );
+        if (!touchesOwnEdge) {
+          anchors.set(`${anchor.x},${anchor.y}`, anchor);
+        }
+      }
+    }
+  }
+  return [...anchors.values()];
+}
+
 function playerCanMove(state: Pick<BlokusState, "board">, player: BlokusPlayerState) {
+  const anchors = getCandidateAnchors(state, player);
   for (const piece of getRemainingPieces(player)) {
     for (const orientation of getOrientations(piece)) {
-      for (let y = 0; y < BOARD_SIZE; y += 1) {
-        for (let x = 0; x < BOARD_SIZE; x += 1) {
-          const cells = translateCells(orientation, x, y);
+      for (const anchor of anchors) {
+        for (const orientationCell of orientation) {
+          const cells = translateCells(orientation, anchor.x - orientationCell.x, anchor.y - orientationCell.y);
           if (cells.every(inBounds) && placementCellsAreLegal(state, player, piece.id, cells)) {
             return true;
           }
@@ -303,22 +359,26 @@ function placementCellsAreLegal(
 }
 
 function finishGame(state: BlokusState) {
-  const scores = state.players.map((player) => ({
-    playerId: player.id,
-    placedCells: getPlayerCellCount(state.board, player.id)
-  }));
-  const highScore = Math.max(...scores.map((score) => score.placedCells));
-  const winnerIds = scores.filter((score) => score.placedCells === highScore).map((score) => score.playerId);
+  const scores = new Map<string, number>();
+  for (const player of state.players) {
+    if (!player.scoreOwnerId) {
+      continue;
+    }
+    scores.set(player.scoreOwnerId, (scores.get(player.scoreOwnerId) ?? 0) + scoreForColor(player));
+  }
+  const highScore = Math.max(...scores.values());
+  const winnerIds = [...scores.entries()].filter(([, score]) => score === highScore).map(([ownerId]) => ownerId);
   state.phase = "finished";
+  state.activeColorId = null;
   state.winnerIds = winnerIds;
-  state.message = `게임 종료. ${highScore}칸을 배치한 플레이어가 최고점입니다.`;
+  state.message = `게임 종료. 공식 점수 ${highScore}점 플레이어가 최고점입니다.`;
   return winnerIds;
 }
 
-function getNextTurn(state: BlokusState, currentPlayerId: string, turnNumber: number, roundNumber: number) {
+function getNextTurn(state: BlokusState, currentColorId: string, turnNumber: number, roundNumber: number) {
   const currentIndex = Math.max(
     0,
-    state.players.findIndex((player) => player.id === currentPlayerId)
+    state.players.findIndex((player) => player.id === currentColorId)
   );
 
   for (let offset = 1; offset <= state.players.length; offset += 1) {
@@ -326,7 +386,8 @@ function getNextTurn(state: BlokusState, currentPlayerId: string, turnNumber: nu
     const candidate = state.players[nextIndex];
     if (playerCanMove(state, candidate)) {
       return {
-        activePlayerId: candidate.id,
+        activeColorId: candidate.id,
+        activePlayerId: candidate.ownerId,
         turnNumber: turnNumber + 1,
         roundNumber: roundNumber + (currentIndex + offset >= state.players.length ? 1 : 0),
         finished: false
@@ -382,11 +443,60 @@ function requireActivePlayer(state: BlokusState, currentPlayerId: string, active
     throw new Error("현재 차례의 플레이어만 행동할 수 있습니다.");
   }
 
-  const player = state.players.find((item) => item.id === currentPlayerId);
+  const player = state.players.find((item) => item.id === state.activeColorId);
   if (!player) {
-    throw new Error("블로커스 플레이어를 찾을 수 없습니다.");
+    throw new Error("블로커스 색상 차례를 찾을 수 없습니다.");
+  }
+  if (player.ownerId !== currentPlayerId) {
+    throw new Error("현재 색상을 담당한 플레이어만 행동할 수 있습니다.");
   }
   return player;
+}
+
+function assignSharedController(state: BlokusState) {
+  const sharedPlayer = state.players.find((player) => player.shared);
+  if (!sharedPlayer || state.sharedControllers.length === 0) {
+    return;
+  }
+
+  const controller = state.sharedControllers[state.sharedControllerIndex % state.sharedControllers.length];
+  sharedPlayer.ownerId = controller.id;
+  sharedPlayer.ownerName = controller.name;
+}
+
+function advanceSharedController(state: BlokusState, player: BlokusPlayerState) {
+  if (!player.shared || state.sharedControllers.length === 0) {
+    return;
+  }
+  state.sharedControllerIndex = (state.sharedControllerIndex + 1) % state.sharedControllers.length;
+  assignSharedController(state);
+}
+
+function createColorPlayers(seatedPlayers: Array<{ id: string; name: string }>) {
+  const colorAssignments =
+    seatedPlayers.length === 2
+      ? [0, 1, 0, 1]
+      : seatedPlayers.length === 3
+        ? [0, 1, 2, null]
+        : seatedPlayers.map((_, index) => index);
+  const corners = CORNERS_BY_PLAYER_COUNT[colorAssignments.length] ?? CORNERS_BY_PLAYER_COUNT[4];
+
+  return colorAssignments.map((ownerIndex, colorIndex): BlokusPlayerState => {
+    const shared = ownerIndex === null;
+    const owner = shared ? seatedPlayers[0] : seatedPlayers[ownerIndex];
+    return {
+      id: `${owner.id}:color-${colorIndex + 1}`,
+      ownerId: owner.id,
+      ownerName: owner.name,
+      scoreOwnerId: shared ? null : owner.id,
+      name: shared ? `공용 ${COLOR_NAMES[colorIndex]}` : `${owner.name} ${COLOR_NAMES[colorIndex]}`,
+      color: PLAYER_COLORS[colorIndex],
+      colorName: COLOR_NAMES[colorIndex],
+      shared,
+      corner: corners[colorIndex],
+      placedPieceIds: []
+    };
+  });
 }
 
 export const module: GameModule = {
@@ -396,19 +506,19 @@ export const module: GameModule = {
       .filter((player) => player.connected)
       .sort((a, b) => a.seat - b.seat)
       .slice(0, 4);
-    const corners = CORNERS_BY_PLAYER_COUNT[seatedPlayers.length] ?? CORNERS_BY_PLAYER_COUNT[4];
+    const colorPlayers = createColorPlayers(seatedPlayers);
 
     return {
       board: createBoard(),
-      players: seatedPlayers.map((player, index) => ({
-        id: player.id,
-        name: player.name,
-        color: PLAYER_COLORS[index],
-        corner: corners[index],
-        placedPieceIds: []
-      })),
+      players: colorPlayers,
+      sharedControllers: seatedPlayers.length === 3 ? seatedPlayers.map((player) => ({ id: player.id, name: player.name })) : [],
+      sharedControllerIndex: 0,
+      activeColorId: colorPlayers[0]?.id ?? null,
       phase: "playing",
-      message: "첫 블록은 자기 시작 모서리를 덮어야 합니다.",
+      message:
+        seatedPlayers.length === 3
+          ? "첫 블록은 자기 시작 모서리를 덮어야 합니다. 3인 게임의 공용 색은 번갈아 담당하고 점수에서 제외합니다."
+          : "첫 블록은 자기 시작 모서리를 덮어야 합니다.",
       winnerIds: []
     } satisfies BlokusState;
   },
@@ -422,8 +532,12 @@ export const module: GameModule = {
         remainingPieceIds: getRemainingPieces(player).map((piece) => piece.id),
         placedCells: getPlayerCellCount(blokusState.board, player.id),
         remainingCells: getRemainingCellCount(player),
+        score: scoreForColor(player),
         canMove: blokusState.phase === "playing" && playerCanMove(blokusState, player)
       })),
+      sharedControllers: blokusState.sharedControllers.map((controller) => ({ ...controller })),
+      sharedControllerIndex: blokusState.sharedControllerIndex,
+      activeColorId: blokusState.activeColorId,
       phase: blokusState.phase,
       message: blokusState.message,
       winnerIds: [...blokusState.winnerIds],
@@ -439,22 +553,25 @@ export const module: GameModule = {
       if (playerCanMove(nextState, player)) {
         throw new Error("둘 수 있는 블록이 남아 있어 패스할 수 없습니다.");
       }
+      const actingName = controllerName(player);
+      advanceSharedController(nextState, player);
       const turn = getNextTurn(nextState, player.id, context.turnNumber, context.roundNumber);
       if (turn.finished) {
         const winnerIds = finishGame(nextState);
         return {
           state: nextState,
-          log: `${player.name} 패스. 블로커스 종료`,
+          log: `${actingName} 패스. 블로커스 종료`,
           activePlayerId: null,
           phase: nextState.phase,
           message: nextState.message,
           winnerId: winnerIds.length === 1 ? winnerIds[0] : null
         };
       }
-      nextState.message = `${player.name}님은 둘 수 있는 블록이 없어 패스했습니다.`;
+      nextState.message = `${actingName}님은 둘 수 있는 블록이 없어 패스했습니다.`;
+      nextState.activeColorId = turn.activeColorId ?? null;
       return {
         state: nextState,
-        log: `${player.name} 패스`,
+        log: `${actingName} 패스`,
         activePlayerId: turn.activePlayerId,
         turnNumber: turn.turnNumber,
         roundNumber: turn.roundNumber,
@@ -494,13 +611,15 @@ export const module: GameModule = {
       nextState.board[cell.y][cell.x] = player.id;
     }
     player.placedPieceIds.push(piece.id);
+    const actingName = controllerName(player);
+    advanceSharedController(nextState, player);
 
     const turn = getNextTurn(nextState, player.id, context.turnNumber, context.roundNumber);
     if (turn.finished) {
       const winnerIds = finishGame(nextState);
       return {
         state: nextState,
-        log: `${player.name} ${piece.name} 배치. 블로커스 종료`,
+        log: `${actingName} ${piece.name} 배치. 블로커스 종료`,
         activePlayerId: null,
         phase: nextState.phase,
         message: nextState.message,
@@ -508,11 +627,12 @@ export const module: GameModule = {
       };
     }
 
-    const nextPlayer = nextState.players.find((item) => item.id === turn.activePlayerId);
-    nextState.message = `${player.name}님이 ${piece.name} 블록을 놓았습니다. ${nextPlayer?.name ?? "다음 플레이어"} 차례입니다.`;
+    const nextPlayer = nextState.players.find((item) => item.id === turn.activeColorId);
+    nextState.activeColorId = turn.activeColorId ?? null;
+    nextState.message = `${actingName}님이 ${piece.name} 블록을 놓았습니다. ${nextPlayer ? controllerName(nextPlayer) : "다음 색상"} 차례입니다.`;
     return {
       state: nextState,
-      log: `${player.name} ${piece.name} 배치`,
+      log: `${actingName} ${piece.name} 배치`,
       activePlayerId: turn.activePlayerId,
       turnNumber: turn.turnNumber,
       roundNumber: turn.roundNumber,
@@ -556,11 +676,12 @@ function BlokusStyles() {
     <style>{`
       .blokus-module {
         display: grid;
-        gap: 1rem;
+        gap: 0.85rem;
         color: #172033;
         background:
-          linear-gradient(135deg, rgba(35, 100, 170, 0.08), transparent 38%),
-          #f7fbff;
+          linear-gradient(135deg, rgba(236, 72, 52, 0.08), transparent 27%),
+          linear-gradient(225deg, rgba(34, 140, 93, 0.08), transparent 31%),
+          #f8fbff;
       }
 
       .blokus-status {
@@ -581,42 +702,48 @@ function BlokusStyles() {
 
       .blokus-layout {
         display: grid;
-        grid-template-columns: minmax(300px, 1fr) 280px;
-        gap: 1rem;
+        grid-template-columns: 1fr;
+        gap: 0.85rem;
         align-items: start;
+        min-width: 0;
       }
 
       .blokus-board {
         display: grid;
-        grid-template-columns: repeat(20, minmax(10px, 1fr));
-        width: min(100%, 680px);
-        border: 1px solid rgba(35, 100, 170, 0.28);
+        grid-template-columns: repeat(20, minmax(0, 1fr));
+        width: min(100%, 620px);
+        margin: 0 auto;
+        border: 10px solid #c6ccd2;
         background:
-          linear-gradient(180deg, #ffffff, #dfe9f6);
-        border-radius: 8px;
+          linear-gradient(180deg, #ffffff, #f3f5f7);
+        border-radius: 6px;
         overflow: hidden;
         box-shadow:
-          inset 0 0 0 5px rgba(255, 255, 255, 0.82),
-          0 14px 26px rgba(35, 100, 170, 0.13);
+          inset 0 0 0 2px rgba(255, 255, 255, 0.88),
+          inset 0 -8px 0 rgba(25, 34, 45, 0.08),
+          0 16px 24px rgba(25, 34, 45, 0.2);
       }
 
       .blokus-cell {
         position: relative;
         aspect-ratio: 1;
         min-width: 0;
+        min-height: 0;
+        height: auto;
         border: 0;
-        border-right: 1px solid rgba(35, 100, 170, 0.12);
-        border-bottom: 1px solid rgba(35, 100, 170, 0.12);
+        padding: 0;
+        border-right: 1px solid #b8c1cc;
+        border-bottom: 1px solid #b8c1cc;
         background:
-          linear-gradient(135deg, rgba(255, 255, 255, 0.35), transparent 45%),
-          var(--cell-color, #f8fafc);
+          linear-gradient(135deg, rgba(255, 255, 255, 0.62), transparent 45%),
+          var(--cell-color, #f9fbfd);
         cursor: pointer;
       }
 
       .blokus-cell[style*="--cell-color"] {
         box-shadow:
-          inset 0 1px 0 rgba(255, 255, 255, 0.42),
-          inset 0 -3px 0 rgba(15, 23, 42, 0.12);
+          inset 0 2px 0 rgba(255, 255, 255, 0.48),
+          inset 0 -3px 0 rgba(15, 23, 42, 0.16);
       }
 
       .blokus-cell:disabled {
@@ -626,9 +753,26 @@ function BlokusStyles() {
       .blokus-cell.corner::after {
         content: "";
         position: absolute;
-        inset: 23%;
-        border: 2px solid rgba(35, 100, 170, 0.4);
+        inset: 12%;
+        border: 2px solid rgba(25, 34, 45, 0.35);
+        border-radius: 3px;
+        background: color-mix(in srgb, var(--cell-color, #ffffff) 72%, #ffffff);
+        box-shadow: inset 0 -2px 0 rgba(25, 34, 45, 0.12);
+      }
+
+      .blokus-cell.anchor {
+        box-shadow:
+          inset 0 0 0 2px rgba(37, 138, 91, 0.5),
+          inset 0 1px 0 rgba(255, 255, 255, 0.42),
+          inset 0 -3px 0 rgba(15, 23, 42, 0.08);
+      }
+
+      .blokus-cell.anchor:not(.preview)::before {
+        content: "";
+        position: absolute;
+        inset: 34%;
         border-radius: 50%;
+        background: rgba(37, 138, 91, 0.72);
       }
 
       .blokus-cell.preview {
@@ -649,7 +793,9 @@ function BlokusStyles() {
 
       .blokus-side {
         display: grid;
-        gap: 0.9rem;
+        grid-template-columns: minmax(160px, 0.72fr) minmax(220px, 1.2fr) minmax(150px, 0.7fr);
+        gap: 0.65rem;
+        align-items: start;
       }
 
       .blokus-controls,
@@ -665,13 +811,20 @@ function BlokusStyles() {
 
       .blokus-controls-row {
         display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(6.25rem, 1fr));
         gap: 0.45rem;
+      }
+
+      .blokus-placement-hint {
+        margin: 0;
+        color: #52625d;
+        font-size: 0.86rem;
+        line-height: 1.4;
       }
 
       .blokus-controls button,
       .blokus-palette button {
-        min-height: 2.35rem;
+        min-height: 44px;
         border: 1px solid rgba(35, 100, 170, 0.18);
         border-radius: 8px;
         background: linear-gradient(180deg, #ffffff, #edf5ff);
@@ -695,15 +848,15 @@ function BlokusStyles() {
 
       .blokus-palette-grid {
         display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 0.45rem;
+        grid-template-columns: repeat(auto-fit, minmax(54px, 1fr));
+        gap: 0.38rem;
       }
 
       .blokus-palette button {
         display: grid;
         place-items: center;
         gap: 0.2rem;
-        padding: 0.45rem 0.25rem;
+        padding: 0.35rem 0.2rem;
       }
 
       .blokus-palette button.selected {
@@ -734,7 +887,7 @@ function BlokusStyles() {
 
       .blokus-player-row {
         display: grid;
-        grid-template-columns: 0.85rem 1fr auto;
+        grid-template-columns: 0.85rem minmax(0, 1fr) auto auto;
         align-items: center;
         gap: 0.5rem;
         padding: 0.45rem 0;
@@ -762,10 +915,27 @@ function BlokusStyles() {
       @media (max-width: 860px) {
         .blokus-layout {
           grid-template-columns: 1fr;
+          overflow-x: auto;
+          padding-bottom: 0.25rem;
         }
 
         .blokus-board {
-          width: 100%;
+          width: min(620px, 94vw);
+          max-width: none;
+        }
+
+        .blokus-side {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 520px) {
+        .blokus-controls-row {
+          grid-template-columns: 1fr;
+        }
+
+        .blokus-palette-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
         }
       }
     `}</style>
@@ -775,7 +945,6 @@ function BlokusStyles() {
 export function Component({
   publicState,
   currentPlayer,
-  activePlayer,
   disabled,
   onAction
 }: GameComponentProps<BlokusPublicState>) {
@@ -783,23 +952,35 @@ export function Component({
   const [rotation, setRotation] = useState(0);
   const [flipped, setFlipped] = useState(false);
   const [hoveredCell, setHoveredCell] = useState<Point | null>(null);
+  const [pendingPlacement, setPendingPlacement] = useState<{
+    point: Point;
+    pieceId: string;
+    rotation: number;
+    flipped: boolean;
+  } | null>(null);
+  const [placementHint, setPlacementHint] = useState("초록 점이 있는 칸에서 배치를 시작할 수 있습니다.");
   const state = isBlokusPublicState(publicState) ? publicState : null;
-  const currentBlokusPlayer = state?.players.find((player) => player.id === currentPlayer?.id) ?? null;
-  const activeBlokusPlayer = state?.players.find((player) => player.id === activePlayer?.id) ?? null;
+  const activeBlokusPlayer = state?.players.find((player) => player.id === state.activeColorId) ?? null;
+  const ownedBlokusPlayers = state?.players.filter((player) => player.ownerId === currentPlayer?.id) ?? [];
+  const currentBlokusPlayer =
+    activeBlokusPlayer?.ownerId === currentPlayer?.id
+      ? activeBlokusPlayer
+      : ownedBlokusPlayers.find((player) => player.remainingPieceIds.length > 0) ?? ownedBlokusPlayers[0] ?? null;
   const canInteract =
     !disabled &&
     state?.phase === "playing" &&
     Boolean(currentBlokusPlayer) &&
-    currentBlokusPlayer?.id === activeBlokusPlayer?.id;
+    activeBlokusPlayer?.ownerId === currentPlayer?.id;
   const selectedPiece =
     state?.pieceCatalog.find((piece) => piece.id === selectedPieceId && currentBlokusPlayer?.remainingPieceIds.includes(piece.id)) ??
     state?.pieceCatalog.find((piece) => currentBlokusPlayer?.remainingPieceIds.includes(piece.id)) ??
     null;
+  const previewPoint = pendingPlacement?.point ?? hoveredCell;
   const preview = useMemo(() => {
-    if (!state || !hoveredCell || !selectedPiece || !currentBlokusPlayer) {
+    if (!state || !previewPoint || !selectedPiece || !currentBlokusPlayer) {
       return { cells: new Set<string>(), valid: false };
     }
-    const cells = translateCells(transformCells(selectedPiece.cells, rotation, flipped), hoveredCell.x, hoveredCell.y);
+    const cells = translateCells(transformCells(selectedPiece.cells, rotation, flipped), previewPoint.x, previewPoint.y);
     const valid =
       cells.every(inBounds) &&
       placementCellsAreLegal(state, currentBlokusPlayer, selectedPiece.id, cells);
@@ -807,7 +988,26 @@ export function Component({
       cells: new Set(cells.map((cell) => `${cell.x},${cell.y}`)),
       valid
     };
-  }, [currentBlokusPlayer, flipped, hoveredCell, state, rotation, selectedPiece]);
+  }, [currentBlokusPlayer, flipped, previewPoint, state, rotation, selectedPiece]);
+  const legalAnchors = useMemo(() => {
+    const anchors = new Set<string>();
+    if (!state || !selectedPiece || !currentBlokusPlayer || !canInteract) {
+      return anchors;
+    }
+    for (let y = 0; y < BOARD_SIZE; y += 1) {
+      for (let x = 0; x < BOARD_SIZE; x += 1) {
+        const cells = translateCells(transformCells(selectedPiece.cells, rotation, flipped), x, y);
+        if (cells.every(inBounds) && placementCellsAreLegal(state, currentBlokusPlayer, selectedPiece.id, cells)) {
+          anchors.add(`${x},${y}`);
+        }
+      }
+    }
+    return anchors;
+  }, [canInteract, currentBlokusPlayer, flipped, rotation, selectedPiece, state]);
+
+  useEffect(() => {
+    setPendingPlacement(null);
+  }, [currentBlokusPlayer?.id, flipped, rotation, selectedPieceId]);
 
   if (!state) {
     return (
@@ -822,6 +1022,29 @@ export function Component({
     if (!canInteract || !selectedPiece) {
       return;
     }
+    const error = currentBlokusPlayer
+      ? getPlacementError(state, currentBlokusPlayer, selectedPiece.id, point.x, point.y, rotation, flipped)
+      : "블로커스 플레이어를 찾을 수 없습니다.";
+    if (error) {
+      setPlacementHint(error);
+      setPendingPlacement(null);
+      setHoveredCell(point);
+      return;
+    }
+    const confirmed =
+      pendingPlacement?.point.x === point.x &&
+      pendingPlacement.point.y === point.y &&
+      pendingPlacement.pieceId === selectedPiece.id &&
+      pendingPlacement.rotation === rotation &&
+      pendingPlacement.flipped === flipped;
+    if (!confirmed) {
+      setPendingPlacement({ point, pieceId: selectedPiece.id, rotation, flipped });
+      setHoveredCell(point);
+      setPlacementHint(`${selectedPiece.name} 블록 위치를 고정했습니다. 같은 칸을 다시 누르거나 확정을 누르세요.`);
+      return;
+    }
+    setPlacementHint(`${selectedPiece.name} 블록을 ${point.x + 1}열 ${point.y + 1}행에 놓습니다.`);
+    setPendingPlacement(null);
     onAction({
       type: "place-piece",
       payload: {
@@ -834,17 +1057,22 @@ export function Component({
     });
   }
 
+  function confirmPlacement() {
+    if (!pendingPlacement) return;
+    placeAt(pendingPlacement.point);
+  }
+
   return (
     <div className="blokus-module">
       <BlokusStyles />
       <div className="blokus-status">
         <div>
-          <strong>{state.phase === "finished" ? "게임 종료" : `${activeBlokusPlayer?.name ?? "대기"} 차례`}</strong>
+          <strong>{state.phase === "finished" ? "게임 종료" : `${activeBlokusPlayer ? controllerName(activeBlokusPlayer) : "대기"} 차례`}</strong>
           <div>{state.message}</div>
         </div>
         {currentBlokusPlayer ? (
           <span style={{ color: currentBlokusPlayer.color }}>
-            내 남은 칸 {currentBlokusPlayer.remainingCells}
+            담당 색 {ownedBlokusPlayers.map((player) => player.colorName).join(", ")} · 현재 색 점수 {currentBlokusPlayer.score}
           </span>
         ) : null}
       </div>
@@ -857,12 +1085,14 @@ export function Component({
               const cornerOwner = state.players.find((player) => player.corner.x === x && player.corner.y === y);
               const key = `${x},${y}`;
               const isPreview = preview.cells.has(key);
+              const isAnchor = legalAnchors.has(key);
               return (
                 <button
                   key={key}
                   className={[
                     "blokus-cell",
                     cornerOwner ? "corner" : "",
+                    isAnchor ? "anchor" : "",
                     isPreview ? "preview" : "",
                     isPreview && !preview.valid ? "invalid" : ""
                   ]
@@ -877,7 +1107,7 @@ export function Component({
                     "--cell-color": owner?.color ?? "#f8fafc",
                     "--preview-color": currentBlokusPlayer?.color ?? "#94a3b8"
                   } as CSSProperties}
-                  title={`${x + 1}, ${y + 1}${cornerOwner ? ` · ${cornerOwner.name} 시작 모서리` : ""}`}
+                  title={`${x + 1}, ${y + 1}${cornerOwner ? ` · ${cornerOwner.name} 시작 모서리` : ""}${isAnchor ? " · 놓을 수 있음" : ""}`}
                   aria-label={`${x + 1}열 ${y + 1}행`}
                 />
               );
@@ -888,6 +1118,7 @@ export function Component({
         <aside className="blokus-side" aria-label="블로커스 조작">
           <section className="blokus-controls">
             <strong>블록 조작</strong>
+            <p className="blokus-placement-hint">{placementHint}</p>
             <div className="blokus-controls-row">
               <button type="button" onClick={() => setRotation((value) => (value + 1) % 4)} disabled={!canInteract}>
                 <RotateCw size={16} />
@@ -896,6 +1127,24 @@ export function Component({
               <button type="button" onClick={() => setFlipped((value) => !value)} disabled={!canInteract}>
                 <FlipHorizontal size={16} />
                 뒤집기
+              </button>
+              <button
+                type="button"
+                onClick={confirmPlacement}
+                disabled={!canInteract || !pendingPlacement || !preview.valid}
+                title="고정한 미리보기 위치에 블록을 놓습니다."
+              >
+                확정
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setPendingPlacement(null);
+                  setPlacementHint("배치 미리보기를 취소했습니다.");
+                }}
+                disabled={!pendingPlacement}
+              >
+                취소
               </button>
               <button
                 type="button"
@@ -940,7 +1189,8 @@ export function Component({
               >
                 <span className="swatch" aria-hidden="true" />
                 <strong>{player.name}</strong>
-                <span>{player.placedCells}칸</span>
+                <span>{player.shared ? "공용" : player.ownerName}</span>
+                <span>{player.score}점</span>
               </div>
             ))}
           </section>

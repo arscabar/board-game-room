@@ -24,6 +24,7 @@ interface QawaleState {
   players: QawalePlayer[];
   board: Stone[][][];
   reserves: Record<string, number>;
+  phase: "playing" | "complete";
   winnerId: string | null;
   message: string;
 }
@@ -93,7 +94,7 @@ function topStone(state: QawaleState, row: number, col: number) {
 }
 
 function playerName(state: QawaleState, playerId: string) {
-  return state.players.find((player) => player.id === playerId)?.name ?? "Player";
+  return state.players.find((player) => player.id === playerId)?.name ?? "플레이어";
 }
 
 function hasAlternativeForwardStep(current: Coord, previous: Coord) {
@@ -102,20 +103,20 @@ function hasAlternativeForwardStep(current: Coord, previous: Coord) {
 
 function validatePath(source: Coord, path: Coord[], carryLength: number) {
   if (path.length !== carryLength) {
-    throw new Error(`Path must contain ${carryLength} steps.`);
+    throw new Error(`경로는 ${carryLength}칸이어야 합니다.`);
   }
 
   for (let index = 0; index < path.length; index += 1) {
     const current = index === 0 ? source : path[index - 1];
     const target = path[index];
     if (!inBoard(target.row, target.col) || !adjacent(current, target)) {
-      throw new Error("Distribution path must move orthogonally one space at a time.");
+      throw new Error("분배 경로는 상하좌우 인접 칸으로 한 칸씩 이어져야 합니다.");
     }
 
     if (index > 0) {
       const previous = index === 1 ? source : path[index - 2];
       if (sameCoord(target, previous) && hasAlternativeForwardStep(current, previous)) {
-        throw new Error("Do not immediately reverse direction while another step is available.");
+        throw new Error("다른 길이 있으면 바로 되돌아갈 수 없습니다.");
       }
     }
   }
@@ -168,15 +169,15 @@ function advanceTurn(state: QawaleState, context: GameContext) {
 }
 
 function requireActivePlayer(state: QawaleState, context: GameContext) {
-  if (state.winnerId) {
-    throw new Error("Game is already complete.");
+  if (state.phase === "complete" || state.winnerId) {
+    throw new Error("이미 종료된 게임입니다.");
   }
   if (context.currentPlayerId !== context.activePlayerId) {
-    throw new Error("It is not your turn.");
+    throw new Error("현재 차례의 플레이어만 행동할 수 있습니다.");
   }
   const player = state.players.find((candidate) => candidate.id === context.currentPlayerId);
   if (!player) {
-    throw new Error("Player is not in this Qawale game.");
+    throw new Error("카왈레 플레이어를 찾을 수 없습니다.");
   }
   return player;
 }
@@ -216,27 +217,28 @@ function createInitialState(context: Pick<GameContext, "players">): QawaleState 
     })),
     board: createInitialBoard(),
     reserves,
+    phase: "playing",
     winnerId: null,
-    message: "Choose a non-empty stack, add your stone, then distribute the stack."
+    message: "비어 있지 않은 스택을 고르고 자기 돌을 얹은 뒤 스택을 분배하세요."
   };
 }
 
 function distribute(state: QawaleState, action: GameAction, context: GameContext): GameActionResult {
   if (!isDistributePayload(action.payload)) {
-    throw new Error("Qawale move needs a source cell and distribution path.");
+    throw new Error("출발 스택과 분배 경로가 필요합니다.");
   }
 
   const player = requireActivePlayer(state, context);
   const { source, path } = action.payload;
   if (!inBoard(source.row, source.col)) {
-    throw new Error("Source cell is outside the board.");
+    throw new Error("출발 칸이 보드 밖입니다.");
   }
   const sourceStack = state.board[source.row][source.col];
   if (sourceStack.length === 0) {
-    throw new Error("You must place on a non-empty stack.");
+    throw new Error("비어 있지 않은 스택만 고를 수 있습니다.");
   }
   if ((state.reserves[player.id] ?? 0) <= 0) {
-    throw new Error("No reserve stones remaining.");
+    throw new Error("남은 자기 돌이 없습니다.");
   }
 
   const carry = [...sourceStack, player.id];
@@ -252,21 +254,37 @@ function distribute(state: QawaleState, action: GameAction, context: GameContext
 
   const winnerId = lineWinner(next);
   if (winnerId) {
+    next.phase = "complete";
     next.winnerId = winnerId;
-    next.message = `${playerName(next, winnerId)} made a visible four-in-line.`;
+    next.message = `${playerName(next, winnerId)}님이 보이는 4목을 만들었습니다.`;
     return {
       state: next,
-      log: `${playerName(next, winnerId)} wins with four top stones`,
+      log: `${playerName(next, winnerId)} 보이는 4목 승리`,
       activePlayerId: null,
+      phase: "complete",
       winnerId,
       message: next.message
     };
   }
 
-  next.message = `${player.name} distributed ${carry.length} stones from ${source.row + 1}-${source.col + 1}.`;
+  const outOfStones = next.players.every((candidate) => (next.reserves[candidate.id] ?? 0) <= 0);
+  if (outOfStones) {
+    next.phase = "complete";
+    next.message = "모든 돌을 사용했지만 4목이 없어 무승부입니다.";
+    return {
+      state: next,
+      log: "카왈레 무승부 종료",
+      activePlayerId: null,
+      phase: "complete",
+      winnerId: null,
+      message: next.message
+    };
+  }
+
+  next.message = `${player.name}님이 ${source.row + 1}-${source.col + 1} 스택에서 돌 ${carry.length}개를 분배했습니다.`;
   return {
     state: next,
-    log: `${player.name} distributed a stack`,
+    log: `${player.name} 스택 분배`,
     message: next.message,
     ...advanceTurn(next, context)
   };
@@ -280,7 +298,7 @@ export const module: GameModule = {
     if (action.type === "distribute") {
       return distribute(state as QawaleState, action, context);
     }
-    throw new Error("Unknown Qawale action.");
+    throw new Error("지원하지 않는 카왈레 행동입니다.");
   }
 };
 
@@ -292,7 +310,7 @@ function stoneColor(state: QawalePublicState, stone: Stone | null) {
 
 function stoneLabel(state: QawalePublicState, stone: Stone | null) {
   if (!stone) return "";
-  if (stone === NEUTRAL) return "N";
+  if (stone === NEUTRAL) return "중";
   return String(state.players.find((player) => player.id === stone)?.seat ?? "?");
 }
 
@@ -316,7 +334,12 @@ export function Component(props: GameComponentProps) {
   const [path, setPath] = useState<Coord[]>([]);
   const activeModulePlayer = publicState.players.find((player) => player.id === activePlayer?.id) ?? null;
   const currentModulePlayer = publicState.players.find((player) => player.id === currentPlayer?.id) ?? null;
-  const canAct = !disabled && !publicState.winnerId && currentPlayer?.id === activePlayer?.id && Boolean(currentModulePlayer);
+  const canAct =
+    !disabled &&
+    publicState.phase === "playing" &&
+    !publicState.winnerId &&
+    currentPlayer?.id === activePlayer?.id &&
+    Boolean(currentModulePlayer);
   const carryLength = source ? publicState.board[source.row][source.col].length + 1 : 0;
   const pathComplete = source && path.length === carryLength;
   const nextTargets = useMemo(() => {
@@ -361,18 +384,20 @@ export function Component(props: GameComponentProps) {
       <style>{qawaleStyles}</style>
       <div className="qaw-status">
         <div>
-          <strong>{publicState.winnerId ? "Winner" : "Turn"}</strong>
+          <strong>{publicState.phase === "complete" ? (publicState.winnerId ? "승자" : "무승부") : "차례"}</strong>
           <span>
             {publicState.winnerId
               ? playerName(publicState, publicState.winnerId)
-              : activeModulePlayer?.name ?? "Waiting"}
+              : publicState.phase === "complete"
+                ? "승자 없음"
+                : activeModulePlayer?.name ?? "대기"}
           </span>
         </div>
         <p>{publicState.message}</p>
       </div>
 
       <div className="qaw-layout">
-        <div className="qaw-board" aria-label="Qawale board">
+        <div className="qaw-board" aria-label="카왈레 보드">
           {publicState.board.map((row, rowIndex) =>
             row.map((stack, colIndex) => {
               const top = stack[stack.length - 1] ?? null;
@@ -388,16 +413,30 @@ export function Component(props: GameComponentProps) {
                   onClick={() => selectCell(rowIndex, colIndex)}
                   type="button"
                 >
-                  <span
-                    className="qaw-top"
-                    style={
-                      {
-                        "--stone-color": stoneColor(publicState, top),
-                        color: top === NEUTRAL ? "#17201d" : "white"
-                      } as CSSProperties
-                    }
-                  >
-                    {stoneLabel(publicState, top)}
+                  <span className="qaw-stack" aria-hidden={stack.length === 0}>
+                    {stack.length === 0 ? (
+                      <span className="qaw-empty-dot" />
+                    ) : (
+                      stack.map((stone, stoneIndex) => {
+                        const depth = stack.length - 1 - stoneIndex;
+                        return (
+                          <span
+                            className={`qaw-layer ${stoneIndex === stack.length - 1 ? "top" : ""}`}
+                            key={`${stone}-${stoneIndex}`}
+                            style={
+                              {
+                                "--stone-color": stoneColor(publicState, stone),
+                                "--stone-offset-x": `${depth * 2}px`,
+                                "--stone-offset-y": `${depth * 5}px`,
+                                color: stone === NEUTRAL ? "#17201d" : "white"
+                              } as CSSProperties
+                            }
+                          >
+                            {stoneIndex === stack.length - 1 ? stoneLabel(publicState, top) : ""}
+                          </span>
+                        );
+                      })
+                    )}
                   </span>
                   <span className="qaw-height">{stack.length}</span>
                 </button>
@@ -413,18 +452,18 @@ export function Component(props: GameComponentProps) {
                 <span className="qaw-swatch" style={{ background: player.color }} />
                 <div>
                   <strong>{player.name}</strong>
-                  <span>{publicState.reserves[player.id] ?? 0} reserve stones</span>
+                  <span>남은 돌 {publicState.reserves[player.id] ?? 0}개</span>
                 </div>
               </div>
             ))}
           </div>
 
           <div className="qaw-route">
-            <strong>Route</strong>
+            <strong>분배 경로</strong>
             <span>
               {source
-                ? `${path.length}/${carryLength} drops from ${source.row + 1}-${source.col + 1}`
-                : "Choose a non-empty source stack"}
+                ? `${source.row + 1}-${source.col + 1}에서 ${path.length}/${carryLength}칸 선택`
+                : "비어 있지 않은 출발 스택을 고르세요"}
             </span>
             <div className="qaw-route-list">
               {path.map((coord, index) => (
@@ -433,10 +472,10 @@ export function Component(props: GameComponentProps) {
             </div>
             <div className="qaw-actions">
               <button disabled={!source} onClick={resetPath} type="button">
-                Clear
+                취소
               </button>
               <button disabled={!canAct || !pathComplete} onClick={submitMove} type="button">
-                Distribute
+                분배
               </button>
             </div>
           </div>
@@ -451,11 +490,13 @@ const qawaleStyles = `
   display: grid;
   gap: 14px;
   color: #17201d;
+  min-width: 0;
 }
 .qaw-status {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
   gap: 12px;
   border: 1px solid rgba(24, 24, 24, 0.18);
   border-radius: 8px;
@@ -472,17 +513,21 @@ const qawaleStyles = `
   color: #52625d;
 }
 .qaw-status p {
+  flex: 1 1 220px;
   margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .qaw-layout {
   display: grid;
-  grid-template-columns: minmax(280px, 420px) minmax(220px, 1fr);
+  grid-template-columns: minmax(240px, 420px) minmax(180px, 1fr);
   gap: 16px;
   align-items: start;
+  min-width: 0;
 }
 .qaw-board {
   display: grid;
-  grid-template-columns: repeat(4, minmax(56px, 1fr));
+  grid-template-columns: repeat(4, minmax(44px, 1fr));
   gap: 10px;
   width: min(100%, 420px);
   aspect-ratio: 1;
@@ -524,19 +569,40 @@ const qawaleStyles = `
     inset 0 0 0 3px #e5c55c,
     inset 0 4px 10px rgba(0, 0, 0, 0.42);
 }
-.qaw-top {
+.qaw-stack {
+  position: relative;
+  display: block;
+  width: 64%;
+  aspect-ratio: 1;
+}
+.qaw-empty-dot {
+  position: absolute;
+  inset: 34%;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+}
+.qaw-layer {
+  position: absolute;
+  left: 50%;
+  top: 50%;
   display: grid;
   place-items: center;
-  width: 58%;
+  width: 76%;
   aspect-ratio: 1;
   border: 2px solid rgba(15, 15, 15, 0.28);
   border-radius: 999px;
-  background: var(--stone-color);
+  background:
+    radial-gradient(circle at 33% 25%, rgba(255, 255, 255, 0.55), transparent 22%),
+    var(--stone-color);
   font-weight: 900;
+  transform: translate(calc(-50% - var(--stone-offset-x)), calc(-50% + var(--stone-offset-y)));
   box-shadow:
     inset 0 8px 10px rgba(255, 255, 255, 0.24),
     inset 0 -8px 10px rgba(0, 0, 0, 0.22),
-    0 6px 9px rgba(0, 0, 0, 0.32);
+    0 4px 7px rgba(0, 0, 0, 0.32);
+}
+.qaw-layer.top {
+  z-index: 12;
 }
 .qaw-height {
   position: absolute;
@@ -550,6 +616,7 @@ const qawaleStyles = `
 .qaw-panel {
   display: grid;
   gap: 14px;
+  min-width: 0;
 }
 .qaw-players {
   display: grid;

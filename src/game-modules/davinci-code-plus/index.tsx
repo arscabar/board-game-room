@@ -2,13 +2,17 @@ import { useMemo, useState } from "react";
 import type { CSSProperties } from "react";
 import type { GameAction, GameActionResult, GameComponentProps, GameContext, GameModule } from "../types";
 
-type TileColor = "black" | "white" | "red";
-type VinciPhase = "guessing" | "decide" | "complete";
+type TileKind = "number" | "joker";
+type TileColor = "black" | "white" | "red" | "joker";
+type PublicTileColor = TileColor | "hidden";
+type VinciGuess = number | "joker";
+type VinciPhase = "draw" | "guessing" | "decide" | "complete";
 
 interface VinciTile {
   id: string;
+  kind: TileKind;
   color: TileColor;
-  value: number;
+  value: number | null;
   revealed: boolean;
 }
 
@@ -16,7 +20,11 @@ interface VinciPlayer {
   id: string;
   name: string;
   seat: number;
+  teamId: string | null;
   hand: VinciTile[];
+  bonusCards: number;
+  usedBonusCards: number;
+  points: number;
   eliminated: boolean;
 }
 
@@ -24,30 +32,38 @@ interface VinciState {
   players: VinciPlayer[];
   deck: VinciTile[];
   phase: VinciPhase;
+  drawnTileId: string | null;
   currentStreak: number;
   winnerId: string | null;
+  winnerIds: string[];
   message: string;
   lastGuess: {
     playerId: string;
     targetPlayerId: string;
     tileIndex: number;
-    guess: number;
+    guess: VinciGuess;
     correct: boolean;
   } | null;
 }
 
 interface PublicVinciTile {
   id: string;
-  color: TileColor;
+  kind: TileKind | null;
+  color: PublicTileColor;
   value: number | null;
   revealed: boolean;
+  teamClue?: boolean;
 }
 
 interface PublicVinciPlayer {
   id: string;
   name: string;
   seat: number;
+  teamId: string | null;
   hand: PublicVinciTile[];
+  bonusCards: number;
+  usedBonusCards: number;
+  points: number;
   eliminated: boolean;
 }
 
@@ -55,8 +71,10 @@ interface VinciPublicState {
   players: PublicVinciPlayer[];
   deckCount: number;
   phase: VinciPhase;
+  drawnTileId: string | null;
   currentStreak: number;
   winnerId: string | null;
+  winnerIds: string[];
   message: string;
   viewerId: string | null;
   lastGuess: VinciState["lastGuess"];
@@ -65,21 +83,25 @@ interface VinciPublicState {
 interface GuessPayload {
   targetPlayerId: string;
   tileIndex: number;
-  guess: number;
+  guess: VinciGuess;
 }
 
-const colors: TileColor[] = ["black", "white", "red"];
+const colors: Exclude<TileColor, "joker">[] = ["black", "white", "red"];
 const colorLabels: Record<TileColor, string> = {
-  black: "Black",
-  white: "White",
-  red: "Red"
+  black: "파란색",
+  white: "노란색",
+  red: "빨간색",
+  joker: "조커"
 };
 const colorOrder: Record<TileColor, number> = {
-  black: 0,
+  red: 0,
   white: 1,
-  red: 2
+  black: 2,
+  joker: 3
 };
 const tileValues = Array.from({ length: 12 }, (_, index) => index);
+const jokerCount = 3;
+const guessOptions = [...tileValues, "joker"] as const;
 
 function isGuessPayload(value: unknown): value is GuessPayload {
   if (!value || typeof value !== "object") return false;
@@ -87,7 +109,7 @@ function isGuessPayload(value: unknown): value is GuessPayload {
   return (
     typeof item.targetPlayerId === "string" &&
     Number.isInteger(item.tileIndex) &&
-    Number.isInteger(item.guess)
+    (Number.isInteger(item.guess) || item.guess === "joker")
   );
 }
 
@@ -95,11 +117,21 @@ function createDeck() {
   const deck = colors.flatMap((color) =>
     tileValues.map((value): VinciTile => ({
       id: `${color}-${value}`,
+      kind: "number",
       color,
       value,
       revealed: false
     }))
   );
+  for (let index = 0; index < jokerCount; index += 1) {
+    deck.push({
+      id: `joker-${index + 1}`,
+      kind: "joker",
+      color: "joker",
+      value: null,
+      revealed: false
+    });
+  }
 
   for (let index = deck.length - 1; index > 0; index -= 1) {
     const swapIndex = Math.floor(Math.random() * (index + 1));
@@ -110,11 +142,27 @@ function createDeck() {
 }
 
 function sortHand(hand: VinciTile[]) {
-  return [...hand].sort((a, b) => a.value - b.value || colorOrder[a.color] - colorOrder[b.color]);
+  return [...hand].sort((a, b) => {
+    if (a.kind === "joker" && b.kind === "joker") return a.id.localeCompare(b.id);
+    if (a.kind === "joker") return 1;
+    if (b.kind === "joker") return -1;
+    return (a.value ?? 0) - (b.value ?? 0) || colorOrder[a.color] - colorOrder[b.color];
+  });
 }
 
 function initialHandSize(playerCount: number) {
   return playerCount >= 4 ? 3 : 4;
+}
+
+function teamIdForSeat(seat: number, playerCount: number) {
+  if (playerCount !== 4) {
+    return null;
+  }
+  return seat % 2 === 1 ? "A" : "B";
+}
+
+function sameTeam(first: Pick<VinciPlayer, "teamId"> | undefined, second: Pick<VinciPlayer, "teamId"> | undefined) {
+  return Boolean(first?.teamId && second?.teamId && first.teamId === second.teamId);
 }
 
 function cloneState(state: VinciState): VinciState {
@@ -143,9 +191,16 @@ function livePlayers(state: VinciState, context?: GameContext) {
   return state.players.filter((player) => !player.eliminated && connectedIds.has(player.id));
 }
 
-function findWinner(state: VinciState, context?: GameContext) {
+function findWinnerIds(state: VinciState, context?: GameContext) {
   const live = livePlayers(state, context);
-  return live.length === 1 ? live[0].id : null;
+  if (live.length === 1) {
+    return [live[0].id];
+  }
+  const liveTeamId = live[0]?.teamId;
+  if (liveTeamId && live.every((player) => player.teamId === liveTeamId)) {
+    return state.players.filter((player) => player.teamId === liveTeamId).map((player) => player.id);
+  }
+  return [];
 }
 
 function advanceTurn(state: VinciState, context: GameContext, fromPlayerId: string | null = context.activePlayerId) {
@@ -164,35 +219,45 @@ function advanceTurn(state: VinciState, context: GameContext, fromPlayerId: stri
   };
 }
 
+function phaseForTurnStart(state: VinciState) {
+  return state.deck.length > 0 ? "draw" : "guessing";
+}
+
 function requireActivePlayer(state: VinciState, context: GameContext) {
   if (state.winnerId || state.phase === "complete") {
-    throw new Error("Game is already complete.");
+    throw new Error("이미 종료된 게임입니다.");
   }
   if (context.currentPlayerId !== context.activePlayerId) {
-    throw new Error("It is not your turn.");
+    throw new Error("현재 차례의 플레이어만 행동할 수 있습니다.");
   }
   const player = state.players.find((candidate) => candidate.id === context.currentPlayerId);
   if (!player) {
-    throw new Error("Player is not in this Da Vinci Code game.");
+    throw new Error("다빈치 코드 플레이어를 찾을 수 없습니다.");
   }
   if (player.eliminated) {
-    throw new Error("Eliminated players cannot act.");
+    throw new Error("탈락한 플레이어는 행동할 수 없습니다.");
   }
   return player;
 }
 
 function completeIfWinner(state: VinciState, context: GameContext, logPrefix: string): GameActionResult | null {
   refreshEliminations(state);
-  const winnerId = findWinner(state, context);
-  if (!winnerId) return null;
+  const winnerIds = findWinnerIds(state, context);
+  if (winnerIds.length === 0) return null;
 
+  const winnerId = winnerIds[0] ?? null;
   const winner = state.players.find((player) => player.id === winnerId);
   state.winnerId = winnerId;
+  state.winnerIds = winnerIds;
   state.phase = "complete";
-  state.message = `${winner?.name ?? "A player"} is the last player with hidden tiles.`;
+  const teamWinners = winner?.teamId ? state.players.filter((player) => player.teamId === winner.teamId) : [];
+  state.message =
+    teamWinners.length > 1
+      ? `${winner?.teamId}팀이 마지막까지 숨은 타일을 남겼습니다.`
+      : `${winner?.name ?? "플레이어"}님이 마지막까지 숨은 타일을 남겼습니다.`;
   return {
     state,
-    log: `${logPrefix}; ${winner?.name ?? "a player"} wins`,
+    log: `${logPrefix}; ${teamWinners.length > 1 ? `${winner?.teamId}팀` : winner?.name ?? "플레이어"} 승리`,
     activePlayerId: null,
     phase: "complete",
     message: state.message,
@@ -202,38 +267,41 @@ function completeIfWinner(state: VinciState, context: GameContext, logPrefix: st
 
 function applyGuess(state: VinciState, action: GameAction, context: GameContext): GameActionResult {
   if (!isGuessPayload(action.payload)) {
-    throw new Error("Guess needs target player, tile index, and number.");
+    throw new Error("추측할 상대, 타일 위치, 숫자가 필요합니다.");
   }
 
   const player = requireActivePlayer(state, context);
   if (state.phase !== "guessing") {
-    throw new Error("Choose continue before making another guess.");
+    throw new Error(state.phase === "draw" ? "먼저 타일을 뽑아야 합니다." : "계속 추측을 선택해야 다음 추측을 할 수 있습니다.");
   }
 
   const { targetPlayerId, tileIndex, guess } = action.payload;
-  if (guess < 0 || guess > 11) {
-    throw new Error("Guess must be a number from 0 to 11.");
+  if (typeof guess === "number" && (guess < 0 || guess > 11)) {
+    throw new Error("추측 숫자는 0부터 11까지입니다.");
   }
   if (targetPlayerId === player.id) {
-    throw new Error("Target another player.");
+    throw new Error("다른 플레이어의 타일을 골라야 합니다.");
   }
 
   const next = cloneState(state);
   const nextPlayer = next.players.find((candidate) => candidate.id === player.id);
   const target = next.players.find((candidate) => candidate.id === targetPlayerId);
   if (!nextPlayer || !target || target.eliminated) {
-    throw new Error("Target player is not available.");
+    throw new Error("선택한 상대를 추측할 수 없습니다.");
+  }
+  if (sameTeam(nextPlayer, target)) {
+    throw new Error("팀전에서는 같은 팀원의 타일을 추측할 수 없습니다.");
   }
 
   const targetTile = target.hand[tileIndex];
   if (!targetTile) {
-    throw new Error("Target tile does not exist.");
+    throw new Error("선택한 타일이 없습니다.");
   }
   if (targetTile.revealed) {
-    throw new Error("That tile is already revealed.");
+    throw new Error("이미 공개된 타일입니다.");
   }
 
-  const correct = targetTile.value === guess;
+  const correct = targetTile.kind === "joker" ? guess === "joker" : targetTile.value === guess;
   next.lastGuess = {
     playerId: player.id,
     targetPlayerId,
@@ -243,15 +311,17 @@ function applyGuess(state: VinciState, action: GameAction, context: GameContext)
   };
 
   if (correct) {
+    const wasEliminated = target.eliminated;
     targetTile.revealed = true;
     refreshEliminations(next);
-    const logPrefix = `${player.name} correctly guessed ${target.name}'s tile ${tileIndex + 1}`;
+    nextPlayer.points += target.eliminated && !wasEliminated ? 3 : 1;
+    const logPrefix = `${player.name}님이 ${target.name}님의 ${tileIndex + 1}번 타일을 맞힘`;
     const complete = completeIfWinner(next, context, logPrefix);
     if (complete) return complete;
 
     next.phase = "decide";
     next.currentStreak += 1;
-    next.message = `${player.name} revealed ${target.name}'s ${colorLabels[targetTile.color]} tile.`;
+    next.message = `${player.name}님이 ${target.name}님의 ${colorLabels[targetTile.color]} 타일을 공개했습니다.`;
     return {
       state: next,
       log: logPrefix,
@@ -262,42 +332,83 @@ function applyGuess(state: VinciState, action: GameAction, context: GameContext)
     };
   }
 
-  const penaltyTile = nextPlayer.hand.find((tile) => !tile.revealed);
-  if (penaltyTile) {
+  const penaltyTile = nextPlayer.hand.find((tile) => tile.id === next.drawnTileId && !tile.revealed) ?? nextPlayer.hand.find((tile) => !tile.revealed);
+  const protectedByBonus = nextPlayer.bonusCards > 0;
+  if (protectedByBonus) {
+    nextPlayer.bonusCards -= 1;
+    nextPlayer.usedBonusCards += 1;
+  } else if (penaltyTile) {
     penaltyTile.revealed = true;
   }
   refreshEliminations(next);
-  const logPrefix = `${player.name} missed a guess`;
+  const logPrefix = `${player.name}님이 추측 실패`;
   const complete = completeIfWinner(next, context, logPrefix);
   if (complete) return complete;
 
-  next.phase = "guessing";
+  const turn = advanceTurn(next, context, player.id);
+  next.drawnTileId = null;
+  next.phase = phaseForTurnStart(next);
   next.currentStreak = 0;
-  next.message = penaltyTile
-    ? `${player.name} missed and revealed one own tile.`
-    : `${player.name} missed with no hidden tile to reveal.`;
+  next.message = protectedByBonus
+    ? `${player.name}님이 틀렸지만 보너스 카드로 자기 타일 공개를 막았습니다.`
+    : penaltyTile
+      ? `${player.name}님이 틀려서 자기 타일 1개를 공개했습니다.`
+      : `${player.name}님이 틀렸지만 공개할 숨은 타일이 없습니다.`;
   return {
     state: next,
     log: logPrefix,
-    phase: "guessing",
+    phase: next.phase,
     message: next.message,
     winnerId: null,
-    ...advanceTurn(next, context, player.id)
+    ...turn
+  };
+}
+
+function drawTile(state: VinciState, context: GameContext): GameActionResult {
+  const player = requireActivePlayer(state, context);
+  if (state.phase !== "draw") {
+    throw new Error("지금은 타일을 뽑을 단계가 아닙니다.");
+  }
+
+  const next = cloneState(state);
+  const nextPlayer = next.players.find((candidate) => candidate.id === player.id);
+  if (!nextPlayer) {
+    throw new Error("다빈치 코드 플레이어를 찾을 수 없습니다.");
+  }
+
+  const drawnTile = next.deck.shift() ?? null;
+  if (drawnTile) {
+    nextPlayer.hand = sortHand([...nextPlayer.hand, drawnTile]);
+    next.drawnTileId = drawnTile.id;
+    next.message = `${player.name}님이 타일 1개를 뽑았습니다. 상대 타일을 추측하세요.`;
+  } else {
+    next.drawnTileId = null;
+    next.message = "더미가 비었습니다. 바로 추측하세요.";
+  }
+  next.phase = "guessing";
+
+  return {
+    state: next,
+    log: drawnTile ? `${player.name} 타일 드로우` : `${player.name} 빈 더미 확인`,
+    activePlayerId: player.id,
+    phase: next.phase,
+    message: next.message,
+    winnerId: null
   };
 }
 
 function continueGuessing(state: VinciState, context: GameContext): GameActionResult {
   const player = requireActivePlayer(state, context);
   if (state.phase !== "decide") {
-    throw new Error("There is no correct guess to continue from.");
+    throw new Error("계속 추측할 수 있는 정답 상태가 아닙니다.");
   }
 
   const next = cloneState(state);
   next.phase = "guessing";
-  next.message = `${player.name} continues guessing.`;
+  next.message = `${player.name}님이 계속 추측합니다.`;
   return {
     state: next,
-    log: `${player.name} continues guessing`,
+    log: `${player.name} 계속 추측`,
     activePlayerId: player.id,
     phase: "guessing",
     message: next.message,
@@ -308,20 +419,22 @@ function continueGuessing(state: VinciState, context: GameContext): GameActionRe
 function passTurn(state: VinciState, context: GameContext): GameActionResult {
   const player = requireActivePlayer(state, context);
   if (state.phase !== "decide") {
-    throw new Error("End the turn after a correct guess.");
+    throw new Error("정답을 맞힌 뒤에만 턴을 끝낼 수 있습니다.");
   }
 
   const next = cloneState(state);
-  next.phase = "guessing";
+  const turn = advanceTurn(next, context, player.id);
+  next.drawnTileId = null;
+  next.phase = phaseForTurnStart(next);
   next.currentStreak = 0;
-  next.message = `${player.name} ended the turn.`;
+  next.message = `${player.name}님이 턴을 끝냈습니다.`;
   return {
     state: next,
-    log: `${player.name} ends the turn`,
-    phase: "guessing",
+    log: `${player.name} 턴 종료`,
+    phase: next.phase,
     message: next.message,
     winnerId: null,
-    ...advanceTurn(next, context, player.id)
+    ...turn
   };
 }
 
@@ -339,7 +452,11 @@ function createInitialState(context: Pick<GameContext, "game" | "players">): Vin
       id: player.id,
       name: player.name,
       seat: player.seat,
+      teamId: teamIdForSeat(player.seat, seatedPlayers.length),
       hand,
+      bonusCards: 1,
+      usedBonusCards: 0,
+      points: 0,
       eliminated: false
     };
   });
@@ -347,10 +464,12 @@ function createInitialState(context: Pick<GameContext, "game" | "players">): Vin
   return {
     players,
     deck,
-    phase: "guessing",
+    phase: deck.length > 0 ? "draw" : "guessing",
+    drawnTileId: null,
     currentStreak: 0,
     winnerId: null,
-    message: "Racks are set.",
+    winnerIds: [],
+    message: "타일 랙 준비 완료. 차례가 되면 타일을 뽑고 추측하세요.",
     lastGuess: null
   };
 }
@@ -360,23 +479,41 @@ export const module: GameModule = {
   createInitialState,
   getPublicState: (state, context): VinciPublicState => {
     const vinciState = state as VinciState;
+    const viewer = vinciState.players.find((player) => player.id === context.viewerId);
     return {
       players: vinciState.players.map((player) => ({
         id: player.id,
         name: player.name,
         seat: player.seat,
+        teamId: player.teamId,
         eliminated: player.eliminated,
-        hand: player.hand.map((tile) => ({
-          id: tile.id,
-          color: tile.color,
-          value: tile.revealed || player.id === context.viewerId ? tile.value : null,
-          revealed: tile.revealed
-        }))
+        hand: player.hand.map((tile, index) => {
+          const firstHiddenIndex = player.hand.findIndex((candidate) => !candidate.revealed);
+          const teamClue = sameTeam(player, viewer) && player.id !== context.viewerId && firstHiddenIndex === index && !tile.revealed;
+          const visible = tile.revealed || player.id === context.viewerId || teamClue;
+          return {
+            id: visible ? tile.id : `${player.id}-hidden-${index}`,
+            kind: visible ? tile.kind : null,
+            color: tile.color,
+            value: visible && tile.kind === "number" ? tile.value : null,
+            revealed: tile.revealed,
+            teamClue
+          };
+        }),
+        bonusCards: player.bonusCards,
+        usedBonusCards: player.usedBonusCards,
+        points: player.points
       })),
       deckCount: vinciState.deck.length,
       phase: vinciState.phase,
+      drawnTileId:
+        vinciState.drawnTileId &&
+        vinciState.players.some((player) => player.id === context.viewerId && player.hand.some((tile) => tile.id === vinciState.drawnTileId))
+          ? vinciState.drawnTileId
+          : null,
       currentStreak: vinciState.currentStreak,
       winnerId: vinciState.winnerId,
+      winnerIds: [...vinciState.winnerIds],
       message: vinciState.message,
       viewerId: context.viewerId,
       lastGuess: vinciState.lastGuess ? { ...vinciState.lastGuess } : null
@@ -384,6 +521,9 @@ export const module: GameModule = {
   },
   applyAction: (state, action, context) => {
     const vinciState = state as VinciState;
+    if (action.type === "draw") {
+      return drawTile(vinciState, context);
+    }
     if (action.type === "guess") {
       return applyGuess(vinciState, action, context);
     }
@@ -393,11 +533,12 @@ export const module: GameModule = {
     if (action.type === "pass") {
       return passTurn(vinciState, context);
     }
-    throw new Error("Unknown Da Vinci Code action.");
+    throw new Error("지원하지 않는 다빈치 코드 행동입니다.");
   }
 };
 
 function tileText(tile: PublicVinciTile, ownerId: string, viewerId: string | null) {
+  if (tile.kind === "joker" && (tile.revealed || ownerId === viewerId)) return "J";
   if (tile.value !== null) return String(tile.value);
   if (ownerId === viewerId) return "?";
   return "?";
@@ -408,10 +549,16 @@ function hiddenTileIndices(player: PublicVinciPlayer | undefined) {
   return player.hand.map((tile, index) => ({ tile, index })).filter(({ tile }) => !tile.revealed).map(({ index }) => index);
 }
 
-function colorStyle(color: TileColor): CSSProperties {
-  if (color === "black") return { "--tile-bg": "#171a1f", "--tile-fg": "#ffffff" } as CSSProperties;
-  if (color === "red") return { "--tile-bg": "#b94f45", "--tile-fg": "#ffffff" } as CSSProperties;
-  return { "--tile-bg": "#f8fafc", "--tile-fg": "#17201d" } as CSSProperties;
+function guessLabel(guess: VinciGuess) {
+  return guess === "joker" ? "조커" : String(guess);
+}
+
+function colorStyle(color: PublicTileColor): CSSProperties {
+  if (color === "hidden") return { "--tile-bg": "#3d4652", "--tile-fg": "#ffffff" } as CSSProperties;
+  if (color === "joker") return { "--tile-bg": "#3b2a4d", "--tile-fg": "#ffffff" } as CSSProperties;
+  if (color === "black") return { "--tile-bg": "#175fbd", "--tile-fg": "#ffffff" } as CSSProperties;
+  if (color === "red") return { "--tile-bg": "#c8232f", "--tile-fg": "#ffffff" } as CSSProperties;
+  return { "--tile-bg": "#f0c83b", "--tile-fg": "#2a2214" } as CSSProperties;
 }
 
 export function Component(props: GameComponentProps) {
@@ -419,12 +566,18 @@ export function Component(props: GameComponentProps) {
   const publicState = props.publicState as VinciPublicState;
   const [targetPlayerId, setTargetPlayerId] = useState("");
   const [tileIndex, setTileIndex] = useState(0);
-  const [guess, setGuess] = useState(0);
+  const [guess, setGuess] = useState<VinciGuess>(0);
   const currentModulePlayer = publicState.players.find((player) => player.id === currentPlayer?.id) ?? null;
   const activeModulePlayer = publicState.players.find((player) => player.id === activePlayer?.id) ?? null;
   const targets = useMemo(
-    () => publicState.players.filter((player) => player.id !== currentPlayer?.id && !player.eliminated),
-    [currentPlayer?.id, publicState.players]
+    () =>
+      publicState.players.filter(
+        (player) =>
+          player.id !== currentPlayer?.id &&
+          !player.eliminated &&
+          !(currentModulePlayer?.teamId && player.teamId === currentModulePlayer.teamId)
+      ),
+    [currentModulePlayer?.teamId, currentPlayer?.id, publicState.players]
   );
   const effectiveTargetId = targets.some((player) => player.id === targetPlayerId)
     ? targetPlayerId
@@ -432,12 +585,14 @@ export function Component(props: GameComponentProps) {
   const target = publicState.players.find((player) => player.id === effectiveTargetId);
   const targetHiddenIndices = hiddenTileIndices(target);
   const effectiveTileIndex = targetHiddenIndices.includes(tileIndex) ? tileIndex : targetHiddenIndices[0] ?? 0;
-  const winner = publicState.players.find((player) => player.id === publicState.winnerId);
+  const winners = publicState.players.filter((player) => publicState.winnerIds.includes(player.id));
+  const winnerLabel = winners.length > 0 ? winners.map((player) => player.name).join(", ") : "완료";
   const canAct =
     !disabled &&
-    !publicState.winnerId &&
+    publicState.winnerIds.length === 0 &&
     currentModulePlayer?.id === activeModulePlayer?.id &&
     publicState.phase !== "complete";
+  const canDraw = canAct && publicState.phase === "draw";
   const canGuess =
     canAct &&
     publicState.phase === "guessing" &&
@@ -462,18 +617,19 @@ export function Component(props: GameComponentProps) {
       <style>{davinciStyles}</style>
       <div className="dvc-status" aria-live="polite">
         <div>
-          <strong>{publicState.winnerId ? "Winner" : "Turn"}</strong>
-          <span>{publicState.winnerId ? winner?.name ?? "Complete" : activeModulePlayer?.name ?? "Waiting"}</span>
+          <strong>{publicState.winnerIds.length > 0 ? "승자" : "차례"}</strong>
+          <span>{publicState.winnerIds.length > 0 ? winnerLabel : activeModulePlayer?.name ?? "대기"}</span>
         </div>
         <div className="dvc-metrics">
-          <span>Deck {publicState.deckCount}</span>
-          <span>Streak {publicState.currentStreak}</span>
+          <span>더미 {publicState.deckCount}</span>
+          <span>연속 정답 {publicState.currentStreak}</span>
+          <span>보너스 카드</span>
         </div>
         <p>{publicState.message}</p>
       </div>
 
       <div className="dvc-layout">
-        <div className="dvc-racks" aria-label="Player racks">
+        <div className="dvc-racks" aria-label="플레이어 타일 랙">
           {publicState.players.map((player) => {
             const isViewer = player.id === currentPlayer?.id;
             const isActive = player.id === activePlayer?.id;
@@ -482,10 +638,13 @@ export function Component(props: GameComponentProps) {
                 <div className="dvc-player-head">
                   <div>
                     <strong>{player.name}</strong>
-                    <span>{isViewer ? "You" : isActive ? "Active" : `Seat ${player.seat}`}</span>
+                    <span>
+                      {isViewer ? "나" : isActive ? "현재 차례" : `${player.seat}번 좌석`}
+                      {player.teamId ? ` · ${player.teamId}팀` : ""}
+                    </span>
                   </div>
                   <span className={player.eliminated ? "dvc-badge out" : "dvc-badge"}>
-                    {player.eliminated ? "Out" : `${hiddenTileIndices(player).length} hidden`}
+                    {player.eliminated ? "탈락" : `숨은 타일 ${hiddenTileIndices(player).length}개 · 점수 ${player.points} · 보너스 ${player.bonusCards}`}
                   </span>
                 </div>
                 <div className="dvc-hand">
@@ -494,7 +653,7 @@ export function Component(props: GameComponentProps) {
                       canGuess && player.id === effectiveTargetId && !tile.revealed && player.id !== currentPlayer?.id;
                     return (
                       <button
-                        className={`dvc-tile ${tile.revealed ? "revealed" : ""} ${isViewer && !tile.revealed ? "private" : ""} ${selectable && index === effectiveTileIndex ? "selected" : ""}`}
+                        className={`dvc-tile ${tile.revealed ? "revealed" : ""} ${isViewer && tile.id === publicState.drawnTileId ? "drawn" : ""} ${isViewer && !tile.revealed ? "private" : ""} ${tile.teamClue ? "team-clue" : ""} ${selectable && index === effectiveTileIndex ? "selected" : ""}`}
                         disabled={!selectable}
                         key={tile.id}
                         onClick={() => {
@@ -502,7 +661,7 @@ export function Component(props: GameComponentProps) {
                           setTileIndex(index);
                         }}
                         style={colorStyle(tile.color)}
-                        title={`${colorLabels[tile.color]} tile ${index + 1}`}
+                        title={`${tile.color === "hidden" ? "숨은" : colorLabels[tile.color]} ${index + 1}번 타일`}
                         type="button"
                       >
                         <span>{tileText(tile, player.id, publicState.viewerId)}</span>
@@ -516,10 +675,16 @@ export function Component(props: GameComponentProps) {
           })}
         </div>
 
-        <aside className="dvc-panel" aria-label="Guess controls">
-          <label htmlFor="dvc-target">Target</label>
+        <aside className="dvc-panel" aria-label="추측 조작">
+          <button className="dvc-action" disabled={!canDraw} onClick={() => onAction({ type: "draw" })} type="button">
+            타일 뽑기
+          </button>
+
+          {publicState.phase === "draw" ? <p className="dvc-panel-hint">이번 턴은 타일을 먼저 뽑은 뒤 추측합니다.</p> : null}
+
+          <label htmlFor="dvc-target">상대</label>
           <select
-            disabled={!canAct || targets.length === 0}
+            disabled={!canGuess || targets.length === 0}
             id="dvc-target"
             onChange={(event) => {
               setTargetPlayerId(event.currentTarget.value);
@@ -534,9 +699,9 @@ export function Component(props: GameComponentProps) {
             ))}
           </select>
 
-          <label htmlFor="dvc-tile">Tile index</label>
+          <label htmlFor="dvc-tile">타일 위치</label>
           <select
-            disabled={!canAct || targetHiddenIndices.length === 0}
+            disabled={!canGuess || targetHiddenIndices.length === 0}
             id="dvc-tile"
             onChange={(event) => setTileIndex(Number(event.currentTarget.value))}
             value={effectiveTileIndex}
@@ -548,30 +713,33 @@ export function Component(props: GameComponentProps) {
             ))}
           </select>
 
-          <label htmlFor="dvc-guess">Guess</label>
+          <label htmlFor="dvc-guess">추측 값</label>
           <select
-            disabled={!canAct}
+            disabled={!canGuess}
             id="dvc-guess"
-            onChange={(event) => setGuess(Number(event.currentTarget.value))}
-            value={guess}
+            onChange={(event) => {
+              const value = event.currentTarget.value;
+              setGuess(value === "joker" ? "joker" : Number(value));
+            }}
+            value={String(guess)}
           >
-            {tileValues.map((value) => (
+            {guessOptions.map((value) => (
               <option key={value} value={value}>
-                {value}
+                {guessLabel(value)}
               </option>
             ))}
           </select>
 
           <button className="dvc-action" disabled={!canGuess} onClick={sendGuess} type="button">
-            Guess number
+            타일 추측
           </button>
 
           <div className="dvc-decision">
             <button disabled={!canDecide} onClick={() => onAction({ type: "continue" })} type="button">
-              Continue
+              계속
             </button>
             <button disabled={!canDecide} onClick={() => onAction({ type: "pass" })} type="button">
-              End turn
+              턴 종료
             </button>
           </div>
         </aside>
@@ -710,6 +878,24 @@ const davinciStyles = `
     inset 0 -6px 9px rgba(0, 0, 0, 0.16),
     0 5px 7px rgba(52, 31, 22, 0.22);
 }
+.dvc-tile.drawn {
+  outline: 3px solid #d69b2d;
+  outline-offset: 2px;
+}
+.dvc-tile.team-clue {
+  outline: 3px dashed #28777c;
+  outline-offset: 2px;
+}
+.dvc-tile.team-clue small::after {
+  content: " team";
+  color: #e7fff8;
+  font-weight: 900;
+}
+.dvc-tile.drawn small::after {
+  content: " new";
+  color: #ffe08a;
+  font-weight: 900;
+}
 .dvc-tile.revealed {
   transform: translateY(-2px);
   box-shadow:
@@ -737,6 +923,16 @@ const davinciStyles = `
   background: white;
   color: #17201d;
   font: inherit;
+}
+.dvc-panel-hint {
+  margin: 0;
+  border: 1px solid rgba(214, 155, 45, 0.28);
+  border-radius: 8px;
+  padding: 8px;
+  background: rgba(255, 239, 190, 0.72);
+  color: #69452a;
+  font-size: 0.86rem;
+  font-weight: 800;
 }
 .dvc-action,
 .dvc-decision button {

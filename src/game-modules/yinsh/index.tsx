@@ -32,12 +32,14 @@ type YinshState = {
   players: Record<YinshColor, YinshPlayerState>;
   rings: Record<string, YinshColor>;
   markers: Record<string, YinshColor>;
+  markersRemaining: number;
   ringsPlaced: Record<YinshColor, number>;
   ringsRemoved: Record<YinshColor, number>;
   pendingRows: PendingRow[];
   rowResolution: RowResolution | null;
   message: string;
   winnerId: string | null;
+  winnerIds: string[];
 };
 
 type YinshPublicState = YinshState & {
@@ -46,6 +48,7 @@ type YinshPublicState = YinshState & {
 
 const RINGS_PER_PLAYER = 5;
 const RINGS_TO_WIN = 3;
+const MARKER_POOL_SIZE = 51;
 const GRID_RADIUS = 5;
 const COLORS: YinshColor[] = ["white", "black"];
 const COLOR_LABELS: Record<YinshColor, string> = {
@@ -133,6 +136,12 @@ function isPointEmpty(state: Pick<YinshState, "rings" | "markers">, key: string)
   return isValidPoint(key) && !state.rings[key] && !state.markers[key];
 }
 
+function getMarkersRemaining(state: Pick<YinshState, "markers"> & Partial<Pick<YinshState, "markersRemaining">>) {
+  return typeof state.markersRemaining === "number" && Number.isFinite(state.markersRemaining)
+    ? Math.max(0, state.markersRemaining)
+    : Math.max(0, MARKER_POOL_SIZE - Object.keys(state.markers).length);
+}
+
 function cloneState(state: YinshState): YinshState {
   return {
     phase: state.phase,
@@ -142,12 +151,14 @@ function cloneState(state: YinshState): YinshState {
     },
     rings: { ...state.rings },
     markers: { ...state.markers },
+    markersRemaining: getMarkersRemaining(state),
     ringsPlaced: { ...state.ringsPlaced },
     ringsRemoved: { ...state.ringsRemoved },
     pendingRows: state.pendingRows.map((row) => ({ color: row.color, cells: [...row.cells] })),
     rowResolution: state.rowResolution ? { ...state.rowResolution } : null,
     message: state.message,
-    winnerId: state.winnerId
+    winnerId: state.winnerId,
+    winnerIds: [...(state.winnerIds ?? (state.winnerId ? [state.winnerId] : []))]
   };
 }
 
@@ -351,6 +362,22 @@ function findRowsForRemoval(markers: Record<string, YinshColor>, preferredColor:
   return [...findRows(markers, preferredColor), ...findRows(markers, otherColor(preferredColor))];
 }
 
+function finishByMarkerExhaustion(state: YinshState) {
+  const highScore = Math.max(...COLORS.map((color) => state.ringsRemoved[color]));
+  const winnerColors = COLORS.filter((color) => state.ringsRemoved[color] === highScore);
+  const winnerIds = winnerColors.length === 1 ? winnerColors.map((color) => getPlayerForColor(state, color).id) : [];
+  state.phase = "finished";
+  state.pendingRows = [];
+  state.rowResolution = null;
+  state.winnerIds = winnerIds;
+  state.winnerId = winnerIds.length === 1 ? winnerIds[0] : null;
+  state.message =
+    winnerIds.length === 1
+      ? `${getPlayerForColor(state, winnerColors[0]).name}님이 마커 51개 소진 시점에 더 많은 링을 제거해 승리했습니다.`
+      : "마커 51개가 모두 소진되었습니다. 제거한 링 수가 같아 무승부입니다.";
+  return winnerIds;
+}
+
 function applyNextActiveAfterRows(
   state: YinshState,
   turnNumber: number,
@@ -358,6 +385,18 @@ function applyNextActiveAfterRows(
   fallbackColor: YinshColor
 ) {
   const resolution = state.rowResolution ?? getAdvance(fallbackColor);
+  if (getMarkersRemaining(state) <= 0) {
+    finishByMarkerExhaustion(state);
+    return {
+      activePlayerId: null,
+      turnNumber: turnNumber + 1,
+      roundNumber: roundNumber + resolution.roundIncrement,
+      phase: state.phase,
+      message: state.message,
+      winnerId: state.winnerId
+    };
+  }
+
   const nextPlayer = getPlayerForColor(state, resolution.nextColor);
   state.phase = "move";
   state.pendingRows = [];
@@ -406,12 +445,14 @@ export const module: GameModule = {
       },
       rings: {},
       markers: {},
+      markersRemaining: MARKER_POOL_SIZE,
       ringsPlaced: { white: 0, black: 0 },
       ringsRemoved: { white: 0, black: 0 },
       pendingRows: [],
       rowResolution: null,
       message: "백부터 링을 5개씩 번갈아 배치합니다.",
-      winnerId: null
+      winnerId: null,
+      winnerIds: []
     } satisfies YinshState;
   },
   getPublicState: (state) => {
@@ -424,10 +465,12 @@ export const module: GameModule = {
       },
       rings: { ...yinshState.rings },
       markers: { ...yinshState.markers },
+      markersRemaining: getMarkersRemaining(yinshState),
       ringsPlaced: { ...yinshState.ringsPlaced },
       ringsRemoved: { ...yinshState.ringsRemoved },
       pendingRows: yinshState.pendingRows.map((row) => ({ color: row.color, cells: [...row.cells] })),
       rowResolution: yinshState.rowResolution ? { ...yinshState.rowResolution } : null,
+      winnerIds: [...(yinshState.winnerIds ?? (yinshState.winnerId ? [yinshState.winnerId] : []))],
       points: POINTS
     } satisfies YinshPublicState;
   },
@@ -477,6 +520,17 @@ export const module: GameModule = {
       if (nextState.phase !== "move") {
         throw new Error("현재는 링을 이동할 수 없습니다.");
       }
+      if (getMarkersRemaining(nextState) <= 0) {
+        finishByMarkerExhaustion(nextState);
+        return {
+          state: nextState,
+          log: "마커 51개 소진으로 인쉬 종료",
+          activePlayerId: null,
+          phase: nextState.phase,
+          message: nextState.message,
+          winnerId: nextState.winnerId
+        };
+      }
       const payload = readMovePayload(action.payload);
       if (!payload) {
         throw new Error("링 이동 정보가 올바르지 않습니다.");
@@ -495,6 +549,7 @@ export const module: GameModule = {
 
       delete nextState.rings[payload.from];
       nextState.markers[payload.from] = color;
+      nextState.markersRemaining = getMarkersRemaining(nextState) - 1;
       for (const markerKey of move.markersToFlip) {
         nextState.markers[markerKey] = flipColor(nextState.markers[markerKey]);
       }
@@ -515,6 +570,20 @@ export const module: GameModule = {
           activePlayerId: rowPlayer.id,
           phase: nextState.phase,
           message: nextState.message
+        };
+      }
+
+      if (nextState.markersRemaining <= 0) {
+        const winnerIds = finishByMarkerExhaustion(nextState);
+        return {
+          state: nextState,
+          log: `${getPlayerForColor(nextState, color).name} 링 이동, 마커 51개 소진으로 종료`,
+          activePlayerId: null,
+          turnNumber: context.turnNumber + 1,
+          roundNumber: context.roundNumber + advance.roundIncrement,
+          phase: nextState.phase,
+          message: nextState.message,
+          winnerId: winnerIds.length === 1 ? winnerIds[0] : null
         };
       }
 
@@ -562,6 +631,7 @@ export const module: GameModule = {
         nextState.pendingRows = [];
         nextState.rowResolution = null;
         nextState.winnerId = winner.id;
+        nextState.winnerIds = [winner.id];
         nextState.message = `${winner.name}님이 링 3개를 제거해 승리했습니다.`;
         return {
           state: nextState,
@@ -643,6 +713,7 @@ function YinshStyles() {
         border: 1px solid rgba(45, 78, 92, 0.18);
         border-radius: 8px;
         overflow: hidden;
+        overflow-x: auto;
         box-shadow:
           inset 0 0 0 5px rgba(255, 255, 255, 0.72),
           0 14px 26px rgba(45, 78, 92, 0.12);
@@ -669,6 +740,7 @@ function YinshStyles() {
       .yinsh-point.legal {
         fill: #b7e4cf;
         stroke: #258a5b;
+        stroke-width: 2.4;
       }
 
       .yinsh-point.row {
@@ -801,6 +873,10 @@ function YinshStyles() {
         .yinsh-layout {
           grid-template-columns: 1fr;
         }
+
+        .yinsh-board {
+          min-width: 620px;
+        }
       }
     `}</style>
   );
@@ -884,6 +960,7 @@ export function Component({
 
   const selectedRingIsRemovable = Boolean(selectedRingKey && currentColor && state.rings[selectedRingKey] === currentColor);
   const markerCount = Object.keys(state.markers).length;
+  const markersRemaining = getMarkersRemaining(state);
   const viewBox = "-260 -220 520 440";
 
   return (
@@ -895,7 +972,8 @@ export function Component({
           <div>{state.message}</div>
         </div>
         <span>
-          마커 {markerCount}개 · 제거 링 백 {state.ringsRemoved.white}/3, 흑 {state.ringsRemoved.black}/3
+          남은 마커 {markersRemaining}/{MARKER_POOL_SIZE} · 보드 {markerCount}개 · 제거 링 백 {state.ringsRemoved.white}/3, 흑{" "}
+          {state.ringsRemoved.black}/3
         </span>
       </div>
 
@@ -927,7 +1005,8 @@ export function Component({
               const position = POINT_POSITIONS.get(point.key) ?? { x: 0, y: 0 };
               const ringColor = state.rings[point.key];
               const markerColor = state.markers[point.key];
-              const isLegal = legalDestinations.has(point.key);
+              const isPlacementLegal = state.phase === "ring-placement" && canInteract && isPointEmpty(state, point.key);
+              const isLegal = legalDestinations.has(point.key) || isPlacementLegal;
               const isRow = rowCells.has(point.key);
               const isSelected = selectedRingKey === point.key;
               return (

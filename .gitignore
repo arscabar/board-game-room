@@ -4,6 +4,7 @@ data/
 .omx/
 .local-host/
 qa-screenshots/
+reports/
 *.log
 .server.*.log
 .web.*.log

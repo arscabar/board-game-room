@@ -48,6 +48,11 @@ function key(row: number, col: number) {
   return `${row},${col}`;
 }
 
+function coordFromKey(value: string): Coord {
+  const [row = "0", col = "0"] = value.split(",");
+  return { row: Number(row), col: Number(col) };
+}
+
 function isCoord(value: unknown): value is Coord {
   if (!value || typeof value !== "object") return false;
   const item = value as Record<string, unknown>;
@@ -135,6 +140,10 @@ function occupiedByOther(state: QuoridorState, row: number, col: number, playerI
   return state.players.some((player) => player.id !== playerId && player.row === row && player.col === col);
 }
 
+function pawnAt(state: QuoridorState, row: number, col: number, exceptPlayerId: string) {
+  return state.players.find((player) => player.id !== exceptPlayerId && player.row === row && player.col === col) ?? null;
+}
+
 function legalPawnMoves(state: QuoridorState, player: QuoridorPlayer) {
   const deltas = [
     { row: -1, col: 0 },
@@ -143,21 +152,78 @@ function legalPawnMoves(state: QuoridorState, player: QuoridorPlayer) {
     { row: 0, col: 1 }
   ];
 
-  return deltas
-    .map((delta) => ({ row: player.row + delta.row, col: player.col + delta.col }))
-    .filter((target) => {
-      return (
-        inBoard(target.row, target.col) &&
-        !wallBlocksMove(state, player, target) &&
-        !occupiedByOther(state, target.row, target.col, player.id)
-      );
-    });
+  const moves: Coord[] = [];
+  const seen = new Set<string>();
+  const addMove = (target: Coord) => {
+    const moveKey = key(target.row, target.col);
+    if (!seen.has(moveKey)) {
+      seen.add(moveKey);
+      moves.push(target);
+    }
+  };
+
+  for (const delta of deltas) {
+    const adjacent = { row: player.row + delta.row, col: player.col + delta.col };
+    if (!inBoard(adjacent.row, adjacent.col) || wallBlocksMove(state, player, adjacent)) {
+      continue;
+    }
+
+    const adjacentPawn = pawnAt(state, adjacent.row, adjacent.col, player.id);
+    if (!adjacentPawn) {
+      addMove(adjacent);
+      continue;
+    }
+
+    const jumpTarget = { row: adjacent.row + delta.row, col: adjacent.col + delta.col };
+    const canJumpStraight =
+      inBoard(jumpTarget.row, jumpTarget.col) &&
+      !wallBlocksMove(state, adjacent, jumpTarget) &&
+      !occupiedByOther(state, jumpTarget.row, jumpTarget.col, player.id);
+
+    if (canJumpStraight) {
+      addMove(jumpTarget);
+      continue;
+    }
+
+    const diagonalDeltas =
+      delta.row !== 0
+        ? [
+            { row: 0, col: -1 },
+            { row: 0, col: 1 }
+          ]
+        : [
+            { row: -1, col: 0 },
+            { row: 1, col: 0 }
+          ];
+
+    for (const diagonalDelta of diagonalDeltas) {
+      const diagonalTarget = {
+        row: adjacent.row + diagonalDelta.row,
+        col: adjacent.col + diagonalDelta.col
+      };
+      if (
+        inBoard(diagonalTarget.row, diagonalTarget.col) &&
+        !wallBlocksMove(state, adjacent, diagonalTarget) &&
+        !occupiedByOther(state, diagonalTarget.row, diagonalTarget.col, player.id)
+      ) {
+        addMove(diagonalTarget);
+      }
+    }
+  }
+
+  return moves;
 }
 
 function wallWouldOverlap(state: QuoridorState, orientation: Orientation, row: number, col: number) {
   if (!inWallGrid(row, col)) return true;
   const wallKey = key(row, col);
-  return state.walls.horizontal.includes(wallKey) || state.walls.vertical.includes(wallKey);
+  if (state.walls.horizontal.includes(wallKey) || state.walls.vertical.includes(wallKey)) {
+    return true;
+  }
+  if (orientation === "horizontal") {
+    return state.walls.horizontal.includes(key(row, col - 1)) || state.walls.horizontal.includes(key(row, col + 1));
+  }
+  return state.walls.vertical.includes(key(row - 1, col)) || state.walls.vertical.includes(key(row + 1, col));
 }
 
 function stateWithWall(state: QuoridorState, orientation: Orientation, row: number, col: number) {
@@ -221,14 +287,14 @@ function advanceTurn(state: QuoridorState, context: GameContext) {
 
 function requireActivePlayer(state: QuoridorState, context: GameContext) {
   if (state.winnerId) {
-    throw new Error("Game is already complete.");
+    throw new Error("이미 종료된 게임입니다.");
   }
   if (context.currentPlayerId !== context.activePlayerId) {
-    throw new Error("It is not your turn.");
+    throw new Error("현재 차례의 플레이어만 행동할 수 있습니다.");
   }
   const player = state.players.find((candidate) => candidate.id === context.currentPlayerId);
   if (!player) {
-    throw new Error("Player is not in this Quoridor game.");
+    throw new Error("쿼리도 플레이어를 찾을 수 없습니다.");
   }
   return player;
 }
@@ -259,25 +325,25 @@ function createInitialState(context: Pick<GameContext, "players">): QuoridorStat
       vertical: []
     },
     winnerId: null,
-    message: "Move your pawn or place one wall."
+    message: "말을 움직이거나 벽 하나를 놓으세요."
   };
 }
 
 function movePawn(state: QuoridorState, action: GameAction, context: GameContext): GameActionResult {
   if (!isCoord(action.payload)) {
-    throw new Error("Pawn move needs a target cell.");
+    throw new Error("말을 이동할 목표 칸이 필요합니다.");
   }
 
   const player = requireActivePlayer(state, context);
   const target = action.payload;
   if (!legalPawnMoves(state, player).some((move) => move.row === target.row && move.col === target.col)) {
-    throw new Error("That pawn move is blocked.");
+    throw new Error("그 칸으로는 이동할 수 없습니다.");
   }
 
   const next = cloneState(state);
   const nextPlayer = next.players.find((candidate) => candidate.id === player.id);
   if (!nextPlayer) {
-    throw new Error("Player is not in this Quoridor game.");
+    throw new Error("쿼리도 플레이어를 찾을 수 없습니다.");
   }
 
   nextPlayer.row = target.row;
@@ -285,20 +351,20 @@ function movePawn(state: QuoridorState, action: GameAction, context: GameContext
 
   if (reachesGoal(nextPlayer)) {
     next.winnerId = nextPlayer.id;
-    next.message = `${nextPlayer.name} reached the goal edge.`;
+    next.message = `${nextPlayer.name}님이 목표 줄에 도착했습니다.`;
     return {
       state: next,
-      log: `${nextPlayer.name} wins by reaching the goal edge`,
+      log: `${nextPlayer.name} 목표 줄 도착 승리`,
       activePlayerId: null,
       winnerId: nextPlayer.id,
       message: next.message
     };
   }
 
-  next.message = `${nextPlayer.name} moved to ${target.row + 1}-${target.col + 1}.`;
+  next.message = `${nextPlayer.name}님이 ${target.row + 1}-${target.col + 1}칸으로 이동했습니다.`;
   return {
     state: next,
-    log: `${nextPlayer.name} moved pawn`,
+    log: `${nextPlayer.name} 말 이동`,
     message: next.message,
     ...advanceTurn(next, context)
   };
@@ -306,33 +372,33 @@ function movePawn(state: QuoridorState, action: GameAction, context: GameContext
 
 function placeWall(state: QuoridorState, action: GameAction, context: GameContext): GameActionResult {
   if (!isWallPayload(action.payload)) {
-    throw new Error("Wall placement needs orientation, row, and column.");
+    throw new Error("벽 방향과 위치가 필요합니다.");
   }
 
   const player = requireActivePlayer(state, context);
   const { orientation, row, col } = action.payload;
 
   if (player.wallsRemaining <= 0) {
-    throw new Error("No walls remaining.");
+    throw new Error("남은 벽이 없습니다.");
   }
   if (wallWouldOverlap(state, orientation, row, col)) {
-    throw new Error("That wall slot is already occupied or crossed.");
+    throw new Error("이미 벽이 있거나 교차되는 위치입니다.");
   }
   if (!wallPreservesPaths(state, orientation, row, col)) {
-    throw new Error("Every player must keep at least one path to their goal.");
+    throw new Error("모든 플레이어에게 목표까지 가는 길이 최소 1개는 남아야 합니다.");
   }
 
   const next = stateWithWall(state, orientation, row, col);
   const nextPlayer = next.players.find((candidate) => candidate.id === player.id);
   if (!nextPlayer) {
-    throw new Error("Player is not in this Quoridor game.");
+    throw new Error("쿼리도 플레이어를 찾을 수 없습니다.");
   }
   nextPlayer.wallsRemaining -= 1;
-  next.message = `${nextPlayer.name} placed a ${orientation} wall.`;
+  next.message = `${nextPlayer.name}님이 ${orientation === "horizontal" ? "가로" : "세로"} 벽을 놓았습니다.`;
 
   return {
     state: next,
-    log: `${nextPlayer.name} placed ${orientation} wall`,
+    log: `${nextPlayer.name} ${orientation === "horizontal" ? "가로" : "세로"} 벽 배치`,
     message: next.message,
     ...advanceTurn(next, context)
   };
@@ -350,15 +416,15 @@ export const module: GameModule = {
     if (action.type === "placeWall") {
       return placeWall(quoridorState, action, context);
     }
-    throw new Error("Unknown Quoridor action.");
+    throw new Error("지원하지 않는 쿼리도 행동입니다.");
   }
 };
 
 function goalLabel(goal: Goal) {
-  if (goal === "top") return "top edge";
-  if (goal === "bottom") return "bottom edge";
-  if (goal === "left") return "left edge";
-  return "right edge";
+  if (goal === "top") return "위쪽 끝줄";
+  if (goal === "bottom") return "아래쪽 끝줄";
+  if (goal === "left") return "왼쪽 끝줄";
+  return "오른쪽 끝줄";
 }
 
 function cellWallStyle(state: QuoridorPublicState, row: number, col: number): CSSProperties {
@@ -372,6 +438,10 @@ function cellWallStyle(state: QuoridorPublicState, row: number, col: number): CS
 
 function isDark(color: string) {
   return color !== "#f8fafc";
+}
+
+function wallPieceStyle(row: number, col: number): CSSProperties {
+  return { "--wall-row": row, "--wall-col": col } as CSSProperties;
 }
 
 export function Component(props: GameComponentProps) {
@@ -393,6 +463,15 @@ export function Component(props: GameComponentProps) {
     currentModulePlayer.wallsRemaining <= 0 ||
     wallWouldOverlap(publicState, orientation, wallRow, wallCol) ||
     !wallPreservesPaths(publicState, orientation, wallRow, wallCol);
+  const selectedWallReason = !currentModulePlayer
+    ? "플레이어 정보를 찾을 수 없습니다."
+    : currentModulePlayer.wallsRemaining <= 0
+      ? "남은 벽이 없습니다."
+      : wallWouldOverlap(publicState, orientation, wallRow, wallCol)
+        ? "이미 벽이 있거나 교차되는 위치입니다."
+        : !wallPreservesPaths(publicState, orientation, wallRow, wallCol)
+          ? "누군가의 길을 완전히 막는 위치입니다."
+          : "놓을 수 있는 벽 위치입니다.";
 
   function sendPawnMove(row: number, col: number) {
     if (!canAct || !legalMoveKeys.has(key(row, col))) return;
@@ -409,18 +488,18 @@ export function Component(props: GameComponentProps) {
       <style>{quoridorStyles}</style>
       <div className="qdr-status">
         <div>
-          <strong>{publicState.winnerId ? "Winner" : "Turn"}</strong>
+          <strong>{publicState.winnerId ? "승자" : "차례"}</strong>
           <span>
             {publicState.winnerId
               ? publicState.players.find((player) => player.id === publicState.winnerId)?.name
-              : activeModulePlayer?.name ?? "Waiting"}
+              : activeModulePlayer?.name ?? "대기"}
           </span>
         </div>
         <p>{publicState.message}</p>
       </div>
 
       <div className="qdr-layout">
-        <div className="qdr-board" aria-label="Quoridor board">
+        <div className="qdr-board" aria-label="쿼리도 보드">
           {Array.from({ length: BOARD_SIZE }, (_, row) =>
             Array.from({ length: BOARD_SIZE }, (_, col) => {
               const pawn = publicState.players.find((player) => player.row === row && player.col === col);
@@ -433,7 +512,7 @@ export function Component(props: GameComponentProps) {
                   onClick={() => sendPawnMove(row, col)}
                   style={cellWallStyle(publicState, row, col)}
                   type="button"
-                  title={`Row ${row + 1}, column ${col + 1}`}
+                  title={`${row + 1}행 ${col + 1}열`}
                 >
                   {pawn ? (
                     <span
@@ -452,6 +531,28 @@ export function Component(props: GameComponentProps) {
               );
             })
           )}
+          {publicState.walls.horizontal.map((wallKey) => {
+            const wall = coordFromKey(wallKey);
+            return (
+              <span
+                aria-hidden="true"
+                className="qdr-wall-piece horizontal"
+                key={`h-${wallKey}`}
+                style={wallPieceStyle(wall.row, wall.col)}
+              />
+            );
+          })}
+          {publicState.walls.vertical.map((wallKey) => {
+            const wall = coordFromKey(wallKey);
+            return (
+              <span
+                aria-hidden="true"
+                className="qdr-wall-piece vertical"
+                key={`v-${wallKey}`}
+                style={wallPieceStyle(wall.row, wall.col)}
+              />
+            );
+          })}
         </div>
 
         <aside className="qdr-panel">
@@ -462,7 +563,7 @@ export function Component(props: GameComponentProps) {
                 <div>
                   <strong>{player.name}</strong>
                   <span>
-                    {player.wallsRemaining} walls - goal {goalLabel(player.goal)}
+                    남은 벽 {player.wallsRemaining}개 · 목표 {goalLabel(player.goal)}
                   </span>
                 </div>
               </div>
@@ -470,7 +571,7 @@ export function Component(props: GameComponentProps) {
           </div>
 
           <div className="qdr-wall-controls">
-            <strong>Wall placement</strong>
+            <strong>벽 놓기</strong>
             <div className="qdr-segment">
               <button
                 className={orientation === "horizontal" ? "active" : ""}
@@ -478,7 +579,7 @@ export function Component(props: GameComponentProps) {
                 onClick={() => setOrientation("horizontal")}
                 type="button"
               >
-                H
+                가로
               </button>
               <button
                 className={orientation === "vertical" ? "active" : ""}
@@ -486,14 +587,16 @@ export function Component(props: GameComponentProps) {
                 onClick={() => setOrientation("vertical")}
                 type="button"
               >
-                V
+                세로
               </button>
             </div>
             <div className="qdr-wall-grid">
               {Array.from({ length: WALL_GRID }, (_, row) =>
                 Array.from({ length: WALL_GRID }, (_, col) => {
                   const selected = row === wallRow && col === wallCol;
-                  const blocked = wallWouldOverlap(publicState, orientation, row, col);
+                  const blocked =
+                    wallWouldOverlap(publicState, orientation, row, col) ||
+                    !wallPreservesPaths(publicState, orientation, row, col);
                   return (
                     <button
                       className={`${selected ? "selected" : ""} ${blocked ? "blocked" : ""}`}
@@ -505,14 +608,17 @@ export function Component(props: GameComponentProps) {
                       }}
                       type="button"
                     >
-                      {orientation === "horizontal" ? "H" : "V"}
+                      {orientation === "horizontal" ? "가" : "세"}
                     </button>
                   );
                 })
               )}
             </div>
+            <span className={selectedWallBlocked ? "qdr-wall-hint blocked" : "qdr-wall-hint"}>
+              {selectedWallReason}
+            </span>
             <button className="qdr-action" disabled={!canAct || selectedWallBlocked} onClick={sendWall} type="button">
-              Place wall {wallRow + 1}-{wallCol + 1}
+              {wallRow + 1}-{wallCol + 1}에 벽 놓기
             </button>
           </div>
         </aside>
@@ -525,19 +631,25 @@ const quoridorStyles = `
 .qdr-shell {
   display: grid;
   gap: 14px;
-  color: #17201d;
+  color: #251915;
+  background:
+    radial-gradient(circle at 18% 10%, rgba(255, 225, 146, 0.16), transparent 24%),
+    linear-gradient(135deg, #7b2f25, #3b1e1a 54%, #1f1716);
+  border-radius: 8px;
+  padding: 12px;
 }
 .qdr-status {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  border: 1px solid rgba(98, 58, 28, 0.22);
+  border: 1px solid rgba(255, 218, 135, 0.28);
   border-radius: 8px;
   padding: 12px;
   background:
-    linear-gradient(180deg, rgba(255, 248, 226, 0.92), rgba(226, 189, 130, 0.44)),
-    #fffaf3;
+    linear-gradient(180deg, rgba(255, 236, 179, 0.92), rgba(201, 124, 66, 0.54)),
+    #ffecd0;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.26);
 }
 .qdr-status strong,
 .qdr-status span {
@@ -552,49 +664,58 @@ const quoridorStyles = `
 }
 .qdr-layout {
   display: grid;
-  grid-template-columns: minmax(280px, 1fr) 260px;
+  grid-template-columns: minmax(420px, 1fr) 236px;
   gap: 16px;
   align-items: start;
   min-width: 0;
 }
 .qdr-board {
+  --qdr-padding: 18px;
+  --qdr-gap: 6px;
+  --qdr-cell: calc((100% - (var(--qdr-padding) * 2) - (var(--qdr-gap) * 8)) / 9);
+  position: relative;
   display: grid;
   grid-template-columns: repeat(9, minmax(44px, 1fr));
-  gap: 3px;
-  width: min(100%, 520px);
-  min-width: 436px;
+  gap: var(--qdr-gap);
+  width: min(100%, 560px);
+  min-width: 450px;
   aspect-ratio: 1;
-  padding: 12px;
-  border: 1px solid rgba(87, 47, 24, 0.38);
-  border-radius: 8px;
+  margin: 0 auto;
+  padding: var(--qdr-padding);
+  border: 10px solid #7c2f25;
+  border-radius: 10px;
   background:
-    linear-gradient(90deg, rgba(90, 49, 23, 0.18) 0 1px, transparent 1px 18px),
-    linear-gradient(0deg, rgba(90, 49, 23, 0.14) 0 1px, transparent 1px 22px),
-    linear-gradient(135deg, #a66832, #d0a166 42%, #8a552b);
+    linear-gradient(90deg, #201513 0 6px, transparent 6px),
+    linear-gradient(0deg, #201513 0 6px, transparent 6px),
+    linear-gradient(135deg, #8e3b2e, #4a211c 62%, #221616);
   box-shadow:
-    inset 0 0 0 5px rgba(255, 239, 194, 0.28),
-    inset 0 0 24px rgba(65, 37, 20, 0.24),
-    0 14px 26px rgba(61, 36, 20, 0.18);
+    inset 0 0 0 3px rgba(255, 199, 89, 0.18),
+    inset 0 0 32px rgba(0, 0, 0, 0.34),
+    0 18px 28px rgba(35, 17, 12, 0.34);
 }
 .qdr-cell {
   display: grid;
   place-items: center;
   min-height: 0;
   aspect-ratio: 1;
-  border: 3px solid rgba(89, 50, 28, 0.34);
-  border-radius: 4px;
+  border: 1px solid rgba(255, 202, 99, 0.18);
+  border-radius: 5px;
   background:
-    radial-gradient(circle at 34% 25%, rgba(255, 246, 217, 0.86), transparent 34%),
-    linear-gradient(180deg, #f5d99c, #d49b57);
-  color: #17201d;
+    radial-gradient(circle at 36% 22%, rgba(255, 230, 171, 0.3), transparent 34%),
+    linear-gradient(180deg, #5b3029, #2d1c1a);
+  color: #ffe3a0;
   padding: 0;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.36);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 215, 139, 0.18),
+    inset 0 -4px 0 rgba(0, 0, 0, 0.24);
 }
 .qdr-cell.legal {
   background:
-    radial-gradient(circle at center, rgba(40, 119, 124, 0.25), transparent 58%),
-    linear-gradient(180deg, #f8edbb, #d7aa60);
-  box-shadow: inset 0 0 0 3px #28777c;
+    radial-gradient(circle at center, rgba(248, 211, 92, 0.34), transparent 58%),
+    linear-gradient(180deg, #6f3a30, #33201e);
+  box-shadow:
+    inset 0 0 0 3px #f7c845,
+    inset 0 -4px 0 rgba(0, 0, 0, 0.24);
 }
 .qdr-pawn {
   display: grid;
@@ -615,6 +736,31 @@ const quoridorStyles = `
   border-radius: 999px;
   background: #28777c;
 }
+.qdr-wall-piece {
+  position: absolute;
+  z-index: 2;
+  pointer-events: none;
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 28% 24%, rgba(255, 244, 205, 0.72), transparent 28%),
+    linear-gradient(180deg, #f4c873, #9a5a24);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 244, 205, 0.5),
+    inset 0 -4px 0 rgba(74, 40, 17, 0.28),
+    0 4px 8px rgba(54, 31, 15, 0.34);
+}
+.qdr-wall-piece.horizontal {
+  left: calc(var(--qdr-padding) + (var(--wall-col) * (var(--qdr-cell) + var(--qdr-gap))) + (var(--qdr-cell) * 0.08));
+  top: calc(var(--qdr-padding) + ((var(--wall-row) + 1) * var(--qdr-cell)) + (var(--wall-row) * var(--qdr-gap)) + (var(--qdr-gap) * 0.05));
+  width: calc((var(--qdr-cell) * 1.84) + var(--qdr-gap));
+  height: calc(var(--qdr-gap) * 0.9);
+}
+.qdr-wall-piece.vertical {
+  left: calc(var(--qdr-padding) + ((var(--wall-col) + 1) * var(--qdr-cell)) + (var(--wall-col) * var(--qdr-gap)) + (var(--qdr-gap) * 0.05));
+  top: calc(var(--qdr-padding) + (var(--wall-row) * (var(--qdr-cell) + var(--qdr-gap))) + (var(--qdr-cell) * 0.08));
+  width: calc(var(--qdr-gap) * 0.9);
+  height: calc((var(--qdr-cell) * 1.84) + var(--qdr-gap));
+}
 .qdr-panel {
   display: grid;
   gap: 14px;
@@ -629,10 +775,12 @@ const quoridorStyles = `
   grid-template-columns: 18px minmax(0, 1fr);
   gap: 9px;
   align-items: center;
-  border: 1px solid rgba(98, 58, 28, 0.18);
+  border: 1px solid rgba(255, 218, 135, 0.24);
   border-radius: 8px;
   padding: 9px;
-  background: #fffaf0;
+  background:
+    linear-gradient(180deg, #ffe9b7, #d99b4f);
+  box-shadow: inset 0 -3px 0 rgba(75, 42, 19, 0.16);
 }
 .qdr-player strong,
 .qdr-player span {
@@ -653,11 +801,11 @@ const quoridorStyles = `
   gap: 10px;
   min-width: 0;
   overflow-x: auto;
-  border: 1px solid rgba(98, 58, 28, 0.18);
+  border: 1px solid rgba(255, 218, 135, 0.24);
   border-radius: 8px;
   padding: 10px;
   background:
-    linear-gradient(180deg, rgba(255, 250, 240, 0.94), rgba(239, 217, 178, 0.72));
+    linear-gradient(180deg, rgba(255, 229, 155, 0.96), rgba(155, 88, 43, 0.84));
 }
 .qdr-segment {
   display: grid;
@@ -667,35 +815,61 @@ const quoridorStyles = `
 .qdr-segment button,
 .qdr-action,
 .qdr-wall-grid button {
-  border: 1px solid rgba(84, 50, 27, 0.24);
-  border-radius: 8px;
-  background: linear-gradient(180deg, #fff4d6, #d9b574);
-  color: #17201d;
+  border: 1px solid rgba(84, 45, 20, 0.34);
+  border-radius: 6px;
+  background:
+    linear-gradient(90deg, rgba(255, 243, 196, 0.75), transparent 28%),
+    linear-gradient(180deg, #f7c45f, #c6802f);
+  color: #271915;
+  box-shadow:
+    inset 0 -3px 0 rgba(90, 45, 16, 0.18),
+    0 2px 0 rgba(42, 20, 10, 0.18);
 }
 .qdr-segment button.active,
 .qdr-action {
-  background: linear-gradient(180deg, #5b3b25, #241915);
-  color: white;
+  background:
+    linear-gradient(180deg, #f9d36f, #9d5626);
+  color: #211513;
 }
 .qdr-wall-grid {
   display: grid;
   grid-template-columns: repeat(8, 1fr);
-  gap: 4px;
-  min-width: 380px;
+  gap: 5px;
+  min-width: 360px;
 }
 .qdr-wall-grid button {
-  min-width: 44px;
-  min-height: 44px;
+  min-width: 40px;
+  min-height: 34px;
   padding: 0;
-  font-size: 0.72rem;
+  color: transparent;
+  font-size: 0;
+}
+.qdr-wall-grid button::before {
+  content: "";
+  display: block;
+  width: 72%;
+  height: 9px;
+  margin: 0 auto;
+  border-radius: 999px;
+  background: #ffe08a;
+  box-shadow:
+    inset 0 -3px 0 rgba(101, 55, 22, 0.24),
+    0 2px 0 rgba(0, 0, 0, 0.16);
 }
 .qdr-wall-grid button.selected {
-  outline: 2px solid #28777c;
+  outline: 2px solid #fdf7c3;
   outline-offset: 1px;
 }
 .qdr-wall-grid button.blocked {
+  background: #5e3a32;
+}
+.qdr-wall-hint {
+  color: #155847;
+  font-size: 0.84rem;
+  line-height: 1.35;
+}
+.qdr-wall-hint.blocked {
   color: #8f2c25;
-  background: #faedea;
 }
 @media (max-width: 1320px) {
   .qdr-layout {
@@ -704,7 +878,7 @@ const quoridorStyles = `
     padding-bottom: 4px;
   }
   .qdr-board {
-    width: 436px;
+    width: 450px;
     max-width: none;
   }
 }

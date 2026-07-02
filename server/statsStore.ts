@@ -24,6 +24,7 @@ type StatsStore = {
   recordMatch: (match: MatchRecord) => Promise<void>;
   getLeaderboard: (gameId: string | null, limit: number) => Promise<LeaderboardEntry[]>;
   getPlayerStats: (playerName: string, limit: number) => Promise<PlayerStatsResponse>;
+  getPlayerStatsByKey: (playerKey: string, fallbackName: string, limit: number) => Promise<PlayerStatsResponse>;
   getRecentMatches: (limit: number) => Promise<MatchRecord[]>;
   getSummary: () => Promise<StatsSummary>;
 };
@@ -195,11 +196,15 @@ class JsonStatsStore implements StatsStore {
 
   async getPlayerStats(playerName: string, limit: number) {
     const playerKey = normalizePlayerKey(playerName);
+    return this.getPlayerStatsByKey(playerKey, playerName, limit);
+  }
+
+  async getPlayerStatsByKey(playerKey: string, fallbackName: string, limit: number) {
     const data = await this.readData();
     const entries = sortLeaderboard(
       data.playerStats.filter((entry) => entry.playerKey === playerKey).map(withDerivedStats)
     );
-    const displayName = entries[0]?.playerName ?? playerName.trim();
+    const displayName = entries[0]?.playerName ?? fallbackName.trim();
     const recentMatches = data.matches
       .filter((match) => match.players.some((player) => player.playerKey === playerKey))
       .slice(0, limit);
@@ -372,6 +377,10 @@ class PostgresStatsStore implements StatsStore {
 
   async getPlayerStats(playerName: string, limit: number) {
     const playerKey = normalizePlayerKey(playerName);
+    return this.getPlayerStatsByKey(playerKey, playerName, limit);
+  }
+
+  async getPlayerStatsByKey(playerKey: string, fallbackName: string, limit: number) {
     const statsResult = await this.pool.query("select * from board_game_player_stats where player_key = $1", [playerKey]);
     const entries = sortLeaderboard(statsResult.rows.map(rowToStats).map(withDerivedStats));
     const matchesResult = await this.pool.query<{ payload: MatchRecord }>(
@@ -385,7 +394,7 @@ class PostgresStatsStore implements StatsStore {
       [JSON.stringify([{ playerKey }]), limit]
     );
     return {
-      playerName: entries[0]?.playerName ?? playerName.trim(),
+      playerName: entries[0]?.playerName ?? fallbackName.trim(),
       entries,
       recentMatches: matchesResult.rows.map((row) => row.payload)
     };

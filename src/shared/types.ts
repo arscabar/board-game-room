@@ -61,6 +61,15 @@ export interface GameRuntimeState {
   roundNumber: number;
   moveLog: MoveEntry[];
   startedAt: number | null;
+  turnStartedAt?: number | null;
+  turnDeadlineAt?: number | null;
+  turnTimerMs?: number;
+  paused?: boolean;
+  pausedAt?: number | null;
+  pausedBy?: string | null;
+  totalPausedMs?: number;
+  timeoutCounts?: Record<string, number>;
+  lastTimeoutAt?: number | null;
   phase?: string;
   message?: string;
   publicState?: unknown;

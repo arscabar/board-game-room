@@ -38,12 +38,12 @@ interface MovePayload {
 }
 
 const directions: Direction[] = [
-  { id: "E", label: "E", q: 1, r: 0 },
-  { id: "W", label: "W", q: -1, r: 0 },
-  { id: "SE", label: "SE", q: 0, r: 1 },
-  { id: "NW", label: "NW", q: 0, r: -1 },
-  { id: "SW", label: "SW", q: -1, r: 1 },
-  { id: "NE", label: "NE", q: 1, r: -1 }
+  { id: "E", label: "→", q: 1, r: 0 },
+  { id: "W", label: "←", q: -1, r: 0 },
+  { id: "SE", label: "↘", q: 0, r: 1 },
+  { id: "NW", label: "↖", q: 0, r: -1 },
+  { id: "SW", label: "↙", q: -1, r: 1 },
+  { id: "NE", label: "↗", q: 1, r: -1 }
 ];
 
 const playerColors = ["#111827", "#f8fafc"];
@@ -206,14 +206,14 @@ function advanceTurn(state: AbaloneState, context: GameContext) {
 
 function requireActivePlayer(state: AbaloneState, context: GameContext) {
   if (state.winnerId) {
-    throw new Error("Game is already complete.");
+    throw new Error("이미 종료된 게임입니다.");
   }
   if (context.currentPlayerId !== context.activePlayerId) {
-    throw new Error("It is not your turn.");
+    throw new Error("현재 차례의 플레이어만 행동할 수 있습니다.");
   }
   const player = state.players.find((candidate) => candidate.id === context.currentPlayerId);
   if (!player) {
-    throw new Error("Player is not in this Abalone game.");
+    throw new Error("아발론 플레이어를 찾을 수 없습니다.");
   }
   return player;
 }
@@ -259,7 +259,7 @@ function createInitialState(context: Pick<GameContext, "players">): AbaloneState
     marbles: placeInitialMarbles(players),
     pushedOff,
     winnerId: null,
-    message: "Select 1 to 3 marbles in a line, then choose a direction."
+    message: "자기 구슬 1~3개를 한 줄로 선택한 뒤 이동 방향을 고르세요."
   };
 }
 
@@ -267,14 +267,14 @@ function moveBroadside(state: AbaloneState, player: AbalonePlayer, cells: Coord[
   for (const cell of cells) {
     const target = add(cell, direction);
     if (!inBoard(target) || ownerAt(state, target)) {
-      throw new Error("Broadside moves need every target space to be empty and on the board.");
+      throw new Error("옆으로 이동하려면 모든 도착 칸이 보드 안의 빈칸이어야 합니다.");
     }
   }
 
   const next = cloneState(state);
   for (const cell of cells) delete next.marbles[key(cell)];
   for (const cell of cells) next.marbles[key(add(cell, direction))] = player.id;
-  next.message = `${player.name} moved ${cells.length} marble${cells.length === 1 ? "" : "s"} ${direction.label}.`;
+  next.message = `${player.name}님이 구슬 ${cells.length}개를 ${direction.label} 방향으로 이동했습니다.`;
   return next;
 }
 
@@ -284,7 +284,7 @@ function moveInline(state: AbaloneState, player: AbalonePlayer, cells: Coord[], 
   const firstTarget = add(front, direction);
 
   if (!inBoard(firstTarget)) {
-    throw new Error("You cannot move your own marble off the board.");
+    throw new Error("자기 구슬을 보드 밖으로 밀 수 없습니다.");
   }
 
   const firstOwner = ownerAt(state, firstTarget);
@@ -298,7 +298,7 @@ function moveInline(state: AbaloneState, player: AbalonePlayer, cells: Coord[], 
   }
 
   if (firstOwner === player.id) {
-    throw new Error("Your own marble blocks that inline move.");
+    throw new Error("자기 구슬이 앞을 막고 있습니다.");
   }
 
   const opponents: Coord[] = [];
@@ -307,19 +307,19 @@ function moveInline(state: AbaloneState, player: AbalonePlayer, cells: Coord[], 
     const owner = ownerAt(state, cursor);
     if (!owner) break;
     if (owner === player.id) {
-      throw new Error("A friendly marble behind the opponent line blocks the push.");
+      throw new Error("상대 구슬 뒤에 자기 구슬이 있어 밀 수 없습니다.");
     }
     opponents.push(cursor);
     cursor = add(cursor, direction);
   }
 
   if (opponents.length === 0 || opponents.length >= ordered.length) {
-    throw new Error("Inline pushes require more pushing marbles than opposing marbles.");
+    throw new Error("상대 구슬보다 더 많은 구슬로 밀어야 합니다.");
   }
 
   const landingIsBoard = inBoard(cursor);
   if (landingIsBoard && ownerAt(state, cursor)) {
-    throw new Error("The pushed line has no landing space.");
+    throw new Error("밀린 구슬이 갈 빈칸이 없습니다.");
   }
 
   for (const cell of ordered) delete next.marbles[key(cell)];
@@ -343,34 +343,34 @@ function moveInline(state: AbaloneState, player: AbalonePlayer, cells: Coord[], 
   }
 
   next.message = landingIsBoard
-    ? `${player.name} pushed ${opponents.length} opposing marble${opponents.length === 1 ? "" : "s"}.`
-    : `${player.name} pushed a marble off the board.`;
+    ? `${player.name}님이 상대 구슬 ${opponents.length}개를 밀었습니다.`
+    : `${player.name}님이 상대 구슬 1개를 보드 밖으로 밀었습니다.`;
   return next;
 }
 
 function applyMove(state: AbaloneState, action: GameAction, context: GameContext): GameActionResult {
   if (!isMovePayload(action.payload)) {
-    throw new Error("Abalone move needs selected cells and a direction.");
+    throw new Error("이동할 구슬과 방향이 필요합니다.");
   }
 
   const player = requireActivePlayer(state, context);
   const direction = directionById(action.payload.direction);
   if (!direction) {
-    throw new Error("Unknown movement direction.");
+    throw new Error("알 수 없는 이동 방향입니다.");
   }
 
   const cells = action.payload.cells;
   const uniqueKeys = new Set(cells.map(key));
   if (cells.length < 1 || cells.length > 3 || uniqueKeys.size !== cells.length) {
-    throw new Error("Select 1 to 3 unique marbles.");
+    throw new Error("서로 다른 구슬 1~3개를 선택하세요.");
   }
   for (const cell of cells) {
     if (!inBoard(cell) || ownerAt(state, cell) !== player.id) {
-      throw new Error("Selection must contain only your own marbles.");
+      throw new Error("자기 구슬만 선택할 수 있습니다.");
     }
   }
   if (!isSelectionLine(cells)) {
-    throw new Error("Selected marbles must be contiguous and in one line.");
+    throw new Error("선택한 구슬은 서로 붙어 있고 한 줄이어야 합니다.");
   }
 
   const axis = selectionAxis(cells);
@@ -380,10 +380,10 @@ function applyMove(state: AbaloneState, action: GameAction, context: GameContext
 
   if ((next.pushedOff[player.id] ?? 0) >= WIN_PUSHES) {
     next.winnerId = player.id;
-    next.message = `${player.name} pushed off six opposing marbles.`;
+    next.message = `${player.name}님이 상대 구슬 6개를 밀어내 승리했습니다.`;
     return {
       state: next,
-      log: `${player.name} wins by pushing off six marbles`,
+      log: `${player.name} 구슬 6개 밀어내기 승리`,
       activePlayerId: null,
       winnerId: player.id,
       message: next.message
@@ -392,7 +392,7 @@ function applyMove(state: AbaloneState, action: GameAction, context: GameContext
 
   return {
     state: next,
-    log: `${player.name} moved ${cells.length} marble${cells.length === 1 ? "" : "s"} ${direction.label}`,
+    log: `${player.name} 구슬 ${cells.length}개 ${direction.label} 이동`,
     message: next.message,
     ...advanceTurn(next, context)
   };
@@ -406,7 +406,7 @@ export const module: GameModule = {
     if (action.type === "move") {
       return applyMove(state as AbaloneState, action, context);
     }
-    throw new Error("Unknown Abalone action.");
+    throw new Error("지원하지 않는 아발론 행동입니다.");
   }
 };
 
@@ -464,11 +464,11 @@ export function Component(props: GameComponentProps) {
       <style>{abaloneStyles}</style>
       <div className="abl-status">
         <div>
-          <strong>{publicState.winnerId ? "Winner" : "Turn"}</strong>
+          <strong>{publicState.winnerId ? "승자" : "차례"}</strong>
           <span>
             {publicState.winnerId
               ? publicState.players.find((player) => player.id === publicState.winnerId)?.name
-              : activeModulePlayer?.name ?? "Waiting"}
+              : activeModulePlayer?.name ?? "대기"}
           </span>
         </div>
         <p>{publicState.message}</p>
@@ -517,24 +517,30 @@ export function Component(props: GameComponentProps) {
                 <span className="abl-swatch" style={{ background: player.color }} />
                 <div>
                   <strong>{player.name}</strong>
-                  <span>{publicState.pushedOff[player.id] ?? 0}/6 pushed off</span>
+                  <span>밀어낸 구슬 {publicState.pushedOff[player.id] ?? 0}/6</span>
                 </div>
               </div>
             ))}
           </div>
 
           <div className="abl-controls">
-            <strong>Move direction</strong>
-            <span>{selection.length} selected</span>
+            <strong>이동 방향</strong>
+            <span>선택한 구슬 {selection.length}개</span>
             <div className="abl-directions">
               {directions.map((direction) => (
-                <button disabled={!canAct || !validSelection} key={direction.id} onClick={() => sendMove(direction)} type="button">
+                <button
+                  disabled={!canAct || !validSelection}
+                  key={direction.id}
+                  onClick={() => sendMove(direction)}
+                  title={`${direction.id} 방향으로 이동`}
+                  type="button"
+                >
                   {direction.label}
                 </button>
               ))}
             </div>
             <button className="abl-clear" disabled={selection.length === 0} onClick={() => setSelection([])} type="button">
-              Clear selection
+              선택 취소
             </button>
           </div>
         </aside>

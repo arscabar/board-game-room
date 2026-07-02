@@ -15,22 +15,41 @@ const DIE_PIP_MAP: Record<DieValue, number[]> = {
 };
 
 const CATEGORIES = [
-  { id: "ones", label: "Ones", description: "Sum of 1s" },
-  { id: "twos", label: "Twos", description: "Sum of 2s" },
-  { id: "threes", label: "Threes", description: "Sum of 3s" },
-  { id: "fours", label: "Fours", description: "Sum of 4s" },
-  { id: "fives", label: "Fives", description: "Sum of 5s" },
-  { id: "sixes", label: "Sixes", description: "Sum of 6s" },
-  { id: "choice", label: "Choice", description: "Sum of all dice" },
-  { id: "fourKind", label: "Four kind", description: "Sum if four dice match" },
-  { id: "fullHouse", label: "Full house", description: "25 for a 3 plus 2 pattern" },
-  { id: "smallStraight", label: "Small straight", description: "15 for four in sequence" },
-  { id: "largeStraight", label: "Large straight", description: "30 for five in sequence" },
-  { id: "yacht", label: "Yacht", description: "50 for five of a kind" }
+  { id: "ones", label: "에이스", description: "1 눈의 합" },
+  { id: "twos", label: "둘", description: "2 눈의 합" },
+  { id: "threes", label: "셋", description: "3 눈의 합" },
+  { id: "fours", label: "넷", description: "4 눈의 합" },
+  { id: "fives", label: "다섯", description: "5 눈의 합" },
+  { id: "sixes", label: "여섯", description: "6 눈의 합" },
+  { id: "choice", label: "초이스", description: "모든 주사위 합" },
+  { id: "fourKind", label: "포카드", description: "같은 눈 4개 이상이면 합산" },
+  { id: "fullHouse", label: "풀하우스", description: "3개+2개 조합이면 25점" },
+  { id: "smallStraight", label: "스몰 스트레이트", description: "연속 4개면 15점" },
+  { id: "largeStraight", label: "라지 스트레이트", description: "연속 5개면 30점" },
+  { id: "yacht", label: "요트", description: "같은 눈 5개면 50점" }
 ] as const;
 
 type CategoryId = (typeof CATEGORIES)[number]["id"];
 type DieValue = 0 | 1 | 2 | 3 | 4 | 5 | 6;
+
+const UPPER_CATEGORY_IDS = ["ones", "twos", "threes", "fours", "fives", "sixes"] as const satisfies CategoryId[];
+const UPPER_BONUS_THRESHOLD = 63;
+const UPPER_BONUS_SCORE = 35;
+
+const scoreSheetLabels: Record<CategoryId, string> = {
+  ones: "A",
+  twos: "2",
+  threes: "3",
+  fours: "4",
+  fives: "5",
+  sixes: "6",
+  choice: "C",
+  fourKind: "4K",
+  fullHouse: "FH",
+  smallStraight: "SS",
+  largeStraight: "LS",
+  yacht: "Y"
+};
 type ScoreSheet = Partial<Record<CategoryId, number>>;
 
 interface YachtState {
@@ -51,6 +70,8 @@ interface YachtState {
 
 interface YachtPublicState extends YachtState {
   totals: Record<string, number>;
+  upperTotals: Record<string, number>;
+  upperBonuses: Record<string, number>;
 }
 
 const styles: Record<string, CSSProperties> = {
@@ -72,11 +93,12 @@ const styles: Record<string, CSSProperties> = {
   },
   diceGrid: {
     display: "grid",
-    gridTemplateColumns: "repeat(5, minmax(3.25rem, 1fr))",
+    gridTemplateColumns: "repeat(auto-fit, minmax(3rem, 1fr))",
     gap: "0.45rem"
   },
   dieButton: {
     minHeight: "4rem",
+    minWidth: 0,
     borderRadius: 8,
     border: "1px solid rgba(15, 23, 42, 0.22)",
     display: "grid",
@@ -106,6 +128,7 @@ const styles: Record<string, CSSProperties> = {
 
 function orderedPlayers(players: PlayerSnapshot[], count: number) {
   return [...players]
+    .filter((player) => player.connected)
     .sort((a, b) => a.seat - b.seat || a.joinedAt - b.joinedAt)
     .slice(0, count)
     .map((player) => player.id);
@@ -113,9 +136,9 @@ function orderedPlayers(players: PlayerSnapshot[], count: number) {
 
 function getPlayerName(players: PlayerSnapshot[], playerId: string | null) {
   if (!playerId) {
-    return "No player";
+    return "플레이어 없음";
   }
-  return players.find((player) => player.id === playerId)?.name ?? "Player";
+  return players.find((player) => player.id === playerId)?.name ?? "플레이어";
 }
 
 function rollDie(): DieValue {
@@ -188,7 +211,7 @@ function scoreCategory(category: CategoryId, dice: DieValue[]) {
       return counts.some((count) => count >= 4) ? sum : 0;
     case "fullHouse": {
       const sortedCounts = counts.filter((count) => count > 0).sort((a, b) => a - b);
-      return (sortedCounts.length === 2 && sortedCounts[0] === 2 && sortedCounts[1] === 3) || sortedCounts[0] === 5 ? 25 : 0;
+      return sortedCounts.length === 2 && sortedCounts[0] === 2 && sortedCounts[1] === 3 ? 25 : 0;
     }
     case "smallStraight":
       return hasStraight(dice, 4) ? 15 : 0;
@@ -200,7 +223,16 @@ function scoreCategory(category: CategoryId, dice: DieValue[]) {
 }
 
 function totalScore(scores: ScoreSheet) {
-  return CATEGORIES.reduce((total, category) => total + (scores[category.id] ?? 0), 0);
+  const categoryTotal = CATEGORIES.reduce((total, category) => total + (scores[category.id] ?? 0), 0);
+  return categoryTotal + upperBonus(scores);
+}
+
+function upperScore(scores: ScoreSheet) {
+  return UPPER_CATEGORY_IDS.reduce((total, category) => total + (scores[category] ?? 0), 0);
+}
+
+function upperBonus(scores: ScoreSheet) {
+  return upperScore(scores) >= UPPER_BONUS_THRESHOLD ? UPPER_BONUS_SCORE : 0;
 }
 
 function allCategoriesUsed(scores: ScoreSheet) {
@@ -257,11 +289,16 @@ function createState(context: Pick<GameContext, "players">): YachtState {
 
 function publicStateFrom(state: YachtState): YachtPublicState {
   const totals: Record<string, number> = {};
+  const upperTotals: Record<string, number> = {};
+  const upperBonuses: Record<string, number> = {};
   for (const playerId of state.playerIds) {
-    totals[playerId] = totalScore(state.scores[playerId] ?? {});
+    const scores = state.scores[playerId] ?? {};
+    totals[playerId] = totalScore(scores);
+    upperTotals[playerId] = upperScore(scores);
+    upperBonuses[playerId] = upperBonus(scores);
   }
 
-  return { ...state, totals };
+  return { ...state, totals, upperTotals, upperBonuses };
 }
 
 export const module: GameModule = {
@@ -272,17 +309,17 @@ export const module: GameModule = {
     const current = state as YachtState;
 
     if (current.phase === "complete") {
-      return { state: current, activePlayerId: null, message: "The score sheet is complete." };
+      return { state: current, activePlayerId: null, message: "점수표가 모두 채워졌습니다." };
     }
 
     const playerId = context.currentPlayerId;
     if (current.activePlayerId !== playerId) {
-      return { state: current, activePlayerId: current.activePlayerId, message: "Wait for your dice turn." };
+      return { state: current, activePlayerId: current.activePlayerId, message: "내 주사위 차례를 기다려주세요." };
     }
 
     if (action.type === "yacht-dice/roll") {
       if (current.rollsThisTurn >= MAX_ROLLS) {
-        return { state: current, activePlayerId: current.activePlayerId, message: "You have used all three rolls." };
+        return { state: current, activePlayerId: current.activePlayerId, message: "이번 턴의 3번 굴림을 모두 사용했습니다." };
       }
 
       const dice = current.dice.map((die, index) => (current.held[index] && die > 0 ? die : rollDie()));
@@ -294,7 +331,7 @@ export const module: GameModule = {
 
       return {
         state: nextState,
-        log: `${getPlayerName(context.players, playerId)} rolled the dice.`,
+        log: `${getPlayerName(context.players, playerId)} 주사위 굴림`,
         activePlayerId: nextState.activePlayerId,
         phase: nextState.phase
       };
@@ -302,12 +339,12 @@ export const module: GameModule = {
 
     if (action.type === "yacht-dice/toggle-hold") {
       if (current.rollsThisTurn === 0) {
-        return { state: current, activePlayerId: current.activePlayerId, message: "Roll before holding dice." };
+        return { state: current, activePlayerId: current.activePlayerId, message: "주사위를 먼저 굴린 뒤 보류할 수 있습니다." };
       }
 
       const index = readDieIndex(action);
       if (index === null) {
-        return { state: current, activePlayerId: current.activePlayerId, message: "Choose a valid die to hold." };
+        return { state: current, activePlayerId: current.activePlayerId, message: "보류할 주사위를 올바르게 골라주세요." };
       }
 
       const held = current.held.map((value, heldIndex) => (heldIndex === index ? !value : value));
@@ -322,17 +359,17 @@ export const module: GameModule = {
 
     if (action.type === "yacht-dice/score-category") {
       if (current.rollsThisTurn === 0) {
-        return { state: current, activePlayerId: current.activePlayerId, message: "Roll before scoring." };
+        return { state: current, activePlayerId: current.activePlayerId, message: "주사위를 먼저 굴린 뒤 점수를 기록할 수 있습니다." };
       }
 
       const category = readCategory(action);
       if (!category) {
-        return { state: current, activePlayerId: current.activePlayerId, message: "Choose a valid score category." };
+        return { state: current, activePlayerId: current.activePlayerId, message: "점수 칸을 올바르게 골라주세요." };
       }
 
       const playerScores = current.scores[playerId] ?? {};
       if (playerScores[category] !== undefined) {
-        return { state: current, activePlayerId: current.activePlayerId, message: "That category is already scored." };
+        return { state: current, activePlayerId: current.activePlayerId, message: "이미 채운 점수 칸입니다." };
       }
 
       const score = scoreCategory(category, current.dice);
@@ -360,7 +397,7 @@ export const module: GameModule = {
 
       return {
         state: nextState,
-        log: `${getPlayerName(context.players, playerId)} scored ${score} in ${categoryLabel}.`,
+        log: `${getPlayerName(context.players, playerId)} ${categoryLabel}에 ${score}점 기록`,
         activePlayerId,
         turnNumber: context.turnNumber + 1,
         phase: nextState.phase,
@@ -368,7 +405,7 @@ export const module: GameModule = {
       };
     }
 
-    return { state: current, activePlayerId: current.activePlayerId, message: "Unsupported Yacht Dice action." };
+    return { state: current, activePlayerId: current.activePlayerId, message: "지원하지 않는 요트 다이스 행동입니다." };
   }
 };
 
@@ -382,17 +419,19 @@ export function Component({
   const state = publicState;
   const activePlayerId = state.activePlayerId;
   const activeScores = activePlayerId ? state.scores[activePlayerId] ?? {} : {};
+  const activeUpperTotal = activePlayerId ? state.upperTotals[activePlayerId] ?? 0 : 0;
+  const activeUpperBonus = activePlayerId ? state.upperBonuses[activePlayerId] ?? 0 : 0;
   const isMyTurn = Boolean(currentPlayer?.id && currentPlayer.id === activePlayerId && state.phase === "rolling");
   const canAct = !disabled && isMyTurn;
   const rollsLeft = MAX_ROLLS - state.rollsThisTurn;
 
   return (
-    <section className="game-module yacht-dice-module" style={styles.shell} aria-label="Yacht Dice board">
+    <section className="game-module yacht-dice-module" style={styles.shell} aria-label="요트 다이스 보드">
       <div className="yacht-top-grid" style={styles.topGrid}>
         <article className="yacht-dice-panel" style={styles.panel}>
-          <h3>Dice</h3>
+          <h3>주사위</h3>
           <p>
-            Turn: {state.phase === "complete" ? "Game complete" : getPlayerName(players, activePlayerId)} | Rolls left: {Math.max(0, rollsLeft)}
+            {state.phase === "complete" ? "게임 종료" : `${getPlayerName(players, activePlayerId)} 차례`} · 남은 굴림 {Math.max(0, rollsLeft)}
           </p>
           <div className="yacht-dice-grid" style={styles.diceGrid}>
             {state.dice.map((die, index) => (
@@ -403,7 +442,7 @@ export function Component({
                 key={index}
                 disabled={!canAct || state.rollsThisTurn === 0}
                 aria-pressed={state.held[index]}
-                aria-label={`Toggle hold for die ${index + 1}, value ${die || "not rolled"}`}
+                aria-label={`${index + 1}번 주사위 ${die || "아직 안 굴림"} 보류 전환`}
                 onClick={() => onAction({ type: "yacht-dice/toggle-hold", payload: { index } })}
               >
                 <span className="yacht-die-face" aria-hidden="true">
@@ -414,7 +453,7 @@ export function Component({
                     />
                   ))}
                 </span>
-                <span className="yacht-die-label">{state.held[index] ? "Held" : "Free"}</span>
+                <span className="yacht-die-label">{state.held[index] ? "보류" : "자유"}</span>
               </button>
             ))}
           </div>
@@ -425,25 +464,29 @@ export function Component({
               disabled={!canAct || state.rollsThisTurn >= MAX_ROLLS}
               onClick={() => onAction({ type: "yacht-dice/roll" })}
             >
-              {state.rollsThisTurn === 0 ? "Roll dice" : "Roll again"}
+              {state.rollsThisTurn === 0 ? "주사위 굴리기" : "다시 굴리기"}
             </button>
             {state.lastScored ? (
               <span>
-                Last score: {getPlayerName(players, state.lastScored.playerId)} +{state.lastScored.score}
+                최근 점수: {getPlayerName(players, state.lastScored.playerId)} +{state.lastScored.score}
               </span>
             ) : null}
           </div>
         </article>
 
         <article className="yacht-score-panel" style={styles.panel}>
-          <h3>Score this turn</h3>
+          <h3>이번 턴 점수</h3>
+          <div className="yacht-bonus-strip">
+            <span>상단 합계 {activeUpperTotal}/{UPPER_BONUS_THRESHOLD}</span>
+            <strong>{activeUpperBonus > 0 ? `보너스 +${activeUpperBonus}` : `보너스까지 ${Math.max(0, UPPER_BONUS_THRESHOLD - activeUpperTotal)}`}</strong>
+          </div>
           <div style={styles.tableWrap}>
             <table className="yacht-score-table" style={styles.table}>
               <thead>
                 <tr>
-                  <th style={styles.cell}>Category</th>
-                  <th style={styles.cell}>Preview</th>
-                  <th style={styles.cell}>Score</th>
+                  <th style={styles.cell}>칸</th>
+                  <th style={styles.cell}>예상</th>
+                  <th style={styles.cell}>기록</th>
                 </tr>
               </thead>
               <tbody>
@@ -468,7 +511,7 @@ export function Component({
                             disabled={!canAct || state.rollsThisTurn === 0}
                             onClick={() => onAction({ type: "yacht-dice/score-category", payload: { category: category.id } })}
                           >
-                            Take {preview}
+                            {preview}점 기록
                           </button>
                         )}
                       </td>
@@ -482,16 +525,18 @@ export function Component({
       </div>
 
       <article className="yacht-scoreboard" style={styles.panel}>
-        <h3>Scoreboard</h3>
+        <h3>점수판</h3>
         <div style={styles.tableWrap}>
           <table className="yacht-player-table" style={styles.table}>
             <thead>
               <tr>
-                <th style={styles.cell}>Player</th>
-                <th style={styles.cell}>Total</th>
+                <th style={styles.cell}>플레이어</th>
+                <th style={styles.cell}>총점</th>
+                <th style={styles.cell} title="에이스부터 여섯까지의 상단 합계">상</th>
+                <th style={styles.cell} title="상단 합계 63점 이상 보너스">+35</th>
                 {CATEGORIES.map((category) => (
-                  <th style={styles.cell} key={category.id}>
-                    {category.label}
+                  <th style={styles.cell} key={category.id} title={category.label}>
+                    {scoreSheetLabels[category.id]}
                   </th>
                 ))}
               </tr>
@@ -501,6 +546,8 @@ export function Component({
                 <tr key={playerId}>
                   <td style={styles.cell}>{getPlayerName(players, playerId)}</td>
                   <td style={styles.cell}>{state.totals[playerId] ?? 0}</td>
+                  <td style={styles.cell}>{state.upperTotals[playerId] ?? 0}</td>
+                  <td style={styles.cell}>{state.upperBonuses[playerId] ? `+${state.upperBonuses[playerId]}` : "-"}</td>
                   {CATEGORIES.map((category) => (
                     <td style={styles.cell} key={category.id}>
                       {state.scores[playerId]?.[category.id] ?? "-"}
@@ -512,7 +559,7 @@ export function Component({
           </table>
         </div>
         {state.phase === "complete" ? (
-          <p>Winner: {state.winnerId ? getPlayerName(players, state.winnerId) : "Tie"}</p>
+          <p>승자: {state.winnerId ? getPlayerName(players, state.winnerId) : "무승부"}</p>
         ) : null}
       </article>
     </section>

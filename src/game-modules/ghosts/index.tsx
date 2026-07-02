@@ -23,7 +23,7 @@ interface GhostsPlayer {
 interface GhostPiece {
   id: string;
   ownerId: string;
-  kind: GhostKind;
+  kind: GhostKind | null;
   row: number;
   col: number;
   captured: boolean;
@@ -34,6 +34,8 @@ interface GhostPiece {
 interface GhostsState {
   players: GhostsPlayer[];
   pieces: GhostPiece[];
+  phase: "setup" | "playing" | "complete";
+  setupSubmitted: Record<string, boolean>;
   winnerId: string | null;
   message: string;
 }
@@ -52,6 +54,8 @@ interface GhostsPublicState {
   boardSize: number;
   players: GhostsPlayer[];
   pieces: PublicGhostPiece[];
+  phase: "setup" | "playing" | "complete";
+  setupSubmitted: Record<string, boolean>;
   winnerId: string | null;
   message: string;
   viewerId: string | null;
@@ -60,6 +64,10 @@ interface GhostsPublicState {
 interface MovePayload {
   pieceId: string;
   to: Coord;
+}
+
+interface SetupPayload {
+  kinds: GhostKind[];
 }
 
 const playerColors = ["#425a9e", "#9d3f47"];
@@ -77,6 +85,12 @@ function isMovePayload(value: unknown): value is MovePayload {
   return typeof item.pieceId === "string" && isCoord(item.to);
 }
 
+function isSetupPayload(value: unknown): value is SetupPayload {
+  if (!value || typeof value !== "object") return false;
+  const item = value as Record<string, unknown>;
+  return Array.isArray(item.kinds) && item.kinds.every((kind) => kind === "good" || kind === "bad");
+}
+
 function inBoard(row: number, col: number) {
   return row >= 0 && row < BOARD_SIZE && col >= 0 && col < BOARD_SIZE;
 }
@@ -89,7 +103,8 @@ function cloneState(state: GhostsState): GhostsState {
   return {
     ...state,
     players: state.players.map((player) => ({ ...player })),
-    pieces: state.pieces.map((piece) => ({ ...piece }))
+    pieces: state.pieces.map((piece) => ({ ...piece })),
+    setupSubmitted: { ...state.setupSubmitted }
   };
 }
 
@@ -112,7 +127,7 @@ function createPiecesForPlayer(player: GhostsPlayer, playerIndex: number) {
   return setupCoords(player.side).map((coord, index): GhostPiece => ({
     id: `p${playerIndex + 1}-ghost-${index + 1}`,
     ownerId: player.id,
-    kind: kindPattern[index],
+    kind: null,
     row: coord.row,
     col: coord.col,
     captured: false,
@@ -142,14 +157,17 @@ function advanceTurn(state: GhostsState, context: GameContext) {
 
 function requireActivePlayer(state: GhostsState, context: GameContext) {
   if (state.winnerId) {
-    throw new Error("Game is already complete.");
+    throw new Error("이미 종료된 게임입니다.");
+  }
+  if (state.phase !== "playing") {
+    throw new Error("두 플레이어가 유령 배치를 제출한 뒤 이동할 수 있습니다.");
   }
   if (context.currentPlayerId !== context.activePlayerId) {
-    throw new Error("It is not your turn.");
+    throw new Error("현재 차례의 플레이어만 행동할 수 있습니다.");
   }
   const player = state.players.find((candidate) => candidate.id === context.currentPlayerId);
   if (!player) {
-    throw new Error("Player is not in this Ghosts game.");
+    throw new Error("고스트 플레이어를 찾을 수 없습니다.");
   }
   return player;
 }
@@ -203,6 +221,7 @@ function winnerAfterCapture(state: GhostsState, movingPlayerId: string, captured
 
 function finishForWinner(state: GhostsState, winnerId: string, message: string, log: string): GameActionResult {
   state.winnerId = winnerId;
+  state.phase = "complete";
   state.message = message;
   return {
     state,
@@ -216,78 +235,83 @@ function finishForWinner(state: GhostsState, winnerId: string, message: string, 
 
 function moveGhost(state: GhostsState, action: GameAction, context: GameContext): GameActionResult {
   if (!isMovePayload(action.payload)) {
-    throw new Error("Ghost move needs a piece and target square.");
+    throw new Error("움직일 유령과 목표 칸이 필요합니다.");
   }
 
   const payload = action.payload;
   const player = requireActivePlayer(state, context);
   const piece = state.pieces.find((candidate) => candidate.id === payload.pieceId);
   if (!piece || piece.ownerId !== player.id || piece.captured || piece.escaped) {
-    throw new Error("Choose one of your active ghosts.");
+    throw new Error("움직일 수 있는 내 유령을 선택하세요.");
   }
 
   const target = payload.to;
   const orthogonalStep = Math.abs(target.row - piece.row) + Math.abs(target.col - piece.col) === 1;
   if (!orthogonalStep) {
-    throw new Error("Ghosts move one orthogonal step.");
+    throw new Error("유령은 상하좌우로 한 칸만 이동합니다.");
   }
 
   const next = cloneState(state);
   const nextPiece = next.pieces.find((candidate) => candidate.id === piece.id);
   if (!nextPiece) {
-    throw new Error("Ghost could not be found.");
+    throw new Error("유령을 찾을 수 없습니다.");
   }
 
   if (!inBoard(target.row, target.col)) {
     if (!canEscape(player, nextPiece, target)) {
-      throw new Error("Only a good ghost on an opponent corner can escape.");
+      throw new Error("상대 쪽 모서리에 있는 좋은 유령만 탈출할 수 있습니다.");
     }
 
     nextPiece.escaped = true;
     return finishForWinner(
       next,
       player.id,
-      `${player.name} escaped a good ghost through the corner.`,
-      `${player.name} wins by escaping a good ghost`
+      `${player.name}님이 좋은 유령을 모서리로 탈출시켰습니다.`,
+      `${player.name} 좋은 유령 탈출 승리`
     );
   }
 
   const occupant = pieceAt(next, target.row, target.col);
   if (occupant?.ownerId === player.id) {
-    throw new Error("You cannot move onto your own ghost.");
+    throw new Error("자기 유령이 있는 칸으로는 이동할 수 없습니다.");
   }
 
   let captureText = "";
+  let capturedKind: GhostKind | null = null;
   if (occupant) {
+    if (!occupant.kind) {
+      throw new Error("상대 유령 배치가 아직 확정되지 않았습니다.");
+    }
+    capturedKind = occupant.kind;
     occupant.captured = true;
     occupant.capturedBy = player.id;
-    captureText = ` and captured a ${occupant.kind} ghost`;
+    captureText = ` · ${capturedKind === "good" ? "좋은" : "나쁜"} 유령 포획`;
   }
 
   nextPiece.row = target.row;
   nextPiece.col = target.col;
 
-  if (occupant) {
-    const winnerId = winnerAfterCapture(next, player.id, occupant.ownerId, occupant.kind);
+  if (occupant && capturedKind) {
+    const winnerId = winnerAfterCapture(next, player.id, occupant.ownerId, capturedKind);
     if (winnerId) {
       const winner = next.players.find((candidate) => candidate.id === winnerId);
       const reason =
         winnerId === player.id
-          ? "captured all opposing good ghosts"
-          : "had all of their bad ghosts captured";
+          ? "상대의 좋은 유령을 모두 잡았습니다"
+          : "자기 나쁜 유령이 모두 잡혔습니다";
       return finishForWinner(
         next,
         winnerId,
-        `${winner?.name ?? "A player"} wins: ${reason}.`,
-        `${winner?.name ?? "A player"} wins by ${reason}`
+        `${winner?.name ?? "플레이어"}님 승리: ${reason}.`,
+        `${winner?.name ?? "플레이어"} ${reason}`
       );
     }
   }
 
-  next.message = `${player.name} moved to ${target.row + 1}-${target.col + 1}${captureText}.`;
+  next.message = `${player.name}님이 ${target.row + 1}-${target.col + 1}칸으로 이동했습니다${captureText}.`;
   return {
     state: next,
-    log: `${player.name} moved a ghost${captureText}`,
+    log: `${player.name} 유령 이동${captureText}`,
     message: next.message,
     phase: "playing",
     winnerId: null,
@@ -312,8 +336,10 @@ function createInitialState(context: Pick<GameContext, "game" | "players">): Gho
   return {
     players,
     pieces: players.flatMap((player, index) => createPiecesForPlayer(player, index)),
+    phase: "setup",
+    setupSubmitted: Object.fromEntries(players.map((player) => [player.id, false])),
     winnerId: null,
-    message: "Ghosts are ready."
+    message: "각자 좋은 유령 4개와 나쁜 유령 4개의 위치를 비공개로 정하세요."
   };
 }
 
@@ -334,6 +360,8 @@ export const module: GameModule = {
         captured: piece.captured,
         escaped: piece.escaped
       })),
+      phase: ghostsState.phase,
+      setupSubmitted: { ...ghostsState.setupSubmitted },
       winnerId: ghostsState.winnerId,
       message: ghostsState.message,
       viewerId: context.viewerId
@@ -341,12 +369,69 @@ export const module: GameModule = {
   },
   applyAction: (state, action, context) => {
     const ghostsState = state as GhostsState;
+    if (action.type === "ghosts/setup") {
+      return setupGhosts(ghostsState, action, context);
+    }
     if (action.type === "moveGhost") {
       return moveGhost(ghostsState, action, context);
     }
-    throw new Error("Unknown Ghosts action.");
+    throw new Error("지원하지 않는 고스트 행동입니다.");
   }
 };
+
+function setupGhosts(state: GhostsState, action: GameAction, context: GameContext): GameActionResult {
+  if (state.phase !== "setup") {
+    throw new Error("이미 유령 배치가 확정되었습니다.");
+  }
+  if (!isSetupPayload(action.payload)) {
+    throw new Error("좋은 유령 4개와 나쁜 유령 4개의 배치가 필요합니다.");
+  }
+
+  const player = state.players.find((candidate) => candidate.id === context.currentPlayerId);
+  if (!player) {
+    throw new Error("고스트 플레이어를 찾을 수 없습니다.");
+  }
+  if (state.setupSubmitted[player.id]) {
+    throw new Error("이미 유령 배치를 제출했습니다.");
+  }
+
+  const kinds = action.payload.kinds.slice(0, 8);
+  const goodCount = kinds.filter((kind) => kind === "good").length;
+  const badCount = kinds.filter((kind) => kind === "bad").length;
+  if (kinds.length !== 8 || goodCount !== 4 || badCount !== 4) {
+    throw new Error("좋은 유령 4개와 나쁜 유령 4개가 정확히 필요합니다.");
+  }
+
+  const next = cloneState(state);
+  const ownPieces = next.pieces.filter((piece) => piece.ownerId === player.id).sort((a, b) => a.id.localeCompare(b.id));
+  ownPieces.forEach((piece, index) => {
+    piece.kind = kinds[index] ?? null;
+  });
+  next.setupSubmitted[player.id] = true;
+
+  const ready = next.players.every((candidate) => next.setupSubmitted[candidate.id]);
+  if (ready) {
+    next.phase = "playing";
+    next.message = "모든 유령 배치가 완료되었습니다. 자기 유령을 선택해 이동하세요.";
+    return {
+      state: next,
+      log: `${player.name} 유령 배치 제출`,
+      activePlayerId: next.players[0]?.id ?? null,
+      phase: "playing",
+      message: next.message
+    };
+  }
+
+  const waiting = next.players.find((candidate) => !next.setupSubmitted[candidate.id]);
+  next.message = `${player.name}님이 배치를 제출했습니다. ${waiting?.name ?? "상대"}님의 배치를 기다립니다.`;
+  return {
+    state: next,
+    log: `${player.name} 유령 배치 제출`,
+    activePlayerId: waiting?.id ?? context.activePlayerId,
+    phase: "setup",
+    message: next.message
+  };
+}
 
 function getPublicPieceAt(state: GhostsPublicState, row: number, col: number) {
   return state.pieces.find((piece) => !piece.captured && !piece.escaped && piece.row === row && piece.col === col) ?? null;
@@ -384,19 +469,19 @@ function targetKey(coord: Coord) {
 }
 
 function kindLabel(kind: GhostKind | null) {
-  if (kind === "good") return "G";
-  if (kind === "bad") return "B";
+  if (kind === "good") return "좋";
+  if (kind === "bad") return "나";
   return "?";
 }
 
 function publicKindName(kind: GhostKind | null) {
-  if (kind === "good") return "good";
-  if (kind === "bad") return "bad";
-  return "unknown";
+  if (kind === "good") return "좋은";
+  if (kind === "bad") return "나쁜";
+  return "숨은";
 }
 
 function pieceTitle(piece: PublicGhostPiece, owner: GhostsPlayer | undefined) {
-  return `${owner?.name ?? "Player"} ${publicKindName(piece.kind)} ghost`;
+  return `${owner?.name ?? "플레이어"} ${publicKindName(piece.kind)} 유령`;
 }
 
 function playerStats(state: GhostsPublicState, playerId: string) {
@@ -415,6 +500,7 @@ export function Component(props: GameComponentProps) {
   const { activePlayer, currentPlayer, disabled, onAction } = props;
   const publicState = props.publicState as GhostsPublicState;
   const [selectedPieceId, setSelectedPieceId] = useState<string | null>(null);
+  const [setupKinds, setSetupKinds] = useState<GhostKind[]>(kindPattern);
   const currentModulePlayer = publicState.players.find((player) => player.id === currentPlayer?.id) ?? null;
   const activeModulePlayer = publicState.players.find((player) => player.id === activePlayer?.id) ?? null;
   const selectedPiece =
@@ -432,6 +518,20 @@ export function Component(props: GameComponentProps) {
 
   const legalTargetKeys = new Set(legalTargets.map(targetKey));
   const winner = publicState.players.find((player) => player.id === publicState.winnerId);
+  const mySetupSubmitted = currentModulePlayer ? publicState.setupSubmitted[currentModulePlayer.id] : false;
+  const setupGoodCount = setupKinds.filter((kind) => kind === "good").length;
+  const setupBadCount = setupKinds.filter((kind) => kind === "bad").length;
+
+  function toggleSetupKind(index: number) {
+    setSetupKinds((current) =>
+      current.map((kind, itemIndex) => (itemIndex === index ? (kind === "good" ? "bad" : "good") : kind))
+    );
+  }
+
+  function submitSetup() {
+    if (!currentModulePlayer || mySetupSubmitted || setupGoodCount !== 4 || setupBadCount !== 4) return;
+    onAction({ type: "ghosts/setup", payload: { kinds: setupKinds } });
+  }
 
   function selectOrMove(row: number, col: number) {
     if (!canAct || !currentModulePlayer) return;
@@ -457,17 +557,73 @@ export function Component(props: GameComponentProps) {
   return (
     <div className="gho-shell">
       <style>{ghostsStyles}</style>
-      <div className="gho-status" aria-live="polite">
-        <div>
-          <strong>{publicState.winnerId ? "Winner" : "Turn"}</strong>
-          <span>{publicState.winnerId ? winner?.name ?? "Complete" : activeModulePlayer?.name ?? "Waiting"}</span>
-        </div>
-        <p>{publicState.message}</p>
-      </div>
+      {publicState.phase === "setup" ? (
+        <section className="gho-setup" aria-label="고스트 비공개 배치">
+          <div className="gho-status" aria-live="polite">
+            <div>
+              <strong>비공개 배치</strong>
+              <span>좋은 유령 4개 · 나쁜 유령 4개</span>
+            </div>
+            <p>{publicState.message}</p>
+          </div>
 
-      <div className="gho-layout">
+          <div className="gho-setup-grid">
+            {publicState.players.map((player) => {
+              const isMine = player.id === currentPlayer?.id;
+              const submitted = publicState.setupSubmitted[player.id];
+              const ownPieces = publicState.pieces
+                .filter((piece) => piece.ownerId === player.id)
+                .sort((a, b) => a.id.localeCompare(b.id));
+              return (
+                <article className={`gho-setup-player ${isMine ? "mine" : ""}`} key={player.id}>
+                  <div className="gho-player-headline">
+                    <strong>{player.name}</strong>
+                    <span>{submitted ? "제출 완료" : isMine ? "배치 선택 중" : "배치 대기"}</span>
+                  </div>
+                  <div className="gho-setup-slots">
+                    {ownPieces.map((piece, index) => {
+                      const kind = (isMine && !submitted ? setupKinds[index] : piece.kind) ?? null;
+                      return (
+                        <button
+                          className={`gho-setup-slot ${kind ?? "hidden"}`}
+                          disabled={!isMine || submitted || disabled}
+                          key={piece.id}
+                          onClick={() => toggleSetupKind(index)}
+                          type="button"
+                        >
+                          {isMine ? kindLabel(kind) : submitted ? "완료" : "?"}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {isMine && !submitted ? (
+                    <div className="gho-setup-actions">
+                      <span>
+                        좋은 {setupGoodCount}/4 · 나쁜 {setupBadCount}/4
+                      </span>
+                      <button disabled={disabled || setupGoodCount !== 4 || setupBadCount !== 4} onClick={submitSetup} type="button">
+                        배치 제출
+                      </button>
+                    </div>
+                  ) : null}
+                </article>
+              );
+            })}
+          </div>
+        </section>
+      ) : (
+        <>
+          <div className="gho-status" aria-live="polite">
+            <div>
+              <strong>{publicState.winnerId ? "승자" : "차례"}</strong>
+              <span>{publicState.winnerId ? winner?.name ?? "완료" : activeModulePlayer?.name ?? "대기"}</span>
+            </div>
+            <p>{publicState.message}</p>
+          </div>
+
+          <div className="gho-layout">
         <div className="gho-board-wrap">
-          <div className="gho-exits top" aria-label="North escape corners">
+          <div className="gho-exits top" aria-label="북쪽 탈출 모서리">
             {[0, BOARD_SIZE - 1].map((col) => {
               const legal = Boolean(
                 selectedPiece &&
@@ -481,16 +637,16 @@ export function Component(props: GameComponentProps) {
                   key={`north-${col}`}
                   onClick={() => escapeAt(col, "south")}
                   style={{ gridColumn: col + 1 } as CSSProperties}
-                  title={`Escape through north corner ${col + 1}`}
+                  title={`북쪽 ${col + 1}번 모서리 탈출`}
                   type="button"
                 >
-                  Exit
+                  탈출
                 </button>
               );
             })}
           </div>
 
-          <div className="gho-board" aria-label="Ghosts board">
+          <div className="gho-board" aria-label="고스트 보드">
             {Array.from({ length: BOARD_SIZE }, (_, row) =>
               Array.from({ length: BOARD_SIZE }, (_, col) => {
                 const piece = getPublicPieceAt(publicState, row, col);
@@ -504,7 +660,7 @@ export function Component(props: GameComponentProps) {
                     disabled={!canAct || (!ownPiece && !legal)}
                     key={targetKey({ row, col })}
                     onClick={() => selectOrMove(row, col)}
-                    title={`Row ${row + 1}, column ${col + 1}`}
+                    title={`${row + 1}행 ${col + 1}열`}
                     type="button"
                   >
                     {piece ? (
@@ -524,7 +680,7 @@ export function Component(props: GameComponentProps) {
             )}
           </div>
 
-          <div className="gho-exits bottom" aria-label="South escape corners">
+          <div className="gho-exits bottom" aria-label="남쪽 탈출 모서리">
             {[0, BOARD_SIZE - 1].map((col) => {
               const legal = Boolean(
                 selectedPiece &&
@@ -538,17 +694,17 @@ export function Component(props: GameComponentProps) {
                   key={`south-${col}`}
                   onClick={() => escapeAt(col, "north")}
                   style={{ gridColumn: col + 1 } as CSSProperties}
-                  title={`Escape through south corner ${col + 1}`}
+                  title={`남쪽 ${col + 1}번 모서리 탈출`}
                   type="button"
                 >
-                  Exit
+                  탈출
                 </button>
               );
             })}
           </div>
         </div>
 
-        <aside className="gho-panel" aria-label="Ghost counts">
+        <aside className="gho-panel" aria-label="유령 상태">
           {publicState.players.map((player) => {
             const stats = playerStats(publicState, player.id);
             const isCurrent = player.id === currentPlayer?.id;
@@ -557,29 +713,29 @@ export function Component(props: GameComponentProps) {
                 <span className="gho-swatch" style={{ background: player.color }} />
                 <div>
                   <strong>{player.name}</strong>
-                  <span>{isCurrent ? "You" : player.side === "south" ? "South" : "North"}</span>
+                  <span>{isCurrent ? "나" : player.side === "south" ? "남쪽" : "북쪽"}</span>
                 </div>
                 <dl>
                   <div>
-                    <dt>Active</dt>
+                    <dt>활동</dt>
                     <dd>{stats.active}</dd>
                   </div>
                   <div>
-                    <dt>Good caught</dt>
+                    <dt>잡힌 좋은 유령</dt>
                     <dd>{stats.capturedGood}</dd>
                   </div>
                   <div>
-                    <dt>Bad caught</dt>
+                    <dt>잡힌 나쁜 유령</dt>
                     <dd>{stats.capturedBad}</dd>
                   </div>
                   {isCurrent ? (
                     <>
                       <div>
-                        <dt>Good held</dt>
+                        <dt>내 좋은 유령</dt>
                         <dd>{stats.knownGood}</dd>
                       </div>
                       <div>
-                        <dt>Bad held</dt>
+                        <dt>내 나쁜 유령</dt>
                         <dd>{stats.knownBad}</dd>
                       </div>
                     </>
@@ -589,7 +745,9 @@ export function Component(props: GameComponentProps) {
             );
           })}
         </aside>
-      </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -622,6 +780,91 @@ const ghostsStyles = `
 .gho-status p {
   margin: 0;
   text-align: right;
+}
+.gho-setup {
+  display: grid;
+  gap: 14px;
+}
+.gho-setup-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.gho-setup-player {
+  display: grid;
+  gap: 12px;
+  border: 1px solid rgba(46, 77, 132, 0.22);
+  border-radius: 8px;
+  padding: 12px;
+  background: linear-gradient(180deg, #fbfdff, #e5eefb);
+}
+.gho-setup-player.mine {
+  border-color: rgba(214, 155, 45, 0.42);
+  background: linear-gradient(180deg, #fffaf0, #e9f1ff);
+}
+.gho-player-headline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.gho-player-headline strong,
+.gho-player-headline span {
+  display: block;
+}
+.gho-player-headline span {
+  color: #52625d;
+  font-size: 0.84rem;
+  font-weight: 800;
+}
+.gho-setup-slots {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(44px, 1fr));
+  gap: 8px;
+}
+.gho-setup-slot {
+  min-height: 58px;
+  border: 2px solid rgba(46, 77, 132, 0.22);
+  border-radius: 999px 999px 42% 42%;
+  background:
+    radial-gradient(circle at 35% 22%, rgba(255, 255, 255, 0.96), transparent 26%),
+    #f9fbff;
+  color: #17201d;
+  font-weight: 900;
+}
+.gho-setup-slot.good {
+  background:
+    radial-gradient(circle at 35% 22%, rgba(255, 255, 255, 0.96), transparent 26%),
+    #f7fff8;
+}
+.gho-setup-slot.bad {
+  background:
+    radial-gradient(circle at 35% 22%, rgba(255, 255, 255, 0.96), transparent 26%),
+    #fff8f5;
+}
+.gho-setup-slot.hidden {
+  border-style: dashed;
+  color: #52625d;
+}
+.gho-setup-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+}
+.gho-setup-actions span {
+  color: #52625d;
+  font-weight: 800;
+}
+.gho-setup-actions button {
+  min-height: 42px;
+  border: 1px solid rgba(46, 77, 132, 0.28);
+  border-radius: 8px;
+  padding: 0 14px;
+  background: #29457d;
+  color: white;
+  font-weight: 900;
 }
 .gho-layout {
   display: grid;
@@ -802,6 +1045,9 @@ const ghostsStyles = `
 }
 @media (max-width: 780px) {
   .gho-layout {
+    grid-template-columns: 1fr;
+  }
+  .gho-setup-grid {
     grid-template-columns: 1fr;
   }
   .gho-panel {

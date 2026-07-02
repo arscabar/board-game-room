@@ -16,11 +16,14 @@
     "start": "tsx server/index.ts",
     "android:sync": "npm run build && cap sync android",
     "android:open": "cap open android",
-    "qa:games": "tsx scripts/qa-all-games.ts"
+    "qa:games": "tsx scripts/qa-all-games.ts",
+    "qa:privacy": "tsx scripts/qa-privacy.ts",
+    "qa:max": "tsx scripts/qa-all-games.ts --max-runs"
   },
   "dependencies": {
     "@capacitor/android": "^7.4.4",
     "@capacitor/core": "^7.4.4",
+    "@radix-ui/themes": "^3.3.0",
     "@vitejs/plugin-react": "^5.1.2",
     "cors": "^2.8.5",
     "express": "^5.2.1",

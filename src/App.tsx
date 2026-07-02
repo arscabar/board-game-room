@@ -1,14 +1,21 @@
 import {
   BarChart3,
+  BookOpen,
   CheckCircle2,
+  ChevronDown,
+  Clock3,
   Copy,
   Dice5,
   DoorOpen,
   ExternalLink,
+  FastForward,
+  Flag,
   Gamepad2,
   History,
+  ListChecks,
   LogIn,
   Medal,
+  Pause,
   Play,
   Plus,
   Radio,
@@ -34,11 +41,31 @@ type JoinResult = {
 
 const storageKeys = {
   name: "board-room-name",
-  playerId: "board-room-player-id"
+  playerId: "board-room-player-id",
+  clientKey: "board-room-client-key",
+  roomCode: "board-room-last-room-code"
 };
 
 function createDefaultName() {
   return `플레이어 ${Math.floor(100 + Math.random() * 900)}`;
+}
+
+function createClientKey() {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID();
+  }
+  return `guest-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
+}
+
+function readOrCreateClientKey() {
+  const saved = localStorage.getItem(storageKeys.clientKey);
+  if (saved) {
+    return saved;
+  }
+
+  const next = createClientKey();
+  localStorage.setItem(storageKeys.clientKey, next);
+  return next;
 }
 
 function emitWithAck<T>(event: string, payload: unknown) {
@@ -93,13 +120,155 @@ function formatScore(score: number | null | undefined) {
   return Number.isInteger(score) ? String(score) : score.toFixed(1);
 }
 
+const seatAccentColors = ["#2364aa", "#d69b2d", "#d94f45", "#258a5b"];
+
+function stateRecord(value: unknown) {
+  return value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : null;
+}
+
+function runtimePhase(room: RoomSnapshot) {
+  const publicState = stateRecord(room.gameState.publicState);
+  return String(room.gameState.phase ?? publicState?.phase ?? "");
+}
+
+function runtimeMessage(room: RoomSnapshot) {
+  const publicState = stateRecord(room.gameState.publicState);
+  return String(room.gameState.message ?? publicState?.message ?? "");
+}
+
+function runtimeWinnerId(room: RoomSnapshot) {
+  return runtimeWinnerIds(room)[0] ?? null;
+}
+
+function runtimeWinnerIds(room: RoomSnapshot) {
+  const publicState = stateRecord(room.gameState.publicState);
+  const winners = new Set<string>();
+  const singleWinner = room.gameState.winnerId ?? publicState?.winnerId;
+  if (typeof singleWinner === "string" && singleWinner) {
+    winners.add(singleWinner);
+  }
+  if (Array.isArray(publicState?.winnerIds)) {
+    publicState.winnerIds.forEach((winnerId) => {
+      if (typeof winnerId === "string" && winnerId) {
+        winners.add(winnerId);
+      }
+    });
+  }
+  return Array.from(winners);
+}
+
+function playerAccent(player: PlayerSnapshot) {
+  return seatAccentColors[(Math.max(1, player.seat) - 1) % seatAccentColors.length];
+}
+
+function phaseName(phase: string) {
+  const labels: Record<string, string> = {
+    selecting: "선택",
+    complete: "완료",
+    finished: "종료",
+    playing: "진행",
+    guessing: "추측",
+    decide: "연속 추측 선택",
+    setup: "준비",
+    rolling: "주사위",
+    "round-complete": "라운드 종료",
+    "ring-placement": "링 배치",
+    move: "이동",
+    "remove-row": "줄 제거"
+  };
+  return labels[phase] ?? "진행";
+}
+
+function actionHintFor(gameId: string | null | undefined, phase: string) {
+  if (gameId === "guryongtu") {
+    return "숫자 타일 1개를 고르세요. 이미 쓴 숫자는 다시 쓸 수 없습니다.";
+  }
+  if (gameId === "quoridor") {
+    return "말을 움직이거나 벽 위치를 고르세요. 밝게 표시된 칸은 이동 후보입니다.";
+  }
+  if (gameId === "abalone-classic") {
+    return "자기 구슬 1~3개를 한 줄로 선택한 뒤 이동 방향을 누르세요.";
+  }
+  if (gameId === "ghosts") {
+    return "자기 유령을 누르면 이동 가능한 칸과 탈출구가 표시됩니다.";
+  }
+  if (gameId === "qawale") {
+    return "비어 있지 않은 스택을 고르고, 밝게 표시된 인접 칸을 순서대로 누르세요.";
+  }
+  if (gameId === "davinci-code-plus") {
+    return phase === "decide"
+      ? "맞혔습니다. 계속 추측할지, 턴을 끝낼지 고르세요."
+      : "상대의 숨은 타일을 고르고 숫자 또는 조커를 추측하세요.";
+  }
+  if (gameId === "blokus") {
+    return "블록을 고른 뒤 보드 위에 올려보세요. 미리보기 색으로 놓을 수 있는지 확인합니다.";
+  }
+  if (gameId === "yacht-dice") {
+    return "주사위를 굴리고, 보류할 주사위를 누른 뒤 점수칸을 선택하세요.";
+  }
+  if (gameId === "yinsh") {
+    if (phase === "ring-placement") return "빈 교차점에 링을 5개까지 번갈아 배치하세요.";
+    if (phase === "remove-row") return "완성된 5목 줄과 제거할 자기 링 하나를 고르세요.";
+    return "자기 링을 선택한 뒤 초록색 이동 후보점으로 옮기세요.";
+  }
+  if (gameId === "hangman-board-game") {
+    if (phase === "setup") return "서로 비밀 단어를 입력하면 추측 라운드가 시작됩니다.";
+    if (phase === "round-complete") return "라운드가 끝났습니다. 다음 라운드를 시작할 수 있습니다.";
+    return "알파벳 하나를 누르거나 전체 단어를 추측하세요.";
+  }
+  return "현재 차례의 행동을 선택하세요.";
+}
+
+function formatTimer(ms: number) {
+  const totalSeconds = Math.max(0, Math.ceil(ms / 1000));
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${String(seconds).padStart(2, "0")}`;
+}
+
+function timerPercent(remainingMs: number, totalMs: number) {
+  if (totalMs <= 0) return 0;
+  return Math.max(0, Math.min(100, (remainingMs / totalMs) * 100));
+}
+
+function blockedReason({
+  currentPlayer,
+  activePlayer,
+  isMyTurn,
+  winnerLabel,
+  phase,
+  gameId,
+  paused
+}: {
+  currentPlayer: PlayerSnapshot | null;
+  activePlayer: PlayerSnapshot | null;
+  isMyTurn: boolean;
+  winnerLabel: string | null;
+  phase: string;
+  gameId: string | null | undefined;
+  paused?: boolean;
+}) {
+  if (!currentPlayer) return "이 방의 플레이어 정보가 없습니다. 다시 입장해 주세요.";
+  if (winnerLabel) return `게임이 끝났습니다. 결과: ${winnerLabel}`;
+  if (paused) return "게임이 잠시 멈춰 있습니다. 방장이 재개하면 이어서 진행됩니다.";
+  if (gameId === "hangman-board-game" && phase === "setup") return "준비 단계입니다. 각자 비밀 단어를 입력하세요.";
+  if (gameId === "hangman-board-game" && phase === "round-complete") return "라운드가 끝났습니다. 다음 라운드를 시작하세요.";
+  if (gameId === "guryongtu" && phase === "selecting") return "각자 비공개 타일을 제출할 수 있습니다. 둘 다 제출되면 동시에 공개됩니다.";
+  if (gameId === "ghosts" && phase === "setup") return "각자 좋은 유령 4개와 나쁜 유령 4개의 위치를 비공개로 제출하세요.";
+  if (!isMyTurn) return `${activePlayer?.name ?? "다음 플레이어"}님의 차례입니다. 내 차례가 되면 버튼이 켜집니다.`;
+  return "내 차례입니다. 밝게 표시된 곳부터 누르면 됩니다.";
+}
+
 function App() {
   const [name, setName] = useState(() => localStorage.getItem(storageKeys.name) ?? createDefaultName());
   const [roomCode, setRoomCode] = useState("");
   const [room, setRoom] = useState<RoomSnapshot | null>(null);
   const [playerId, setPlayerId] = useState(() => localStorage.getItem(storageKeys.playerId) ?? "");
+  const [clientKey, setClientKey] = useState(() => readOrCreateClientKey());
+  const [lastRoomCode, setLastRoomCode] = useState(() => localStorage.getItem(storageKeys.roomCode) ?? "");
   const [connection, setConnection] = useState<"connecting" | "connected" | "offline">("connecting");
   const [notice, setNotice] = useState("");
+  const [restoreTried, setRestoreTried] = useState(false);
 
   useEffect(() => {
     socket.connect();
@@ -130,6 +299,43 @@ function App() {
     }
   }, [playerId]);
 
+  useEffect(() => {
+    if (lastRoomCode) {
+      localStorage.setItem(storageKeys.roomCode, lastRoomCode);
+    }
+  }, [lastRoomCode]);
+
+  useEffect(() => {
+    if (connection !== "connected" || restoreTried || room || !lastRoomCode) {
+      return;
+    }
+
+    let active = true;
+    setRestoreTried(true);
+    emitWithAck<JoinResult>("room:resume", {
+      code: lastRoomCode,
+      name,
+      playerId,
+      clientKey
+    }).then((response) => {
+      if (!active) return;
+      if (!response.ok || !response.data) {
+        setNotice("저장된 방을 찾을 수 없습니다. 방이 닫혔다면 새로 입장해주세요.");
+        return;
+      }
+
+      setPlayerId(response.data.playerId);
+      setRoom(response.data.room);
+      setLastRoomCode(response.data.room.code);
+      setRoomCode(response.data.room.code);
+      setNotice("저장된 플레이어로 다시 연결했습니다.");
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [clientKey, connection, lastRoomCode, name, playerId, restoreTried, room]);
+
   const currentPlayer = useMemo(
     () => room?.players.find((player) => player.id === playerId) ?? null,
     [playerId, room]
@@ -140,7 +346,7 @@ function App() {
   async function handleCreateRoom(event: FormEvent) {
     event.preventDefault();
     setNotice("");
-    const response = await emitWithAck<JoinResult>("room:create", { name });
+    const response = await emitWithAck<JoinResult>("room:create", { name, clientKey });
     if (!response.ok || !response.data) {
       setNotice(response.error ?? "방을 만들 수 없습니다.");
       return;
@@ -148,12 +354,14 @@ function App() {
 
     setPlayerId(response.data.playerId);
     setRoom(response.data.room);
+    setLastRoomCode(response.data.room.code);
+    setRoomCode(response.data.room.code);
   }
 
   async function handleJoinRoom(event: FormEvent) {
     event.preventDefault();
     setNotice("");
-    const response = await emitWithAck<JoinResult>("room:join", { code: roomCode, name });
+    const response = await emitWithAck<JoinResult>("room:join", { code: roomCode, name, playerId, clientKey });
     if (!response.ok || !response.data) {
       setNotice(response.error ?? "방에 입장할 수 없습니다.");
       return;
@@ -161,6 +369,28 @@ function App() {
 
     setPlayerId(response.data.playerId);
     setRoom(response.data.room);
+    setLastRoomCode(response.data.room.code);
+    setRoomCode(response.data.room.code);
+  }
+
+  async function resumeSavedRoom() {
+    if (!lastRoomCode) return;
+    setNotice("");
+    const response = await emitWithAck<JoinResult>("room:resume", {
+      code: lastRoomCode,
+      name,
+      playerId,
+      clientKey
+    });
+    if (!response.ok || !response.data) {
+      setNotice(response.error ?? "저장된 방으로 돌아갈 수 없습니다.");
+      return;
+    }
+
+    setPlayerId(response.data.playerId);
+    setRoom(response.data.room);
+    setRoomCode(response.data.room.code);
+    setLastRoomCode(response.data.room.code);
   }
 
   async function selectGame(gameId: string) {
@@ -189,12 +419,26 @@ function App() {
 
   function leaveLocalRoom() {
     setRoom(null);
-    setPlayerId("");
+    setRestoreTried(true);
+    setNotice("플레이어 정보는 이 브라우저에 저장되어 있습니다. 같은 방에 다시 들어가면 같은 좌석으로 복귀합니다.");
+  }
+
+  function resetLocalIdentity() {
+    const nextClientKey = createClientKey();
     localStorage.removeItem(storageKeys.playerId);
+    localStorage.removeItem(storageKeys.roomCode);
+    localStorage.setItem(storageKeys.clientKey, nextClientKey);
+    setClientKey(nextClientKey);
+    setPlayerId("");
+    setLastRoomCode("");
+    setRoomCode("");
+    setRoom(null);
+    setRestoreTried(true);
+    setNotice("이 브라우저의 저장된 방/플레이어 연결을 지우고 새 손님으로 시작합니다.");
   }
 
   return (
-    <div className="app-shell">
+    <div className={`app-shell ${room ? `has-room ${room.status === "lobby" ? "is-lobby" : "is-playing"}` : "is-home"}`}>
       <a className="skip-link" href="#main">
         본문으로 이동
       </a>
@@ -228,10 +472,14 @@ function App() {
             roomCode={roomCode}
             notice={notice}
             connection={connection}
+            clientKey={clientKey}
+            lastRoomCode={lastRoomCode}
             onNameChange={setName}
             onRoomCodeChange={setRoomCode}
             onCreateRoom={handleCreateRoom}
             onJoinRoom={handleJoinRoom}
+            onResumeSavedRoom={resumeSavedRoom}
+            onResetLocalIdentity={resetLocalIdentity}
           />
         )}
       </main>
@@ -254,19 +502,27 @@ function HomeView({
   roomCode,
   notice,
   connection,
+  clientKey,
+  lastRoomCode,
   onNameChange,
   onRoomCodeChange,
   onCreateRoom,
-  onJoinRoom
+  onJoinRoom,
+  onResumeSavedRoom,
+  onResetLocalIdentity
 }: {
   name: string;
   roomCode: string;
   notice: string;
   connection: "connecting" | "connected" | "offline";
+  clientKey: string;
+  lastRoomCode: string;
   onNameChange: (value: string) => void;
   onRoomCodeChange: (value: string) => void;
   onCreateRoom: (event: FormEvent) => void;
   onJoinRoom: (event: FormEvent) => void;
+  onResumeSavedRoom: () => void;
+  onResetLocalIdentity: () => void;
 }) {
   const disabled = connection !== "connected";
 
@@ -313,15 +569,25 @@ function HomeView({
             입장
           </button>
         </form>
+        {lastRoomCode ? (
+          <button className="secondary-button saved-room-button" type="button" onClick={onResumeSavedRoom} disabled={disabled}>
+            <LogIn size={18} />
+            최근 방 {lastRoomCode}로 돌아가기
+          </button>
+        ) : null}
+        <button className="secondary-button saved-room-button" type="button" onClick={onResetLocalIdentity}>
+          <RotateCcw size={18} />
+          새 손님으로 시작
+        </button>
         {notice ? <p className="notice" role="alert">{notice}</p> : null}
       </div>
 
-      <StatsDashboard playerName={name} />
+      <StatsDashboard playerName={name} clientKey={clientKey} />
     </section>
   );
 }
 
-function StatsDashboard({ playerName }: { playerName: string }) {
+function StatsDashboard({ playerName, clientKey }: { playerName: string; clientKey: string }) {
   const [gameId, setGameId] = useState("all");
   const [summary, setSummary] = useState<StatsSummary | null>(null);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
@@ -344,8 +610,12 @@ function StatsDashboard({ playerName }: { playerName: string }) {
           fetchJson<StatsSummary>("/api/stats/summary"),
           fetchJson<LeaderboardEntry[]>(`/api/stats/leaderboard?limit=8${query}`),
           fetchJson<MatchRecord[]>("/api/stats/recent?limit=6"),
-          player
-            ? fetchJson<PlayerStatsResponse>(`/api/stats/player/${encodeURIComponent(player)}?limit=5`)
+          clientKey
+            ? fetchJson<PlayerStatsResponse>(
+                `/api/stats/identity/${encodeURIComponent(clientKey)}?name=${encodeURIComponent(player || "플레이어")}&limit=5`
+              )
+            : player
+              ? fetchJson<PlayerStatsResponse>(`/api/stats/player/${encodeURIComponent(player)}?limit=5`)
             : Promise.resolve(null)
         ]);
 
@@ -368,7 +638,7 @@ function StatsDashboard({ playerName }: { playerName: string }) {
     return () => {
       active = false;
     };
-  }, [gameId, playerName, refreshKey]);
+  }, [clientKey, gameId, playerName, refreshKey]);
 
   const selectedGameTitle = gameId === "all" ? "전체 게임" : getGameById(gameId)?.title ?? "선택한 게임";
   const topPlayer = leaderboard[0];
@@ -561,7 +831,7 @@ function RoomView({
   }
 
   return (
-    <section className="room-section" aria-label="게임 방">
+    <section className={`room-section ${room.status === "lobby" ? "is-lobby" : "is-playing"}`} aria-label="게임 방">
       <div className="room-command">
         <div>
           <span className="eyebrow">방 코드</span>
@@ -663,7 +933,7 @@ function LobbyPanel({
   const eligibleGames = games.filter((game) => canPlayGame(game, playerCount));
 
   return (
-    <section className="work-panel" aria-labelledby="lobby-title">
+    <section className="work-panel lobby-panel" aria-labelledby="lobby-title">
       <div className="panel-header">
         <div>
           <h2 id="lobby-title">게임 선택</h2>
@@ -721,8 +991,59 @@ function PlayPanel({
   onReturnLobby: () => void;
 }) {
   const [action, setAction] = useState("");
+  const [now, setNow] = useState(() => Date.now());
   const isMyTurn = currentPlayer?.id === activePlayer?.id;
   const registration = getGameRegistration(selectedGame?.id);
+  const phase = runtimePhase(room);
+  const winnerIds = runtimeWinnerIds(room);
+  const winnerId = runtimeWinnerId(room);
+  const paused = Boolean(room.gameState.paused);
+  const turnTimerMs = room.gameState.turnTimerMs ?? 120_000;
+  const winnerNames = winnerIds
+    .map((id) => room.players.find((player) => player.id === id)?.name)
+    .filter((name): name is string => Boolean(name));
+  const isFinished = winnerIds.length > 0 || phase === "complete" || phase === "finished";
+  const timerAnchor = paused ? room.gameState.pausedAt ?? now : now;
+  const remainingMs = room.gameState.turnDeadlineAt ? room.gameState.turnDeadlineAt - timerAnchor : 0;
+  const timerExpired = !isFinished && !paused && Boolean(room.gameState.turnDeadlineAt) && remainingMs <= 0;
+  const timeoutCount = activePlayer ? room.gameState.timeoutCounts?.[activePlayer.id] ?? 0 : 0;
+  const canAdvanceTurn = !paused && !isFinished && (isMyTurn || (isHost && timerExpired && Boolean(activePlayer)));
+  const canClaimTimeout = timerExpired && !isMyTurn && Boolean(activePlayer);
+  const winnerLabel = winnerNames.length > 0 ? winnerNames.join(", ") : isFinished ? "무승부 또는 종료" : null;
+  const message = runtimeMessage(room);
+  const guideTitle = isFinished
+    ? "게임이 끝났습니다"
+    : paused
+      ? "일시정지 중입니다"
+      : isMyTurn
+      ? "내 차례입니다"
+      : selectedGame?.id === "hangman-board-game" && (phase === "setup" || phase === "round-complete")
+        ? phase === "round-complete"
+          ? "라운드가 끝났습니다"
+          : "준비 단계입니다"
+        : "차례를 기다리는 중입니다";
+  const guideReason = blockedReason({
+    currentPlayer,
+    activePlayer,
+    isMyTurn,
+    winnerLabel,
+    phase,
+    gameId: selectedGame?.id,
+    paused
+  });
+  const hangmanOpenPhase = selectedGame?.id === "hangman-board-game" && (phase === "setup" || phase === "round-complete");
+  const simultaneousChoicePhase = selectedGame?.id === "guryongtu" && phase === "selecting";
+  const setupOpenPhase = selectedGame?.id === "ghosts" && phase === "setup";
+  const guideTone = isFinished ? "complete" : paused ? "paused" : isMyTurn || hangmanOpenPhase || simultaneousChoicePhase || setupOpenPhase ? "active" : "waiting";
+  const moduleDisabled = paused || (!isMyTurn && !hangmanOpenPhase && !simultaneousChoicePhase && !setupOpenPhase);
+
+  useEffect(() => {
+    if (isFinished || paused || !room.gameState.turnDeadlineAt) {
+      return;
+    }
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [isFinished, paused, room.gameState.turnDeadlineAt]);
 
   async function recordAction(event: FormEvent) {
     event.preventDefault();
@@ -732,7 +1053,38 @@ function PlayPanel({
   }
 
   async function advanceTurn() {
-    await emitWithAck<RoomSnapshot>("room:advance-turn", { code: room.code });
+    const response = await emitWithAck<RoomSnapshot>("room:advance-turn", { code: room.code });
+    if (!response.ok) {
+      setAction(response.error ?? "턴을 넘길 수 없습니다.");
+    }
+  }
+
+  async function pauseGame() {
+    const response = await emitWithAck<RoomSnapshot>("room:pause-game", { code: room.code });
+    if (!response.ok) {
+      setAction(response.error ?? "일시정지할 수 없습니다.");
+    }
+  }
+
+  async function resumeGame() {
+    const response = await emitWithAck<RoomSnapshot>("room:resume-game", { code: room.code });
+    if (!response.ok) {
+      setAction(response.error ?? "재개할 수 없습니다.");
+    }
+  }
+
+  async function configureTimer(nextTimerMs: number) {
+    const response = await emitWithAck<RoomSnapshot>("room:configure-timer", { code: room.code, turnTimerMs: nextTimerMs });
+    if (!response.ok) {
+      setAction(response.error ?? "제한 시간을 바꿀 수 없습니다.");
+    }
+  }
+
+  async function claimTimeout() {
+    const response = await emitWithAck<RoomSnapshot>("room:claim-timeout", { code: room.code });
+    if (!response.ok) {
+      setAction(response.error ?? "타임아웃을 처리할 수 없습니다.");
+    }
   }
 
   async function sendGameAction(gameAction: GameAction) {
@@ -743,12 +1095,12 @@ function PlayPanel({
   }
 
   return (
-    <section className="work-panel" aria-labelledby="play-title">
+    <section className="work-panel play-panel" aria-labelledby="play-title">
       <div className="panel-header">
         <div>
           <h2 id="play-title">{selectedGame?.title ?? "게임 진행"}</h2>
           <p>
-            {room.gameState.roundNumber}라운드 · {room.gameState.turnNumber}턴 · 현재 차례 {activePlayer?.name ?? "없음"}
+            {room.gameState.roundNumber}라운드 · {room.gameState.turnNumber}턴 · {phaseName(phase)} · 현재 차례 {activePlayer?.name ?? "없음"}
           </p>
         </div>
         {isHost ? (
@@ -759,6 +1111,95 @@ function PlayPanel({
         ) : null}
       </div>
 
+      <div className={`turn-guide ${guideTone}`} role="status" aria-live="polite">
+        <div className="turn-guide-main">
+          <span className="turn-guide-icon" aria-hidden="true">
+            <CheckCircle2 size={18} />
+          </span>
+          <div>
+            <strong>{guideTitle}</strong>
+            <p>{actionHintFor(selectedGame?.id, phase)}</p>
+          </div>
+        </div>
+        <div className="turn-guide-reason">{guideReason}</div>
+      </div>
+
+      <div className={`table-control-panel ${paused ? "paused" : ""} ${timerExpired ? "expired" : ""}`} aria-label="게임 진행 제어">
+        <div className="turn-timer-card">
+          <div className="turn-timer-head">
+            <Clock3 size={18} aria-hidden="true" />
+            <div>
+              <strong>{paused ? "일시정지" : timerExpired ? "시간 초과" : "턴 타이머"}</strong>
+              <span>
+                {activePlayer?.name ?? "플레이어 없음"} · timeout {timeoutCount}회
+              </span>
+            </div>
+          </div>
+          <div className="turn-timer-meter" aria-hidden="true">
+            <span style={{ width: `${timerPercent(remainingMs, turnTimerMs)}%` }} />
+          </div>
+          <strong className="turn-timer-time">{paused ? "PAUSE" : formatTimer(remainingMs)}</strong>
+        </div>
+
+        <div className="table-control-actions">
+          <label className="timer-select">
+            제한
+            <select
+              value={turnTimerMs}
+              disabled={!isHost || isFinished}
+              onChange={(event) => configureTimer(Number(event.currentTarget.value))}
+            >
+              <option value={60_000}>1분</option>
+              <option value={120_000}>2분</option>
+              <option value={180_000}>3분</option>
+              <option value={300_000}>5분</option>
+            </select>
+          </label>
+          {isHost ? (
+            paused ? (
+              <button className="secondary-button" type="button" onClick={resumeGame} disabled={isFinished}>
+                <Play size={18} />
+                재개
+              </button>
+            ) : (
+              <button className="secondary-button" type="button" onClick={pauseGame} disabled={isFinished}>
+                <Pause size={18} />
+                일시정지
+              </button>
+            )
+          ) : (
+            <span className="control-note">{paused ? `${room.gameState.pausedBy ?? "방장"}님이 정지` : "방장 제어"}</span>
+          )}
+          <button className="secondary-button danger" type="button" onClick={claimTimeout} disabled={!canClaimTimeout}>
+            <FastForward size={18} />
+            타임아웃 처리
+          </button>
+        </div>
+      </div>
+
+      {selectedGame ? <RuleChecklist game={selectedGame} phase={phase} /> : null}
+
+      {message ? <p className="game-message-strip">{message}</p> : null}
+
+      <div className="player-turn-strip" aria-label="플레이어 차례와 상태">
+        {room.players.map((player) => {
+          const active = player.id === activePlayer?.id;
+          const current = player.id === currentPlayer?.id;
+          const won = winnerIds.includes(player.id);
+          return (
+            <div
+              key={player.id}
+              className={`player-turn-chip ${active ? "active" : ""} ${current ? "current" : ""} ${won ? "winner" : ""}`}
+              style={{ "--seat-accent": playerAccent(player) } as CSSProperties}
+            >
+              <span className="player-turn-swatch" aria-hidden="true" />
+              <strong>{player.name}</strong>
+              <span>{won ? "승자" : active ? "현재 차례" : current ? "나" : player.connected ? "대기" : "오프라인"}</span>
+            </div>
+          );
+        })}
+      </div>
+
       {registration && selectedGame ? (
         <div className="game-module-shell">
           <registration.Component
@@ -767,7 +1208,7 @@ function PlayPanel({
             currentPlayer={currentPlayer}
             activePlayer={activePlayer}
             publicState={room.gameState.publicState}
-            disabled={!isMyTurn && !isHost && !room.gameState.phase?.includes("setup")}
+            disabled={moduleDisabled}
             onAction={sendGameAction}
           />
         </div>
@@ -776,12 +1217,13 @@ function PlayPanel({
       )}
 
       <form className="action-form" onSubmit={recordAction}>
-        <label htmlFor="action-log">행동 기록</label>
+        <label htmlFor="action-log">공개 행동 기록</label>
         <div>
           <input
             id="action-log"
             value={action}
             maxLength={120}
+            placeholder="모두에게 보이는 메모입니다"
             onChange={(event) => setAction(event.target.value)}
           />
           <button className="icon-button strong" type="submit" aria-label="행동 기록 추가" title="행동 기록 추가">
@@ -791,11 +1233,11 @@ function PlayPanel({
       </form>
 
       <div className="turn-actions">
-        <button className="primary-button" type="button" onClick={advanceTurn} disabled={!isMyTurn && !isHost}>
+        <button className="primary-button" type="button" onClick={advanceTurn} disabled={!canAdvanceTurn}>
           <CheckCircle2 size={18} />
-          턴 종료
+          {isMyTurn ? "턴 종료" : "강제 턴 넘김"}
         </button>
-        <span>{isMyTurn ? "내 차례입니다." : "현재 차례를 기다리는 중입니다."}</span>
+        <span>{paused ? "일시정지 중입니다." : isMyTurn ? "내 차례입니다." : "현재 차례를 기다리는 중입니다."}</span>
       </div>
 
       <div className="move-log" aria-label="진행 기록">
@@ -811,6 +1253,28 @@ function PlayPanel({
           ))
         )}
       </div>
+    </section>
+  );
+}
+
+function RuleChecklist({ game, phase }: { game: GameDefinition; phase: string }) {
+  const hiddenInfoGames = new Set(["guryongtu", "ghosts", "davinci-code-plus", "hangman-board-game"]);
+  const privacyLabel = hiddenInfoGames.has(game.id) ? "비공개 정보 분리 적용" : "공개 정보 게임";
+
+  return (
+    <section className="rule-check-panel" aria-label="적용된 룰 체크">
+      <div>
+        <strong>룰 적용 체크</strong>
+        <span>{phaseName(phase)} · {privacyLabel}</span>
+      </div>
+      <ul>
+        {game.implementation.slice(0, 6).map((item) => (
+          <li key={item}>
+            <CheckCircle2 size={15} aria-hidden="true" />
+            <span>{item}</span>
+          </li>
+        ))}
+      </ul>
     </section>
   );
 }
@@ -898,7 +1362,7 @@ function GameDetailPanel({ game, playerCount }: { game: GameDefinition | null; p
   }
 
   return (
-    <aside className="detail-panel" aria-label="게임 정보">
+    <aside className="detail-panel detail-fold-panel" aria-label="게임 정보">
       <div className="panel-header">
         <div>
           <h2>{game.title}</h2>
@@ -908,49 +1372,75 @@ function GameDetailPanel({ game, playerCount }: { game: GameDefinition | null; p
           {formatAllowedPlayers(game)}
         </span>
       </div>
-      <section className="detail-summary-card" style={{ "--game-accent": game.accent } as CSSProperties}>
-        <span className="eyebrow">선택한 게임 설명</span>
-        <p className="summary">{game.summary}</p>
-        <div className="detail-meta-grid" aria-label="게임 요약">
-          <span>
-            <strong>장르</strong>
-            {game.genre}
-          </span>
-          <span>
-            <strong>보드</strong>
-            {game.board}
-          </span>
-          <span>
-            <strong>기록</strong>
-            {game.scoreState}
-          </span>
-        </div>
-        <a className="detail-learn-link" href={game.learnUrl} target="_blank" rel="noreferrer">
-          <ExternalLink size={16} aria-hidden="true" />
-          설명
-        </a>
-      </section>
-      <InfoList title="세팅" items={game.setup} />
-      <InfoList title="턴 진행" items={game.turnFlow} />
-      <InfoList title="구현 판정" items={game.implementation} />
-      <div className="win-condition">
-        <strong>승리조건</strong>
-        <span>{game.winCondition}</span>
+      <div className="fold-stack" style={{ "--game-accent": game.accent } as CSSProperties}>
+        <details className="fold-card detail-summary-card" open>
+          <summary>
+            <span>
+              <BookOpen size={15} aria-hidden="true" />
+              선택한 게임 설명
+            </span>
+            <ChevronDown className="fold-chevron" size={16} aria-hidden="true" />
+          </summary>
+          <div className="fold-content">
+            <p className="summary">{game.summary}</p>
+            <div className="detail-meta-grid" aria-label="게임 요약">
+              <span>
+                <strong>장르</strong>
+                {game.genre}
+              </span>
+              <span>
+                <strong>보드</strong>
+                {game.board}
+              </span>
+              <span>
+                <strong>기록</strong>
+                {game.scoreState}
+              </span>
+            </div>
+            <a className="detail-learn-link" href={game.learnUrl} target="_blank" rel="noreferrer">
+              <ExternalLink size={16} aria-hidden="true" />
+              설명
+            </a>
+          </div>
+        </details>
+        <FoldList title="세팅" items={game.setup} defaultOpen />
+        <FoldList title="턴 진행" items={game.turnFlow} />
+        <FoldList title="구현 판정" items={game.implementation} />
+        <details className="fold-card win-condition">
+          <summary>
+            <span>
+              <Flag size={15} aria-hidden="true" />
+              승리조건
+            </span>
+            <ChevronDown className="fold-chevron" size={16} aria-hidden="true" />
+          </summary>
+          <div className="fold-content">
+            <p>{game.winCondition}</p>
+          </div>
+        </details>
       </div>
     </aside>
   );
 }
 
-function InfoList({ title, items }: { title: string; items: string[] }) {
+function FoldList({ title, items, defaultOpen = false }: { title: string; items: string[]; defaultOpen?: boolean }) {
   return (
-    <section className="info-list">
-      <h3>{title}</h3>
-      <ul>
-        {items.map((item) => (
-          <li key={item}>{item}</li>
-        ))}
-      </ul>
-    </section>
+    <details className="fold-card info-list" open={defaultOpen}>
+      <summary>
+        <span>
+          <ListChecks size={15} aria-hidden="true" />
+          {title}
+        </span>
+        <ChevronDown className="fold-chevron" size={16} aria-hidden="true" />
+      </summary>
+      <div className="fold-content">
+        <ul>
+          {items.map((item) => (
+            <li key={item}>{item}</li>
+          ))}
+        </ul>
+      </div>
+    </details>
   );
 }
 

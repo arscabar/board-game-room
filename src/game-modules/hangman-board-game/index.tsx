@@ -5,6 +5,7 @@ import type { PlayerSnapshot } from "../../shared/types";
 
 const MAX_WORD_LENGTH = 8;
 const MAX_MISSES = 6;
+const TARGET_WINS = 3;
 const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 
 interface HangmanProgress {
@@ -19,11 +20,12 @@ interface HangmanProgress {
 interface HangmanState {
   playerIds: string[];
   activePlayerId: string | null;
-  phase: "setup" | "guessing" | "complete";
+  phase: "setup" | "guessing" | "round-complete" | "complete";
   secrets: Record<string, string | null>;
   progress: Record<string, HangmanProgress>;
   wins: Record<string, number>;
   roundNumber: number;
+  roundWinnerId: string | null;
   winnerId: string | null;
   lastGuess: {
     playerId: string;
@@ -46,7 +48,7 @@ interface PublicProgress {
 interface HangmanPublicState {
   playerIds: string[];
   activePlayerId: string | null;
-  phase: "setup" | "guessing" | "complete";
+  phase: "setup" | "guessing" | "round-complete" | "complete";
   setup: {
     submitted: Record<string, boolean>;
     wordLengths: Record<string, number>;
@@ -56,6 +58,8 @@ interface HangmanPublicState {
   progress: Record<string, PublicProgress>;
   wins: Record<string, number>;
   roundNumber: number;
+  roundWinnerId: string | null;
+  targetWins: number;
   maxMisses: number;
   winnerId: string | null;
   lastGuess: HangmanState["lastGuess"];
@@ -106,11 +110,11 @@ const styles: Record<string, CSSProperties> = {
   },
   alphabet: {
     display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(2.3rem, 1fr))",
+    gridTemplateColumns: "repeat(auto-fit, minmax(2.75rem, 1fr))",
     gap: "0.35rem"
   },
   letterButton: {
-    minHeight: "2.35rem",
+    minHeight: "2.75rem",
     borderRadius: 8,
     border: "1px solid rgba(15, 23, 42, 0.22)",
     fontWeight: 700
@@ -125,6 +129,7 @@ const styles: Record<string, CSSProperties> = {
 
 function orderedPlayers(players: PlayerSnapshot[], count: number) {
   return [...players]
+    .filter((player) => player.connected)
     .sort((a, b) => a.seat - b.seat || a.joinedAt - b.joinedAt)
     .slice(0, count)
     .map((player) => player.id);
@@ -140,9 +145,9 @@ function makeRecord<T>(playerIds: string[], value: () => T) {
 
 function getPlayerName(players: PlayerSnapshot[], playerId: string | null) {
   if (!playerId) {
-    return "No player";
+    return "플레이어 없음";
   }
-  return players.find((player) => player.id === playerId)?.name ?? "Player";
+  return players.find((player) => player.id === playerId)?.name ?? "플레이어";
 }
 
 function normalizeWord(value: unknown) {
@@ -150,7 +155,15 @@ function normalizeWord(value: unknown) {
     return null;
   }
   const word = value.trim().toUpperCase();
-  return /^[A-Z]{1,8}$/.test(word) ? word : null;
+  return /^[A-Z가-힣]{1,8}$/.test(word) ? word : null;
+}
+
+function normalizeLetter(value: unknown) {
+  if (typeof value !== "string") {
+    return null;
+  }
+  const letter = value.trim().toUpperCase();
+  return /^[A-Z가-힣]$/.test(letter) ? letter : null;
 }
 
 function readWord(action: GameAction) {
@@ -171,8 +184,7 @@ function readLetter(action: GameAction) {
     return null;
   }
 
-  const letter = raw.trim().toUpperCase();
-  return /^[A-Z]$/.test(letter) ? letter : null;
+  return normalizeLetter(raw);
 }
 
 function otherPlayer(playerIds: string[], playerId: string) {
@@ -207,6 +219,7 @@ function createState(context: Pick<GameContext, "players">): HangmanState {
     progress: {},
     wins: makeRecord(playerIds, () => 0),
     roundNumber: 1,
+    roundWinnerId: null,
     winnerId: null,
     lastGuess: null
   };
@@ -267,6 +280,8 @@ function publicStateFrom(state: HangmanState, viewerId: string | null): HangmanP
     progress,
     wins: state.wins,
     roundNumber: state.roundNumber,
+    roundWinnerId: state.roundWinnerId,
+    targetWins: TARGET_WINS,
     maxMisses: MAX_MISSES,
     winnerId: state.winnerId,
     lastGuess: state.lastGuess
@@ -274,17 +289,35 @@ function publicStateFrom(state: HangmanState, viewerId: string | null): HangmanP
 }
 
 function completeRound(state: HangmanState, winnerId: string, progress: Record<string, HangmanProgress>, lastGuess: HangmanState["lastGuess"]) {
+  const wins = {
+    ...state.wins,
+    [winnerId]: (state.wins[winnerId] ?? 0) + 1
+  };
+  const matchWinnerId = wins[winnerId] >= TARGET_WINS ? winnerId : null;
+
   return {
     ...state,
-    phase: "complete" as const,
+    phase: matchWinnerId ? ("complete" as const) : ("round-complete" as const),
     activePlayerId: null,
     progress,
-    wins: {
-      ...state.wins,
-      [winnerId]: (state.wins[winnerId] ?? 0) + 1
-    },
-    winnerId,
+    wins,
+    roundWinnerId: winnerId,
+    winnerId: matchWinnerId,
     lastGuess
+  };
+}
+
+function nextRoundState(state: HangmanState): HangmanState {
+  return {
+    ...state,
+    phase: "setup",
+    activePlayerId: null,
+    secrets: makeRecord(state.playerIds, () => null),
+    progress: {},
+    roundNumber: state.roundNumber + 1,
+    roundWinnerId: null,
+    winnerId: null,
+    lastGuess: null
   };
 }
 
@@ -297,20 +330,35 @@ export const module: GameModule = {
     const playerId = context.currentPlayerId;
 
     if (!current.playerIds.includes(playerId)) {
-      return { state: current, activePlayerId: current.activePlayerId, message: "Only seated players can act." };
+      return { state: current, activePlayerId: current.activePlayerId, message: "참여 중인 플레이어만 행동할 수 있습니다." };
+    }
+
+    if (action.type === "hangman-board-game/next-round") {
+      if (current.phase !== "round-complete") {
+        return { state: current, activePlayerId: current.activePlayerId, message: "다음 라운드를 시작할 수 있는 상태가 아닙니다." };
+      }
+      const nextState = nextRoundState(current);
+      return {
+        state: nextState,
+        log: `${getPlayerName(context.players, playerId)} 다음 라운드 시작`,
+        activePlayerId: null,
+        phase: nextState.phase,
+        roundNumber: nextState.roundNumber,
+        message: `${nextState.roundNumber}라운드 비밀 단어를 입력하세요.`
+      };
     }
 
     if (action.type === "hangman-board-game/setup-secret") {
       if (current.phase !== "setup") {
-        return { state: current, activePlayerId: current.activePlayerId, message: "Secret words are already locked." };
+        return { state: current, activePlayerId: current.activePlayerId, message: "비밀 단어는 이미 확정되었습니다." };
       }
 
       const word = readWord(action);
       if (!word) {
-        return { state: current, activePlayerId: current.activePlayerId, message: `Use 1 to ${MAX_WORD_LENGTH} letters only.` };
+        return { state: current, activePlayerId: current.activePlayerId, message: `영문 1~${MAX_WORD_LENGTH}글자만 입력할 수 있습니다.` };
       }
       if (current.secrets[playerId]) {
-        return { state: current, activePlayerId: current.activePlayerId, message: "Your secret word is already submitted." };
+        return { state: current, activePlayerId: current.activePlayerId, message: "이미 비밀 단어를 제출했습니다." };
       }
 
       const secrets = { ...current.secrets, [playerId]: word };
@@ -327,7 +375,7 @@ export const module: GameModule = {
 
       return {
         state: nextState,
-        log: `${getPlayerName(context.players, playerId)} submitted a secret word.`,
+        log: `${getPlayerName(context.players, playerId)} 비밀 단어 제출`,
         activePlayerId,
         phase: nextState.phase,
         roundNumber: nextState.roundNumber
@@ -335,25 +383,25 @@ export const module: GameModule = {
     }
 
     if (current.phase !== "guessing") {
-      return { state: current, activePlayerId: current.activePlayerId, message: "The round is not ready for guesses." };
+      return { state: current, activePlayerId: current.activePlayerId, message: "아직 추측할 수 있는 라운드가 아닙니다." };
     }
     if (current.activePlayerId !== playerId) {
-      return { state: current, activePlayerId: current.activePlayerId, message: "Wait for your guessing turn." };
+      return { state: current, activePlayerId: current.activePlayerId, message: "내 추측 차례를 기다려주세요." };
     }
 
     const playerProgress = current.progress[playerId];
     if (!playerProgress) {
-      return { state: current, activePlayerId: current.activePlayerId, message: "No target word is ready." };
+      return { state: current, activePlayerId: current.activePlayerId, message: "추측할 대상 단어가 아직 준비되지 않았습니다." };
     }
     const targetSecret = current.secrets[playerProgress.targetId] ?? "";
 
     if (action.type === "hangman-board-game/guess-letter") {
       const letter = readLetter(action);
       if (!letter) {
-        return { state: current, activePlayerId: current.activePlayerId, message: "Choose one letter." };
+        return { state: current, activePlayerId: current.activePlayerId, message: "알파벳 한 글자를 골라주세요." };
       }
       if (playerProgress.guessedLetters.includes(letter)) {
-        return { state: current, activePlayerId: current.activePlayerId, message: "That letter was already guessed." };
+        return { state: current, activePlayerId: current.activePlayerId, message: "이미 추측한 글자입니다." };
       }
 
       const revealed = playerProgress.revealed.map((value, index) => value || targetSecret[index] === letter);
@@ -378,22 +426,22 @@ export const module: GameModule = {
         const nextState = completeRound(current, playerId, progress, lastGuess);
         return {
           state: nextState,
-          log: `${getPlayerName(context.players, playerId)} solved the word.`,
+          log: `${getPlayerName(context.players, playerId)} 단어 맞힘`,
           activePlayerId: null,
           turnNumber: context.turnNumber + 1,
           phase: nextState.phase,
-          winnerId: playerId
+          winnerId: nextState.winnerId
         };
       }
       if (nextPlayerProgress.misses >= MAX_MISSES) {
         const nextState = completeRound(current, playerProgress.targetId, progress, lastGuess);
         return {
           state: nextState,
-          log: `${getPlayerName(context.players, playerId)} reached the miss limit.`,
+          log: `${getPlayerName(context.players, playerId)} 오답 한도 도달`,
           activePlayerId: null,
           turnNumber: context.turnNumber + 1,
           phase: nextState.phase,
-          winnerId: playerProgress.targetId
+          winnerId: nextState.winnerId
         };
       }
 
@@ -407,7 +455,7 @@ export const module: GameModule = {
 
       return {
         state: nextState,
-        log: `${getPlayerName(context.players, playerId)} guessed ${letter}.`,
+        log: `${getPlayerName(context.players, playerId)} ${letter} 추측`,
         activePlayerId,
         turnNumber: context.turnNumber + 1,
         phase: nextState.phase
@@ -417,10 +465,10 @@ export const module: GameModule = {
     if (action.type === "hangman-board-game/guess-word") {
       const word = readWord(action);
       if (!word) {
-        return { state: current, activePlayerId: current.activePlayerId, message: `Use 1 to ${MAX_WORD_LENGTH} letters only.` };
+        return { state: current, activePlayerId: current.activePlayerId, message: `영문 1~${MAX_WORD_LENGTH}글자만 입력할 수 있습니다.` };
       }
       if (playerProgress.wholeWordGuesses.includes(word)) {
-        return { state: current, activePlayerId: current.activePlayerId, message: "That whole-word guess was already used." };
+        return { state: current, activePlayerId: current.activePlayerId, message: "이미 추측한 전체 단어입니다." };
       }
 
       const hit = word === targetSecret;
@@ -443,22 +491,22 @@ export const module: GameModule = {
         const nextState = completeRound(current, playerId, progress, lastGuess);
         return {
           state: nextState,
-          log: `${getPlayerName(context.players, playerId)} solved the whole word.`,
+          log: `${getPlayerName(context.players, playerId)} 전체 단어 맞힘`,
           activePlayerId: null,
           turnNumber: context.turnNumber + 1,
           phase: nextState.phase,
-          winnerId: playerId
+          winnerId: nextState.winnerId
         };
       }
       if (nextPlayerProgress.misses >= MAX_MISSES) {
         const nextState = completeRound(current, playerProgress.targetId, progress, lastGuess);
         return {
           state: nextState,
-          log: `${getPlayerName(context.players, playerId)} reached the miss limit.`,
+          log: `${getPlayerName(context.players, playerId)} 오답 한도 도달`,
           activePlayerId: null,
           turnNumber: context.turnNumber + 1,
           phase: nextState.phase,
-          winnerId: playerProgress.targetId
+          winnerId: nextState.winnerId
         };
       }
 
@@ -472,25 +520,57 @@ export const module: GameModule = {
 
       return {
         state: nextState,
-        log: `${getPlayerName(context.players, playerId)} made a whole-word guess.`,
+        log: `${getPlayerName(context.players, playerId)} 전체 단어 추측`,
         activePlayerId,
         turnNumber: context.turnNumber + 1,
         phase: nextState.phase
       };
     }
 
-    return { state: current, activePlayerId: current.activePlayerId, message: "Unsupported Hangman action." };
+    return { state: current, activePlayerId: current.activePlayerId, message: "지원하지 않는 행맨 행동입니다." };
   }
 };
 
 function WordDisplay({ letters }: { letters: string[] }) {
   return (
-    <div className="hangman-word-display" style={styles.wordDisplay} aria-label="Word display">
+    <div className="hangman-word-display" style={styles.wordDisplay} aria-label="단어 표시">
       {letters.map((letter, index) => (
         <span className="hangman-letter-slot" style={styles.letterSlot} key={`${letter}-${index}`}>
           {letter}
         </span>
       ))}
+    </div>
+  );
+}
+
+function HangmanToyBoard({ misses = 0, maxMisses = MAX_MISSES }: { misses?: number; maxMisses?: number }) {
+  return (
+    <div className="hangman-toy-board" aria-hidden="true">
+      <div className="hangman-toy-letters">
+        {ALPHABET.map((letter) => (
+          <span key={letter}>
+            {letter}
+          </span>
+        ))}
+      </div>
+      <div className="hangman-toy-figure">
+        <div className="hangman-gallows">
+          <span className="hangman-post" />
+          <span className="hangman-beam" />
+          <span className="hangman-rope" />
+          <span className={`hangman-figure head ${misses >= 1 ? "lit" : ""}`} />
+          <span className={`hangman-figure body ${misses >= 2 ? "lit" : ""}`} />
+          <span className={`hangman-figure arm-left ${misses >= 3 ? "lit" : ""}`} />
+          <span className={`hangman-figure arm-right ${misses >= 4 ? "lit" : ""}`} />
+          <span className={`hangman-figure leg-left ${misses >= 5 ? "lit" : ""}`} />
+          <span className={`hangman-figure leg-right ${misses >= 6 ? "lit" : ""}`} />
+        </div>
+        <div className="hangman-miss-track">
+          {Array.from({ length: maxMisses }, (_, index) => (
+            <span className={index < misses ? "lit" : ""} key={index} />
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
@@ -504,12 +584,14 @@ export function Component({
 }: GameComponentProps<HangmanPublicState>) {
   const state = publicState;
   const [secretWord, setSecretWord] = useState("");
+  const [letterGuess, setLetterGuess] = useState("");
   const [wholeWord, setWholeWord] = useState("");
   const myId = currentPlayer?.id ?? null;
   const myProgress = myId ? state.progress[myId] : undefined;
   const isMyTurn = Boolean(myId && state.activePlayerId === myId && state.phase === "guessing");
   const canGuess = !disabled && isMyTurn;
   const guessedLetters = new Set(myProgress?.guessedLetters ?? []);
+  const roundWinnerName = getPlayerName(players, state.roundWinnerId);
 
   function submitSecret(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -531,35 +613,46 @@ export function Component({
     setWholeWord("");
   }
 
+  function submitLetter(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const letter = normalizeLetter(letterGuess);
+    if (!letter || guessedLetters.has(letter)) {
+      return;
+    }
+    onAction({ type: "hangman-board-game/guess-letter", payload: { letter } });
+    setLetterGuess("");
+  }
+
   return (
-    <section className="game-module hangman-module" style={styles.shell} aria-label="Hangman board game">
+    <section className="game-module hangman-module" style={styles.shell} aria-label="행맨 보드게임">
       {state.phase === "setup" ? (
         <article className="hangman-setup-panel" style={styles.panel}>
-          <h3>Secret word setup</h3>
+          <h3>비밀 단어 준비</h3>
+          <HangmanToyBoard maxMisses={state.maxMisses} />
           <div className="hangman-setup-grid" style={styles.grid}>
             {state.playerIds.map((playerId) => (
               <div className="hangman-player-setup" key={playerId}>
                 <strong>{getPlayerName(players, playerId)}</strong>
-                <p>{state.setup.submitted[playerId] ? "Submitted" : "Waiting"}</p>
-                {myId === playerId && state.setup.ownSecret ? <p>Your secret: {state.setup.ownSecret}</p> : null}
-                {myId !== playerId && state.setup.wordLengths[playerId] > 0 ? <p>Opponent blanks: {state.setup.wordLengths[playerId]}</p> : null}
+                <p>{state.setup.submitted[playerId] ? "제출 완료" : "입력 대기"}</p>
+                {myId === playerId && state.setup.ownSecret ? <p>내 비밀 단어: {state.setup.ownSecret}</p> : null}
+                {myId !== playerId && state.setup.wordLengths[playerId] > 0 ? <p>상대 빈칸: {state.setup.wordLengths[playerId]}</p> : null}
               </div>
             ))}
           </div>
           {myId && !state.setup.submitted[myId] ? (
             <form className="hangman-secret-form" style={styles.form} onSubmit={submitSecret}>
               <label style={styles.inputGroup}>
-                Secret word
+                비밀 단어
                 <input
                   value={secretWord}
                   maxLength={MAX_WORD_LENGTH}
-                  pattern="[A-Za-z]{1,8}"
+                  pattern="[A-Za-z가-힣]{1,8}"
                   autoCapitalize="characters"
                   onChange={(event) => setSecretWord(event.currentTarget.value)}
                 />
               </label>
               <button type="submit" disabled={disabled || !normalizeWord(secretWord)}>
-                Submit
+                제출
               </button>
             </form>
           ) : null}
@@ -574,9 +667,11 @@ export function Component({
               return (
                 <article className="hangman-word-panel" style={styles.panel} key={playerId}>
                   <h3>{getPlayerName(players, playerId)}</h3>
-                  <p>{isOwnSecret ? "Your secret" : "Opponent word"}</p>
+                  <p>{isOwnSecret ? "내 비밀 단어" : "상대 단어"}</p>
                   <WordDisplay letters={state.displays[playerId] ?? []} />
-                  <p>Round wins: {state.wins[playerId] ?? 0}</p>
+                  <p>
+                    라운드 승수: {state.wins[playerId] ?? 0}/{state.targetWins}
+                  </p>
                 </article>
               );
             })}
@@ -588,38 +683,48 @@ export function Component({
           >
             <div className="hangman-turn-meta" style={styles.meta}>
               <strong>
-                {state.phase === "complete" ? "Round complete" : `Guessing: ${getPlayerName(players, state.activePlayerId)}`}
+                {state.phase === "complete"
+                  ? "매치 종료"
+                  : state.phase === "round-complete"
+                    ? "라운드 종료"
+                    : `${getPlayerName(players, state.activePlayerId)} 추측 차례`}
               </strong>
               {myProgress ? (
                 <span>
-                  Misses: {myProgress.misses}/{state.maxMisses}
+                  오답: {myProgress.misses}/{state.maxMisses}
                 </span>
               ) : null}
               {state.lastGuess ? (
                 <span>
-                  Last: {getPlayerName(players, state.lastGuess.playerId)} guessed {state.lastGuess.guess} (
-                  {state.lastGuess.hit ? "hit" : "miss"})
+                  최근: {getPlayerName(players, state.lastGuess.playerId)} {state.lastGuess.guess} (
+                  {state.lastGuess.hit ? "정답" : "오답"})
                 </span>
               ) : null}
             </div>
 
+            {state.phase === "round-complete" ? (
+              <div className="hangman-round-complete">
+                <strong>{roundWinnerName} 라운드 승리</strong>
+                <span>
+                  {state.roundNumber}라운드 종료 · 목표 {state.targetWins}승
+                </span>
+                <button type="button" onClick={() => onAction({ type: "hangman-board-game/next-round" })}>
+                  다음 라운드
+                </button>
+              </div>
+            ) : null}
+
+            {state.phase === "complete" ? (
+              <div className="hangman-round-complete">
+                <strong>{getPlayerName(players, state.winnerId)} 최종 승리</strong>
+                <span>
+                  {state.roundNumber}라운드 · {state.targetWins}승 선취
+                </span>
+              </div>
+            ) : null}
+
             <div className="hangman-console-top" aria-hidden="true">
-              <div className="hangman-gallows">
-                <span className="hangman-post" />
-                <span className="hangman-beam" />
-                <span className="hangman-rope" />
-                <span className={`hangman-figure head ${myProgress && myProgress.misses >= 1 ? "lit" : ""}`} />
-                <span className={`hangman-figure body ${myProgress && myProgress.misses >= 2 ? "lit" : ""}`} />
-                <span className={`hangman-figure arm-left ${myProgress && myProgress.misses >= 3 ? "lit" : ""}`} />
-                <span className={`hangman-figure arm-right ${myProgress && myProgress.misses >= 4 ? "lit" : ""}`} />
-                <span className={`hangman-figure leg-left ${myProgress && myProgress.misses >= 5 ? "lit" : ""}`} />
-                <span className={`hangman-figure leg-right ${myProgress && myProgress.misses >= 6 ? "lit" : ""}`} />
-              </div>
-              <div className="hangman-miss-track">
-                {Array.from({ length: state.maxMisses }, (_, index) => (
-                  <span className={myProgress && index < myProgress.misses ? "lit" : ""} key={index} />
-                ))}
-              </div>
+              <HangmanToyBoard misses={myProgress?.misses ?? 0} maxMisses={state.maxMisses} />
             </div>
 
             <div className="hangman-alphabet" style={styles.alphabet}>
@@ -637,32 +742,46 @@ export function Component({
               ))}
             </div>
 
+            <form className="hangman-letter-guess-form" style={{ ...styles.form, marginTop: "0.75rem" }} onSubmit={submitLetter}>
+              <label style={styles.inputGroup}>
+                글자 추측
+                <input
+                  value={letterGuess}
+                  maxLength={1}
+                  pattern="[A-Za-z가-힣]{1}"
+                  autoCapitalize="characters"
+                  onChange={(event) => setLetterGuess(event.currentTarget.value)}
+                />
+              </label>
+              <button type="submit" disabled={!canGuess || !normalizeLetter(letterGuess) || guessedLetters.has(normalizeLetter(letterGuess) ?? "")}>
+                글자 추측
+              </button>
+            </form>
+
             <form className="hangman-word-guess-form" style={{ ...styles.form, marginTop: "0.75rem" }} onSubmit={submitWholeWord}>
               <label style={styles.inputGroup}>
-                Whole-word guess
+                전체 단어 추측
                 <input
                   value={wholeWord}
                   maxLength={MAX_WORD_LENGTH}
-                  pattern="[A-Za-z]{1,8}"
+                  pattern="[A-Za-z가-힣]{1,8}"
                   autoCapitalize="characters"
                   onChange={(event) => setWholeWord(event.currentTarget.value)}
                 />
               </label>
               <button type="submit" disabled={!canGuess || !normalizeWord(wholeWord)}>
-                Guess word
+                단어 추측
               </button>
             </form>
 
             {myProgress ? (
               <p>
-                Missed letters: {myProgress.missedLetters.join(", ") || "None"} | Whole-word guesses:{" "}
-                {myProgress.wholeWordGuesses.join(", ") || "None"}
+                틀린 글자: {myProgress.missedLetters.join(", ") || "없음"} | 전체 단어 추측:{" "}
+                {myProgress.wholeWordGuesses.join(", ") || "없음"}
               </p>
             ) : null}
 
-            {state.phase === "complete" ? (
-              <p>Winner: {state.winnerId ? getPlayerName(players, state.winnerId) : "No winner"}</p>
-            ) : null}
+            {state.phase === "complete" ? <p>승자: {state.winnerId ? getPlayerName(players, state.winnerId) : "승자 없음"}</p> : null}
           </article>
         </>
       ) : null}
