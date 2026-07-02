@@ -1,0 +1,77 @@
+.abl-board {
+  border-width: 10px !important;
+  border-color: #4a4d4f !important;
+  background:
+    radial-gradient(circle at 34% 24%, rgba(255, 255, 255, 0.18), transparent 28%),
+    linear-gradient(145deg, #586068, #24272b) !important;
+}
+
+.abl-cell {
+  background:
+    radial-gradient(circle at 34% 24%, rgba(255, 255, 255, 0.12), transparent 30%),
+    #6f777c !important;
+  box-shadow:
+    inset 0 5px 9px rgba(0, 0, 0, 0.25),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.14) !important;
+}
+
+.abl-marble {
+  border-width: 2px !important;
+  box-shadow:
+    inset 0 8px 10px rgba(255, 255, 255, 0.22),
+    inset 0 -9px 12px rgba(0, 0, 0, 0.28),
+    0 7px 8px rgba(0, 0, 0, 0.28) !important;
+}
+
+.abl-board {
+  border-color: #111417 !important;
+  background:
+    radial-gradient(circle at 35% 24%, rgba(255, 255, 255, 0.08), transparent 28%),
+    linear-gradient(145deg, #2c3237, #111417) !important;
+}
+
+.abl-cell {
+  border-radius: 999px !important;
+  background:
+    radial-gradient(circle at 38% 28%, rgba(255, 255, 255, 0.1), transparent 30%),
+    linear-gradient(180deg, #555e64, #252b2f) !important;
+}
+
+.abl-marble {
+  color: transparent !important;
+  font-size: 0 !important;
+}
+
+.abl-marble {
+  border-radius: 999px !important;
+  box-shadow:
+    inset 0 8px 10px rgba(255, 255, 255, 0.24),
+    inset 0 -10px 12px rgba(0, 0, 0, 0.28),
+    0 7px 8px rgba(0, 0, 0, 0.28) !important;
+}
+
+.abl-marble::before {
+  content: "";
+  position: absolute;
+  inset: 11% 16% auto;
+  height: 26%;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.54), rgba(255, 255, 255, 0.08));
+  transform: rotate(-18deg);
+  pointer-events: none;
+}
+
+.abl-marble::after {
+  content: "";
+  position: absolute;
+  inset: auto 12% 10% 12%;
+  height: 22%;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.16);
+  filter: blur(3px);
+  pointer-events: none;
+}
+
+.abl-cell.selected .abl-marble {
+  transform: translateY(-5px) scale(1.04);
+}

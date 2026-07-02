@@ -807,6 +807,41 @@ function YinshStyles() {
         background: linear-gradient(180deg, #ffffff, #e8f1ee);
       }
 
+      .yinsh-phase-guide {
+        margin: 0;
+        border: 1px solid rgba(45, 78, 92, 0.14);
+        border-radius: 8px;
+        padding: 0.55rem;
+        background: rgba(255, 255, 255, 0.72);
+        color: #30424b;
+        font-size: 0.86rem;
+        line-height: 1.42;
+      }
+
+      .yinsh-mini-metrics {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.4rem;
+      }
+
+      .yinsh-mini-metrics span {
+        min-width: 0;
+        border: 1px solid rgba(45, 78, 92, 0.14);
+        border-radius: 8px;
+        padding: 0.45rem;
+        background: rgba(255, 255, 255, 0.72);
+        color: #52625d;
+        font-size: 0.78rem;
+      }
+
+      .yinsh-mini-metrics strong {
+        display: block;
+        overflow: hidden;
+        color: #172033;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
       .yinsh-player-row {
         display: grid;
         grid-template-columns: 1rem 1fr auto;
@@ -922,6 +957,18 @@ export function Component({
     state?.phase !== "finished" &&
     Boolean(currentColor) &&
     currentColor === activeColor;
+  const phaseHint = !state
+    ? ""
+    : state.phase === "ring-placement"
+      ? "빈 교차점에 자기 링을 놓습니다. 양쪽 모두 5개를 놓으면 이동 단계로 넘어갑니다."
+      : state.phase === "move"
+        ? selectedRingKey
+          ? `선택한 링에서 이동 가능한 점 ${legalDestinations.size}곳이 초록색으로 표시됩니다.`
+          : "자기 링 하나를 먼저 선택하세요. 이동 경로의 마커는 자동으로 뒤집힙니다."
+        : state.phase === "remove-row"
+          ? "노란색으로 표시된 5목 줄을 고르고, 함께 제거할 자기 링 하나를 선택하세요."
+          : "게임이 끝났습니다.";
+  const selectedRingLabel = selectedRingKey ?? "없음";
 
   if (!state) {
     return (
@@ -1053,6 +1100,12 @@ export function Component({
         <aside className="yinsh-side" aria-label="인쉬 조작">
           <section className="yinsh-panel">
             <strong>진행</strong>
+            <p className="yinsh-phase-guide">{phaseHint}</p>
+            <div className="yinsh-mini-metrics" aria-label="인쉬 선택 상태">
+              <span>선택 링 <strong>{selectedRingLabel}</strong></span>
+              <span>이동 후보 <strong>{legalDestinations.size}</strong></span>
+              <span>제거 줄 <strong>{activeRowIndices.length}</strong></span>
+            </div>
             {state.phase === "ring-placement" ? (
               <span>
                 <CircleDot size={15} /> 빈 점을 눌러 링을 배치합니다.

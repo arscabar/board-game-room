@@ -1,0 +1,179 @@
+.qdr-board {
+  border-width: 10px !important;
+  border-color: #7c2f25 !important;
+  background:
+    linear-gradient(90deg, #201513 0 6px, transparent 6px),
+    linear-gradient(0deg, #201513 0 6px, transparent 6px),
+    linear-gradient(135deg, #8e3b2e, #4a211c 62%, #221616) !important;
+}
+
+.qdr-cell {
+  border-radius: 5px !important;
+  border-color: rgba(255, 202, 99, 0.18) !important;
+  background:
+    radial-gradient(circle at 36% 22%, rgba(255, 230, 171, 0.3), transparent 34%),
+    linear-gradient(180deg, #5b3029, #2d1c1a) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 215, 139, 0.18),
+    inset 0 -4px 0 rgba(0, 0, 0, 0.24) !important;
+}
+
+.qdr-shell {
+  background:
+    radial-gradient(circle at 18% 10%, rgba(255, 244, 210, 0.18), transparent 24%),
+    linear-gradient(135deg, #d8a868, #9b6430 64%, #61381b) !important;
+}
+
+.qdr-status,
+.qdr-player,
+.qdr-wall-controls {
+  border-color: rgba(92, 54, 24, 0.2) !important;
+  background:
+    linear-gradient(180deg, rgba(255, 244, 214, 0.96), rgba(214, 163, 91, 0.78)) !important;
+}
+
+.qdr-board {
+  --qdr-gap: 7px !important;
+  gap: 7px !important;
+  width: min(100%, 560px) !important;
+  min-width: 450px !important;
+  padding: 18px !important;
+  border-color: #9f6a35 !important;
+  background:
+    linear-gradient(90deg, #6a3e20 0 7px, transparent 7px),
+    linear-gradient(0deg, #6a3e20 0 7px, transparent 7px),
+    linear-gradient(135deg, #c99555, #8a562b 62%, #5b351c) !important;
+  box-shadow:
+    inset 0 0 0 3px rgba(255, 237, 190, 0.28),
+    inset 0 0 28px rgba(92, 54, 24, 0.26),
+    0 18px 28px rgba(65, 38, 20, 0.28) !important;
+}
+
+.qdr-cell {
+  border-color: rgba(92, 54, 24, 0.16) !important;
+  background:
+    radial-gradient(circle at 34% 22%, rgba(255, 237, 183, 0.64), transparent 34%),
+    linear-gradient(180deg, #edc982, #c58a42) !important;
+  color: #271915 !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 246, 218, 0.7),
+    inset 0 -4px 0 rgba(92, 54, 24, 0.12) !important;
+}
+
+.qdr-cell.legal {
+  background:
+    radial-gradient(circle at center, rgba(30, 122, 126, 0.24), transparent 58%),
+    linear-gradient(180deg, #f4d692, #c99145) !important;
+}
+
+.qdr-wall-grid button,
+.qdr-segment button,
+.qdr-action {
+  background:
+    linear-gradient(90deg, rgba(255, 247, 211, 0.72), transparent 28%),
+    linear-gradient(180deg, #f0c56c, #b87934) !important;
+}
+
+.qdr-wall-grid button::before {
+  background:
+    linear-gradient(180deg, #f8d987, #c98431) !important;
+}
+
+.qdr-layout {
+  grid-template-columns: 1fr !important;
+  gap: 14px !important;
+  overflow: visible !important;
+}
+
+.qdr-board {
+  width: min(100%, 520px) !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+}
+
+.qdr-panel {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)) !important;
+  gap: 12px !important;
+  min-width: 0 !important;
+}
+
+.qdr-wall-grid {
+  min-width: 0 !important;
+  grid-template-columns: repeat(8, minmax(28px, 1fr)) !important;
+}
+
+.qdr-wall-grid button {
+  min-width: 0 !important;
+}
+
+.qdr-pawn {
+  width: 58% !important;
+  border-radius: 999px !important;
+  color: transparent !important;
+  font-size: 0 !important;
+  box-shadow:
+    inset 0 8px 10px rgba(255, 255, 255, 0.22),
+    inset 0 -8px 10px rgba(0, 0, 0, 0.24),
+    0 6px 8px rgba(64, 38, 21, 0.28) !important;
+}
+
+.qdr-board {
+  border-color: #8b5a2f !important;
+  background:
+    repeating-linear-gradient(90deg, rgba(255, 235, 188, 0.08) 0 1px, transparent 1px 42px),
+    linear-gradient(135deg, #b98245, #75431f 58%, #3a2112) !important;
+}
+
+.qdr-cell {
+  background:
+    linear-gradient(135deg, rgba(255, 238, 190, 0.24), transparent 40%),
+    linear-gradient(180deg, #c28a4b, #805026) !important;
+}
+
+.qdr-wall-piece {
+  background:
+    linear-gradient(180deg, #4a2d1a, #21120a) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 221, 151, 0.2),
+    0 3px 5px rgba(32, 18, 9, 0.3) !important;
+}
+
+.qdr-pawn {
+  border: 1px solid rgba(48, 29, 15, 0.34) !important;
+  box-shadow:
+    inset 0 8px 9px rgba(255, 255, 255, 0.26),
+    inset 0 -9px 11px rgba(0, 0, 0, 0.28),
+    0 7px 8px rgba(64, 38, 21, 0.3) !important;
+}
+
+.qdr-pawn::after {
+  content: "";
+  position: absolute;
+  inset: 18% 22% auto;
+  height: 20%;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.36);
+  filter: blur(1px);
+}
+
+.qdr-wall-piece {
+  border: 1px solid rgba(22, 12, 6, 0.58) !important;
+  background:
+    linear-gradient(90deg, rgba(255, 219, 144, 0.14), transparent 16% 84%, rgba(0, 0, 0, 0.22)),
+    repeating-linear-gradient(0deg, rgba(255, 211, 130, 0.1) 0 1px, transparent 1px 8px),
+    linear-gradient(180deg, #4a2d19, #1b0e07) !important;
+}
+
+.qdr-wall-piece::after {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  border-radius: 2px;
+  border: 1px solid rgba(255, 220, 143, 0.14);
+  pointer-events: none;
+}
+
+.qdr-wall-piece {
+  animation: wall-snap var(--motion-shift);
+}

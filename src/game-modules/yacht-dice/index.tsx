@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import type { GameAction, GameComponentProps, GameContext, GameModule } from "../types";
+import type { GameAction, GameActionResult, GameComponentProps, GameContext, GameModule, GameSystemAction } from "../types";
 import type { PlayerSnapshot } from "../../shared/types";
 
 const DICE_COUNT = 5;
@@ -267,6 +267,60 @@ function winnerFor(state: YachtState, scores: Record<string, ScoreSheet>) {
   return bestPlayerIds.length === 1 ? bestPlayerIds[0] : null;
 }
 
+function openCategories(scores: ScoreSheet) {
+  return CATEGORIES.filter((category) => scores[category.id] === undefined).map((category) => category.id);
+}
+
+function lowestScoringOpenCategory(scores: ScoreSheet, dice: DieValue[]) {
+  const open = openCategories(scores);
+  return open.sort((left, right) => scoreCategory(left, dice) - scoreCategory(right, dice))[0] ?? null;
+}
+
+function scoreTurn(
+  current: YachtState,
+  context: GameContext,
+  playerId: string,
+  category: CategoryId,
+  logPrefix?: string
+): GameActionResult {
+  const playerScores = current.scores[playerId] ?? {};
+  if (playerScores[category] !== undefined) {
+    return { state: current, activePlayerId: current.activePlayerId, message: "이미 채운 점수 칸입니다." };
+  }
+
+  const score = scoreCategory(category, current.dice);
+  const scores = {
+    ...current.scores,
+    [playerId]: {
+      ...playerScores,
+      [category]: score
+    }
+  };
+  const gameComplete = current.playerIds.every((id) => allCategoriesUsed(scores[id] ?? {}));
+  const activePlayerId = gameComplete ? null : nextPlayerAfter(current, scores, playerId);
+  const nextState: YachtState = {
+    ...current,
+    activePlayerId,
+    phase: gameComplete ? "complete" : "rolling",
+    dice: gameComplete ? current.dice : emptyDice(),
+    held: Array.from({ length: DICE_COUNT }, () => false),
+    rollsThisTurn: 0,
+    scores,
+    winnerId: gameComplete ? winnerFor(current, scores) : null,
+    lastScored: { playerId, category, score }
+  };
+  const categoryLabel = CATEGORIES.find((item) => item.id === category)?.label ?? category;
+
+  return {
+    state: nextState,
+    log: `${logPrefix ?? getPlayerName(context.players, playerId)} ${categoryLabel}에 ${score}점 기록`,
+    activePlayerId,
+    turnNumber: context.turnNumber + 1,
+    phase: nextState.phase,
+    winnerId: nextState.winnerId
+  };
+}
+
 function createState(context: Pick<GameContext, "players">): YachtState {
   const playerIds = orderedPlayers(context.players, 4);
   const scores: Record<string, ScoreSheet> = {};
@@ -372,40 +426,31 @@ export const module: GameModule = {
         return { state: current, activePlayerId: current.activePlayerId, message: "이미 채운 점수 칸입니다." };
       }
 
-      const score = scoreCategory(category, current.dice);
-      const scores = {
-        ...current.scores,
-        [playerId]: {
-          ...playerScores,
-          [category]: score
-        }
-      };
-      const gameComplete = current.playerIds.every((id) => allCategoriesUsed(scores[id] ?? {}));
-      const activePlayerId = gameComplete ? null : nextPlayerAfter(current, scores, playerId);
-      const nextState: YachtState = {
-        ...current,
-        activePlayerId,
-        phase: gameComplete ? "complete" : "rolling",
-        dice: gameComplete ? current.dice : emptyDice(),
-        held: Array.from({ length: DICE_COUNT }, () => false),
-        rollsThisTurn: 0,
-        scores,
-        winnerId: gameComplete ? winnerFor(current, scores) : null,
-        lastScored: { playerId, category, score }
-      };
-      const categoryLabel = CATEGORIES.find((item) => item.id === category)?.label ?? category;
-
-      return {
-        state: nextState,
-        log: `${getPlayerName(context.players, playerId)} ${categoryLabel}에 ${score}점 기록`,
-        activePlayerId,
-        turnNumber: context.turnNumber + 1,
-        phase: nextState.phase,
-        winnerId: nextState.winnerId
-      };
+      return scoreTurn(current, context, playerId, category);
     }
 
     return { state: current, activePlayerId: current.activePlayerId, message: "지원하지 않는 요트 다이스 행동입니다." };
+  },
+  applySystemAction: (state, action: GameSystemAction, context) => {
+    const current = state as YachtState;
+    if (current.phase === "complete") {
+      return { state: current, activePlayerId: null, phase: "complete", winnerId: current.winnerId };
+    }
+    const playerId = context.activePlayerId;
+    if (!playerId || current.activePlayerId !== playerId) {
+      return { state: current, activePlayerId: current.activePlayerId, message: "현재 차례 플레이어를 찾을 수 없습니다." };
+    }
+    if (action.type === "system/pass") {
+      throw new Error("요트 다이스는 점수칸을 기록해야 턴을 끝낼 수 있습니다.");
+    }
+
+    const dice = current.rollsThisTurn === 0 ? emptyDice() : current.dice;
+    const category = lowestScoringOpenCategory(current.scores[playerId] ?? {}, dice);
+    if (!category) {
+      return { state: current, activePlayerId: current.activePlayerId, message: "기록할 수 있는 점수칸이 없습니다." };
+    }
+    const timedOutState: YachtState = current.rollsThisTurn === 0 ? { ...current, dice } : current;
+    return scoreTurn(timedOutState, context, playerId, category, `${getPlayerName(context.players, playerId)} 시간 초과 자동 기록`);
   }
 };
 

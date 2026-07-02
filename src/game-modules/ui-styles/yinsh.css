@@ -1,0 +1,86 @@
+.yinsh-module {
+  background:
+    radial-gradient(circle at 50% 40%, rgba(59, 130, 160, 0.1), transparent 35%),
+    linear-gradient(180deg, #f2efe3, #d1c5a8) !important;
+}
+
+.yinsh-board-wrap {
+  border-width: 8px !important;
+  border-color: #63747c !important;
+  background:
+    radial-gradient(circle at 50% 48%, rgba(255, 255, 255, 0.65), transparent 44%),
+    linear-gradient(180deg, #edf4ef, #c8d4ca) !important;
+}
+
+.yinsh-edge {
+  stroke: rgba(63, 86, 90, 0.52) !important;
+}
+
+.yinsh-point {
+  fill: #f7f4e9 !important;
+  stroke: #4d7778 !important;
+}
+
+.yinsh-ring.white,
+.yinsh-ring.black {
+  filter: drop-shadow(0 6px 5px rgba(33, 27, 21, 0.26));
+}
+
+.yinsh-board-wrap {
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.78), transparent 45%),
+    linear-gradient(180deg, #f3f1ea, #d6d0c2) !important;
+}
+
+.yinsh-board-wrap {
+  background:
+    linear-gradient(180deg, #f6f3e7, #ccd7cf) !important;
+}
+
+.yinsh-point {
+  fill: #fff9e8 !important;
+  stroke: #245a5b !important;
+}
+
+.yinsh-ring {
+  fill: transparent !important;
+  stroke-width: 7.5 !important;
+}
+
+.yinsh-ring.white {
+  stroke:
+    color-mix(in srgb, #fffaf0 72%, #b9a57d) !important;
+}
+
+.yinsh-ring.black {
+  stroke:
+    color-mix(in srgb, #151515 84%, #6f6252) !important;
+}
+
+.yinsh-ring.selected {
+  filter:
+    drop-shadow(0 0 7px rgba(201, 154, 66, 0.78))
+    drop-shadow(0 5px 5px rgba(33, 27, 21, 0.3)) !important;
+}
+
+.yinsh-marker.white {
+  stroke: rgba(95, 78, 52, 0.5) !important;
+  filter: drop-shadow(0 4px 4px rgba(33, 27, 21, 0.18));
+}
+
+.yinsh-marker.black {
+  stroke: rgba(255, 246, 218, 0.28) !important;
+  filter: drop-shadow(0 4px 4px rgba(33, 27, 21, 0.24));
+}
+
+.yinsh-marker {
+  transform-origin: center;
+}
+
+.yinsh-point.row {
+  animation: row-trace 1s ease-in-out infinite;
+}
+
+.yinsh-marker {
+  animation: tile-flip var(--motion-flip);
+}

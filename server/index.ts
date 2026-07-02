@@ -10,7 +10,7 @@ import { games, getGameById } from "../src/shared/games";
 import { canPlayGame, ROOM_MAX_PLAYERS } from "../src/shared/eligibility";
 import type { Ack, GameRuntimeState, MoveEntry, PlayerSnapshot, RoomSnapshot } from "../src/shared/types";
 import { getGameRegistration } from "../src/game-modules/registry";
-import type { GameAction } from "../src/game-modules/types";
+import type { GameAction, GameActionResult, GameContext, GameSystemAction } from "../src/game-modules/types";
 import type { MatchRecord, MatchResult } from "../src/shared/stats";
 import { createMatchId, createStatsStore, normalizePlayerKey } from "./statsStore";
 
@@ -681,6 +681,48 @@ function syncPrivateActivePlayer(room: RoomRecord) {
   }
 }
 
+function applyGameOutcome(room: RoomRecord, outcome: GameActionResult, context: GameContext, viewerId: string | null) {
+  const registration = getGameRegistration(room.selectedGameId);
+  if (!registration) {
+    throw new Error("이 게임은 아직 세부 플레이 모듈이 연결되지 않았습니다.");
+  }
+
+  const previousActivePlayerId = room.gameState.activePlayerId;
+  const previousPhase = phaseFrom(room);
+  room.gamePrivateState = outcome.state;
+  if (outcome.activePlayerId !== undefined) {
+    room.gameState.activePlayerId = outcome.activePlayerId;
+  }
+  if (outcome.turnNumber !== undefined) {
+    room.gameState.turnNumber = outcome.turnNumber;
+  }
+  if (outcome.roundNumber !== undefined) {
+    room.gameState.roundNumber = outcome.roundNumber;
+  }
+  if (outcome.phase !== undefined) {
+    room.gameState.phase = outcome.phase;
+  }
+  if (outcome.message !== undefined) {
+    room.gameState.message = outcome.message;
+  }
+  if (outcome.winnerId !== undefined) {
+    room.gameState.winnerId = outcome.winnerId;
+  }
+
+  room.gameState.publicState = registration.module.getPublicState(room.gamePrivateState, {
+    ...context,
+    activePlayerId: room.gameState.activePlayerId,
+    turnNumber: room.gameState.turnNumber,
+    roundNumber: room.gameState.roundNumber,
+    viewerId
+  });
+
+  return {
+    activeChanged: outcome.activePlayerId !== undefined && outcome.activePlayerId !== previousActivePlayerId,
+    phaseChanged: outcome.phase !== undefined && outcome.phase !== previousPhase
+  };
+}
+
 function forceAdvanceBlokusTurn(room: RoomRecord) {
   const privateState = asRecord(room.gamePrivateState);
   const players = Array.isArray(privateState?.players) ? privateState.players.map(asRecord).filter(Boolean) : [];
@@ -704,7 +746,26 @@ function forceAdvanceBlokusTurn(room: RoomRecord) {
   }
 }
 
-function forceAdvanceRoomTurn(room: RoomRecord) {
+function forceAdvanceRoomTurn(room: RoomRecord, systemAction: GameSystemAction, viewerId: string | null = null) {
+  const registration = getGameRegistration(room.selectedGameId);
+  const activePlayerId = room.gameState.activePlayerId;
+  const context = activePlayerId ? buildGameContext(room, activePlayerId) : null;
+
+  if (registration?.module.applySystemAction && context) {
+    const outcome = registration.module.applySystemAction(room.gamePrivateState, systemAction, context);
+    const changes = applyGameOutcome(room, outcome, context, viewerId ?? activePlayerId);
+    if (changes.activeChanged || changes.phaseChanged || roomGameIsFinished(room)) {
+      resetTurnClock(room);
+    } else {
+      scheduleTurnTimeout(room);
+    }
+    return outcome.log ?? null;
+  }
+
+  if (systemAction.type === "system/pass") {
+    throw new Error("이 게임은 현재 단계에서 공통 턴 종료를 사용할 수 없습니다. 게임판의 행동 버튼을 사용해주세요.");
+  }
+
   if (room.selectedGameId === "blokus") {
     forceAdvanceBlokusTurn(room);
   } else {
@@ -712,6 +773,7 @@ function forceAdvanceRoomTurn(room: RoomRecord) {
     syncPrivateActivePlayer(room);
   }
   resetTurnClock(room);
+  return null;
 }
 
 function handleTurnTimeout(room: RoomRecord, reason: string) {
@@ -725,7 +787,17 @@ function handleTurnTimeout(room: RoomRecord, reason: string) {
   room.gameState.timeoutCounts = timeoutCounts;
   room.gameState.lastTimeoutAt = Date.now();
   appendSystemLog(room, `${activePlayer.name} 시간 초과 (${reason})`);
-  forceAdvanceRoomTurn(room);
+  try {
+    const actionReason = reason === "자동 타임아웃" ? "auto-timeout" : "host-timeout";
+    const systemLog = forceAdvanceRoomTurn(room, { type: "system/timeout", reason: actionReason }, activePlayer.id);
+    if (systemLog) {
+      appendSystemLog(room, systemLog);
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "타임아웃 처리 중 오류가 발생했습니다.";
+    appendSystemLog(room, `타임아웃 처리 실패: ${message}`);
+    resetTurnClock(room);
+  }
 }
 
 function scoreForPlayer(gameId: string, state: unknown, playerId: string) {
@@ -1088,42 +1160,12 @@ io.on("connection", (socket) => {
     }
 
     try {
-      const previousActivePlayerId = result.room.gameState.activePlayerId;
-      const previousPhase = phaseFrom(result.room);
       const outcome = registration.module.applyAction(result.room.gamePrivateState, action, context);
-      result.room.gamePrivateState = outcome.state;
-      if (outcome.activePlayerId !== undefined) {
-        result.room.gameState.activePlayerId = outcome.activePlayerId;
-      }
-      if (outcome.turnNumber !== undefined) {
-        result.room.gameState.turnNumber = outcome.turnNumber;
-      }
-      if (outcome.roundNumber !== undefined) {
-        result.room.gameState.roundNumber = outcome.roundNumber;
-      }
-      if (outcome.phase !== undefined) {
-        result.room.gameState.phase = outcome.phase;
-      }
-      if (outcome.message !== undefined) {
-        result.room.gameState.message = outcome.message;
-      }
-      if (outcome.winnerId !== undefined) {
-        result.room.gameState.winnerId = outcome.winnerId;
-      }
-      const viewerState = registration.module.getPublicState(result.room.gamePrivateState, {
-        ...context,
-        activePlayerId: result.room.gameState.activePlayerId,
-        turnNumber: result.room.gameState.turnNumber,
-        roundNumber: result.room.gameState.roundNumber,
-        viewerId: result.player.id
-      });
-      result.room.gameState.publicState = viewerState;
+      const changes = applyGameOutcome(result.room, outcome, context, result.player.id);
       if (outcome.log) {
         appendLog(result.room, result.player, outcome.log);
       }
-      const activeChanged = outcome.activePlayerId !== undefined && outcome.activePlayerId !== previousActivePlayerId;
-      const phaseChanged = outcome.phase !== undefined && outcome.phase !== previousPhase;
-      if (activeChanged || phaseChanged || roomGameIsFinished(result.room)) {
+      if (changes.activeChanged || changes.phaseChanged || roomGameIsFinished(result.room)) {
         resetTurnClock(result.room);
       } else {
         scheduleTurnTimeout(result.room);
@@ -1195,10 +1237,23 @@ io.on("connection", (socket) => {
       return;
     }
 
-    appendLog(result.room, result.player, activePlayer?.id === result.player?.id ? "턴 종료" : `${activePlayer?.name ?? "현재 플레이어"} 턴 강제 종료`);
-    forceAdvanceRoomTurn(result.room);
-    reply(ack, { ok: true, data: snapshotRoom(result.room) });
-    broadcastRoom(result.room);
+    try {
+      const isOwnTurn = activePlayer.id === result.player?.id;
+      const systemAction: GameSystemAction = isOwnTurn
+        ? { type: "system/pass", reason: "manual-pass" }
+        : { type: "system/timeout", reason: "host-timeout" };
+      const systemLog = forceAdvanceRoomTurn(result.room, systemAction, result.player.id);
+      appendLog(
+        result.room,
+        result.player,
+        systemLog ?? (isOwnTurn ? "턴 종료" : `${activePlayer.name ?? "현재 플레이어"} 턴 강제 종료`)
+      );
+      reply(ack, { ok: true, data: snapshotRoom(result.room, result.player.id) });
+      broadcastRoom(result.room);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "턴 종료 처리 중 오류가 발생했습니다.";
+      reply(ack, { ok: false, error: message });
+    }
   });
 
   socket.on("room:pause-game", (payload: { code?: string }, ack?: (response: Ack<RoomSnapshot>) => void) => {

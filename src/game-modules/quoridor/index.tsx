@@ -584,6 +584,12 @@ export function Component(props: GameComponentProps) {
             ))}
           </div>
 
+          <div className="qdr-guidance" aria-label="쿼리도 행동 안내">
+            <strong>이번 턴 후보</strong>
+            <span>말 이동 {moves.length}곳 · 선택 벽 {wallRow + 1}-{wallCol + 1} {orientation === "horizontal" ? "가로" : "세로"}</span>
+            <p>{selectedWallReason}</p>
+          </div>
+
           <div className="qdr-wall-controls">
             <strong>벽 놓기</strong>
             <div className="qdr-segment">
@@ -883,6 +889,34 @@ const quoridorStyles = `
   border: 1px solid rgba(23, 32, 29, 0.2);
   border-radius: 999px;
 }
+.qdr-guidance {
+  display: grid;
+  gap: 5px;
+  border: 1px solid rgba(255, 218, 135, 0.24);
+  border-radius: 8px;
+  padding: 10px;
+  background:
+    linear-gradient(180deg, #ffefc7, #d89c55);
+  color: #211513;
+  box-shadow: inset 0 -3px 0 rgba(75, 42, 19, 0.14);
+}
+.qdr-guidance strong,
+.qdr-guidance span,
+.qdr-guidance p {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.qdr-guidance span {
+  color: #52625d;
+  font-size: 0.84rem;
+  font-weight: 800;
+}
+.qdr-guidance p {
+  margin: 0;
+  color: #36251f;
+  font-size: 0.86rem;
+  line-height: 1.35;
+}
 .qdr-wall-controls {
   display: grid;
   gap: 10px;
@@ -982,6 +1016,26 @@ const quoridorStyles = `
   .qdr-board {
     width: 450px;
     max-width: none;
+  }
+}
+@media (max-width: 540px) {
+  .qdr-shell {
+    padding: 10px;
+  }
+  .qdr-layout {
+    margin-inline: -10px;
+    padding-inline: 10px;
+  }
+  .qdr-board {
+    width: 450px;
+  }
+  .qdr-wall-grid {
+    min-width: 336px;
+    gap: 4px;
+  }
+  .qdr-wall-grid button {
+    min-width: 38px;
+    min-height: 38px;
   }
 }
 `;

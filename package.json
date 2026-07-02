@@ -20,6 +20,7 @@
     "qa:catalog": "tsx scripts/qa-game-catalog.ts",
     "qa:games": "tsx scripts/qa-all-games.ts",
     "qa:privacy": "tsx scripts/qa-privacy.ts",
+    "qa:timeouts": "tsx scripts/qa-timeouts.ts",
     "qa:max": "tsx scripts/qa-all-games.ts --max-runs"
   },
   "dependencies": {

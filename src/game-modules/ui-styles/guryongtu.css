@@ -1,0 +1,192 @@
+.guryongtu-module {
+  color: #241915;
+  background:
+    radial-gradient(circle at 18% 18%, rgba(172, 44, 38, 0.12), transparent 26%),
+    linear-gradient(135deg, rgba(38, 27, 24, 0.1), transparent 42%),
+    #f4ead6;
+}
+
+.guryongtu-player-panel,
+.guryongtu-choice-panel,
+.guryongtu-history {
+  border-color: rgba(73, 43, 28, 0.28) !important;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(242, 224, 188, 0.78)),
+    repeating-linear-gradient(90deg, rgba(36, 25, 21, 0.035) 0 1px, transparent 1px 13px) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
+}
+
+.guryongtu-choice-panel {
+  position: relative;
+  overflow: hidden;
+}
+
+.guryongtu-choice-panel::before {
+  content: "";
+  position: absolute;
+  inset: 12px;
+  border: 1px solid rgba(124, 45, 30, 0.22);
+  border-radius: 6px;
+  pointer-events: none;
+}
+
+.guryongtu-tile-grid {
+  position: relative;
+  z-index: 1;
+}
+
+.guryongtu-tile-button {
+  min-height: 54px !important;
+  border-color: rgba(82, 43, 26, 0.36) !important;
+  background:
+    linear-gradient(180deg, #fef8e7, #e7c986) !important;
+  color: #241915;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.8),
+    inset 0 -4px 0 rgba(108, 63, 35, 0.14),
+    0 5px 10px rgba(38, 27, 24, 0.14);
+  font-size: 1.25rem;
+  letter-spacing: 0;
+}
+
+.guryongtu-tile-button[aria-pressed="true"] {
+  background:
+    linear-gradient(180deg, #fff4c4, #d69b2d) !important;
+  outline: 3px solid rgba(124, 45, 30, 0.42);
+  outline-offset: 1px;
+}
+
+.guryongtu-tile-button:disabled {
+  opacity: 0.52;
+  box-shadow: inset 0 0 0 1px rgba(82, 43, 26, 0.16);
+}
+
+.guryongtu-round-row {
+  display: grid;
+  gap: 3px;
+  border-left: 4px solid rgba(124, 45, 30, 0.32);
+  padding: 8px 10px;
+  background: rgba(255, 251, 235, 0.62);
+}
+
+.guryongtu-module {
+  background:
+    radial-gradient(circle at 50% 20%, rgba(179, 50, 43, 0.18), transparent 28%),
+    linear-gradient(145deg, #f3ddb2, #c79c5b) !important;
+}
+
+.guryongtu-player-panel,
+.guryongtu-choice-panel,
+.guryongtu-history {
+  border-width: 2px !important;
+  background:
+    linear-gradient(180deg, rgba(255, 250, 232, 0.94), rgba(222, 187, 124, 0.82)),
+    repeating-linear-gradient(90deg, rgba(63, 40, 24, 0.05) 0 2px, transparent 2px 14px) !important;
+}
+
+.guryongtu-tile-button {
+  border-radius: 7px !important;
+  background:
+    radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.62), transparent 20%),
+    linear-gradient(180deg, #fff6d2, #c99643) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.8),
+    inset 0 -5px 0 rgba(76, 48, 24, 0.18),
+    0 6px 0 rgba(84, 50, 25, 0.2) !important;
+}
+
+.guryongtu-module {
+  color: #f8f5eb !important;
+  background:
+    radial-gradient(circle at 50% 18%, rgba(220, 28, 32, 0.18), transparent 28%),
+    linear-gradient(145deg, #242426, #070809) !important;
+}
+
+.guryongtu-player-panel,
+.guryongtu-choice-panel,
+.guryongtu-history {
+  border-color: rgba(255, 255, 255, 0.14) !important;
+  background:
+    linear-gradient(180deg, rgba(35, 37, 39, 0.96), rgba(13, 14, 16, 0.94)) !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.05),
+    0 12px 22px rgba(0, 0, 0, 0.24) !important;
+}
+
+.guryongtu-tile-button {
+  min-height: 62px !important;
+  border-radius: 5px !important;
+  border-color: rgba(255, 255, 255, 0.18) !important;
+  font-size: 1.45rem !important;
+  font-weight: 900 !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.25),
+    inset 0 -5px 0 rgba(0, 0, 0, 0.24),
+    0 7px 12px rgba(0, 0, 0, 0.32) !important;
+}
+
+.guryongtu-tile-button:nth-child(odd) {
+  background:
+    radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.96), transparent 23%),
+    linear-gradient(180deg, #fffdf4, #d7d2c7) !important;
+  color: #111315 !important;
+}
+
+.guryongtu-tile-button:nth-child(even) {
+  background:
+    radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.18), transparent 23%),
+    linear-gradient(180deg, #25272a, #050606) !important;
+  color: #f8f5eb !important;
+}
+
+.guryongtu-tile-button[aria-pressed="true"] {
+  outline: 3px solid #d82027 !important;
+  outline-offset: 2px !important;
+}
+
+.guryongtu-round-row {
+  border-left-color: #d82027 !important;
+  background: rgba(255, 255, 255, 0.06) !important;
+}
+
+.guryongtu-tile-button {
+  border: 1px solid rgba(75, 44, 20, 0.42) !important;
+  color: #2b1a10 !important;
+  text-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.58),
+    0 -1px 0 rgba(91, 55, 22, 0.16);
+  background:
+    radial-gradient(circle at 28% 18%, rgba(255, 255, 255, 0.74), transparent 22%),
+    repeating-linear-gradient(112deg, rgba(117, 75, 32, 0.06) 0 1px, transparent 1px 9px),
+    linear-gradient(180deg, #fff7d3, #d6a454 64%, #9a6629) !important;
+}
+
+.guryongtu-tile-button::before {
+  content: "";
+  position: absolute;
+  inset: 5px;
+  border: 1px solid rgba(80, 48, 20, 0.24);
+  border-radius: 5px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.44),
+    inset 0 -2px 0 rgba(83, 50, 22, 0.12);
+  pointer-events: none;
+}
+
+.guryongtu-tile-button::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(120deg, rgba(255, 255, 255, 0.34), transparent 28% 64%, rgba(79, 43, 18, 0.14));
+  mix-blend-mode: soft-light;
+}
+
+.guryongtu-tile-button:not(:disabled):hover {
+  transform: translateY(-4px) rotate(-0.8deg);
+}
+
+.guryongtu-round-row {
+  animation: tile-flip var(--motion-flip);
+}

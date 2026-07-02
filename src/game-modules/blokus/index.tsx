@@ -1,6 +1,6 @@
 import { FlipHorizontal, RotateCw, SkipForward } from "lucide-react";
 import { type CSSProperties, useEffect, useMemo, useState } from "react";
-import type { GameComponentProps, GameModule } from "../types";
+import type { GameActionResult, GameComponentProps, GameContext, GameModule } from "../types";
 
 type Point = {
   x: number;
@@ -410,6 +410,47 @@ function assertBlokusState(state: unknown): BlokusState {
   return state as BlokusState;
 }
 
+function passBlokusTurn(
+  currentState: BlokusState,
+  context: GameContext,
+  options: { requireNoMoves: boolean; timeout: boolean }
+): GameActionResult {
+  const nextState = cloneState(currentState);
+  const player = requireActivePlayer(nextState, context.currentPlayerId, context.activePlayerId);
+  if (options.requireNoMoves && playerCanMove(nextState, player)) {
+    throw new Error("둘 수 있는 블록이 남아 있어 패스할 수 없습니다.");
+  }
+
+  const actingName = controllerName(player);
+  advanceSharedController(nextState, player);
+  const turn = getNextTurn(nextState, player.id, context.turnNumber, context.roundNumber);
+  if (turn.finished) {
+    const winnerIds = finishGame(nextState);
+    return {
+      state: nextState,
+      log: options.timeout ? `${actingName} 시간 초과. 블로커스 종료` : `${actingName} 패스. 블로커스 종료`,
+      activePlayerId: null,
+      phase: nextState.phase,
+      message: nextState.message,
+      winnerId: winnerIds.length === 1 ? winnerIds[0] : null
+    };
+  }
+
+  nextState.message = options.timeout
+    ? `${actingName}님이 제한 시간을 넘겨 차례가 넘어갔습니다.`
+    : `${actingName}님은 둘 수 있는 블록이 없어 패스했습니다.`;
+  nextState.activeColorId = turn.activeColorId ?? null;
+  return {
+    state: nextState,
+    log: options.timeout ? `${actingName} 시간 초과` : `${actingName} 패스`,
+    activePlayerId: turn.activePlayerId,
+    turnNumber: turn.turnNumber,
+    roundNumber: turn.roundNumber,
+    phase: nextState.phase,
+    message: nextState.message
+  };
+}
+
 function readPlacePayload(payload: unknown) {
   if (!payload || typeof payload !== "object") {
     return null;
@@ -550,34 +591,7 @@ export const module: GameModule = {
     const player = requireActivePlayer(nextState, context.currentPlayerId, context.activePlayerId);
 
     if (action.type === "pass") {
-      if (playerCanMove(nextState, player)) {
-        throw new Error("둘 수 있는 블록이 남아 있어 패스할 수 없습니다.");
-      }
-      const actingName = controllerName(player);
-      advanceSharedController(nextState, player);
-      const turn = getNextTurn(nextState, player.id, context.turnNumber, context.roundNumber);
-      if (turn.finished) {
-        const winnerIds = finishGame(nextState);
-        return {
-          state: nextState,
-          log: `${actingName} 패스. 블로커스 종료`,
-          activePlayerId: null,
-          phase: nextState.phase,
-          message: nextState.message,
-          winnerId: winnerIds.length === 1 ? winnerIds[0] : null
-        };
-      }
-      nextState.message = `${actingName}님은 둘 수 있는 블록이 없어 패스했습니다.`;
-      nextState.activeColorId = turn.activeColorId ?? null;
-      return {
-        state: nextState,
-        log: `${actingName} 패스`,
-        activePlayerId: turn.activePlayerId,
-        turnNumber: turn.turnNumber,
-        roundNumber: turn.roundNumber,
-        phase: nextState.phase,
-        message: nextState.message
-      };
+      return passBlokusTurn(currentState, context, { requireNoMoves: true, timeout: false });
     }
 
     if (action.type !== "place-piece") {
@@ -639,6 +653,16 @@ export const module: GameModule = {
       phase: nextState.phase,
       message: nextState.message
     };
+  },
+  applySystemAction: (state, action, context) => {
+    const currentState = assertBlokusState(state);
+    if (action.type === "system/pass") {
+      return passBlokusTurn(currentState, context, { requireNoMoves: true, timeout: false });
+    }
+    if (action.type === "system/timeout") {
+      return passBlokusTurn(currentState, context, { requireNoMoves: false, timeout: true });
+    }
+    throw new Error("지원하지 않는 블로커스 시스템 행동입니다.");
   }
 };
 

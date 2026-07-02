@@ -1,0 +1,165 @@
+.qaw-board {
+  gap: 14px !important;
+  border-width: 10px !important;
+  border-color: #9f7040 !important;
+  border-radius: 10px !important;
+  padding: 18px !important;
+  background:
+    radial-gradient(circle at 22% 18%, rgba(255, 244, 210, 0.28), transparent 24%),
+    linear-gradient(135deg, #d9b06e, #a97236 58%, #6e421f) !important;
+  box-shadow:
+    inset 0 0 0 3px rgba(255, 245, 217, 0.24),
+    inset 0 0 24px rgba(80, 45, 18, 0.22),
+    0 18px 28px rgba(83, 55, 34, 0.2) !important;
+}
+
+.qaw-cell {
+  border-radius: 999px !important;
+  border: 2px solid rgba(82, 47, 19, 0.22) !important;
+  background:
+    radial-gradient(circle at 42% 36%, rgba(255, 242, 207, 0.34), transparent 42%),
+    linear-gradient(180deg, #9a6630, #5f371a) !important;
+  box-shadow:
+    inset 0 9px 12px rgba(60, 34, 15, 0.34),
+    inset 0 -2px 0 rgba(255, 235, 181, 0.2) !important;
+}
+
+.qaw-top {
+  width: 66% !important;
+  border-width: 1px !important;
+  border-color: rgba(55, 38, 25, 0.24) !important;
+  box-shadow:
+    inset 0 10px 12px rgba(255, 255, 255, 0.34),
+    inset 0 -9px 12px rgba(0, 0, 0, 0.22),
+    0 7px 9px rgba(64, 38, 21, 0.34) !important;
+}
+
+.qaw-height {
+  right: 50% !important;
+  bottom: 4px !important;
+  transform: translateX(50%);
+  color: #fff8dd !important;
+  text-shadow: 0 1px 2px rgba(50, 28, 13, 0.8);
+}
+
+.qaw-board {
+  gap: 14px !important;
+  border-color: #9f7040 !important;
+  border-radius: 10px !important;
+  padding: 18px !important;
+  background:
+    radial-gradient(circle at 22% 18%, rgba(255, 244, 210, 0.28), transparent 24%),
+    linear-gradient(135deg, #d9b06e, #a97236 58%, #6e421f) !important;
+}
+
+.qaw-cell {
+  border-radius: 999px !important;
+  border: 2px solid rgba(82, 47, 19, 0.22) !important;
+  background:
+    radial-gradient(circle at 42% 36%, rgba(255, 242, 207, 0.34), transparent 42%),
+    linear-gradient(180deg, #9a6630, #5f371a) !important;
+}
+
+.qaw-top {
+  width: 66% !important;
+  border-width: 1px !important;
+}
+
+.qaw-board {
+  gap: 12px !important;
+  border-width: 7px !important;
+  border-color: #101112 !important;
+  border-radius: 10px !important;
+  padding: 18px !important;
+  background:
+    radial-gradient(circle at 22% 18%, rgba(255, 255, 255, 0.1), transparent 24%),
+    linear-gradient(145deg, #2b2d2d, #08090a) !important;
+  box-shadow:
+    inset 0 0 0 4px rgba(255, 255, 255, 0.06),
+    inset 0 0 30px rgba(0, 0, 0, 0.55),
+    0 18px 28px rgba(0, 0, 0, 0.26) !important;
+}
+
+.qaw-cell {
+  border-radius: 999px !important;
+  border: 1px solid rgba(255, 255, 255, 0.13) !important;
+  background:
+    radial-gradient(circle at 50% 42%, rgba(255, 255, 255, 0.1), transparent 56%),
+    linear-gradient(180deg, #242828, #111313) !important;
+  box-shadow:
+    inset 0 9px 14px rgba(0, 0, 0, 0.56),
+    inset 0 -2px 0 rgba(255, 255, 255, 0.08) !important;
+}
+
+.qaw-cell.path,
+.qaw-cell.next {
+  background:
+    radial-gradient(circle at 50% 42%, rgba(224, 199, 120, 0.24), transparent 60%),
+    linear-gradient(180deg, #2f3433, #121515) !important;
+}
+
+.qaw-top {
+  width: 68% !important;
+  border-width: 0 !important;
+  border-radius: 47% 53% 50% 45% / 48% 42% 55% 52% !important;
+  background:
+    radial-gradient(circle at 30% 24%, rgba(255, 255, 255, 0.42), transparent 23%),
+    var(--stone-color) !important;
+  color: transparent !important;
+  text-shadow: none !important;
+  box-shadow:
+    inset 0 10px 12px rgba(255, 255, 255, 0.22),
+    inset 0 -9px 13px rgba(0, 0, 0, 0.25),
+    0 5px 0 color-mix(in srgb, var(--stone-color) 72%, black),
+    0 10px 0 color-mix(in srgb, var(--stone-color) 58%, black),
+    0 12px 12px rgba(0, 0, 0, 0.34) !important;
+}
+
+.qaw-top[style*="transparent"] {
+  opacity: 0;
+}
+
+.qaw-height {
+  right: 6px !important;
+  bottom: 5px !important;
+  opacity: 1 !important;
+  transform: none !important;
+  min-width: 20px;
+  min-height: 20px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background:
+    linear-gradient(180deg, rgba(255, 247, 221, 0.92), rgba(215, 184, 116, 0.9));
+  color: #2b1b10 !important;
+  text-shadow: none !important;
+  box-shadow:
+    inset 0 -2px 0 rgba(82, 47, 19, 0.14),
+    0 2px 5px rgba(0, 0, 0, 0.24);
+}
+
+.qaw-top {
+  border-radius: 999px !important;
+  background:
+    radial-gradient(circle at 30% 22%, rgba(255, 255, 255, 0.72), transparent 20%),
+    radial-gradient(circle at 65% 74%, rgba(0, 0, 0, 0.2), transparent 28%),
+    var(--stone-color, #ffffff) !important;
+}
+
+.qaw-top::after {
+  content: "";
+  position: absolute;
+  inset: 14%;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  box-shadow: inset 0 -5px 8px rgba(0, 0, 0, 0.16);
+  pointer-events: none;
+}
+
+.qaw-cell.path .qaw-layer.top {
+  transform: translateY(-7px);
+}
+
+.qaw-route-list span {
+  animation: tabletop-pop var(--motion-pop);
+}

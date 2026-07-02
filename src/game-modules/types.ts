@@ -14,6 +14,13 @@ export interface GameAction {
   payload?: unknown;
 }
 
+export type GameSystemActionReason = "manual-pass" | "host-timeout" | "auto-timeout";
+
+export interface GameSystemAction {
+  type: "system/pass" | "system/timeout";
+  reason: GameSystemActionReason;
+}
+
 export interface GameActionResult {
   state: unknown;
   log?: string;
@@ -30,6 +37,7 @@ export interface GameModule {
   createInitialState: (context: Pick<GameContext, "game" | "players">) => unknown;
   getPublicState: (state: unknown, context: GameContext & { viewerId: string | null }) => unknown;
   applyAction: (state: unknown, action: GameAction, context: GameContext) => GameActionResult;
+  applySystemAction?: (state: unknown, action: GameSystemAction, context: GameContext) => GameActionResult;
 }
 
 export interface GameComponentProps<TPublicState = unknown> {

@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import type { CSSProperties } from "react";
-import type { GameAction, GameActionResult, GameComponentProps, GameContext, GameModule } from "../types";
+import type { GameAction, GameActionResult, GameComponentProps, GameContext, GameModule, GameSystemAction } from "../types";
 
 type TileKind = "number" | "joker";
 type TileColor = "black" | "white" | "red" | "joker";
@@ -265,6 +265,19 @@ function completeIfWinner(state: VinciState, context: GameContext, logPrefix: st
   };
 }
 
+function applySelfPenalty(player: VinciPlayer, drawnTileId: string | null) {
+  const penaltyTile = player.hand.find((tile) => tile.id === drawnTileId && !tile.revealed) ?? player.hand.find((tile) => !tile.revealed);
+  const protectedByBonus = player.bonusCards > 0;
+  if (protectedByBonus) {
+    player.bonusCards -= 1;
+    player.usedBonusCards += 1;
+  } else if (penaltyTile) {
+    penaltyTile.revealed = true;
+  }
+
+  return { penaltyTile, protectedByBonus };
+}
+
 function applyGuess(state: VinciState, action: GameAction, context: GameContext): GameActionResult {
   if (!isGuessPayload(action.payload)) {
     throw new Error("추측할 상대, 타일 위치, 숫자가 필요합니다.");
@@ -332,14 +345,7 @@ function applyGuess(state: VinciState, action: GameAction, context: GameContext)
     };
   }
 
-  const penaltyTile = nextPlayer.hand.find((tile) => tile.id === next.drawnTileId && !tile.revealed) ?? nextPlayer.hand.find((tile) => !tile.revealed);
-  const protectedByBonus = nextPlayer.bonusCards > 0;
-  if (protectedByBonus) {
-    nextPlayer.bonusCards -= 1;
-    nextPlayer.usedBonusCards += 1;
-  } else if (penaltyTile) {
-    penaltyTile.revealed = true;
-  }
+  const { penaltyTile, protectedByBonus } = applySelfPenalty(nextPlayer, next.drawnTileId);
   refreshEliminations(next);
   const logPrefix = `${player.name}님이 추측 실패`;
   const complete = completeIfWinner(next, context, logPrefix);
@@ -438,6 +444,82 @@ function passTurn(state: VinciState, context: GameContext): GameActionResult {
   };
 }
 
+function timeoutTurn(state: VinciState, context: GameContext): GameActionResult {
+  const player = requireActivePlayer(state, context);
+  const next = cloneState(state);
+  const nextPlayer = next.players.find((candidate) => candidate.id === player.id);
+  if (!nextPlayer) {
+    throw new Error("다빈치 코드 플레이어를 찾을 수 없습니다.");
+  }
+
+  if (next.phase === "decide") {
+    const turn = advanceTurn(next, context, player.id);
+    next.drawnTileId = null;
+    next.phase = phaseForTurnStart(next);
+    next.currentStreak = 0;
+    next.message = `${player.name}님이 결정 시간을 넘겨 턴을 종료했습니다.`;
+    return {
+      state: next,
+      log: `${player.name} 제한 시간 초과로 턴 종료`,
+      phase: next.phase,
+      message: next.message,
+      winnerId: null,
+      ...turn
+    };
+  }
+
+  if (next.phase === "draw") {
+    const turn = advanceTurn(next, context, player.id);
+    next.drawnTileId = null;
+    next.currentStreak = 0;
+    next.phase = phaseForTurnStart(next);
+    next.message = `${player.name}님이 제한 시간 안에 타일을 뽑지 않아 턴을 넘겼습니다.`;
+    return {
+      state: next,
+      log: `${player.name} 드로우 전 시간 초과`,
+      phase: next.phase,
+      message: next.message,
+      winnerId: null,
+      ...turn
+    };
+  }
+
+  const { penaltyTile, protectedByBonus } = applySelfPenalty(nextPlayer, next.drawnTileId);
+  next.lastGuess = null;
+  refreshEliminations(next);
+  const logPrefix = `${player.name}님 시간 초과 자동 오답`;
+  const complete = completeIfWinner(next, context, logPrefix);
+  if (complete) return complete;
+
+  const turn = advanceTurn(next, context, player.id);
+  next.drawnTileId = null;
+  next.phase = phaseForTurnStart(next);
+  next.currentStreak = 0;
+  next.message = protectedByBonus
+    ? `${player.name}님이 제한 시간을 넘겼지만 보너스 카드로 자기 타일 공개를 막았습니다.`
+    : penaltyTile
+      ? `${player.name}님이 제한 시간을 넘겨 자기 타일 1개가 공개되었습니다.`
+      : `${player.name}님이 제한 시간을 넘겼지만 공개할 숨은 타일이 없습니다.`;
+  return {
+    state: next,
+    log: `${player.name} 제한 시간 초과 자동 오답`,
+    phase: next.phase,
+    message: next.message,
+    winnerId: null,
+    ...turn
+  };
+}
+
+function applySystemAction(state: VinciState, action: GameSystemAction, context: GameContext): GameActionResult {
+  if (action.type === "system/pass") {
+    return passTurn(state, context);
+  }
+  if (action.type === "system/timeout") {
+    return timeoutTurn(state, context);
+  }
+  throw new Error("지원하지 않는 시스템 행동입니다.");
+}
+
 function createInitialState(context: Pick<GameContext, "game" | "players">): VinciState {
   const seatedPlayers = context.players
     .filter((player) => player.connected)
@@ -534,7 +616,8 @@ export const module: GameModule = {
       return passTurn(vinciState, context);
     }
     throw new Error("지원하지 않는 다빈치 코드 행동입니다.");
-  }
+  },
+  applySystemAction: (state, action, context) => applySystemAction(state as VinciState, action, context)
 };
 
 function tileText(tile: PublicVinciTile, ownerId: string, viewerId: string | null) {
@@ -599,6 +682,7 @@ export function Component(props: GameComponentProps) {
     Boolean(effectiveTargetId) &&
     targetHiddenIndices.includes(effectiveTileIndex);
   const canDecide = canAct && publicState.phase === "decide";
+  const hasTeamClues = publicState.players.some((player) => player.hand.some((tile) => tile.teamClue));
 
   function sendGuess() {
     if (!canGuess) return;
@@ -681,6 +765,8 @@ export function Component(props: GameComponentProps) {
           </button>
 
           {publicState.phase === "draw" ? <p className="dvc-panel-hint">이번 턴은 타일을 먼저 뽑은 뒤 추측합니다.</p> : null}
+          <p className="dvc-panel-hint warning">추측 단계에서 시간이 초과되면 자동 오답으로 처리되어 보너스 카드 또는 자기 타일 공개 페널티가 적용됩니다.</p>
+          {hasTeamClues ? <p className="dvc-panel-hint">팀전 보조 단서: 같은 팀원의 첫 숨은 타일 1개는 팀 단서로 표시됩니다.</p> : null}
 
           <label htmlFor="dvc-target">상대</label>
           <select
@@ -933,6 +1019,11 @@ const davinciStyles = `
   color: #69452a;
   font-size: 0.86rem;
   font-weight: 800;
+}
+.dvc-panel-hint.warning {
+  border-color: rgba(157, 63, 71, 0.2);
+  background: rgba(255, 241, 232, 0.82);
+  color: #7f2c25;
 }
 .dvc-action,
 .dvc-decision button {

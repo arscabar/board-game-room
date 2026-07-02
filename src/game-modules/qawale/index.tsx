@@ -350,6 +350,15 @@ export function Component(props: GameComponentProps) {
         .map((candidate) => key(candidate.row, candidate.col))
     );
   }, [source, path, pathComplete]);
+  const routeHint = !canAct
+    ? "현재 차례가 아니면 경로를 선택할 수 없습니다."
+    : !source
+      ? "높이가 1 이상인 스택을 먼저 고르세요."
+      : pathComplete
+        ? "필요한 칸을 모두 골랐습니다. 분배를 눌러 확정하세요."
+        : nextTargets.size > 0
+          ? `밝게 표시된 다음 칸 ${nextTargets.size}곳 중 하나를 고르세요.`
+          : "이어갈 수 있는 칸이 없습니다. 취소하고 다른 경로를 선택하세요.";
 
   function selectCell(row: number, col: number) {
     if (!canAct) return;
@@ -405,12 +414,24 @@ export function Component(props: GameComponentProps) {
               const selected = source?.row === rowIndex && source.col === colIndex;
               const inPath = path.some((coord) => coord.row === rowIndex && coord.col === colIndex);
               const next = nextTargets.has(cellKey);
+              const invalidTarget = Boolean(source && !pathComplete && !next && !selected && !inPath);
               return (
                 <button
-                  className={`qaw-cell ${selected ? "selected" : ""} ${inPath ? "path" : ""} ${next ? "next" : ""}`}
-                  disabled={!canAct || (!source && stack.length === 0)}
+                  className={`qaw-cell ${selected ? "selected" : ""} ${inPath ? "path" : ""} ${next ? "next" : ""} ${invalidTarget ? "invalid-target" : ""}`}
+                  disabled={!canAct || (!source && stack.length === 0) || invalidTarget || Boolean(source && pathComplete)}
                   key={cellKey}
                   onClick={() => selectCell(rowIndex, colIndex)}
+                  title={
+                    selected
+                      ? "출발 스택"
+                      : inPath
+                        ? "이미 선택한 경로"
+                        : next
+                          ? "다음 분배 후보"
+                          : stack.length > 0
+                            ? `스택 높이 ${stack.length}`
+                            : "빈 칸"
+                  }
                   type="button"
                 >
                   <span className="qaw-stack" aria-hidden={stack.length === 0}>
@@ -465,6 +486,7 @@ export function Component(props: GameComponentProps) {
                 ? `${source.row + 1}-${source.col + 1}에서 ${path.length}/${carryLength}칸 선택`
                 : "비어 있지 않은 출발 스택을 고르세요"}
             </span>
+            <p className="qaw-route-hint">{routeHint}</p>
             <div className="qaw-route-list">
               {path.map((coord, index) => (
                 <span key={`${index}-${key(coord.row, coord.col)}`}>{`${coord.row + 1}-${coord.col + 1}`}</span>
@@ -569,6 +591,9 @@ const qawaleStyles = `
     inset 0 0 0 3px #e5c55c,
     inset 0 4px 10px rgba(0, 0, 0, 0.42);
 }
+.qaw-cell.invalid-target {
+  opacity: 0.48;
+}
 .qaw-stack {
   position: relative;
   display: block;
@@ -655,6 +680,16 @@ const qawaleStyles = `
 }
 .qaw-route > span {
   color: #52625d;
+}
+.qaw-route-hint {
+  margin: -2px 0 0;
+  border: 1px solid rgba(23, 32, 29, 0.12);
+  border-radius: 8px;
+  padding: 8px;
+  background: rgba(255, 250, 240, 0.72);
+  color: #4f4639;
+  font-size: 0.86rem;
+  line-height: 1.4;
 }
 .qaw-route-list {
   display: flex;

@@ -441,6 +441,13 @@ export function Component(props: GameComponentProps) {
   const validSelection = selection.length > 0 && selection.length <= 3 && isSelectionLine(selection);
   const selectedKeys = new Set(selection.map(key));
   const rows = useMemo(() => Array.from({ length: RADIUS * 2 + 1 }, (_, index) => index - RADIUS), []);
+  const selectionHint = !canAct
+    ? "현재 차례가 되면 자기 구슬을 선택할 수 있습니다."
+    : selection.length === 0
+      ? "밀고 싶은 자기 구슬 1~3개를 선택하세요."
+      : !validSelection
+        ? "선택한 구슬은 한 줄로 이어져야 합니다."
+        : `${selection.length}개 구슬이 한 줄로 선택되었습니다. 이동 방향을 고르세요.`;
 
   function toggleSelection(coord: Coord) {
     if (!canAct) return;
@@ -526,6 +533,7 @@ export function Component(props: GameComponentProps) {
           <div className="abl-controls">
             <strong>이동 방향</strong>
             <span>선택한 구슬 {selection.length}개</span>
+            <p className={validSelection ? "abl-selection-guide ready" : "abl-selection-guide"}>{selectionHint}</p>
             <div className="abl-directions">
               {directions.map((direction) => (
                 <button
@@ -668,6 +676,21 @@ const abaloneStyles = `
 .abl-controls > span {
   color: #52625d;
   font-size: 0.84rem;
+}
+.abl-selection-guide {
+  margin: 0;
+  border: 1px solid rgba(31, 41, 55, 0.14);
+  border-radius: 8px;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.62);
+  color: #374151;
+  font-size: 0.86rem;
+  line-height: 1.4;
+}
+.abl-selection-guide.ready {
+  border-color: rgba(40, 119, 124, 0.28);
+  background: rgba(232, 247, 242, 0.76);
+  color: #155252;
 }
 .abl-swatch {
   width: 18px;

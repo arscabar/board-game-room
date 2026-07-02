@@ -1,0 +1,99 @@
+.qdr-pawn,
+.abl-marble,
+.gho-token,
+.qaw-top,
+.yinsh-ring,
+.yinsh-marker {
+  filter: drop-shadow(0 5px 4px rgba(31, 22, 16, 0.22));
+}
+.guryongtu-tile-button,
+.qdr-pawn,
+.qdr-wall-piece,
+.abl-marble,
+.gho-token,
+.gho-setup-slot,
+.qaw-top,
+.dvc-tile,
+.blokus-piece-mini .filled,
+.yacht-die-face,
+.yinsh-ring,
+.yinsh-marker,
+.hangman-letter-button,
+.hangman-letter-slot {
+  position: relative;
+  overflow: hidden;
+}
+.qdr-layout,
+.abl-layout,
+.gho-layout,
+.qaw-layout,
+.dvc-layout,
+.yinsh-layout {
+  gap: 8px !important;
+}
+.qdr-status,
+.abl-status,
+.gho-status,
+.qaw-status,
+.dvc-status,
+.yinsh-status {
+  min-height: 0 !important;
+  padding: 7px 8px !important;
+  font-size: 0.82rem;
+}
+.qdr-panel,
+.abl-panel,
+.gho-panel,
+.qaw-panel,
+.dvc-side,
+.yinsh-side,
+.yinsh-panel {
+  padding: 8px !important;
+}
+.guryongtu-tile-button,
+.qdr-pawn,
+.qdr-wall-piece,
+.abl-marble,
+.gho-token,
+.qaw-layer,
+.dvc-tile,
+.blokus-cell,
+.blokus-palette button,
+.yacht-die-face,
+.yinsh-ring,
+.yinsh-marker,
+.hangman-letter-button,
+.hangman-letter-slot {
+  transition:
+    transform var(--motion-pop),
+    filter var(--motion-fast),
+    box-shadow var(--motion-fast),
+    opacity var(--motion-fast);
+}
+.guryongtu-tile-button:not(:disabled):active,
+.hangman-letter-button:not(:disabled):active {
+  animation: tabletop-press 150ms ease-out;
+}
+.qdr-cell.legal .qdr-dot,
+.gho-cell.legal .gho-move-dot,
+.yinsh-point.legal,
+.blokus-cell.anchor:not(.preview)::before {
+  animation: legal-pulse 1.2s ease-in-out infinite;
+}
+.qdr-pawn,
+.abl-marble,
+.gho-token,
+.qaw-layer.top,
+.yinsh-ring.selected {
+  will-change: transform;
+}
+.qdr-pawn:hover,
+.abl-cell.selectable:not(:disabled):hover .abl-marble,
+.gho-cell:not(:disabled):hover .gho-token,
+.qaw-cell.next:not(:disabled) .qaw-layer.top {
+  transform: translateY(-3px);
+}
+.qdr-wall-grid button.blocked:hover,
+.blokus-cell.preview.invalid {
+  animation: invalid-shake 180ms ease-in-out;
+}

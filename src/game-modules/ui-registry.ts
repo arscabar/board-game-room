@@ -3,18 +3,31 @@ import type { GameComponentProps } from "./types";
 
 type GameComponent = ComponentType<GameComponentProps<any>>;
 type GameComponentLoader = LazyExoticComponent<GameComponent>;
+type GameModuleWithComponent = { Component: GameComponent };
+
+const loadSharedGameStyles = () => import("./ui-styles/shared-board.css");
+
+function lazyGame(
+  loader: () => Promise<GameModuleWithComponent>,
+  styleLoaders: Array<() => Promise<unknown>>
+): GameComponentLoader {
+  return lazy(async () => {
+    const [module] = await Promise.all([loader(), loadSharedGameStyles(), ...styleLoaders.map((loadStyle) => loadStyle())]);
+    return { default: module.Component as GameComponent };
+  });
+}
 
 const gameComponents: Record<string, GameComponentLoader> = {
-  guryongtu: lazy(() => import("./guryongtu").then((module) => ({ default: module.Component as GameComponent }))),
-  quoridor: lazy(() => import("./quoridor").then((module) => ({ default: module.Component as GameComponent }))),
-  "abalone-classic": lazy(() => import("./abalone-classic").then((module) => ({ default: module.Component as GameComponent }))),
-  ghosts: lazy(() => import("./ghosts").then((module) => ({ default: module.Component as GameComponent }))),
-  qawale: lazy(() => import("./qawale").then((module) => ({ default: module.Component as GameComponent }))),
-  "davinci-code-plus": lazy(() => import("./davinci-code-plus").then((module) => ({ default: module.Component as GameComponent }))),
-  blokus: lazy(() => import("./blokus").then((module) => ({ default: module.Component as GameComponent }))),
-  "yacht-dice": lazy(() => import("./yacht-dice").then((module) => ({ default: module.Component as GameComponent }))),
-  yinsh: lazy(() => import("./yinsh").then((module) => ({ default: module.Component as GameComponent }))),
-  "hangman-board-game": lazy(() => import("./hangman-board-game").then((module) => ({ default: module.Component as GameComponent })))
+  guryongtu: lazyGame(() => import("./guryongtu"), [() => import("./ui-styles/guryongtu.css")]),
+  quoridor: lazyGame(() => import("./quoridor"), [() => import("./ui-styles/quoridor.css")]),
+  "abalone-classic": lazyGame(() => import("./abalone-classic"), [() => import("./ui-styles/abalone-classic.css")]),
+  ghosts: lazyGame(() => import("./ghosts"), [() => import("./ui-styles/ghosts.css")]),
+  qawale: lazyGame(() => import("./qawale"), [() => import("./ui-styles/qawale.css")]),
+  "davinci-code-plus": lazyGame(() => import("./davinci-code-plus"), [() => import("./ui-styles/davinci-code-plus.css")]),
+  blokus: lazyGame(() => import("./blokus"), [() => import("./ui-styles/blokus.css")]),
+  "yacht-dice": lazyGame(() => import("./yacht-dice"), [() => import("./ui-styles/yacht-dice.css")]),
+  yinsh: lazyGame(() => import("./yinsh"), [() => import("./ui-styles/yinsh.css")]),
+  "hangman-board-game": lazyGame(() => import("./hangman-board-game"), [() => import("./ui-styles/hangman-board-game.css")])
 };
 
 export function getGameComponent(gameId: string | null | undefined) {

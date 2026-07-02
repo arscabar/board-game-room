@@ -245,21 +245,21 @@ function actionHintFor(gameId: string | null | undefined, phase: string) {
     return "숫자 타일 1개를 고르세요. 이미 쓴 숫자는 다시 쓸 수 없습니다.";
   }
   if (gameId === "quoridor") {
-    return "말을 움직이거나 벽 위치를 고르세요. 밝게 표시된 칸은 이동 후보입니다.";
+    return "말 이동 후보를 누르거나, 벽 방향과 위치를 고른 뒤 가능 표시를 확인하고 놓으세요.";
   }
   if (gameId === "abalone-classic") {
-    return "자기 구슬 1~3개를 한 줄로 선택한 뒤 이동 방향을 누르세요.";
+    return "자기 구슬 1~3개를 한 줄로 선택하세요. 한 줄이 아니면 이동 버튼이 켜지지 않습니다.";
   }
   if (gameId === "ghosts") {
     return "자기 유령을 누르면 이동 가능한 칸과 탈출구가 표시됩니다.";
   }
   if (gameId === "qawale") {
-    return "비어 있지 않은 스택을 고르고, 밝게 표시된 인접 칸을 순서대로 누르세요.";
+    return "스택을 고르고 밝은 다음 칸을 순서대로 누르세요. 바로 이전 칸으로 되돌아갈 수 없습니다.";
   }
   if (gameId === "davinci-code-plus") {
-    return phase === "decide"
-      ? "맞혔습니다. 계속 추측할지, 턴을 끝낼지 고르세요."
-      : "상대의 숨은 타일을 고르고 숫자 또는 조커를 추측하세요.";
+    if (phase === "draw") return "먼저 타일을 뽑으세요. 그냥 턴을 끝낼 수 없습니다.";
+    if (phase === "decide") return "맞혔습니다. 계속 추측하거나, 여기서 턴을 끝내세요.";
+    return "상대의 숨은 타일을 고르고 숫자 또는 조커를 추측하세요. 시간 초과 시 자동 오답 처리됩니다.";
   }
   if (gameId === "blokus") {
     return "블록을 고른 뒤 보드 위에 올려보세요. 미리보기 색으로 놓을 수 있는지 확인합니다.";
@@ -339,8 +339,42 @@ function blockedReason({
   if (gameId === "hangman-board-game" && phase === "round-complete") return "라운드가 끝났습니다. 다음 라운드를 시작하세요.";
   if (gameId === "guryongtu" && phase === "selecting") return "각자 비공개 타일을 제출할 수 있습니다. 둘 다 제출되면 동시에 공개됩니다.";
   if (gameId === "ghosts" && phase === "setup") return "각자 좋은 유령 4개와 나쁜 유령 4개의 위치를 비공개로 제출하세요.";
+  if (gameId === "davinci-code-plus" && isMyTurn && (phase === "draw" || phase === "guessing")) {
+    return "다빈치 코드는 타일 뽑기/추측이 필수입니다. 이 단계에서 직접 턴 종료는 막혀 있습니다.";
+  }
   if (!isMyTurn) return `${activePlayer?.name ?? "다음 플레이어"}님의 차례입니다. 내 차례가 되면 버튼이 켜집니다.`;
   return "내 차례입니다. 밝게 표시된 곳부터 누르면 됩니다.";
+}
+
+function manualTurnEndRestriction(gameId: string | null | undefined, phase: string) {
+  if (gameId === "guryongtu" && phase === "selecting") {
+    return "구룡투는 각자 비공개 타일을 내야 합니다. 턴 종료 대신 타일을 선택하세요.";
+  }
+  if (gameId === "quoridor" && phase === "playing") {
+    return "쿼리도는 말 이동 또는 벽 배치를 해야 턴이 끝납니다. 시간이 초과되면 차례가 넘어갑니다.";
+  }
+  if (gameId === "abalone-classic" && phase === "playing") {
+    return "아발론은 구슬을 이동해야 턴이 끝납니다. 시간이 초과되면 차례가 넘어갑니다.";
+  }
+  if (gameId === "ghosts" && phase === "playing") {
+    return "고스트는 유령 이동을 해야 턴이 끝납니다. 시간이 초과되면 차례가 넘어갑니다.";
+  }
+  if (gameId === "qawale" && phase === "playing") {
+    return "카왈레는 스택 분배를 해야 턴이 끝납니다. 시간이 초과되면 차례가 넘어갑니다.";
+  }
+  if (gameId === "davinci-code-plus" && (phase === "draw" || phase === "guessing")) {
+    return "타일을 뽑고 추측해야 턴을 넘길 수 있습니다. 시간이 초과되면 자동 오답 페널티가 적용됩니다.";
+  }
+  if (gameId === "yacht-dice" && phase === "rolling") {
+    return "요트 다이스는 점수칸을 기록해야 턴이 끝납니다. 시간이 초과되면 가장 낮은 가능 점수칸이 자동 기록됩니다.";
+  }
+  if (gameId === "yinsh" && (phase === "ring-placement" || phase === "move" || phase === "remove-row")) {
+    return "인쉬는 현재 단계의 링 배치, 이동, 줄 제거를 완료해야 턴이 끝납니다. 시간이 초과되면 방장이 처리할 수 있습니다.";
+  }
+  if (gameId === "hangman-board-game" && phase === "guessing") {
+    return "행맨은 글자나 단어를 추측해야 턴이 진행됩니다. 시간이 초과되면 차례가 넘어갑니다.";
+  }
+  return "";
 }
 
 function App() {
@@ -1175,7 +1209,20 @@ function PlayPanel({
   const timerUrgent =
     !isFinished && !paused && Boolean(room.gameState.turnDeadlineAt) && remainingMs > 0 && remainingMs <= 10_000;
   const timeoutCount = activePlayer ? room.gameState.timeoutCounts?.[activePlayer.id] ?? 0 : 0;
-  const canAdvanceTurn = !paused && !isFinished && (isMyTurn || (isHost && timerExpired && Boolean(activePlayer)));
+  const publicStateRecord = stateRecord(room.gameState.publicState);
+  const blokusActiveColor = selectedGame?.id === "blokus" ? String(publicStateRecord?.activeColorId ?? "") : "";
+  const blokusPlayers = Array.isArray(publicStateRecord?.players) ? publicStateRecord.players : [];
+  const blokusCanMove = blokusPlayers.some((player) => {
+    const record = stateRecord(player);
+    return record?.id === blokusActiveColor && record.canMove !== false;
+  });
+  const blokusRestriction =
+    selectedGame?.id === "blokus" && blokusCanMove
+      ? "블로커스는 놓을 수 있는 블록이 남아 있으면 패스할 수 없습니다. 조각을 배치하거나 시간이 초과될 때까지 기다리세요."
+      : "";
+  const turnEndRestriction = manualTurnEndRestriction(selectedGame?.id, phase) || blokusRestriction;
+  const canAdvanceTurn =
+    !paused && !isFinished && ((isMyTurn && !turnEndRestriction) || (!isMyTurn && isHost && timerExpired && Boolean(activePlayer)));
   const canClaimTimeout = timerExpired && !isMyTurn && Boolean(activePlayer);
   const winnerLabel = winnerNames.length > 0 ? winnerNames.join(", ") : isFinished ? "무승부 또는 종료" : null;
   const message = runtimeMessage(room);
@@ -1440,11 +1487,19 @@ function PlayPanel({
       </form>
 
       <div className="turn-actions">
-        <button className="primary-button" type="button" onClick={advanceTurn} disabled={!canAdvanceTurn}>
+        <button className="primary-button" type="button" onClick={advanceTurn} disabled={!canAdvanceTurn} title={turnEndRestriction || undefined}>
           <CheckCircle2 size={18} />
           {isMyTurn ? "턴 종료" : "강제 턴 넘김"}
         </button>
-        <span>{paused ? "일시정지 중입니다." : isMyTurn ? "내 차례입니다." : "현재 차례를 기다리는 중입니다."}</span>
+        <span>
+          {paused
+            ? "일시정지 중입니다."
+            : turnEndRestriction && isMyTurn
+              ? turnEndRestriction
+              : isMyTurn
+                ? "내 차례입니다."
+                : "현재 차례를 기다리는 중입니다."}
+        </span>
       </div>
 
       <div className="move-log" aria-label="진행 기록">

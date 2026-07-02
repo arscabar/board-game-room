@@ -601,6 +601,7 @@ export function Component({
 }: GameComponentProps<HangmanPublicState>) {
   const state = publicState;
   const [secretWord, setSecretWord] = useState("");
+  const [showOwnSecret, setShowOwnSecret] = useState(false);
   const [letterGuess, setLetterGuess] = useState("");
   const [wholeWord, setWholeWord] = useState("");
   const myId = currentPlayer?.id ?? null;
@@ -621,6 +622,7 @@ export function Component({
     }
     onAction({ type: "hangman-board-game/setup-secret", payload: { word } });
     setSecretWord("");
+    setShowOwnSecret(false);
   }
 
   function submitWholeWord(event: FormEvent<HTMLFormElement>) {
@@ -654,7 +656,15 @@ export function Component({
               <div className="hangman-player-setup" key={playerId}>
                 <strong>{getPlayerName(players, playerId)}</strong>
                 <p>{state.setup.submitted[playerId] ? "제출 완료" : "입력 대기"}</p>
-                {myId === playerId && state.setup.ownSecret ? <p>내 비밀 단어: {state.setup.ownSecret}</p> : null}
+                {myId === playerId && state.setup.ownSecret ? (
+                  <div className="hangman-secret-lock">
+                    <p>{showOwnSecret ? `내 비밀 단어: ${state.setup.ownSecret}` : "내 비밀 단어는 숨김 처리되었습니다."}</p>
+                    <button type="button" onClick={() => setShowOwnSecret((value) => !value)}>
+                      {showOwnSecret ? "다시 숨기기" : "내 단어 확인"}
+                    </button>
+                    <small>한 기기로 교대할 때는 숨긴 뒤 다음 사람에게 넘기세요.</small>
+                  </div>
+                ) : null}
                 {myId !== playerId && state.setup.wordLengths[playerId] > 0 ? <p>상대 빈칸: {state.setup.wordLengths[playerId]}</p> : null}
               </div>
             ))}
