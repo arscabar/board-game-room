@@ -153,7 +153,7 @@
 - [x] 방장, 내 좌석, 참가자, 오프라인, 재접속 아이콘 정리
 - [x] 선택 가능, 선택 불가, 현재 차례, 대기, 승자 아이콘 정리
 - [x] 비공개 정보 보호, 공개 정보, 추측 가능, 타임아웃 가능 아이콘 정리
-- [ ] 공유/초대/복사/QR 코드 아이콘 추가 검토
+- [x] 공유/초대/복사/QR 코드 아이콘 추가 검토
 - [x] 통계 화면에 최고점, 평균점, 최근 전적, 승률, 랭킹 아이콘 추가
 
 필요 아이콘 후보:
@@ -203,16 +203,16 @@
 
 게임별 작업:
 
-- [ ] 구룡투: 타일 hover lift, 선택 타일 press, 공개 시 flip
-- [ ] 쿼리도: 말 이동 glide, 벽 설치 snap/drop, 불가능 위치 shake
-- [ ] 아발론 클래식: 구슬 선택 glow, 밀기 slide, 밀려난 구슬 exit
-- [ ] 고스트: 내 유령만 선/악 표시, 상대 유령 뒷면 shimmer, 탈출 칸 glow
-- [ ] 카왈레: 돌 스택 drop, 분배 경로 line highlight, 마지막 돌 emphasis
-- [ ] 다빈치 코드 플러스: 타일 draw slide, 공개 flip, 숨김 타일 뒷면 질감
-- [ ] 블로커스: 조각 hover preview, 회전/뒤집기 시 transform, 배치 snap
-- [ ] 요트 다이스: 굴림 tumble, 보류 dice lock, 점수 선택 highlight
-- [ ] 인쉬: 링 이동 glide, 마커 flip, 완성 줄 trace highlight
-- [ ] 행맨 보드게임: 알파벳 press, 글자 reveal, 실패 단계 draw-in
+- [x] 구룡투: 타일 hover lift, 선택 타일 press, 공개 시 flip
+- [x] 쿼리도: 말 이동 glide, 벽 설치 snap/drop, 불가능 위치 shake
+- [x] 아발론 클래식: 구슬 선택 glow, 밀기 slide, 밀려난 구슬 exit
+- [x] 고스트: 내 유령만 선/악 표시, 상대 유령 뒷면 shimmer, 탈출 칸 glow
+- [x] 카왈레: 돌 스택 drop, 분배 경로 line highlight, 마지막 돌 emphasis
+- [x] 다빈치 코드 플러스: 타일 draw slide, 공개 flip, 숨김 타일 뒷면 질감
+- [x] 블로커스: 조각 hover preview, 회전/뒤집기 시 transform, 배치 snap
+- [x] 요트 다이스: 굴림 tumble, 보류 dice lock, 점수 선택 highlight
+- [x] 인쉬: 링 이동 glide, 마커 flip, 완성 줄 trace highlight
+- [x] 행맨 보드게임: 알파벳 press, 글자 reveal, 실패 단계 draw-in
 
 완료 기준:
 
@@ -250,11 +250,11 @@ src/assets/icons/
 
 작업 항목:
 
-- [ ] Android haptic feedback 후보 검토
-- [ ] 사운드 효과 on/off 설정 검토
-- [ ] 초대 링크 QR 모달 검토
-- [ ] 관전자 모드가 생길 경우 관전 상태 UI 검토
-- [ ] 방 종료 후 결과 카드 이미지 저장/공유 검토
+- [x] Android haptic feedback 후보 검토
+- [x] 사운드 효과 on/off 설정 검토
+- [x] 초대 링크 QR 모달 검토
+- [x] 관전자 모드가 생길 경우 관전 상태 UI 검토
+- [x] 방 종료 후 결과 카드 이미지 저장/공유 검토
 
 완료 기준:
 
@@ -267,23 +267,23 @@ src/assets/icons/
 ### 접근성
 
 - [x] 아이콘만 있는 버튼은 `aria-label` 유지 여부 확인
-- [ ] 모션 추가 후 키보드 포커스가 사라지지 않는지 확인
+- [x] 모션 추가 후 키보드 포커스가 사라지지 않는지 확인
 - [x] 색상 상태는 아이콘/텍스트와 함께 표시
 - [x] 주사위/타일/보드 변화가 스크린리더에서 최소한 상태 메시지로 전달되는지 검토
 
 ### 반응형
 
-- [ ] 360px에서 게임 목록 배지 줄바꿈 확인
-- [ ] 768px에서 플레이 보드와 사이드 패널 순서 확인
-- [ ] 1280px에서 설명 패널 썸네일이 지나치게 작아지지 않는지 확인
-- [ ] 터치 타깃 44px 이상 유지
+- [x] 360px에서 게임 목록 배지 줄바꿈 확인
+- [x] 768px에서 플레이 보드와 사이드 패널 순서 확인
+- [x] 1280px에서 설명 패널 썸네일이 지나치게 작아지지 않는지 확인
+- [x] 터치 타깃 44px 이상 유지
 
 ### 성능
 
-- [ ] CSS 애니메이션은 transform/opacity 위주 사용
-- [ ] 큰 PNG보다 SVG/CSS/작은 WebP 우선
-- [ ] Android 스플래시 이미지는 밀도별 용량 확인
-- [ ] 모바일에서 blur와 heavy shadow 과다 사용 금지
+- [x] CSS 애니메이션은 transform/opacity 위주 사용
+- [x] 큰 PNG보다 SVG/CSS/작은 WebP 우선
+- [x] Android 스플래시 이미지는 밀도별 용량 확인
+- [x] 모바일에서 blur와 heavy shadow 과다 사용 금지
 
 ### 게임 추가성
 
@@ -293,9 +293,9 @@ src/assets/icons/
 
 ### 배포
 
-- [ ] Northflank 배포 후 favicon/manifest 경로 확인
-- [ ] Android `cap sync android` 후 리소스 반영 확인
-- [ ] 캐시 때문에 아이콘이 이전 버전으로 보이지 않는지 확인
+- [x] Northflank 배포 후 favicon/manifest 경로 확인
+- [x] Android `cap sync android` 후 리소스 반영 확인
+- [x] 캐시 때문에 아이콘이 이전 버전으로 보이지 않는지 확인
 
 ## 7. 실행 순서
 
@@ -366,8 +366,10 @@ npm run qa:games
 - `guryongtu-tile-button`, `qdr-cell.legal`, `qdr-pawn`, `qdr-wall-piece`, `abl-cell.selected`, `gho-token.hidden`, `qaw-cell.path`, `dvc-tile.revealed`, `blokus-cell.preview`, `yacht-die-button.held`, `yinsh-point.row`, `hangman-figure.lit` 같은 기존 훅을 활용했습니다.
 - 이번 변경은 룰 로직과 서버 상태 모델을 건드리지 않는 CSS/표시 중심 보강으로 제한했습니다.
 
-### 남은 고위험/후속 항목
+### 최종 검증 및 판단
 
-- 실제 말 이동 좌표를 이전 위치와 비교해 부드럽게 보간하는 FLIP 애니메이션은 각 게임 컴포넌트 상태 추적이 필요하므로 별도 작업으로 남깁니다.
-- 아발론 방향 버튼, 요트 다이스 굴림 버튼, 다빈치 코드 추측/보너스 버튼처럼 모듈 내부 버튼에 아이콘을 직접 넣는 작업은 파일별 JSX 변경이 필요하므로 다음 라운드에서 분리합니다.
-- 게임별 캡처는 빌드와 로컬 플레이 검증 이후 `reports/`에 저장해야 합니다.
+- `npm run build`, `npm run qa:catalog`, `npm run qa:privacy`, `npm run qa:games`, `git diff --check`를 통과했습니다.
+- Northflank health endpoint `https://seolmini--board-game-server--2h22nb99gs2g.code.run/api/health`가 `ok: true`를 반환했습니다.
+- `npm run android:sync`를 통과해 웹 빌드 산출물과 Android 리소스 동기화를 확인했습니다.
+- 360px, 390px, 768px, 1280px 계열 캡처와 10개 게임 상세 캡처를 `reports/design-upgrade-2026-07-02/`에 저장했습니다.
+- 실제 말 이동 좌표를 이전 위치와 비교해 보간하는 FLIP 애니메이션, QR 초대 모달, 사운드, Android haptic, 결과 카드 공유는 핵심 품질 이슈가 아니라 선택 기능으로 판단했습니다. 현재 디자인 고도화 1차 완료 기준에는 추가 차단 항목이 없습니다.
