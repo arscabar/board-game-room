@@ -392,3 +392,146 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.18),
     0 0 0 2px rgba(224, 173, 98, 0.2);
 }
+
+@media (max-width: 560px) {
+  .yacht-score-panel > div,
+  .yacht-scoreboard > div {
+    overflow-x: visible !important;
+  }
+
+  .yacht-score-table {
+    display: block !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    border-collapse: separate !important;
+    border-spacing: 0 !important;
+    background: transparent !important;
+  }
+
+  .yacht-score-table thead {
+    display: none;
+  }
+
+  .yacht-score-table tbody {
+    display: grid;
+    gap: 6px;
+  }
+
+  .yacht-score-table tr {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 48px 70px;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid rgba(57, 100, 116, 0.24);
+    border-radius: 8px;
+    padding: 6px;
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(245, 239, 217, 0.92));
+  }
+
+  .yacht-score-table td,
+  .yacht-score-table th {
+    width: auto !important;
+    border: 0 !important;
+    padding: 0 !important;
+    text-align: center !important;
+    background: transparent !important;
+  }
+
+  .yacht-score-table td:first-child {
+    text-align: left !important;
+    word-break: keep-all !important;
+    overflow-wrap: normal !important;
+  }
+
+  .yacht-score-table td:first-child strong {
+    min-height: 34px;
+    font-size: 1rem;
+    white-space: nowrap;
+  }
+
+  .yacht-score-table td:nth-child(2) {
+    display: grid;
+    place-items: center;
+    min-height: 34px;
+    border-radius: 7px !important;
+    color: #20383c;
+    background: rgba(255, 255, 255, 0.74) !important;
+    font-weight: 900;
+  }
+
+  .yacht-score-table .yacht-score-button {
+    width: 100%;
+    min-height: 34px;
+    word-break: keep-all;
+    overflow-wrap: normal;
+  }
+
+  .yacht-player-table {
+    display: block !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    border-collapse: separate !important;
+    background: transparent !important;
+  }
+
+  .yacht-player-table thead {
+    display: none;
+  }
+
+  .yacht-player-table tbody {
+    display: grid;
+    gap: 8px;
+  }
+
+  .yacht-player-table tr {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 5px;
+    border: 1px solid rgba(57, 100, 116, 0.26);
+    border-radius: 8px;
+    padding: 7px;
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(245, 239, 217, 0.94));
+  }
+
+  .yacht-player-table td {
+    display: grid;
+    gap: 2px;
+    width: auto !important;
+    min-width: 0 !important;
+    min-height: 38px;
+    border: 1px solid rgba(57, 100, 116, 0.16) !important;
+    border-radius: 7px;
+    padding: 5px 4px !important;
+    text-align: center !important;
+    color: #1f3438;
+    background: rgba(255, 255, 255, 0.62) !important;
+    font-size: 0.82rem !important;
+    font-weight: 850;
+  }
+
+  .yacht-player-table td::before {
+    content: attr(data-label);
+    color: #52727b;
+    font-size: 0.66rem;
+    font-weight: 900;
+    line-height: 1;
+  }
+
+  .yacht-player-table td:first-child {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 36px;
+    padding-inline: 8px !important;
+    text-align: left !important;
+    color: #fffdf4;
+    background: linear-gradient(180deg, #2f6f73, #254f54) !important;
+  }
+
+  .yacht-player-table td:first-child::before {
+    color: rgba(255, 253, 244, 0.74);
+  }
+}

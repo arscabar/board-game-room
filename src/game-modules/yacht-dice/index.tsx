@@ -588,12 +588,12 @@ export function Component({
             <tbody>
               {state.playerIds.map((playerId) => (
                 <tr key={playerId}>
-                  <td style={styles.cell}>{getPlayerName(players, playerId)}</td>
-                  <td style={styles.cell}>{state.totals[playerId] ?? 0}</td>
-                  <td style={styles.cell}>{state.upperTotals[playerId] ?? 0}</td>
-                  <td style={styles.cell}>{state.upperBonuses[playerId] ? `+${state.upperBonuses[playerId]}` : "-"}</td>
+                  <td style={styles.cell} data-label="플레이어">{getPlayerName(players, playerId)}</td>
+                  <td style={styles.cell} data-label="총점">{state.totals[playerId] ?? 0}</td>
+                  <td style={styles.cell} data-label="상">{state.upperTotals[playerId] ?? 0}</td>
+                  <td style={styles.cell} data-label="+35">{state.upperBonuses[playerId] ? `+${state.upperBonuses[playerId]}` : "-"}</td>
                   {CATEGORIES.map((category) => (
-                    <td style={styles.cell} key={category.id}>
+                    <td style={styles.cell} key={category.id} data-label={scoreSheetLabels[category.id]}>
                       {state.scores[playerId]?.[category.id] ?? "-"}
                     </td>
                   ))}
