@@ -5673,7 +5673,8 @@ a:focus-visible,
   min-width: 0;
 }
 
-.room-code-chip,
+.room-owner-chip,
+.room-count-chip,
 .room-state-chip,
 .room-card-meta span {
   display: inline-flex;
@@ -5687,10 +5688,17 @@ a:focus-visible,
   background: rgba(15, 9, 5, 0.62);
 }
 
-.room-code-chip {
+.room-owner-chip {
+  max-width: 100%;
   color: #ffe8ad;
   font-size: 1rem;
   font-weight: 900;
+}
+
+.room-count-chip {
+  color: #fff8e7;
+  font-size: 0.9rem;
+  font-weight: 850;
 }
 
 .room-state-chip {

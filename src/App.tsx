@@ -379,7 +379,6 @@ function manualTurnEndRestriction(gameId: string | null | undefined, phase: stri
 
 function App() {
   const [name, setName] = useState(() => localStorage.getItem(storageKeys.name) ?? createDefaultName());
-  const [roomCode, setRoomCode] = useState("");
   const [room, setRoom] = useState<RoomSnapshot | null>(null);
   const [playerId, setPlayerId] = useState(() => localStorage.getItem(storageKeys.playerId) ?? "");
   const [clientKey, setClientKey] = useState(() => readOrCreateClientKey());
@@ -466,14 +465,12 @@ function App() {
     setPlayerId(response.data.playerId);
     setRoom(response.data.room);
     setLastRoomCode(response.data.room.code);
-    setRoomCode(response.data.room.code);
   }
 
   async function joinRoomByCode(code: string) {
     const normalizedCode = code.trim().toUpperCase();
     if (!normalizedCode) return;
     setNotice("");
-    setRoomCode(normalizedCode);
     const response = await emitWithAck<JoinResult>("room:join", { code: normalizedCode, name, playerId, clientKey });
     if (!response.ok || !response.data) {
       setNotice(response.error ?? "방에 입장할 수 없습니다.");
@@ -483,12 +480,6 @@ function App() {
     setPlayerId(response.data.playerId);
     setRoom(response.data.room);
     setLastRoomCode(response.data.room.code);
-    setRoomCode(response.data.room.code);
-  }
-
-  async function handleJoinRoom(event: FormEvent) {
-    event.preventDefault();
-    await joinRoomByCode(roomCode);
   }
 
   async function resumeSavedRoom() {
@@ -507,7 +498,6 @@ function App() {
 
     setPlayerId(response.data.playerId);
     setRoom(response.data.room);
-    setRoomCode(response.data.room.code);
     setLastRoomCode(response.data.room.code);
   }
 
@@ -559,7 +549,6 @@ function App() {
     setClientKey(nextClientKey);
     setPlayerId("");
     setLastRoomCode("");
-    setRoomCode("");
     setRoom(null);
     setNotice("이 브라우저의 저장된 방/플레이어 연결을 지우고 새 손님으로 시작합니다.");
   }
@@ -595,16 +584,13 @@ function App() {
         ) : (
           <HomeView
             name={name}
-            roomCode={roomCode}
             notice={notice}
             connection={connection}
             lastRoomCode={lastRoomCode}
             rooms={roomList}
             roomsLoading={roomListLoading}
             onNameChange={setName}
-            onRoomCodeChange={setRoomCode}
             onCreateRoom={handleCreateRoom}
-            onJoinRoom={handleJoinRoom}
             onJoinListedRoom={joinRoomByCode}
             onRefreshRooms={() => void refreshRoomList()}
             onResumeSavedRoom={resumeSavedRoom}
@@ -618,32 +604,26 @@ function App() {
 
 function HomeView({
   name,
-  roomCode,
   notice,
   connection,
   lastRoomCode,
   rooms,
   roomsLoading,
   onNameChange,
-  onRoomCodeChange,
   onCreateRoom,
-  onJoinRoom,
   onJoinListedRoom,
   onRefreshRooms,
   onResumeSavedRoom,
   onResetLocalIdentity
 }: {
   name: string;
-  roomCode: string;
   notice: string;
   connection: "connecting" | "connected" | "offline";
   lastRoomCode: string;
   rooms: PublicRoomListItem[];
   roomsLoading: boolean;
   onNameChange: (value: string) => void;
-  onRoomCodeChange: (value: string) => void;
   onCreateRoom: (event: FormEvent) => void;
-  onJoinRoom: (event: FormEvent) => void;
   onJoinListedRoom: (code: string) => void;
   onRefreshRooms: () => void;
   onResumeSavedRoom: () => void;
@@ -692,27 +672,24 @@ function HomeView({
             {rooms.map((openRoom) => {
               const canResume = lastRoomCode === openRoom.code;
               const canUseRoom = openRoom.canJoin || canResume;
+              const roomOwnerLabel = openRoom.hostName ? `${openRoom.hostName}의 방` : "이름 없는 방";
               return (
                 <article className={`room-card ${openRoom.canJoin ? "" : "is-locked"}`} key={openRoom.code}>
                   <div className="room-card-main">
                     <div className="room-card-title">
-                      <span className="room-code-chip">
-                        <DoorOpen size={17} aria-hidden="true" />
-                        {openRoom.code}
+                      <span className="room-owner-chip">
+                        <Crown size={17} aria-hidden="true" />
+                        {roomOwnerLabel}
+                      </span>
+                      <span className="room-count-chip">
+                        <Users size={16} aria-hidden="true" />
+                        {openRoom.playerCount}/{openRoom.maxPlayers}명
                       </span>
                       <span className={`room-state-chip ${openRoom.status}`}>
                         {openRoom.status === "playing" ? "게임 중" : openRoom.canJoin ? "입장 가능" : "만석"}
                       </span>
                     </div>
                     <div className="room-card-meta">
-                      <span>
-                        <Users size={16} aria-hidden="true" />
-                        {openRoom.playerCount}/{openRoom.maxPlayers}명
-                      </span>
-                      <span>
-                        <Crown size={16} aria-hidden="true" />
-                        {openRoom.hostName ?? "방장 미정"}
-                      </span>
                       <span>
                         <Clock3 size={16} aria-hidden="true" />
                         {formatTime(openRoom.createdAt)}
@@ -763,20 +740,6 @@ function HomeView({
             </button>
           </form>
         ) : null}
-
-        <form className="entry-panel compact-entry-panel" onSubmit={onJoinRoom}>
-          <label htmlFor="room-code">방 코드</label>
-          <input
-            id="room-code"
-            value={roomCode}
-            maxLength={5}
-            onChange={(event) => onRoomCodeChange(event.target.value.toUpperCase())}
-          />
-          <button className="secondary-button" type="submit" disabled={disabled || !name.trim() || !roomCode.trim()}>
-            <LogIn size={18} />
-            입장
-          </button>
-        </form>
         {lastRoomCode ? (
           <button className="secondary-button saved-room-button" type="button" onClick={onResumeSavedRoom} disabled={disabled}>
             <LogIn size={18} />
