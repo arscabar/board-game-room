@@ -44,10 +44,12 @@ const io = new Server(httpServer, {
 
 const rooms = new Map<string, RoomRecord>();
 const DISCONNECT_GRACE_MS = 24 * 60 * 60 * 1000;
+const EMPTY_ROOM_GRACE_MS = parsePositiveInteger(process.env.EMPTY_ROOM_GRACE_MS, 30 * 60 * 1000);
 const DEFAULT_TURN_TIMER_MS = 120_000;
 const MIN_TURN_TIMER_MS = 30_000;
 const MAX_TURN_TIMER_MS = 600_000;
 const turnTimeouts = new Map<string, ReturnType<typeof setTimeout>>();
+const emptyRoomCleanupTimers = new Map<string, ReturnType<typeof setTimeout>>();
 const statsStore = createStatsStore();
 const statsReady = statsStore.init();
 statsReady.catch((error) => {
@@ -58,7 +60,7 @@ app.use(cors());
 app.use(express.json());
 
 app.get("/api/health", (_request, response) => {
-  response.json({ ok: true, rooms: rooms.size });
+  response.json({ ok: true, rooms: rooms.size, emptyRoomGraceMs: EMPTY_ROOM_GRACE_MS });
 });
 
 app.get("/api/games", (_request, response) => {
@@ -160,6 +162,14 @@ function parseLimit(value: unknown, fallback: number) {
     return fallback;
   }
   return Math.min(100, Math.max(1, Math.floor(parsed)));
+}
+
+function parsePositiveInteger(value: unknown, fallback: number) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    return fallback;
+  }
+  return Math.floor(parsed);
 }
 
 function normalizeName(name: unknown) {
@@ -304,6 +314,48 @@ function connectedPlayers(room: RoomRecord) {
   return room.players.filter((player) => player.connected).sort((a, b) => a.seat - b.seat);
 }
 
+function clearEmptyRoomCleanup(code: string) {
+  const timer = emptyRoomCleanupTimers.get(code);
+  if (!timer) {
+    return;
+  }
+  clearTimeout(timer);
+  emptyRoomCleanupTimers.delete(code);
+}
+
+function deleteRoom(room: RoomRecord) {
+  clearScheduledTurnTimeout(room);
+  clearEmptyRoomCleanup(room.code);
+  void recordRoomStatsIfFinished(room);
+  rooms.delete(room.code);
+}
+
+function scheduleEmptyRoomCleanup(room: RoomRecord) {
+  if (connectedPlayers(room).length > 0) {
+    clearEmptyRoomCleanup(room.code);
+    return;
+  }
+
+  if (emptyRoomCleanupTimers.has(room.code)) {
+    return;
+  }
+
+  const timer = setTimeout(() => {
+    const staleRoom = rooms.get(room.code);
+    if (!staleRoom) {
+      clearEmptyRoomCleanup(room.code);
+      return;
+    }
+    if (connectedPlayers(staleRoom).length > 0) {
+      clearEmptyRoomCleanup(staleRoom.code);
+      return;
+    }
+    deleteRoom(staleRoom);
+  }, EMPTY_ROOM_GRACE_MS);
+  timer.unref?.();
+  emptyRoomCleanupTimers.set(room.code, timer);
+}
+
 function findReturningPlayer(room: RoomRecord, playerId: unknown, clientKey: unknown) {
   const savedPlayerId = String(playerId ?? "").trim();
   const savedClientKey = normalizeClientKey(clientKey);
@@ -332,6 +384,7 @@ function attachSocketToPlayer(socket: Socket, room: RoomRecord, player: MutableP
       previousPlayer.disconnectedAt = Date.now();
       assignHost(previousRoom);
       clearInvalidSelection(previousRoom);
+      scheduleEmptyRoomCleanup(previousRoom);
       void broadcastRoom(previousRoom);
     }
     socket.leave(previousRoomCode);
@@ -345,6 +398,7 @@ function attachSocketToPlayer(socket: Socket, room: RoomRecord, player: MutableP
   socket.data.roomCode = room.code;
   socket.data.playerId = player.id;
   socket.join(room.code);
+  clearEmptyRoomCleanup(room.code);
   assignHost(room);
   clearInvalidSelection(room);
 }
@@ -898,6 +952,36 @@ io.on("connection", (socket) => {
     broadcastRoom(room);
   });
 
+  socket.on("room:leave", (payload: { code?: string }, ack?: (response: Ack<{ code: string; empty: boolean }>) => void) => {
+    const code = String(payload?.code ?? socket.data.roomCode ?? "").trim().toUpperCase();
+    const playerId = socket.data.playerId as string | undefined;
+    const room = rooms.get(code);
+
+    if (!room || !playerId) {
+      reply(ack, { ok: true, data: { code, empty: true } });
+      return;
+    }
+
+    const player = room.players.find((roomPlayer) => roomPlayer.id === playerId);
+    if (player) {
+      player.connected = false;
+      player.disconnectedAt = Date.now();
+    }
+
+    socket.leave(code);
+    delete socket.data.roomCode;
+    delete socket.data.playerId;
+
+    assignHost(room);
+    clearInvalidSelection(room);
+    const empty = connectedPlayers(room).length === 0;
+    scheduleEmptyRoomCleanup(room);
+    if (!empty) {
+      void broadcastRoom(room);
+    }
+    reply(ack, { ok: true, data: { code, empty } });
+  });
+
   socket.on("room:select-game", (payload: { code?: string; gameId?: string }, ack?: (response: Ack<RoomSnapshot>) => void) => {
     const result = requireRoom(socket, payload?.code);
     if (!result.room) {
@@ -1273,6 +1357,7 @@ io.on("connection", (socket) => {
 
     assignHost(room);
     clearInvalidSelection(room);
+    scheduleEmptyRoomCleanup(room);
     if (room.status === "playing" && room.gameState.activePlayerId === playerId) {
       appendSystemLog(room, `${player?.name ?? "플레이어"} 연결 끊김. 제한 시간 안에 다시 들어오면 이어서 진행합니다.`);
       scheduleTurnTimeout(room);
@@ -1287,8 +1372,7 @@ io.on("connection", (socket) => {
 
       pruneDisconnected(staleRoom);
       if (staleRoom.players.length === 0 || connectedPlayers(staleRoom).length === 0) {
-        clearScheduledTurnTimeout(staleRoom);
-        rooms.delete(code);
+        deleteRoom(staleRoom);
         return;
       }
 

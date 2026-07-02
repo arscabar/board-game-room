@@ -417,13 +417,24 @@ function App() {
     }
   }
 
-  function leaveLocalRoom() {
+  async function leaveLocalRoom() {
+    const leavingRoom = room;
+    if (leavingRoom) {
+      const response = await emitWithAck<{ code: string; empty: boolean }>("room:leave", { code: leavingRoom.code });
+      if (!response.ok) {
+        setNotice(response.error ?? "방 나가기를 서버에 반영하지 못했습니다.");
+      }
+    }
     setRoom(null);
     setRestoreTried(true);
     setNotice("플레이어 정보는 이 브라우저에 저장되어 있습니다. 같은 방에 다시 들어가면 같은 좌석으로 복귀합니다.");
   }
 
-  function resetLocalIdentity() {
+  async function resetLocalIdentity() {
+    const leavingRoom = room;
+    if (leavingRoom) {
+      await emitWithAck<{ code: string; empty: boolean }>("room:leave", { code: leavingRoom.code });
+    }
     const nextClientKey = createClientKey();
     localStorage.removeItem(storageKeys.playerId);
     localStorage.removeItem(storageKeys.roomCode);

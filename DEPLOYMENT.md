@@ -63,10 +63,13 @@ Public: Yes
 
 ```text
 PORT=3001
+EMPTY_ROOM_GRACE_MS=1800000
 STATS_FILE=/tmp/board-game-stats.json
 ```
 
 이 모드는 방 상태, 접속 플레이어, 진행 중 점수, 최근 전적이 서버가 살아 있는 동안만 유지됩니다. 서버가 재배포되거나 재시작되면 방과 통계가 초기화될 수 있습니다.
+
+`EMPTY_ROOM_GRACE_MS`는 방에 연결된 사람이 0명이 된 뒤 서버 메모리에서 방을 삭제하기까지 기다리는 시간입니다. 기본값은 30분입니다. 친구끼리 테스트용이면 `300000`(5분)처럼 줄여도 됩니다.
 
 6. 전적/승률을 계속 보관하고 싶을 때만 Northflank Postgres addon을 만들고 연결 문자열을 서비스 환경변수에 넣습니다.
 
@@ -74,6 +77,7 @@ STATS_FILE=/tmp/board-game-stats.json
 DATABASE_URL=postgresql://...
 DATABASE_SSL=true
 PORT=3001
+EMPTY_ROOM_GRACE_MS=1800000
 ```
 
 7. 배포 후 아래 주소가 정상 응답하면 서버가 준비된 것입니다.
