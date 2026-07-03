@@ -8406,3 +8406,597 @@ textarea:focus-visible {
     min-width: 42px;
   }
 }
+
+/* Premium table OS pass:
+   Apple-style layering + Steam/console scan density + tactile anti-template warmth. */
+:root {
+  --atelier-bg: #0d0a07;
+  --atelier-felt: #123b2c;
+  --atelier-felt-deep: #08251c;
+  --atelier-wood: #24160d;
+  --atelier-wood-soft: #342115;
+  --atelier-surface: rgba(31, 22, 15, 0.84);
+  --atelier-surface-strong: rgba(41, 29, 19, 0.92);
+  --atelier-panel: rgba(18, 13, 9, 0.84);
+  --atelier-row: rgba(13, 10, 7, 0.78);
+  --atelier-row-hover: rgba(39, 27, 17, 0.78);
+  --atelier-text: #f4e7ce;
+  --atelier-soft: #cdb88e;
+  --atelier-muted: #8d7b5d;
+  --atelier-rule: rgba(229, 183, 109, 0.18);
+  --atelier-rule-2: rgba(229, 183, 109, 0.32);
+  --atelier-glow: rgba(229, 183, 109, 0.12);
+  --atelier-green: #168252;
+  --atelier-green-dark: #0d5438;
+  --atelier-gold: #d5ad62;
+  --atelier-red: #8b3c32;
+  --atelier-radius: 8px;
+  --atelier-radius-sm: 6px;
+}
+
+html,
+body,
+#root {
+  background: var(--atelier-bg);
+}
+
+body {
+  font-family:
+    -apple-system,
+    BlinkMacSystemFont,
+    "SF Pro Text",
+    "Segoe UI",
+    "Pretendard",
+    "Noto Sans KR",
+    sans-serif;
+}
+
+.app-shell {
+  min-height: 100svh;
+  padding: clamp(10px, 1.5vw, 18px) !important;
+  color: var(--atelier-text);
+  background:
+    linear-gradient(180deg, rgba(255, 231, 190, 0.035), transparent 180px),
+    repeating-linear-gradient(90deg, rgba(255, 226, 176, 0.024) 0 1px, transparent 1px 128px),
+    repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.18) 0 1px, transparent 1px 44px),
+    linear-gradient(135deg, #140d08 0%, #0d0906 48%, #1c120b 100%) !important;
+}
+
+.topbar,
+main {
+  width: min(100%, 1180px);
+  max-width: 1180px;
+}
+
+.topbar {
+  min-height: 52px;
+  margin-bottom: 10px !important;
+  padding: 8px 10px !important;
+  border: 1px solid var(--atelier-rule-2) !important;
+  border-radius: var(--atelier-radius) !important;
+  background:
+    linear-gradient(90deg, rgba(22, 130, 82, 0.12), transparent 34%),
+    linear-gradient(180deg, rgba(52, 33, 21, 0.9), rgba(24, 16, 11, 0.86)) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 242, 214, 0.08),
+    0 18px 48px rgba(0, 0, 0, 0.2) !important;
+  backdrop-filter: blur(18px) saturate(115%);
+}
+
+.brand-mark {
+  width: 34px;
+  height: 34px;
+  border-color: rgba(104, 191, 137, 0.42) !important;
+  border-radius: 7px !important;
+  background:
+    linear-gradient(180deg, rgba(27, 130, 86, 0.42), rgba(12, 44, 32, 0.96)) !important;
+}
+
+.topbar h1 {
+  color: var(--atelier-text) !important;
+  font-size: 0.96rem !important;
+  font-weight: 780;
+}
+
+.topbar p {
+  color: var(--atelier-soft) !important;
+  font-size: 0.72rem !important;
+}
+
+.home-console,
+.room-layout {
+  filter: none;
+}
+
+.home-console {
+  overflow: hidden;
+  border: 1px solid var(--atelier-rule-2) !important;
+  border-radius: var(--atelier-radius);
+  background:
+    linear-gradient(180deg, rgba(255, 231, 190, 0.035), transparent 160px),
+    linear-gradient(135deg, rgba(48, 31, 20, 0.86), rgba(17, 12, 8, 0.92)) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 242, 214, 0.08),
+    0 22px 52px rgba(0, 0, 0, 0.24);
+}
+
+.home-toolbar {
+  min-height: 58px;
+  padding: 10px !important;
+  border-bottom: 1px solid var(--atelier-rule) !important;
+  background:
+    linear-gradient(90deg, rgba(255, 231, 190, 0.035), transparent 62%),
+    rgba(36, 24, 16, 0.82) !important;
+}
+
+.home-toolbar-title .eyebrow,
+.panel-header .eyebrow,
+.room-browser-heading span,
+.home-inline-name span,
+.seat-panel-title span,
+.panel-header p {
+  color: var(--atelier-muted) !important;
+  font-size: 0.68rem !important;
+  font-weight: 720;
+}
+
+.home-toolbar-title h2,
+.room-browser-heading strong,
+.panel-header h2,
+.seat-panel-title h2 {
+  color: var(--atelier-text) !important;
+  font-weight: 760;
+  letter-spacing: 0;
+}
+
+.home-toolbar-title h2 {
+  font-size: 1.02rem !important;
+}
+
+.home-inline-name {
+  grid-template-columns: 40px minmax(0, 1fr);
+}
+
+input,
+select,
+textarea {
+  min-height: 40px !important;
+  border: 1px solid rgba(229, 183, 109, 0.28) !important;
+  border-radius: var(--atelier-radius-sm) !important;
+  background:
+    linear-gradient(180deg, rgba(6, 5, 4, 0.92), rgba(12, 8, 5, 0.92)) !important;
+  color: var(--atelier-text) !important;
+  box-shadow:
+    inset 0 1px 1px rgba(0, 0, 0, 0.38),
+    inset 0 -1px 0 rgba(255, 231, 190, 0.04) !important;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: rgba(205, 184, 142, 0.55);
+}
+
+.board-sdk-button.rt-Button,
+.board-sdk-icon-button.rt-IconButton,
+.primary-button,
+.secondary-button,
+.icon-button {
+  min-height: 40px !important;
+  border: 1px solid rgba(229, 183, 109, 0.28) !important;
+  border-radius: var(--atelier-radius-sm) !important;
+  background:
+    linear-gradient(180deg, rgba(64, 42, 27, 0.9), rgba(35, 23, 15, 0.95)) !important;
+  color: var(--atelier-text) !important;
+  font-size: 0.82rem !important;
+  font-weight: 760 !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 242, 214, 0.08),
+    0 1px 0 rgba(0, 0, 0, 0.28) !important;
+}
+
+.primary-button,
+.board-sdk-button.primary-button,
+.icon-button.strong,
+.board-sdk-icon-button.strong,
+.turn-actions .primary-button {
+  border-color: rgba(101, 202, 145, 0.42) !important;
+  background:
+    linear-gradient(180deg, var(--atelier-green), var(--atelier-green-dark)) !important;
+}
+
+.secondary-button.danger,
+.board-sdk-button.danger,
+.board-sdk-icon-button.danger {
+  border-color: rgba(220, 116, 95, 0.42) !important;
+  background:
+    linear-gradient(180deg, #9b453b, var(--atelier-red)) !important;
+}
+
+.board-sdk-button.rt-Button:hover:not(:disabled),
+.board-sdk-icon-button.rt-IconButton:hover:not(:disabled),
+.primary-button:hover:not(:disabled),
+.secondary-button:hover:not(:disabled),
+.icon-button:hover:not(:disabled) {
+  transform: translateY(-1px) !important;
+  border-color: rgba(244, 206, 137, 0.58) !important;
+  background:
+    linear-gradient(180deg, rgba(82, 55, 35, 0.92), rgba(44, 30, 20, 0.96)) !important;
+}
+
+.primary-button:hover:not(:disabled),
+.board-sdk-button.primary-button:hover:not(:disabled),
+.icon-button.strong:hover:not(:disabled),
+.board-sdk-icon-button.strong:hover:not(:disabled) {
+  background:
+    linear-gradient(180deg, #1e9562, #116442) !important;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid rgba(245, 206, 130, 0.96) !important;
+  outline-offset: 2px;
+}
+
+.home-room-board {
+  background:
+    linear-gradient(180deg, rgba(18, 59, 44, 0.18), rgba(7, 13, 9, 0.08)),
+    rgba(9, 7, 5, 0.58) !important;
+}
+
+.room-browser-heading {
+  min-height: 48px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--atelier-rule) !important;
+  background:
+    linear-gradient(90deg, rgba(18, 59, 44, 0.44), transparent 72%),
+    rgba(18, 13, 9, 0.72) !important;
+}
+
+.room-browser-meta strong {
+  color: var(--atelier-gold);
+}
+
+.room-browser-meta span {
+  color: var(--atelier-muted) !important;
+}
+
+.home-room-board .room-table-head,
+.game-list-head {
+  min-height: 30px;
+  border-color: var(--atelier-rule) !important;
+  background: rgba(7, 6, 4, 0.72) !important;
+  color: var(--atelier-muted) !important;
+  text-transform: uppercase;
+}
+
+.home-room-board .room-list {
+  background:
+    repeating-linear-gradient(0deg, rgba(255, 231, 190, 0.018) 0 1px, transparent 1px 38px),
+    rgba(9, 7, 5, 0.52);
+}
+
+.home-room-board .room-card,
+.work-panel.lobby-panel .game-row {
+  min-height: var(--game-row-h) !important;
+  border-bottom-color: var(--atelier-rule) !important;
+  background: var(--atelier-row) !important;
+}
+
+.home-room-board .room-card:hover,
+.work-panel.lobby-panel .game-row:hover:not(:disabled) {
+  background:
+    linear-gradient(90deg, rgba(213, 173, 98, 0.08), transparent 44%),
+    var(--atelier-row-hover) !important;
+}
+
+.home-room-board .room-card::before,
+.work-panel.lobby-panel .game-row::before {
+  width: 2px;
+  background: transparent;
+}
+
+.home-room-board .room-card:hover::before,
+.work-panel.lobby-panel .game-row:hover:not(:disabled)::before {
+  background: var(--atelier-gold);
+}
+
+.home-room-board .room-owner-chip,
+.work-panel.lobby-panel .game-row strong,
+.compact-empty-room h3 {
+  color: var(--atelier-text) !important;
+}
+
+.home-room-board .room-card-meta span,
+.home-room-board .room-card-game,
+.home-room-board .room-state-chip,
+.compact-empty-room p,
+.game-row-players,
+.game-row-state {
+  color: var(--atelier-muted) !important;
+}
+
+.home-room-board .room-count-chip,
+.game-row-players,
+.room-browser-meta strong {
+  font-family:
+    "SF Mono",
+    "Cascadia Mono",
+    Consolas,
+    monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+.compact-empty-room {
+  border-color: var(--atelier-rule) !important;
+  background:
+    linear-gradient(90deg, rgba(18, 59, 44, 0.24), transparent 70%),
+    rgba(10, 8, 6, 0.66) !important;
+}
+
+.room-layout {
+  gap: 10px !important;
+  grid-template-columns: 196px minmax(0, 1fr) 268px !important;
+  align-items: start !important;
+}
+
+.seat-panel,
+.work-panel,
+.detail-panel,
+.play-panel .turn-guide,
+.play-panel .action-form,
+.play-panel .turn-actions,
+.play-panel .move-log,
+.game-module-shell {
+  border: 1px solid var(--atelier-rule-2) !important;
+  border-radius: var(--atelier-radius) !important;
+  background:
+    linear-gradient(180deg, rgba(255, 231, 190, 0.03), transparent 110px),
+    var(--atelier-surface) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 242, 214, 0.06),
+    0 18px 36px rgba(0, 0, 0, 0.18) !important;
+  backdrop-filter: blur(14px) saturate(108%);
+}
+
+.seat-panel,
+.work-panel,
+.detail-panel {
+  padding: 12px !important;
+}
+
+.lobby-panel-header,
+.play-panel-header,
+.seat-panel-header {
+  min-height: 42px;
+  margin: 0 0 10px !important;
+  border-bottom-color: var(--atelier-rule) !important;
+}
+
+.seat-list,
+.work-panel.lobby-panel .game-list {
+  overflow: hidden;
+  border-color: var(--atelier-rule) !important;
+  border-radius: var(--atelier-radius-sm);
+  background: rgba(6, 5, 4, 0.64);
+}
+
+.seat-row {
+  min-height: 46px;
+  border-color: var(--atelier-rule) !important;
+  background: rgba(10, 8, 6, 0.72) !important;
+}
+
+.seat-row.filled,
+.seat-row.current {
+  background:
+    linear-gradient(90deg, rgba(22, 130, 82, 0.34), rgba(19, 33, 25, 0.76)) !important;
+}
+
+.seat-number {
+  border-radius: 5px;
+  background: rgba(255, 231, 190, 0.08);
+  color: var(--atelier-soft);
+}
+
+.seat-row strong {
+  color: var(--atelier-text);
+  font-weight: 760;
+}
+
+.seat-row span {
+  color: var(--atelier-soft);
+}
+
+.game-list-head {
+  border-radius: var(--atelier-radius-sm) var(--atelier-radius-sm) 0 0;
+}
+
+.work-panel.lobby-panel .game-row {
+  min-height: 36px;
+}
+
+.work-panel.lobby-panel .game-row.selected {
+  background:
+    linear-gradient(90deg, rgba(22, 130, 82, 0.54), rgba(22, 130, 82, 0.12) 56%, transparent),
+    rgba(14, 33, 24, 0.82) !important;
+}
+
+.work-panel.lobby-panel .game-row.selected::before {
+  background: #8ce0aa;
+}
+
+.game-row-marker {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(205, 184, 142, 0.5);
+}
+
+.game-row.selected .game-row-marker {
+  background: #92e8af;
+  box-shadow: 0 0 0 3px rgba(146, 232, 175, 0.12);
+}
+
+.work-panel.lobby-panel .game-row.is-unavailable,
+.work-panel.lobby-panel .game-row.is-unavailable:disabled {
+  opacity: 1;
+  background: rgba(5, 5, 4, 0.62) !important;
+}
+
+.work-panel.lobby-panel .game-row.is-unavailable strong,
+.work-panel.lobby-panel .game-row.is-unavailable .game-row-players,
+.work-panel.lobby-panel .game-row.is-unavailable .game-row-state {
+  color: rgba(141, 123, 93, 0.55) !important;
+}
+
+.detail-panel {
+  background:
+    linear-gradient(180deg, rgba(18, 59, 44, 0.18), transparent 120px),
+    rgba(27, 18, 12, 0.82) !important;
+}
+
+.detail-panel h2,
+.detail-panel h3,
+.detail-panel strong {
+  color: var(--atelier-text) !important;
+}
+
+.detail-panel p,
+.detail-panel li,
+.detail-panel .summary {
+  color: var(--atelier-soft) !important;
+}
+
+.player-turn-chip {
+  border-color: var(--atelier-rule) !important;
+  border-radius: var(--atelier-radius-sm) !important;
+  background: rgba(13, 10, 7, 0.72) !important;
+}
+
+.player-turn-chip.active {
+  border-color: rgba(139, 224, 171, 0.5) !important;
+  background: rgba(18, 74, 49, 0.72) !important;
+}
+
+.game-module-shell {
+  background:
+    linear-gradient(180deg, rgba(18, 59, 44, 0.18), transparent 140px),
+    rgba(13, 10, 7, 0.72) !important;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .topbar,
+  .home-console,
+  .seat-panel,
+  .work-panel,
+  .detail-panel {
+    animation: atelier-settle 260ms ease both;
+  }
+
+  @keyframes atelier-settle {
+    from {
+      opacity: 0.92;
+      transform: translateY(4px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+
+@media (max-width: 940px) {
+  .room-layout {
+    grid-template-columns: 184px minmax(0, 1fr) !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .app-shell {
+    padding: 8px !important;
+  }
+
+  .topbar {
+    border-radius: var(--atelier-radius) !important;
+  }
+
+  .home-toolbar {
+    grid-template-columns: minmax(0, 1fr);
+    min-height: 0;
+  }
+
+  .home-toolbar-actions {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .home-toolbar-actions .primary-button {
+    grid-column: auto;
+  }
+}
+
+@media (max-width: 620px) {
+  .app-shell {
+    padding: 5px !important;
+  }
+
+  .topbar {
+    min-height: 46px;
+  }
+
+  .home-console,
+  .seat-panel,
+  .work-panel,
+  .detail-panel {
+    border-radius: var(--atelier-radius-sm) !important;
+  }
+
+  .home-toolbar {
+    padding: 9px !important;
+  }
+
+  .home-inline-name {
+    grid-template-columns: 34px minmax(0, 1fr);
+  }
+
+  .home-toolbar-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .home-toolbar-actions .primary-button {
+    grid-column: 1 / -1;
+  }
+
+  .board-sdk-button.rt-Button,
+  .board-sdk-icon-button.rt-IconButton,
+  .primary-button,
+  .secondary-button,
+  .icon-button,
+  input,
+  select,
+  textarea {
+    min-height: 44px !important;
+  }
+
+  .room-browser-heading {
+    min-height: 46px;
+    padding: 9px;
+  }
+
+  .room-layout {
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+  }
+
+  .seat-panel,
+  .work-panel,
+  .detail-panel {
+    padding: 10px !important;
+  }
+
+  .seat-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
