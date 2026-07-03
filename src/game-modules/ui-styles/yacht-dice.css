@@ -9,7 +9,6 @@
 .yacht-score-panel > div,
 .yacht-scoreboard > div {
   max-width: 100%;
-  overflow-x: auto;
 }
 
 .yacht-score-table {
@@ -50,8 +49,7 @@
 .yacht-scoreboard {
   border-color: rgba(46, 70, 63, 0.22) !important;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(249, 244, 226, 0.92)),
-    repeating-linear-gradient(0deg, transparent 0 31px, rgba(47, 111, 115, 0.12) 31px 32px) !important;
+    linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(249, 244, 226, 0.96)) !important;
   box-shadow: 0 10px 20px rgba(29, 36, 34, 0.07);
 }
 
@@ -149,8 +147,7 @@
 .yacht-score-panel,
 .yacht-scoreboard {
   background:
-    linear-gradient(180deg, #fff9e9, #ead9b1),
-    repeating-linear-gradient(0deg, transparent 0 31px, rgba(47, 111, 115, 0.1) 31px 32px) !important;
+    linear-gradient(180deg, #fffaf0, #ead9b1) !important;
 }
 
 .yacht-dice-module {
@@ -287,11 +284,17 @@
   border-radius: 8px;
   padding: 9px 10px;
   background:
-    linear-gradient(90deg, rgba(255, 255, 255, 0.78), transparent 48%),
-    repeating-linear-gradient(0deg, #f8fbfd 0 16px, #dbeaf0 16px 17px);
+    linear-gradient(180deg, #ffffff, #f4faf9);
   color: #2d4c58;
   font-size: 0.88rem;
   font-weight: 800;
+  overflow: hidden !important;
+}
+
+.yacht-score-panel > .yacht-bonus-strip {
+  overflow: hidden !important;
+  overflow-x: hidden !important;
+  overflow-y: hidden !important;
 }
 
 .yacht-bonus-strip strong {
@@ -652,10 +655,13 @@
   top: var(--die-y);
   z-index: 2;
   width: clamp(44px, 7vw, 52px);
+  height: clamp(44px, 7vw, 52px);
+  display: grid !important;
+  place-items: center !important;
   min-width: 0 !important;
   min-height: 0 !important;
-  grid-template-rows: auto auto !important;
-  gap: 4px !important;
+  grid-template-rows: 1fr !important;
+  gap: 0 !important;
   border: 0 !important;
   padding: 0 !important;
   background: transparent !important;
@@ -674,7 +680,14 @@
 
 .yacht-throw-tray .yacht-die-button.held {
   z-index: 3;
+  outline: none !important;
   transform: translate(-50%, -50%) rotate(0deg);
+}
+
+.yacht-throw-tray .yacht-die-button.held .yacht-die-face {
+  animation: none !important;
+  outline: 2px solid rgba(201, 154, 66, 0.72);
+  outline-offset: 1px;
 }
 
 .yacht-throw-tray.rolling .yacht-die-button.rolling {
@@ -889,6 +902,7 @@
 
   .yacht-throw-tray .yacht-die-button {
     width: 44px;
+    height: 44px;
   }
 
   .yacht-throw-tray .yacht-die-face {

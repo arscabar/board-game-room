@@ -522,7 +522,7 @@ export function Component({
     const position = DIE_TRAY_POSITIONS[index] ?? DIE_TRAY_POSITIONS[0];
     return {
       "--die-x": held ? position.holdX : position.x,
-      "--die-y": held ? position.holdY : position.y,
+      "--die-y": held ? "calc(100% - 30px)" : position.y,
       "--die-r": held ? "0deg" : position.r,
       "--die-roll-x": position.rollX,
       "--die-roll-y": position.rollY,
