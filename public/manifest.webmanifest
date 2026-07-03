@@ -1,7 +1,7 @@
 {
   "name": "Board Game Room",
   "short_name": "Board Room",
-  "description": "문서화된 보드게임을 실시간 방에서 선택하고 진행하는 컴팩트한 목재 테이블 앱",
+  "description": "웹에서 즐기는 보드게임",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

@@ -633,7 +633,7 @@ function App() {
         </div>
         <div>
           <h1>Board Game Room</h1>
-          <p>방에 들어가서 인원에 맞는 보드게임을 선택합니다.</p>
+          <p>웹에서 즐기는 보드게임</p>
         </div>
       </header>
 
