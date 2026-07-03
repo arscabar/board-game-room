@@ -51,6 +51,15 @@ const scoreSheetLabels: Record<CategoryId, string> = {
   largeStraight: "LS",
   yacht: "Y"
 };
+
+const DIE_TRAY_POSITIONS = [
+  { x: "18%", y: "34%", holdX: "12%", holdY: "78%", r: "-10deg", rollX: "38px", rollY: "-20px", rollR: "172deg" },
+  { x: "38%", y: "24%", holdX: "31%", holdY: "78%", r: "7deg", rollX: "-28px", rollY: "26px", rollR: "-154deg" },
+  { x: "58%", y: "38%", holdX: "50%", holdY: "78%", r: "-4deg", rollX: "24px", rollY: "-32px", rollR: "126deg" },
+  { x: "77%", y: "27%", holdX: "69%", holdY: "78%", r: "12deg", rollX: "-42px", rollY: "-14px", rollR: "-188deg" },
+  { x: "49%", y: "54%", holdX: "88%", holdY: "78%", r: "-16deg", rollX: "36px", rollY: "22px", rollR: "206deg" }
+] as const;
+
 type ScoreSheet = Partial<Record<CategoryId, number>>;
 
 interface YachtState {
@@ -509,19 +518,41 @@ export function Component({
     onAction({ type: "yacht-dice/roll" });
   }
 
+  function dieTrayStyle(index: number, held: boolean): CSSProperties {
+    const position = DIE_TRAY_POSITIONS[index] ?? DIE_TRAY_POSITIONS[0];
+    return {
+      "--die-x": held ? position.holdX : position.x,
+      "--die-y": held ? position.holdY : position.y,
+      "--die-r": position.r,
+      "--die-roll-x": position.rollX,
+      "--die-roll-y": position.rollY,
+      "--die-roll-r": position.rollR
+    } as CSSProperties;
+  }
+
   return (
     <section className="game-module yacht-dice-module" style={styles.shell} aria-label="요트 다이스 보드">
       <div className="yacht-top-grid" style={styles.topGrid}>
         <article className="yacht-dice-panel" style={styles.panel}>
-          <h3>주사위</h3>
-          <p>
-            {state.phase === "complete" ? "게임 종료" : `${getPlayerName(players, activePlayerId)} 차례`} · 남은 굴림 {Math.max(0, rollsLeft)}
-          </p>
-          <div className="yacht-dice-grid" style={styles.diceGrid}>
+          <div className="yacht-dice-panel-head">
+            <div>
+              <h3>주사위</h3>
+              <p>
+                {state.phase === "complete" ? "게임 종료" : `${getPlayerName(players, activePlayerId)} 차례`} · 남은 굴림 {Math.max(0, rollsLeft)}
+              </p>
+            </div>
+            <strong>{state.rollsThisTurn}/{MAX_ROLLS}</strong>
+          </div>
+          <div className={`yacht-throw-tray ${rolling ? "rolling" : ""}`} aria-label="주사위 던지는 판">
+            <div className="yacht-keep-slots" aria-hidden="true">
+              {Array.from({ length: DICE_COUNT }, (_, index) => (
+                <span className={state.held[index] ? "filled" : ""} key={index} />
+              ))}
+            </div>
             {state.dice.map((die, index) => (
               <button
                 className={`yacht-die-button ${state.held[index] ? "held" : ""} ${rolling && !state.held[index] ? "rolling" : ""}`}
-                style={styles.dieButton}
+                style={dieTrayStyle(index, state.held[index])}
                 type="button"
                 key={index}
                 disabled={!canAct || state.rollsThisTurn === 0}
