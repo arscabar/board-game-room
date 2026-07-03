@@ -5910,6 +5910,21 @@ a:focus-visible,
   flex: 0 0 auto;
 }
 
+.seat-panel-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.icon-button.danger {
+  color: #fff7ec;
+  background:
+    radial-gradient(circle at 28% 18%, rgba(255, 255, 255, 0.2), transparent 24%),
+    linear-gradient(180deg, #9f3d35, #64221f);
+}
+
 .lobby-panel-actions,
 .play-header-actions {
   display: flex;

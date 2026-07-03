@@ -80,6 +80,7 @@ export interface GameRuntimeState {
   message?: string;
   publicState?: unknown;
   winnerId?: string | null;
+  winnerIds?: string[];
 }
 
 export type RoomStatus = "lobby" | "playing";
@@ -92,6 +93,7 @@ export interface RoomSnapshot {
   status: RoomStatus;
   gameState: GameRuntimeState;
   createdAt: number;
+  canDeleteRoom: boolean;
 }
 
 export interface PublicRoomListItem {

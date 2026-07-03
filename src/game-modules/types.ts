@@ -30,6 +30,7 @@ export interface GameActionResult {
   phase?: string;
   message?: string;
   winnerId?: string | null;
+  winnerIds?: string[];
 }
 
 export interface GameModule {

@@ -37,6 +37,7 @@ import {
   Star,
   Target,
   TimerOff,
+  Trash2,
   Trophy,
   UserCheck,
   Users,
@@ -207,6 +208,13 @@ function runtimeWinnerIds(room: RoomSnapshot) {
   const singleWinner = room.gameState.winnerId ?? publicState?.winnerId;
   if (typeof singleWinner === "string" && singleWinner) {
     winners.add(singleWinner);
+  }
+  if (Array.isArray(room.gameState.winnerIds)) {
+    room.gameState.winnerIds.forEach((winnerId) => {
+      if (typeof winnerId === "string" && winnerId) {
+        winners.add(winnerId);
+      }
+    });
   }
   if (Array.isArray(publicState?.winnerIds)) {
     publicState.winnerIds.forEach((winnerId) => {
@@ -396,11 +404,32 @@ function App() {
       setRoomList(nextRooms);
       setRoomListLoading(false);
     };
+    const handleRoomDeleted = (payload: { code?: string; reason?: string }) => {
+      const deletedCode = String(payload?.code ?? "").trim().toUpperCase();
+      if (!deletedCode) {
+        return;
+      }
+      setRoom((currentRoom) => {
+        if (currentRoom?.code !== deletedCode) {
+          return currentRoom;
+        }
+        return null;
+      });
+      setLastRoomCode((savedCode) => {
+        if (savedCode !== deletedCode) {
+          return savedCode;
+        }
+        return "";
+      });
+      setNotice(payload?.reason ?? "방이 삭제되었습니다.");
+      void refreshRoomList(false);
+    };
 
     socket.on("connect", handleConnect);
     socket.on("disconnect", handleDisconnect);
     socket.on("room:state", handleRoomState);
     socket.on("rooms:list", handleRoomList);
+    socket.on("room:deleted", handleRoomDeleted);
     void refreshRoomList(false);
 
     return () => {
@@ -408,6 +437,7 @@ function App() {
       socket.off("disconnect", handleDisconnect);
       socket.off("room:state", handleRoomState);
       socket.off("rooms:list", handleRoomList);
+      socket.off("room:deleted", handleRoomDeleted);
       socket.disconnect();
     };
   }, []);
@@ -558,6 +588,24 @@ function App() {
     setNotice("방에서 나왔습니다. 다시 플레이하려면 열린 방에 들어가거나 새 방을 만드세요.");
   }
 
+  async function deleteLocalRoom() {
+    if (!room) return;
+    const confirmed = window.confirm("이 방을 삭제할까요? 들어와 있는 플레이어 모두가 방에서 나가게 됩니다.");
+    if (!confirmed) {
+      return;
+    }
+    const deletingCode = room.code;
+    const response = await emitWithAck<{ code: string }>("room:delete", { code: deletingCode });
+    if (!response.ok) {
+      setNotice(response.error ?? "방을 삭제할 수 없습니다.");
+      return;
+    }
+    setRoom(null);
+    setLastRoomCode("");
+    setNotice("방을 삭제했습니다.");
+    void refreshRoomList(false);
+  }
+
   async function resetLocalIdentity() {
     const leavingRoom = room;
     if (leavingRoom) {
@@ -601,6 +649,7 @@ function App() {
             onStartGame={startGame}
             onReturnLobby={returnLobby}
             onLeaveLocalRoom={leaveLocalRoom}
+            onDeleteLocalRoom={deleteLocalRoom}
           />
         ) : (
           <HomeView
@@ -1031,7 +1080,8 @@ function RoomView({
   onConfigureTimer,
   onStartGame,
   onReturnLobby,
-  onLeaveLocalRoom
+  onLeaveLocalRoom,
+  onDeleteLocalRoom
 }: {
   room: RoomSnapshot;
   currentPlayer: PlayerSnapshot | null;
@@ -1042,6 +1092,7 @@ function RoomView({
   onStartGame: () => void;
   onReturnLobby: () => void;
   onLeaveLocalRoom: () => void;
+  onDeleteLocalRoom: () => void;
 }) {
   const playerCount = room.players.filter((player) => player.connected).length;
   const activePlayer = room.players.find((player) => player.id === room.gameState.activePlayerId) ?? null;
@@ -1057,9 +1108,16 @@ function RoomView({
               <h2>플레이어</h2>
               <span>{playerCount}/{room.maxPlayers}</span>
             </div>
-            <button className="icon-button" type="button" onClick={onLeaveLocalRoom} aria-label="현재 방 나가기" title="현재 방 나가기">
-              <DoorOpen size={18} />
-            </button>
+            <div className="seat-panel-actions">
+              {room.canDeleteRoom ? (
+                <button className="icon-button danger" type="button" onClick={onDeleteLocalRoom} aria-label="방 삭제" title="방 삭제">
+                  <Trash2 size={18} />
+                </button>
+              ) : null}
+              <button className="icon-button" type="button" onClick={onLeaveLocalRoom} aria-label="현재 방 나가기" title="현재 방 나가기">
+                <DoorOpen size={18} />
+              </button>
+            </div>
           </div>
           <div className="seat-list">
             {Array.from({ length: room.maxPlayers }, (_, index) => {

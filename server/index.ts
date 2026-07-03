@@ -24,6 +24,8 @@ interface RoomRecord {
   code: string;
   maxPlayers: number;
   players: MutablePlayer[];
+  ownerPlayerId: string;
+  ownerClientKey?: string;
   selectedGameId: string | null;
   status: "lobby" | "playing";
   gameState: GameRuntimeState;
@@ -254,9 +256,21 @@ function snapshotPlayers(room: RoomRecord) {
     .sort((a, b) => a.seat - b.seat);
 }
 
+function canDeleteRoom(room: RoomRecord, player: MutablePlayer | PlayerSnapshot | null | undefined) {
+  if (!player) {
+    return false;
+  }
+  const mutablePlayer = player as MutablePlayer;
+  if (room.ownerClientKey && mutablePlayer.clientKey && room.ownerClientKey === mutablePlayer.clientKey) {
+    return true;
+  }
+  return room.ownerPlayerId === player.id;
+}
+
 function snapshotRoom(room: RoomRecord, viewerId: string | null = null): RoomSnapshot {
   const registration = getGameRegistration(room.selectedGameId);
   const context = viewerId ? buildGameContext(room, viewerId) : null;
+  const viewerPlayer = viewerId ? room.players.find((player) => player.id === viewerId) ?? null : null;
   const publicState =
     room.status === "playing" && registration && context
       ? registration.module.getPublicState(room.gamePrivateState, { ...context, viewerId })
@@ -273,7 +287,8 @@ function snapshotRoom(room: RoomRecord, viewerId: string | null = null): RoomSna
       publicState,
       moveLog: [...room.gameState.moveLog]
     },
-    createdAt: room.createdAt
+    createdAt: room.createdAt,
+    canDeleteRoom: canDeleteRoom(room, viewerPlayer)
   };
 }
 
@@ -367,11 +382,13 @@ function clearEmptyRoomCleanup(code: string) {
   emptyRoomCleanupTimers.delete(code);
 }
 
-function deleteRoom(room: RoomRecord) {
+function deleteRoom(room: RoomRecord, reason = "방이 정리되었습니다.") {
   clearScheduledTurnTimeout(room);
   clearEmptyRoomCleanup(room.code);
   void recordRoomStatsIfFinished(room);
   rooms.delete(room.code);
+  io.to(room.code).emit("room:deleted", { code: room.code, reason });
+  io.in(room.code).socketsLeave(room.code);
   broadcastRoomList();
 }
 
@@ -429,6 +446,7 @@ function attachSocketToPlayer(socket: Socket, room: RoomRecord, player: MutableP
       previousPlayer.disconnectedAt = Date.now();
       assignHost(previousRoom);
       clearInvalidSelection(previousRoom);
+      finishRoomIfPlayersCannotContinue(previousRoom, previousPlayer.name);
       scheduleEmptyRoomCleanup(previousRoom);
       void broadcastRoom(previousRoom);
     }
@@ -460,6 +478,10 @@ function assignHost(room: RoomRecord) {
 }
 
 function clearInvalidSelection(room: RoomRecord) {
+  if (room.status !== "lobby") {
+    return;
+  }
+
   const selectedGame = getGameById(room.selectedGameId);
   if (!selectedGame) {
     room.selectedGameId = null;
@@ -605,7 +627,7 @@ function winnerIdsFrom(room: RoomRecord) {
   const publicState = asRecord(room.gameState.publicState);
   const winnerIds = new Set<string>();
 
-  for (const value of [privateState?.winnerIds, publicState?.winnerIds]) {
+  for (const value of [room.gameState.winnerIds, privateState?.winnerIds, publicState?.winnerIds]) {
     if (Array.isArray(value)) {
       for (const winnerId of value) {
         if (typeof winnerId === "string" && winnerId) {
@@ -622,6 +644,59 @@ function winnerIdsFrom(room: RoomRecord) {
   }
 
   return [...winnerIds];
+}
+
+function finishRoomIfPlayersCannotContinue(room: RoomRecord, departedName = "플레이어") {
+  const game = getGameById(room.selectedGameId);
+  if (!game || room.status !== "playing" || roomGameIsFinished(room)) {
+    return false;
+  }
+
+  const survivors = connectedPlayers(room);
+  if (survivors.length === 0) {
+    return false;
+  }
+
+  const startedAsMatch = room.players.length > 1;
+  const canContinue =
+    startedAsMatch && survivors.length === 1
+      ? false
+      : canPlayGame(game, survivors.length);
+
+  if (canContinue) {
+    return false;
+  }
+
+  const winnerIds = survivors.map((player) => player.id);
+  const winnerNames = survivors.map((player) => player.name).join(", ");
+  const message =
+    winnerIds.length === 1
+      ? `${winnerNames}님 승리: ${departedName}님이 나가서 게임을 더 진행할 수 없습니다.`
+      : `${winnerNames} 공동 승리: ${departedName}님이 나가서 현재 인원으로 게임을 더 진행할 수 없습니다.`;
+  const publicState = asRecord(room.gameState.publicState);
+
+  clearScheduledTurnTimeout(room);
+  room.gameState.activePlayerId = null;
+  room.gameState.phase = "finished";
+  room.gameState.message = message;
+  room.gameState.winnerId = winnerIds.length === 1 ? winnerIds[0] : null;
+  room.gameState.winnerIds = winnerIds;
+  room.gameState.turnStartedAt = null;
+  room.gameState.turnDeadlineAt = null;
+  room.gameState.paused = false;
+  room.gameState.pausedAt = null;
+  room.gameState.pausedBy = null;
+  room.gameState.publicState = {
+    ...(publicState ?? {}),
+    activePlayerId: null,
+    phase: "finished",
+    message,
+    winnerId: room.gameState.winnerId,
+    winnerIds
+  };
+  appendSystemLog(room, message);
+  void recordRoomStatsIfFinished(room);
+  return true;
 }
 
 function phaseFrom(room: RoomRecord) {
@@ -753,6 +828,9 @@ function applyGameOutcome(room: RoomRecord, outcome: GameActionResult, context: 
   }
   if (outcome.winnerId !== undefined) {
     room.gameState.winnerId = outcome.winnerId;
+  }
+  if (outcome.winnerIds !== undefined) {
+    room.gameState.winnerIds = outcome.winnerIds;
   }
 
   room.gameState.publicState = registration.module.getPublicState(room.gamePrivateState, {
@@ -981,6 +1059,8 @@ io.on("connection", (socket) => {
       code,
       maxPlayers: ROOM_MAX_PLAYERS,
       players: [player],
+      ownerPlayerId: player.id,
+      ownerClientKey: player.clientKey,
       selectedGameId: null,
       status: "lobby",
       gameState: createEmptyRuntime(),
@@ -991,7 +1071,7 @@ io.on("connection", (socket) => {
 
     rooms.set(code, room);
     attachSocketToPlayer(socket, room, player);
-    reply(ack, { ok: true, data: { room: snapshotRoom(room), playerId: player.id } });
+    reply(ack, { ok: true, data: { room: snapshotRoom(room, player.id), playerId: player.id } });
     broadcastRoom(room);
     broadcastRoomList();
   });
@@ -1098,6 +1178,7 @@ io.on("connection", (socket) => {
 
     assignHost(room);
     clearInvalidSelection(room);
+    finishRoomIfPlayersCannotContinue(room, player?.name);
     const empty = connectedPlayers(room).length === 0;
     scheduleEmptyRoomCleanup(room);
     if (!empty) {
@@ -1105,6 +1186,26 @@ io.on("connection", (socket) => {
     }
     reply(ack, { ok: true, data: { code, empty } });
     broadcastRoomList();
+  });
+
+  socket.on("room:delete", (payload: { code?: string }, ack?: (response: Ack<{ code: string }>) => void) => {
+    const result = requireRoom(socket, payload?.code);
+    if (!result.room) {
+      reply(ack, { ok: false, error: result.error });
+      return;
+    }
+
+    if (!canDeleteRoom(result.room, result.player)) {
+      reply(ack, { ok: false, error: "방을 만든 사람만 방을 삭제할 수 있습니다." });
+      return;
+    }
+
+    const code = result.room.code;
+    appendSystemLog(result.room, `${result.player.name}님이 방을 삭제했습니다.`);
+    deleteRoom(result.room, "방을 만든 사람이 방을 삭제했습니다.");
+    delete socket.data.roomCode;
+    delete socket.data.playerId;
+    reply(ack, { ok: true, data: { code } });
   });
 
   socket.on("room:select-game", (payload: { code?: string; gameId?: string }, ack?: (response: Ack<RoomSnapshot>) => void) => {
@@ -1137,7 +1238,7 @@ io.on("connection", (socket) => {
     }
 
     result.room.selectedGameId = game.id;
-    reply(ack, { ok: true, data: snapshotRoom(result.room) });
+    reply(ack, { ok: true, data: snapshotRoom(result.room, result.player.id) });
     broadcastRoom(result.room);
     broadcastRoomList();
   });
@@ -1253,7 +1354,7 @@ io.on("connection", (socket) => {
     }
 
     appendLog(result.room, result.player, action);
-    reply(ack, { ok: true, data: snapshotRoom(result.room) });
+    reply(ack, { ok: true, data: snapshotRoom(result.room, result.player.id) });
     broadcastRoom(result.room);
   });
 
@@ -1472,8 +1573,9 @@ io.on("connection", (socket) => {
 
     assignHost(room);
     clearInvalidSelection(room);
+    const finishedByDeparture = finishRoomIfPlayersCannotContinue(room, player?.name);
     scheduleEmptyRoomCleanup(room);
-    if (room.status === "playing" && room.gameState.activePlayerId === playerId) {
+    if (!finishedByDeparture && room.status === "playing" && room.gameState.activePlayerId === playerId) {
       appendSystemLog(room, `${player?.name ?? "플레이어"} 연결 끊김. 제한 시간 안에 다시 들어오면 이어서 진행합니다.`);
       scheduleTurnTimeout(room);
     }
