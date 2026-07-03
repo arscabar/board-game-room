@@ -1,4 +1,5 @@
 import type { CSSProperties } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { GameAction, GameActionResult, GameComponentProps, GameContext, GameModule, GameSystemAction } from "../types";
 import type { PlayerSnapshot } from "../../shared/types";
 
@@ -469,6 +470,44 @@ export function Component({
   const isMyTurn = Boolean(currentPlayer?.id && currentPlayer.id === activePlayerId && state.phase === "rolling");
   const canAct = !disabled && isMyTurn;
   const rollsLeft = MAX_ROLLS - state.rollsThisTurn;
+  const [rolling, setRolling] = useState(false);
+  const rollTimerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (rollTimerRef.current !== null) {
+        window.clearTimeout(rollTimerRef.current);
+      }
+    };
+  }, []);
+
+  function roleLabel(playerId: string) {
+    if (playerId === currentPlayer?.id && playerId === activePlayerId) {
+      return "나 · 차례";
+    }
+    if (playerId === currentPlayer?.id) {
+      return "나";
+    }
+    if (playerId === activePlayerId) {
+      return "현재 차례";
+    }
+    return "상대";
+  }
+
+  function rollDice() {
+    if (!canAct || state.rollsThisTurn >= MAX_ROLLS || rolling) {
+      return;
+    }
+    if (rollTimerRef.current !== null) {
+      window.clearTimeout(rollTimerRef.current);
+    }
+    setRolling(true);
+    rollTimerRef.current = window.setTimeout(() => {
+      setRolling(false);
+      rollTimerRef.current = null;
+    }, 760);
+    onAction({ type: "yacht-dice/roll" });
+  }
 
   return (
     <section className="game-module yacht-dice-module" style={styles.shell} aria-label="요트 다이스 보드">
@@ -481,7 +520,7 @@ export function Component({
           <div className="yacht-dice-grid" style={styles.diceGrid}>
             {state.dice.map((die, index) => (
               <button
-                className={`yacht-die-button ${state.held[index] ? "held" : ""}`}
+                className={`yacht-die-button ${state.held[index] ? "held" : ""} ${rolling && !state.held[index] ? "rolling" : ""}`}
                 style={styles.dieButton}
                 type="button"
                 key={index}
@@ -505,11 +544,11 @@ export function Component({
           <div className="yacht-actions" style={{ ...styles.actionRow, marginTop: "0.75rem" }}>
             <button
               type="button"
-              className="yacht-roll-button"
-              disabled={!canAct || state.rollsThisTurn >= MAX_ROLLS}
-              onClick={() => onAction({ type: "yacht-dice/roll" })}
+              className={`yacht-roll-button ${rolling ? "rolling" : ""}`}
+              disabled={!canAct || state.rollsThisTurn >= MAX_ROLLS || rolling}
+              onClick={rollDice}
             >
-              {state.rollsThisTurn === 0 ? "주사위 굴리기" : "다시 굴리기"}
+              {rolling ? "굴리는 중" : state.rollsThisTurn === 0 ? "주사위 굴리기" : "다시 굴리기"}
             </button>
             {state.lastScored ? (
               <span>
@@ -550,12 +589,21 @@ export function Component({
       </div>
 
       <article className="yacht-scoreboard" style={styles.panel}>
-        <h3>점수판</h3>
+        <div className="yacht-scoreboard-head">
+          <h3>점수판</h3>
+          <span>{state.playerIds.length}명 전체 점수</span>
+        </div>
         <div className="yacht-player-scorecards">
           {state.playerIds.map((playerId) => (
-            <article className="yacht-player-scorecard" key={playerId}>
+            <article
+              className={`yacht-player-scorecard ${playerId === activePlayerId ? "active" : ""} ${playerId === currentPlayer?.id ? "current" : ""}`}
+              key={playerId}
+            >
               <header>
-                <strong>{getPlayerName(players, playerId)}</strong>
+                <span className="yacht-player-title">
+                  <strong>{getPlayerName(players, playerId)}</strong>
+                  <small>{roleLabel(playerId)}</small>
+                </span>
                 <span>{state.totals[playerId] ?? 0}점</span>
               </header>
               <div className="yacht-player-score-summary">
