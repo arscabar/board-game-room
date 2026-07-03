@@ -53,11 +53,11 @@ const scoreSheetLabels: Record<CategoryId, string> = {
 };
 
 const DIE_TRAY_POSITIONS = [
-  { x: "18%", y: "34%", holdX: "12%", holdY: "78%", r: "-10deg", rollX: "38px", rollY: "-20px", rollR: "172deg" },
-  { x: "38%", y: "24%", holdX: "31%", holdY: "78%", r: "7deg", rollX: "-28px", rollY: "26px", rollR: "-154deg" },
-  { x: "58%", y: "38%", holdX: "50%", holdY: "78%", r: "-4deg", rollX: "24px", rollY: "-32px", rollR: "126deg" },
-  { x: "77%", y: "27%", holdX: "69%", holdY: "78%", r: "12deg", rollX: "-42px", rollY: "-14px", rollR: "-188deg" },
-  { x: "49%", y: "54%", holdX: "88%", holdY: "78%", r: "-16deg", rollX: "36px", rollY: "22px", rollR: "206deg" }
+  { x: "18%", y: "31%", holdX: "12%", holdY: "87%", r: "-8deg", rollX: "16px", rollY: "-12px", rollR: "82deg" },
+  { x: "37%", y: "23%", holdX: "31%", holdY: "87%", r: "6deg", rollX: "-14px", rollY: "15px", rollR: "-74deg" },
+  { x: "58%", y: "35%", holdX: "50%", holdY: "87%", r: "-3deg", rollX: "13px", rollY: "-18px", rollR: "68deg" },
+  { x: "77%", y: "27%", holdX: "69%", holdY: "87%", r: "9deg", rollX: "-18px", rollY: "-9px", rollR: "-92deg" },
+  { x: "49%", y: "52%", holdX: "88%", holdY: "87%", r: "-12deg", rollX: "17px", rollY: "13px", rollR: "96deg" }
 ] as const;
 
 type ScoreSheet = Partial<Record<CategoryId, number>>;
@@ -523,7 +523,7 @@ export function Component({
     return {
       "--die-x": held ? position.holdX : position.x,
       "--die-y": held ? position.holdY : position.y,
-      "--die-r": position.r,
+      "--die-r": held ? "0deg" : position.r,
       "--die-roll-x": position.rollX,
       "--die-roll-y": position.rollY,
       "--die-roll-r": position.rollR

@@ -29,6 +29,7 @@
 
 .yacht-top-grid {
   align-items: start;
+  grid-template-columns: minmax(300px, 1.12fr) minmax(240px, 0.88fr) !important;
 }
 
 .yacht-dice-panel {
@@ -197,9 +198,9 @@
 
 .yacht-throw-tray {
   position: relative;
-  min-height: clamp(210px, 42vw, 286px);
+  min-height: clamp(260px, 46vw, 338px);
   overflow: hidden;
-  border: 8px solid #2f1b11;
+  border: 7px solid #2f1b11;
   border-radius: 11px;
   background:
     radial-gradient(circle at 34% 28%, rgba(255, 255, 255, 0.09), transparent 26%),
@@ -227,7 +228,7 @@
   position: absolute;
   left: 10px;
   right: 10px;
-  bottom: 68px;
+  bottom: 61px;
   height: 1px;
   background: rgba(255, 230, 171, 0.14);
   pointer-events: none;
@@ -246,7 +247,7 @@
 }
 
 .yacht-keep-slots span {
-  min-height: 54px;
+  min-height: 46px;
   border: 1px dashed rgba(255, 239, 199, 0.2);
   border-radius: 8px;
   background:
@@ -650,7 +651,7 @@
   left: var(--die-x);
   top: var(--die-y);
   z-index: 2;
-  width: clamp(56px, 14vw, 76px);
+  width: clamp(44px, 7vw, 52px);
   min-width: 0 !important;
   min-height: 0 !important;
   grid-template-rows: auto auto !important;
@@ -673,30 +674,22 @@
 
 .yacht-throw-tray .yacht-die-button.held {
   z-index: 3;
+  transform: translate(-50%, -50%) rotate(0deg);
 }
 
 .yacht-throw-tray.rolling .yacht-die-button.rolling {
-  animation: yacht-die-flight 760ms cubic-bezier(0.22, 0.82, 0.28, 1.04) both;
+  animation: yacht-die-flight 680ms cubic-bezier(0.2, 0.86, 0.24, 1) both;
   will-change: transform;
 }
 
 .yacht-throw-tray .yacht-die-face {
   position: relative;
-  width: clamp(46px, 12vw, 62px);
-  padding: 7px;
+  width: clamp(34px, 5.8vw, 42px);
+  padding: 5px;
 }
 
 .yacht-throw-tray .yacht-die-label {
-  min-height: 18px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid rgba(255, 239, 199, 0.16);
-  border-radius: 999px;
-  padding: 1px 7px;
-  background: rgba(8, 20, 16, 0.42);
-  font-size: 0.66rem;
-  line-height: 1;
+  display: none;
 }
 
 .yacht-die-button:not(:disabled):active .yacht-die-face {
@@ -709,7 +702,7 @@
 }
 
 .yacht-die-button.rolling .yacht-die-face {
-  animation: yacht-dice-roll 380ms cubic-bezier(0.34, 1.56, 0.64, 1) infinite;
+  animation: yacht-dice-roll 340ms cubic-bezier(0.32, 0.72, 0.28, 1) infinite;
   will-change: transform;
 }
 
@@ -798,33 +791,38 @@
 
 @keyframes yacht-dice-roll {
   0% {
-    transform: rotate(0deg) translateY(0) scale(1);
+    transform: rotate(0deg) translate(0, 0) scale(1);
   }
-  24% {
-    transform: rotate(26deg) translateY(-7px) scale(1.04);
+  25% {
+    transform: rotate(92deg) translate(2px, -2px) scale(0.98);
   }
   50% {
-    transform: rotate(-18deg) translateY(3px) scale(0.96);
+    transform: rotate(184deg) translate(-2px, 1px) scale(1.01);
   }
-  76% {
-    transform: rotate(14deg) translateY(-3px) scale(1.02);
+  75% {
+    transform: rotate(276deg) translate(1px, 2px) scale(0.99);
   }
   100% {
-    transform: rotate(0deg) translateY(0) scale(1);
+    transform: rotate(360deg) translate(0, 0) scale(1);
   }
 }
 
 @keyframes yacht-die-flight {
   0% {
-    opacity: 0.9;
-    transform: translate(calc(-50% - 54px), calc(-50% - 48px)) rotate(-120deg) scale(0.92);
-  }
-  28% {
     opacity: 1;
-    transform: translate(calc(-50% + var(--die-roll-x)), calc(-50% + var(--die-roll-y))) rotate(var(--die-roll-r)) scale(1.08);
+    transform: translate(-50%, -50%) rotate(var(--die-r)) scale(1);
   }
-  58% {
-    transform: translate(calc(-50% + 14px), calc(-50% + 22px)) rotate(-84deg) scale(0.98);
+  24% {
+    transform: translate(calc(-50% + var(--die-roll-x)), calc(-50% + var(--die-roll-y))) rotate(var(--die-roll-r)) scale(0.98);
+  }
+  48% {
+    transform: translate(calc(-50% - var(--die-roll-x)), calc(-50% + 7px)) rotate(-42deg) scale(1.02);
+  }
+  72% {
+    transform: translate(calc(-50% + 5px), calc(-50% - 3px)) rotate(18deg) scale(0.99);
+  }
+  88% {
+    transform: translate(calc(-50% - 2px), calc(-50% + 1px)) rotate(-7deg) scale(1);
   }
   100% {
     opacity: 1;
@@ -860,6 +858,12 @@
   }
 }
 
+@media (max-width: 760px) {
+  .yacht-top-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+}
+
 @media (max-width: 560px) {
   .yacht-score-panel > div,
   .yacht-scoreboard > div {
@@ -870,18 +874,26 @@
     gap: 8px;
   }
 
+  .yacht-dice-panel {
+    padding: 8px !important;
+  }
+
+  .yacht-dice-module {
+    padding: 6px !important;
+  }
+
   .yacht-throw-tray {
-    min-height: 218px;
-    border-width: 6px;
+    min-height: 268px;
+    border-width: 4px;
   }
 
   .yacht-throw-tray .yacht-die-button {
-    width: 56px;
+    width: 44px;
   }
 
   .yacht-throw-tray .yacht-die-face {
-    width: 46px;
-    padding: 6px;
+    width: 34px;
+    padding: 5px;
   }
 
   .yacht-keep-slots {
@@ -889,7 +901,7 @@
   }
 
   .yacht-keep-slots span {
-    min-height: 50px;
+    min-height: 44px;
   }
 
   .yacht-scoreboard-head {
