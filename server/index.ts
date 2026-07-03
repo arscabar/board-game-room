@@ -8,6 +8,7 @@ import { fileURLToPath } from "node:url";
 import { Server, type Socket } from "socket.io";
 import { games, getGameById } from "../src/shared/games";
 import { canPlayGame, ROOM_MAX_PLAYERS } from "../src/shared/eligibility";
+import { gameUsesTurnTimer } from "../src/shared/timers";
 import type { Ack, GameRuntimeState, MoveEntry, PlayerSnapshot, PublicRoomListItem, RoomSnapshot } from "../src/shared/types";
 import { getGameRegistration } from "../src/game-modules/registry";
 import type { GameAction, GameActionResult, GameContext, GameSystemAction } from "../src/game-modules/types";
@@ -653,6 +654,7 @@ function scheduleTurnTimeout(room: RoomRecord) {
   clearScheduledTurnTimeout(room);
   if (
     room.status !== "playing" ||
+    !gameUsesTurnTimer(room.selectedGameId) ||
     room.gameState.paused ||
     !room.gameState.activePlayerId ||
     !room.gameState.turnDeadlineAt ||
@@ -679,7 +681,7 @@ function scheduleTurnTimeout(room: RoomRecord) {
 
 function resetTurnClock(room: RoomRecord) {
   clearScheduledTurnTimeout(room);
-  if (room.status !== "playing" || !room.gameState.activePlayerId || roomGameIsFinished(room)) {
+  if (room.status !== "playing" || !gameUsesTurnTimer(room.selectedGameId) || !room.gameState.activePlayerId || roomGameIsFinished(room)) {
     room.gameState.turnStartedAt = null;
     room.gameState.turnDeadlineAt = null;
     room.gameState.paused = false;
@@ -1377,6 +1379,10 @@ io.on("connection", (socket) => {
 
     if (!assertHost(result.player)) {
       reply(ack, { ok: false, error: "방장만 제한 시간을 바꿀 수 있습니다." });
+      return;
+    }
+    if (!gameUsesTurnTimer(result.room.selectedGameId)) {
+      reply(ack, { ok: false, error: "선택한 게임은 턴 타이머를 사용하지 않습니다." });
       return;
     }
     const nextTimerMs = Math.min(MAX_TURN_TIMER_MS, Math.max(MIN_TURN_TIMER_MS, Number(payload?.turnTimerMs) || DEFAULT_TURN_TIMER_MS));

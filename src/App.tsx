@@ -6,7 +6,6 @@ import {
   ChevronDown,
   CircleDot,
   Clock3,
-  Copy,
   Crown,
   Dice5,
   DoorOpen,
@@ -48,6 +47,7 @@ import { Suspense, type CSSProperties, type FormEvent, useEffect, useMemo, useSt
 import { socket } from "./lib/socket";
 import { games, getGameById } from "./shared/games";
 import { canPlayGame, formatAllowedPlayers, gameAvailabilityLabel } from "./shared/eligibility";
+import { gameUsesTurnTimer, turnTimerOptions } from "./shared/timers";
 import type { Ack, GameDefinition, PlayerSnapshot, PublicRoomListItem, RoomSnapshot } from "./shared/types";
 import { getGameComponent } from "./game-modules/ui-registry";
 import type { GameAction } from "./game-modules/types";
@@ -310,11 +310,6 @@ function formatTimer(ms: number) {
   return `${minutes}:${String(seconds).padStart(2, "0")}`;
 }
 
-function timerPercent(remainingMs: number, totalMs: number) {
-  if (totalMs <= 0) return 0;
-  return Math.max(0, Math.min(100, (remainingMs / totalMs) * 100));
-}
-
 function blockedReason({
   currentPlayer,
   activePlayer,
@@ -522,6 +517,18 @@ function App() {
     }
   }
 
+  async function configureTimer(nextTimerMs: number) {
+    if (!room) return;
+    const response = await emitWithAck<RoomSnapshot>("room:configure-timer", { code: room.code, turnTimerMs: nextTimerMs });
+    if (!response.ok) {
+      setNotice(response.error ?? "제한 시간을 바꿀 수 없습니다.");
+      return;
+    }
+    if (response.data) {
+      setRoom(response.data);
+    }
+  }
+
   async function startGame() {
     if (!room) return;
     const response = await emitWithAck<RoomSnapshot>("room:start-game", { code: room.code });
@@ -589,8 +596,8 @@ function App() {
             currentPlayer={currentPlayer}
             selectedGame={selectedGame}
             notice={notice}
-            onCopyNotice={setNotice}
             onSelectGame={selectGame}
+            onConfigureTimer={configureTimer}
             onStartGame={startGame}
             onReturnLobby={returnLobby}
             onLeaveLocalRoom={leaveLocalRoom}
@@ -758,7 +765,7 @@ function HomeView({
         {savedRoom ? (
           <button className="secondary-button saved-room-button" type="button" onClick={onResumeSavedRoom} disabled={disabled}>
             <LogIn size={18} />
-            최근 방 {savedRoom.code}로 돌아가기
+            최근 방으로 돌아가기
           </button>
         ) : null}
         <button className="secondary-button saved-room-button" type="button" onClick={onResetLocalIdentity}>
@@ -1020,8 +1027,8 @@ function RoomView({
   currentPlayer,
   selectedGame,
   notice,
-  onCopyNotice,
   onSelectGame,
+  onConfigureTimer,
   onStartGame,
   onReturnLobby,
   onLeaveLocalRoom
@@ -1030,8 +1037,8 @@ function RoomView({
   currentPlayer: PlayerSnapshot | null;
   selectedGame: GameDefinition | null;
   notice: string;
-  onCopyNotice: (value: string) => void;
   onSelectGame: (gameId: string) => void;
+  onConfigureTimer: (nextTimerMs: number) => void;
   onStartGame: () => void;
   onReturnLobby: () => void;
   onLeaveLocalRoom: () => void;
@@ -1041,33 +1048,18 @@ function RoomView({
   const isHost = Boolean(currentPlayer?.isHost);
   const canStart = Boolean(selectedGame && canPlayGame(selectedGame, playerCount) && isHost);
 
-  async function copyRoomCode() {
-    await navigator.clipboard.writeText(room.code);
-    onCopyNotice("방 코드가 복사되었습니다.");
-  }
-
   return (
     <section className={`room-section ${room.status === "lobby" ? "is-lobby" : "is-playing"}`} aria-label="게임 방">
-      <div className="room-command">
-        <div>
-          <span className="eyebrow">방 코드</span>
-          <div className="room-code">{room.code}</div>
-        </div>
-        <div className="command-actions">
-          <button className="icon-button" type="button" onClick={copyRoomCode} aria-label="방 코드 복사" title="방 코드 복사">
-            <Copy size={18} />
-          </button>
-          <button className="icon-button" type="button" onClick={onLeaveLocalRoom} aria-label="현재 방 나가기" title="현재 방 나가기">
-            <DoorOpen size={18} />
-          </button>
-        </div>
-      </div>
-
       <div className="room-layout">
         <aside className="seat-panel" aria-label="플레이어">
-          <div className="panel-header">
-            <h2>플레이어</h2>
-            <span>{playerCount}/{room.maxPlayers}</span>
+          <div className="panel-header seat-panel-header">
+            <div className="seat-panel-title">
+              <h2>플레이어</h2>
+              <span>{playerCount}/{room.maxPlayers}</span>
+            </div>
+            <button className="icon-button" type="button" onClick={onLeaveLocalRoom} aria-label="현재 방 나가기" title="현재 방 나가기">
+              <DoorOpen size={18} />
+            </button>
           </div>
           <div className="seat-list">
             {Array.from({ length: room.maxPlayers }, (_, index) => {
@@ -1087,6 +1079,7 @@ function RoomView({
             selectedGame={selectedGame}
             canStart={canStart}
             onSelectGame={onSelectGame}
+            onConfigureTimer={onConfigureTimer}
             onStartGame={onStartGame}
           />
         ) : (
@@ -1143,6 +1136,7 @@ function LobbyPanel({
   selectedGame,
   canStart,
   onSelectGame,
+  onConfigureTimer,
   onStartGame
 }: {
   room: RoomSnapshot;
@@ -1151,21 +1145,45 @@ function LobbyPanel({
   selectedGame: GameDefinition | null;
   canStart: boolean;
   onSelectGame: (gameId: string) => void;
+  onConfigureTimer: (nextTimerMs: number) => void;
   onStartGame: () => void;
 }) {
   const eligibleGames = games.filter((game) => canPlayGame(game, playerCount));
+  const usesTurnTimer = gameUsesTurnTimer(selectedGame?.id);
+  const turnTimerMs = room.gameState.turnTimerMs ?? 120_000;
 
   return (
     <section className="work-panel lobby-panel" aria-labelledby="lobby-title">
-      <div className="panel-header">
+      <div className="panel-header lobby-panel-header">
         <div>
           <h2 id="lobby-title">게임 선택</h2>
           <p>{playerCount}명으로 가능한 게임 {eligibleGames.length}개</p>
         </div>
-        <button className="primary-button" type="button" onClick={onStartGame} disabled={!canStart}>
-          <Play size={18} />
-          시작
-        </button>
+        <div className="lobby-panel-actions">
+          {usesTurnTimer ? (
+            <label className="timer-select lobby-timer-select">
+              <span>
+                <Clock3 size={15} aria-hidden="true" />
+                턴 제한
+              </span>
+              <select
+                value={turnTimerMs}
+                disabled={!isHost}
+                onChange={(event) => onConfigureTimer(Number(event.currentTarget.value))}
+              >
+                {turnTimerOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
+          <button className="primary-button" type="button" onClick={onStartGame} disabled={!canStart}>
+            <Play size={18} />
+            시작
+          </button>
+        </div>
       </div>
 
       <div className="game-list">
@@ -1220,20 +1238,19 @@ function PlayPanel({
   const isMyTurn = currentPlayer?.id === activePlayer?.id;
   const GameComponent = getGameComponent(selectedGame?.id);
   const phase = runtimePhase(room);
+  const usesTurnTimer = gameUsesTurnTimer(selectedGame?.id);
   const winnerIds = runtimeWinnerIds(room);
   const winnerId = runtimeWinnerId(room);
   const paused = Boolean(room.gameState.paused);
-  const turnTimerMs = room.gameState.turnTimerMs ?? 120_000;
   const winnerNames = winnerIds
     .map((id) => room.players.find((player) => player.id === id)?.name)
     .filter((name): name is string => Boolean(name));
   const isFinished = winnerIds.length > 0 || phase === "complete" || phase === "finished";
   const timerAnchor = paused ? room.gameState.pausedAt ?? now : now;
   const remainingMs = room.gameState.turnDeadlineAt ? room.gameState.turnDeadlineAt - timerAnchor : 0;
-  const timerExpired = !isFinished && !paused && Boolean(room.gameState.turnDeadlineAt) && remainingMs <= 0;
+  const timerExpired = usesTurnTimer && !isFinished && !paused && Boolean(room.gameState.turnDeadlineAt) && remainingMs <= 0;
   const timerUrgent =
-    !isFinished && !paused && Boolean(room.gameState.turnDeadlineAt) && remainingMs > 0 && remainingMs <= 10_000;
-  const timeoutCount = activePlayer ? room.gameState.timeoutCounts?.[activePlayer.id] ?? 0 : 0;
+    usesTurnTimer && !isFinished && !paused && Boolean(room.gameState.turnDeadlineAt) && remainingMs > 0 && remainingMs <= 10_000;
   const publicStateRecord = stateRecord(room.gameState.publicState);
   const blokusActiveColor = selectedGame?.id === "blokus" ? String(publicStateRecord?.activeColorId ?? "") : "";
   const blokusPlayers = Array.isArray(publicStateRecord?.players) ? publicStateRecord.players : [];
@@ -1248,7 +1265,7 @@ function PlayPanel({
   const turnEndRestriction = manualTurnEndRestriction(selectedGame?.id, phase) || blokusRestriction;
   const canAdvanceTurn =
     !paused && !isFinished && ((isMyTurn && !turnEndRestriction) || (!isMyTurn && isHost && timerExpired && Boolean(activePlayer)));
-  const canClaimTimeout = timerExpired && !isMyTurn && Boolean(activePlayer);
+  const canClaimTimeout = usesTurnTimer && timerExpired && !isMyTurn && Boolean(activePlayer);
   const winnerLabel = winnerNames.length > 0 ? winnerNames.join(", ") : isFinished ? "무승부 또는 종료" : null;
   const message = runtimeMessage(room);
   const latestMove = room.gameState.moveLog.at(-1);
@@ -1281,12 +1298,12 @@ function PlayPanel({
   const moduleDisabled = paused || (!isMyTurn && !hangmanOpenPhase && !simultaneousChoicePhase && !setupOpenPhase);
 
   useEffect(() => {
-    if (isFinished || paused || !room.gameState.turnDeadlineAt) {
+    if (!usesTurnTimer || isFinished || paused || !room.gameState.turnDeadlineAt) {
       return;
     }
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(timer);
-  }, [isFinished, paused, room.gameState.turnDeadlineAt]);
+  }, [isFinished, paused, room.gameState.turnDeadlineAt, usesTurnTimer]);
 
   async function recordAction(event: FormEvent) {
     event.preventDefault();
@@ -1316,13 +1333,6 @@ function PlayPanel({
     }
   }
 
-  async function configureTimer(nextTimerMs: number) {
-    const response = await emitWithAck<RoomSnapshot>("room:configure-timer", { code: room.code, turnTimerMs: nextTimerMs });
-    if (!response.ok) {
-      setAction(response.error ?? "제한 시간을 바꿀 수 없습니다.");
-    }
-  }
-
   async function claimTimeout() {
     const response = await emitWithAck<RoomSnapshot>("room:claim-timeout", { code: room.code });
     if (!response.ok) {
@@ -1344,19 +1354,46 @@ function PlayPanel({
           ? `${selectedGame?.title ?? "게임"} 진행: ${latestMove.playerName} ${latestMove.action}`
           : `${selectedGame?.title ?? "게임"} ${phaseName(phase)} ${activePlayer?.name ?? "플레이어 없음"}`}
       </p>
-      <div className="panel-header">
+      <div className="panel-header play-panel-header">
         <div>
           <h2 id="play-title">{selectedGame?.title ?? "게임 진행"}</h2>
           <p>
             {room.gameState.roundNumber}라운드 · {room.gameState.turnNumber}턴 · {phaseName(phase)} · 현재 차례 {activePlayer?.name ?? "없음"}
           </p>
         </div>
-        {isHost ? (
-          <button className="secondary-button" type="button" onClick={onReturnLobby}>
-            <RotateCcw size={18} />
-            로비
-          </button>
-        ) : null}
+        <div className="play-header-actions">
+          {usesTurnTimer ? (
+            <div className={`play-timer-chip ${timerExpired ? "expired" : ""} ${timerUrgent ? "urgent" : ""}`} aria-label="턴 타이머">
+              {timerExpired ? <TimerOff size={16} aria-hidden="true" /> : <Clock3 size={16} aria-hidden="true" />}
+              <span>{paused ? "PAUSE" : formatTimer(remainingMs)}</span>
+            </div>
+          ) : null}
+          {isHost ? (
+            paused ? (
+              <button className="secondary-button" type="button" onClick={resumeGame} disabled={isFinished}>
+                <Play size={18} />
+                재개
+              </button>
+            ) : (
+              <button className="secondary-button" type="button" onClick={pauseGame} disabled={isFinished}>
+                <Pause size={18} />
+                일시정지
+              </button>
+            )
+          ) : null}
+          {canClaimTimeout ? (
+            <button className="secondary-button danger timeout-claimable" type="button" onClick={claimTimeout}>
+              <FastForward size={18} />
+              타임아웃
+            </button>
+          ) : null}
+          {isHost ? (
+            <button className="secondary-button" type="button" onClick={onReturnLobby}>
+              <RotateCcw size={18} />
+              로비
+            </button>
+          ) : null}
+        </div>
       </div>
 
       <div className={`turn-guide ${guideTone}`} role="status" aria-live="polite">
@@ -1387,69 +1424,6 @@ function PlayPanel({
           </span>
         </div>
       </div>
-
-      <div
-        className={`table-control-panel ${paused ? "paused" : ""} ${timerExpired ? "expired" : ""} ${timerUrgent ? "urgent" : ""}`}
-        aria-label="게임 진행 제어"
-      >
-        <div className="turn-timer-card">
-          <div className="turn-timer-head">
-            {timerExpired ? <TimerOff size={18} aria-hidden="true" /> : <Clock3 size={18} aria-hidden="true" />}
-            <div>
-              <strong>{paused ? "일시정지" : timerExpired ? "시간 초과" : "턴 타이머"}</strong>
-              <span>
-                {activePlayer?.name ?? "플레이어 없음"} · timeout {timeoutCount}회
-              </span>
-            </div>
-          </div>
-          <div className="turn-timer-meter" aria-hidden="true">
-            <span style={{ width: `${timerPercent(remainingMs, turnTimerMs)}%` }} />
-          </div>
-          <strong className="turn-timer-time">{paused ? "PAUSE" : formatTimer(remainingMs)}</strong>
-        </div>
-
-        <div className="table-control-actions">
-          <label className="timer-select">
-            제한
-            <select
-              value={turnTimerMs}
-              disabled={!isHost || isFinished}
-              onChange={(event) => configureTimer(Number(event.currentTarget.value))}
-            >
-              <option value={60_000}>1분</option>
-              <option value={120_000}>2분</option>
-              <option value={180_000}>3분</option>
-              <option value={300_000}>5분</option>
-            </select>
-          </label>
-          {isHost ? (
-            paused ? (
-              <button className="secondary-button" type="button" onClick={resumeGame} disabled={isFinished}>
-                <Play size={18} />
-                재개
-              </button>
-            ) : (
-              <button className="secondary-button" type="button" onClick={pauseGame} disabled={isFinished}>
-                <Pause size={18} />
-                일시정지
-              </button>
-            )
-          ) : (
-            <span className="control-note">{paused ? `${room.gameState.pausedBy ?? "방장"}님이 정지` : "방장 제어"}</span>
-          )}
-          <button
-            className={`secondary-button danger ${canClaimTimeout ? "timeout-claimable" : ""}`}
-            type="button"
-            onClick={claimTimeout}
-            disabled={!canClaimTimeout}
-          >
-            <FastForward size={18} />
-            타임아웃 처리
-          </button>
-        </div>
-      </div>
-
-      {selectedGame ? <RuleChecklist game={selectedGame} phase={phase} /> : null}
 
       {message ? <p className="game-message-strip">{message}</p> : null}
 
@@ -1540,32 +1514,6 @@ function PlayPanel({
           ))
         )}
       </div>
-    </section>
-  );
-}
-
-function RuleChecklist({ game, phase }: { game: GameDefinition; phase: string }) {
-  const hasHiddenInfo = hiddenInformationGameIds.has(game.id);
-  const privacyLabel = hasHiddenInfo ? "비공개 정보 분리 적용" : "공개 정보 게임";
-  const PrivacyIcon = hasHiddenInfo ? EyeOff : Eye;
-
-  return (
-    <section className="rule-check-panel" aria-label="적용된 룰 체크">
-      <div>
-        <PrivacyIcon size={17} aria-hidden="true" />
-        <span>
-          <strong>룰 적용 체크</strong>
-          <span>{phaseName(phase)} · {privacyLabel}</span>
-        </span>
-      </div>
-      <ul>
-        {game.implementation.slice(0, 6).map((item) => (
-          <li key={item}>
-            <CheckCircle2 size={15} aria-hidden="true" />
-            <span>{item}</span>
-          </li>
-        ))}
-      </ul>
     </section>
   );
 }
