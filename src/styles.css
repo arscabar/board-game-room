@@ -7983,3 +7983,426 @@ main {
     font-size: 0.68rem;
   }
 }
+
+/* Reference-led polish:
+   BGA/Lichess room-first density + PlayingCards tabletop feel + Linear/Vercel precision. */
+:root {
+  --game-bg: #0f0b08;
+  --game-wood-0: #170f0a;
+  --game-wood-1: #24170e;
+  --game-wood-2: #332114;
+  --game-felt: #0e3325;
+  --game-line-soft: rgba(210, 162, 92, 0.16);
+  --game-line: rgba(210, 162, 92, 0.34);
+  --game-line-strong: rgba(232, 188, 112, 0.56);
+  --game-text: #f1dfbd;
+  --game-text-2: #c6aa78;
+  --game-text-3: #8b7552;
+  --game-green: #15613f;
+  --game-green-2: #1b7a50;
+  --game-hot: #e6b766;
+  --game-danger: #7c2e25;
+  --game-cell: 6px;
+  --game-row-h: 38px;
+  --game-speed: 140ms;
+}
+
+.app-shell {
+  padding: 16px !important;
+  color: var(--game-text);
+  background:
+    linear-gradient(90deg, rgba(238, 190, 106, 0.028) 0 1px, transparent 1px 140px),
+    linear-gradient(0deg, rgba(238, 190, 106, 0.018) 0 1px, transparent 1px 96px),
+    radial-gradient(circle at 50% 0, rgba(50, 32, 18, 0.7), transparent 360px),
+    var(--game-bg) !important;
+}
+
+.topbar {
+  min-height: 46px;
+  border-color: var(--game-line) !important;
+  background:
+    linear-gradient(90deg, rgba(21, 97, 63, 0.1), transparent 34%),
+    linear-gradient(180deg, #25170e, #17100a) !important;
+}
+
+.brand-mark {
+  border-color: rgba(87, 186, 127, 0.42) !important;
+  background: #102118 !important;
+}
+
+.topbar h1 {
+  color: var(--game-text) !important;
+  font-size: 0.94rem !important;
+  font-weight: 850;
+}
+
+.topbar p {
+  color: var(--game-text-2) !important;
+  font-size: 0.72rem !important;
+}
+
+.home-console,
+.room-layout {
+  filter: drop-shadow(0 10px 22px rgba(0, 0, 0, 0.18));
+}
+
+.home-console {
+  border-color: var(--game-line) !important;
+  background:
+    linear-gradient(90deg, rgba(238, 190, 106, 0.022) 0 1px, transparent 1px 72px),
+    #130d08;
+}
+
+.home-toolbar,
+.room-browser-heading,
+.seat-panel,
+.work-panel,
+.detail-panel {
+  background:
+    linear-gradient(180deg, rgba(49, 31, 18, 0.96), rgba(26, 16, 10, 0.98)) !important;
+}
+
+.home-toolbar {
+  min-height: 50px;
+  grid-template-columns: minmax(104px, 0.62fr) minmax(220px, 320px) minmax(360px, auto);
+  border-bottom-color: var(--game-line) !important;
+}
+
+.home-toolbar-title .eyebrow,
+.room-browser-heading span,
+.home-inline-name span,
+.game-list-head,
+.room-table-head,
+.seat-panel-title span,
+.panel-header p {
+  color: var(--game-text-2) !important;
+}
+
+.home-toolbar-title h2 {
+  color: var(--game-text);
+  font-size: 0.96rem;
+  letter-spacing: 0;
+}
+
+.home-inline-name input,
+input,
+select,
+textarea {
+  border-color: var(--game-line) !important;
+  background:
+    linear-gradient(180deg, rgba(12, 8, 5, 0.98), rgba(7, 5, 3, 0.98)) !important;
+}
+
+.board-sdk-button.rt-Button,
+.board-sdk-icon-button.rt-IconButton,
+.primary-button,
+.secondary-button,
+.icon-button {
+  border-color: var(--game-line) !important;
+  background:
+    linear-gradient(180deg, #332114, #21150d) !important;
+  color: var(--game-text) !important;
+}
+
+.primary-button,
+.board-sdk-button.primary-button,
+.icon-button.strong,
+.board-sdk-icon-button.strong,
+.turn-actions .primary-button {
+  border-color: rgba(104, 188, 135, 0.52) !important;
+  background:
+    linear-gradient(180deg, var(--game-green-2), var(--game-green)) !important;
+}
+
+.secondary-button.danger,
+.board-sdk-button.danger,
+.board-sdk-icon-button.danger {
+  border-color: rgba(228, 122, 96, 0.45) !important;
+  background:
+    linear-gradient(180deg, #8c382e, var(--game-danger)) !important;
+}
+
+.board-sdk-button.rt-Button:hover:not(:disabled),
+.board-sdk-icon-button.rt-IconButton:hover:not(:disabled),
+.primary-button:hover:not(:disabled),
+.secondary-button:hover:not(:disabled),
+.icon-button:hover:not(:disabled) {
+  border-color: var(--game-line-strong) !important;
+  background:
+    linear-gradient(180deg, #3b2919, #281b11) !important;
+}
+
+.primary-button:hover:not(:disabled),
+.board-sdk-button.primary-button:hover:not(:disabled),
+.icon-button.strong:hover:not(:disabled),
+.board-sdk-icon-button.strong:hover:not(:disabled) {
+  background:
+    linear-gradient(180deg, #21835a, #176545) !important;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid rgba(242, 198, 114, 0.92) !important;
+  outline-offset: 2px;
+}
+
+.room-browser-heading {
+  grid-template-columns: minmax(0, 1fr) auto;
+  border-bottom-color: var(--game-line) !important;
+}
+
+.room-browser-meta {
+  min-width: 54px;
+  display: grid;
+  justify-items: end;
+  line-height: 1;
+}
+
+.room-browser-meta strong {
+  color: var(--game-hot);
+  font-family: "Cascadia Mono", Consolas, monospace;
+  font-size: 0.95rem;
+}
+
+.room-browser-meta span {
+  margin-top: 3px;
+  color: var(--game-text-3) !important;
+  font-size: 0.62rem;
+  text-transform: uppercase;
+}
+
+.home-room-board {
+  background: #100b07;
+}
+
+.home-room-board .room-table-head,
+.game-list-head {
+  background:
+    linear-gradient(180deg, #130d08, #0e0a07);
+  border-color: var(--game-line-soft);
+}
+
+.home-room-board .room-card,
+.work-panel.lobby-panel .game-row,
+.compact-empty-room {
+  position: relative;
+  background: #100c08 !important;
+}
+
+.home-room-board .room-card::before,
+.work-panel.lobby-panel .game-row::before {
+  content: "";
+  display: block !important;
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: transparent;
+}
+
+.home-room-board .room-card:hover::before,
+.work-panel.lobby-panel .game-row:hover:not(:disabled)::before {
+  background: rgba(230, 183, 102, 0.52);
+}
+
+.home-room-board .room-card:hover,
+.work-panel.lobby-panel .game-row:hover:not(:disabled) {
+  background: #18110b !important;
+}
+
+.home-room-board .room-owner-chip,
+.work-panel.lobby-panel .game-row strong {
+  color: var(--game-text) !important;
+  font-weight: 800;
+}
+
+.home-room-board .room-count-chip,
+.game-row-players {
+  font-family: "Cascadia Mono", Consolas, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+.home-room-board .room-state-chip,
+.game-row-state {
+  font-size: 0.7rem;
+  font-weight: 800;
+}
+
+.work-panel.lobby-panel .game-row.selected {
+  background:
+    linear-gradient(90deg, rgba(21, 97, 63, 0.48), rgba(17, 58, 40, 0.4)) !important;
+}
+
+.work-panel.lobby-panel .game-row.selected::before {
+  background: #71d296;
+}
+
+.game-row-marker {
+  width: 5px;
+  height: 5px;
+  background: var(--game-text-3);
+}
+
+.game-row.selected .game-row-marker {
+  background: #81df9f;
+}
+
+.work-panel.lobby-panel .game-row.is-unavailable,
+.work-panel.lobby-panel .game-row.is-unavailable:disabled {
+  background: #0c0906 !important;
+  filter: none !important;
+}
+
+.work-panel.lobby-panel .game-row.is-unavailable::before {
+  display: none !important;
+}
+
+.seat-panel,
+.work-panel,
+.detail-panel {
+  border-color: var(--game-line) !important;
+}
+
+.seat-panel {
+  background:
+    linear-gradient(180deg, rgba(35, 22, 13, 0.98), rgba(17, 11, 7, 0.99)) !important;
+}
+
+.seat-list {
+  border-color: var(--game-line-soft);
+}
+
+.seat-row {
+  border-color: var(--game-line-soft) !important;
+  background: #120d08 !important;
+}
+
+.seat-row.filled,
+.seat-row.current {
+  background:
+    linear-gradient(90deg, rgba(21, 97, 63, 0.42), rgba(20, 37, 27, 0.72)) !important;
+}
+
+.seat-number {
+  color: var(--game-text-2);
+  background: #26180f;
+}
+
+.seat-row strong {
+  color: var(--game-text);
+}
+
+.seat-row span {
+  color: var(--game-text-2);
+}
+
+.detail-panel .summary,
+.detail-panel p,
+.detail-panel li {
+  color: var(--game-text-2);
+}
+
+.detail-panel h2,
+.detail-panel h3,
+.detail-panel strong {
+  color: var(--game-text);
+}
+
+.play-panel .turn-guide,
+.play-panel .action-form,
+.play-panel .turn-actions,
+.play-panel .move-log,
+.game-module-shell {
+  border-color: var(--game-line) !important;
+}
+
+.player-turn-chip {
+  border-color: var(--game-line-soft) !important;
+}
+
+.player-turn-chip.active {
+  border-color: rgba(113, 210, 150, 0.44) !important;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .home-room-board .room-card,
+  .work-panel.lobby-panel .game-row,
+  .board-sdk-button.rt-Button,
+  .board-sdk-icon-button.rt-IconButton {
+    transition:
+      background var(--game-speed) ease,
+      border-color var(--game-speed) ease,
+      transform var(--game-speed) ease;
+  }
+
+  .home-room-board .room-card:hover,
+  .work-panel.lobby-panel .game-row:hover:not(:disabled) {
+    transform: translateX(1px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-room-board .room-card,
+  .work-panel.lobby-panel .game-row,
+  .board-sdk-button.rt-Button,
+  .board-sdk-icon-button.rt-IconButton {
+    transition: none !important;
+    transform: none !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .app-shell {
+    padding: 8px !important;
+  }
+
+  .home-toolbar {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .home-toolbar-actions {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .home-toolbar-actions .primary-button {
+    grid-column: auto;
+  }
+
+  .home-toolbar-actions .board-sdk-button {
+    min-height: 42px !important;
+  }
+}
+
+@media (max-width: 420px) {
+  .app-shell {
+    padding: 5px !important;
+  }
+
+  .topbar {
+    grid-template-columns: 34px minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  .brand-mark {
+    width: 30px;
+    height: 30px;
+  }
+
+  .home-toolbar-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .home-toolbar-actions .home-create-form {
+    display: contents;
+  }
+
+  .home-toolbar-actions .primary-button {
+    grid-column: 1 / -1;
+  }
+
+  .room-browser-meta {
+    min-width: 42px;
+  }
+}

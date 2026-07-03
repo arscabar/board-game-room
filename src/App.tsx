@@ -756,6 +756,10 @@ function HomeView({
             <strong>테이블</strong>
             <span>방에 들어간 뒤 인원에 맞는 게임을 고릅니다.</span>
           </div>
+          <div className="room-browser-meta" aria-label="열린 방 수">
+            <strong>{rooms.length}</strong>
+            <span>open</span>
+          </div>
         </div>
 
         {roomsLoading ? (
