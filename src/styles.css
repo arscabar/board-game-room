@@ -5925,6 +5925,38 @@ a:focus-visible,
     linear-gradient(180deg, #9f3d35, #64221f);
 }
 
+.work-panel.lobby-panel .game-row:disabled:not(.is-unavailable) {
+  opacity: 1;
+}
+
+.work-panel.lobby-panel .game-row.is-unavailable,
+.work-panel.lobby-panel .game-row.is-unavailable:disabled {
+  opacity: 1;
+  color: rgba(211, 199, 178, 0.72);
+  border-color: rgba(105, 92, 74, 0.26);
+  background:
+    linear-gradient(90deg, rgba(180, 169, 148, 0.018) 0 1px, transparent 1px 42px),
+    linear-gradient(180deg, rgba(36, 32, 28, 0.97), rgba(15, 13, 11, 0.98));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 245, 224, 0.04),
+    0 2px 6px rgba(9, 6, 4, 0.26);
+  filter: grayscale(0.82) saturate(0.42) brightness(0.72);
+}
+
+.work-panel.lobby-panel .game-row.is-unavailable strong {
+  color: rgba(206, 195, 174, 0.72);
+}
+
+.work-panel.lobby-panel .game-row.is-unavailable .game-row-icon {
+  border-color: rgba(136, 123, 100, 0.22);
+  background:
+    linear-gradient(180deg, rgba(80, 73, 62, 0.74), rgba(27, 24, 21, 0.82));
+}
+
+.work-panel.lobby-panel .game-row.is-unavailable .game-swatch {
+  opacity: 0.38;
+}
+
 .lobby-panel-actions,
 .play-header-actions {
   display: flex;

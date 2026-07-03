@@ -1109,13 +1109,14 @@ function RoomView({
               <span>{playerCount}/{room.maxPlayers}</span>
             </div>
             <div className="seat-panel-actions">
-              {room.canDeleteRoom ? (
-                <button className="icon-button danger" type="button" onClick={onDeleteLocalRoom} aria-label="방 삭제" title="방 삭제">
-                  <Trash2 size={18} />
-                </button>
-              ) : null}
-              <button className="icon-button" type="button" onClick={onLeaveLocalRoom} aria-label="현재 방 나가기" title="현재 방 나가기">
-                <DoorOpen size={18} />
+              <button
+                className={`icon-button ${room.canDeleteRoom ? "danger" : ""}`}
+                type="button"
+                onClick={room.canDeleteRoom ? onDeleteLocalRoom : onLeaveLocalRoom}
+                aria-label={room.canDeleteRoom ? "방 닫기" : "현재 방 나가기"}
+                title={room.canDeleteRoom ? "방 닫기" : "현재 방 나가기"}
+              >
+                {room.canDeleteRoom ? <Trash2 size={18} /> : <DoorOpen size={18} />}
               </button>
             </div>
           </div>
@@ -1250,7 +1251,7 @@ function LobbyPanel({
           const selected = room.selectedGameId === game.id;
           return (
             <button
-              className={`game-row ${selected ? "selected" : ""}`}
+              className={`game-row ${selected ? "selected" : ""} ${available ? "" : "is-unavailable"}`}
               key={game.id}
               type="button"
               onClick={() => onSelectGame(game.id)}
