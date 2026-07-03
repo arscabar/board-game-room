@@ -6719,3 +6719,225 @@ main {
 .board-sdk-icon-button.rt-IconButton:where([data-disabled]) {
   transform: none !important;
 }
+
+/* Web-game lobby layout: compact player rail + live table list, not a landing page. */
+.home-game-lobby {
+  width: min(100%, 1120px);
+  display: grid;
+  grid-template-columns: 244px minmax(0, 1fr);
+  gap: 8px;
+  align-items: start;
+}
+
+.home-player-panel {
+  display: grid;
+  gap: 10px;
+  padding: 12px !important;
+  background:
+    linear-gradient(180deg, rgba(37, 24, 16, 0.98), rgba(18, 12, 8, 0.99)) !important;
+}
+
+.home-player-head {
+  display: grid;
+  gap: 2px;
+}
+
+.home-player-head h2 {
+  margin: 0;
+  color: var(--club-ink);
+  font-size: 1.18rem;
+  line-height: 1.1;
+}
+
+.home-player-panel .home-name-row {
+  grid-template-columns: 1fr;
+  gap: 5px;
+  margin: 0;
+}
+
+.home-create-form,
+.home-create-form .board-sdk-button {
+  width: 100%;
+}
+
+.home-utility-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.home-utility-actions .board-sdk-icon-button {
+  width: 100%;
+}
+
+.home-tables-panel {
+  min-height: 0;
+}
+
+.home-tables-panel .room-list-heading {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.room-table {
+  display: grid;
+  gap: 5px;
+}
+
+.room-table-head {
+  display: grid;
+  grid-template-columns: minmax(170px, 1.2fr) 86px minmax(130px, 0.8fr) 92px 88px;
+  gap: 6px;
+  padding: 0 8px 4px;
+  color: var(--club-faint);
+  font-size: 0.72rem;
+  font-weight: 900;
+}
+
+.home-tables-panel .room-list {
+  gap: 5px;
+}
+
+.home-tables-panel .room-card {
+  min-height: 48px !important;
+  display: grid;
+  grid-template-columns: minmax(170px, 1.2fr) 86px minmax(130px, 0.8fr) 92px 88px;
+  gap: 6px;
+  align-items: center;
+  padding: 6px 8px !important;
+}
+
+.home-tables-panel .room-card-main {
+  gap: 2px;
+}
+
+.home-tables-panel .room-card-title,
+.home-tables-panel .room-card-meta,
+.home-tables-panel .room-card-game {
+  flex-wrap: nowrap;
+}
+
+.home-tables-panel .room-owner-chip,
+.home-tables-panel .room-count-chip,
+.home-tables-panel .room-state-chip,
+.home-tables-panel .room-card-meta span {
+  width: fit-content;
+  max-width: 100%;
+  min-height: 22px;
+  padding: 2px 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.home-tables-panel .room-card-game {
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.home-tables-panel .room-card > .board-sdk-button {
+  width: 100%;
+  min-height: 34px;
+}
+
+.compact-empty-room {
+  min-height: 112px !important;
+  justify-items: center;
+  grid-template-columns: auto minmax(0, auto);
+  place-items: center;
+  text-align: left;
+}
+
+.compact-empty-room h3 {
+  margin: 0;
+  color: var(--club-ink);
+  font-size: 1rem;
+}
+
+.compact-empty-room p {
+  margin: 2px 0 0;
+  color: var(--club-muted);
+  font-size: 0.85rem;
+}
+
+@media (max-width: 900px) {
+  .home-game-lobby {
+    grid-template-columns: 1fr;
+  }
+
+  .home-player-panel {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+  }
+
+  .home-player-head,
+  .home-player-panel .home-name-row {
+    grid-column: 1 / -1;
+  }
+
+  .home-create-form {
+    min-width: 190px;
+  }
+
+  .home-utility-actions {
+    grid-template-columns: repeat(2, 38px);
+  }
+}
+
+@media (max-width: 620px) {
+  .home-player-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .home-create-form {
+    min-width: 0;
+  }
+
+  .home-utility-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .room-table-head {
+    display: none;
+  }
+
+  .home-tables-panel .room-card {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "room action"
+      "game count"
+      "state state";
+    min-height: 92px !important;
+  }
+
+  .home-tables-panel .room-card-main {
+    grid-area: room;
+  }
+
+  .home-tables-panel .room-count-chip {
+    grid-area: count;
+    justify-self: end;
+  }
+
+  .home-tables-panel .room-card-game {
+    grid-area: game;
+  }
+
+  .home-tables-panel .room-state-chip {
+    grid-area: state;
+    width: 100%;
+    justify-content: center;
+  }
+
+  .home-tables-panel .room-card > .board-sdk-button {
+    grid-area: action;
+    width: 72px;
+  }
+
+  .compact-empty-room {
+    grid-template-columns: 1fr;
+    text-align: center;
+  }
+}
