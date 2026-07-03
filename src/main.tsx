@@ -7,7 +7,7 @@ import "./styles.css";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <Theme accentColor="brown" grayColor="sand" radius="small" scaling="100%">
+    <Theme className="board-sdk-theme" appearance="dark" accentColor="jade" grayColor="sand" radius="small" scaling="95%">
       <App />
     </Theme>
   </StrictMode>

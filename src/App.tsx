@@ -53,6 +53,7 @@ import type { Ack, GameDefinition, PlayerSnapshot, PublicRoomListItem, RoomSnaps
 import { getGameComponent } from "./game-modules/ui-registry";
 import type { GameAction } from "./game-modules/types";
 import type { LeaderboardEntry, MatchRecord, PlayerStatsResponse, StatsSummary } from "./shared/stats";
+import { BoardButton, BoardCard, BoardIconButton } from "./ui/BoardKit";
 
 type JoinResult = {
   room: RoomSnapshot;
@@ -706,7 +707,7 @@ function HomeView({
 
   return (
     <section className="home-grid room-first-home" aria-labelledby="home-title">
-      <div className="room-list-panel">
+      <BoardCard className="room-list-panel">
         <div className="panel-header room-list-heading">
           <div>
             <span className="eyebrow">방 목록</span>
@@ -714,8 +715,7 @@ function HomeView({
             <p>참여할 방을 선택하세요. 방이 없으면 새 방을 여세요.</p>
           </div>
           <div className="room-header-actions">
-            <button
-              className="icon-button"
+            <BoardIconButton
               type="button"
               onClick={onRefreshRooms}
               disabled={roomsLoading}
@@ -723,16 +723,15 @@ function HomeView({
               title="방 목록 새로고침"
             >
               <RefreshCw size={18} />
-            </button>
-            <button
-              className="icon-button"
+            </BoardIconButton>
+            <BoardIconButton
               type="button"
               onClick={onResetLocalIdentity}
               aria-label="새 손님으로 시작"
               title="새 손님으로 시작"
             >
               <RotateCcw size={18} />
-            </button>
+            </BoardIconButton>
           </div>
         </div>
 
@@ -804,31 +803,31 @@ function HomeView({
               <p>새 방을 만들면 친구들이 이 목록에서 바로 들어올 수 있습니다.</p>
             </div>
             <form className="room-empty-action" onSubmit={onCreateRoom}>
-              <button className="primary-button" type="submit" disabled={disabled || !name.trim()}>
+              <BoardButton tone="primary" type="submit" disabled={disabled || !name.trim()}>
                 <Plus size={18} />
                 새 방 만들기
-              </button>
+              </BoardButton>
             </form>
           </div>
         )}
-      </div>
+      </BoardCard>
 
       {showRoomTools ? (
         <div className="entry-stack room-entry-stack">
           {hasRooms ? (
             <form className="entry-panel compact-entry-panel" onSubmit={onCreateRoom}>
               <span className="entry-panel-title">새 방</span>
-              <button className="secondary-button" type="submit" disabled={disabled || !name.trim()}>
+              <BoardButton type="submit" disabled={disabled || !name.trim()}>
                 <Plus size={18} />
                 만들기
-              </button>
+              </BoardButton>
             </form>
           ) : null}
           {savedRoom ? (
-            <button className="secondary-button saved-room-button" type="button" onClick={onResumeSavedRoom} disabled={disabled}>
+            <BoardButton className="saved-room-button" type="button" onClick={onResumeSavedRoom} disabled={disabled}>
               <LogIn size={18} />
               최근 방 복귀
-            </button>
+            </BoardButton>
           ) : null}
           {notice ? <p className="notice" role="alert">{notice}</p> : null}
         </div>
@@ -1119,15 +1118,15 @@ function RoomView({
               <span>{playerCount}/{room.maxPlayers}</span>
             </div>
             <div className="seat-panel-actions">
-              <button
-                className={`icon-button ${room.canDeleteRoom ? "danger" : ""}`}
+              <BoardIconButton
+                tone={room.canDeleteRoom ? "danger" : "secondary"}
                 type="button"
                 onClick={room.canDeleteRoom ? onDeleteLocalRoom : onLeaveLocalRoom}
                 aria-label={room.canDeleteRoom ? "방 닫기" : "현재 방 나가기"}
                 title={room.canDeleteRoom ? "방 닫기" : "현재 방 나가기"}
               >
                 {room.canDeleteRoom ? <Trash2 size={18} /> : <DoorOpen size={18} />}
-              </button>
+              </BoardIconButton>
             </div>
           </div>
           <div className="seat-list">
@@ -1248,10 +1247,10 @@ function LobbyPanel({
               </select>
             </label>
           ) : null}
-          <button className="primary-button" type="button" onClick={onStartGame} disabled={!canStart}>
+          <BoardButton tone="primary" type="button" onClick={onStartGame} disabled={!canStart}>
             <Play size={18} />
             시작
-          </button>
+          </BoardButton>
         </div>
       </div>
 
@@ -1439,28 +1438,28 @@ function PlayPanel({
           ) : null}
           {isHost ? (
             paused ? (
-              <button className="secondary-button" type="button" onClick={resumeGame} disabled={isFinished}>
+              <BoardButton type="button" onClick={resumeGame} disabled={isFinished}>
                 <Play size={18} />
                 재개
-              </button>
+              </BoardButton>
             ) : (
-              <button className="secondary-button" type="button" onClick={pauseGame} disabled={isFinished}>
+              <BoardButton type="button" onClick={pauseGame} disabled={isFinished}>
                 <Pause size={18} />
                 일시정지
-              </button>
+              </BoardButton>
             )
           ) : null}
           {canClaimTimeout ? (
-            <button className="secondary-button danger timeout-claimable" type="button" onClick={claimTimeout}>
+            <BoardButton tone="danger" className="timeout-claimable" type="button" onClick={claimTimeout}>
               <FastForward size={18} />
               타임아웃
-            </button>
+            </BoardButton>
           ) : null}
           {isHost ? (
-            <button className="secondary-button" type="button" onClick={onReturnLobby}>
+            <BoardButton type="button" onClick={onReturnLobby}>
               <RotateCcw size={18} />
               로비
-            </button>
+            </BoardButton>
           ) : null}
         </div>
       </div>
@@ -1548,17 +1547,17 @@ function PlayPanel({
             placeholder="모두에게 보이는 메모입니다"
             onChange={(event) => setAction(event.target.value)}
           />
-          <button className="icon-button strong" type="submit" aria-label="행동 기록 추가" title="행동 기록 추가">
+          <BoardIconButton tone="primary" type="submit" aria-label="행동 기록 추가" title="행동 기록 추가">
             <Send size={18} />
-          </button>
+          </BoardIconButton>
         </div>
       </form>
 
       <div className="turn-actions">
-        <button className="primary-button" type="button" onClick={advanceTurn} disabled={!canAdvanceTurn} title={turnEndRestriction || undefined}>
+        <BoardButton tone="primary" type="button" onClick={advanceTurn} disabled={!canAdvanceTurn} title={turnEndRestriction || undefined}>
           <CheckCircle2 size={18} />
           {isMyTurn ? "턴 종료" : "강제 턴 넘김"}
-        </button>
+        </BoardButton>
         <span>
           {paused
             ? "일시정지 중입니다."
