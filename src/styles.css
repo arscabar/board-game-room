@@ -6083,3 +6083,26 @@ a:focus-visible,
     min-width: 44px;
   }
 }
+
+/* Responsive board sizing: stacked play views must stretch the board to the available width. */
+@media (max-width: 1100px) {
+  .play-panel {
+    align-items: stretch !important;
+  }
+
+  .play-panel > *,
+  .play-panel > .game-module-shell,
+  .play-panel > .board-preview,
+  .game-module-shell,
+  .game-module {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+}
+
+@media (max-width: 820px) {
+  .game-module-shell {
+    scrollbar-gutter: auto;
+  }
+}
