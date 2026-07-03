@@ -430,8 +430,19 @@ function App() {
   useEffect(() => {
     if (lastRoomCode) {
       localStorage.setItem(storageKeys.roomCode, lastRoomCode);
+    } else {
+      localStorage.removeItem(storageKeys.roomCode);
     }
   }, [lastRoomCode]);
+
+  useEffect(() => {
+    if (!lastRoomCode || room || roomListLoading || connection !== "connected") {
+      return;
+    }
+    if (!roomList.some((openRoom) => openRoom.code === lastRoomCode)) {
+      setLastRoomCode("");
+    }
+  }, [connection, lastRoomCode, room, roomList, roomListLoading]);
 
   const currentPlayer = useMemo(
     () => room?.players.find((player) => player.id === playerId) ?? null,
@@ -492,6 +503,8 @@ function App() {
       clientKey
     });
     if (!response.ok || !response.data) {
+      setLastRoomCode("");
+      void refreshRoomList(false);
       setNotice(response.error ?? "저장된 방으로 돌아갈 수 없습니다.");
       return;
     }
@@ -534,7 +547,8 @@ function App() {
       }
     }
     setRoom(null);
-    setNotice("플레이어 정보는 이 브라우저에 저장되어 있습니다. 같은 방에 다시 들어가면 같은 좌석으로 복귀합니다.");
+    setLastRoomCode("");
+    setNotice("방에서 나왔습니다. 다시 플레이하려면 열린 방에 들어가거나 새 방을 만드세요.");
   }
 
   async function resetLocalIdentity() {
@@ -631,6 +645,7 @@ function HomeView({
 }) {
   const disabled = connection !== "connected";
   const hasRooms = rooms.length > 0;
+  const savedRoom = lastRoomCode ? rooms.find((openRoom) => openRoom.code === lastRoomCode) ?? null : null;
 
   return (
     <section className="home-grid room-first-home" aria-labelledby="home-title">
@@ -740,10 +755,10 @@ function HomeView({
             </button>
           </form>
         ) : null}
-        {lastRoomCode ? (
+        {savedRoom ? (
           <button className="secondary-button saved-room-button" type="button" onClick={onResumeSavedRoom} disabled={disabled}>
             <LogIn size={18} />
-            최근 방 {lastRoomCode}로 돌아가기
+            최근 방 {savedRoom.code}로 돌아가기
           </button>
         ) : null}
         <button className="secondary-button saved-room-button" type="button" onClick={onResetLocalIdentity}>
