@@ -543,6 +543,10 @@ export function Component({
     );
   }
 
+  const dockedDice = state.dice
+    .map((die, index) => ({ die, index }))
+    .filter((item) => state.held[item.index]);
+
   return (
     <section className="game-module yacht-dice-module" style={styles.shell} aria-label="요트 다이스 보드">
       <div className="yacht-top-grid" style={styles.topGrid}>
@@ -558,23 +562,24 @@ export function Component({
           </div>
           <div className={`yacht-throw-tray ${rolling ? "rolling" : ""}`} aria-label="주사위 던지는 판">
             <div className="yacht-keep-slots" aria-label="보류 주사위 슬롯">
-              {state.dice.map((die, index) =>
-                state.held[index] ? (
+              {Array.from({ length: DICE_COUNT }, (_, slotIndex) => {
+                const docked = dockedDice[slotIndex];
+                return docked ? (
                   <button
                     className="yacht-dock-slot filled"
                     type="button"
-                    key={`dock-${index}`}
+                    key={`dock-${docked.index}`}
                     disabled={!canAct || state.rollsThisTurn === 0 || rolling}
                     aria-pressed="true"
-                    aria-label={`${index + 1}번 주사위 ${die || "아직 안 굴림"} 보류 해제`}
-                    onClick={() => onAction({ type: "yacht-dice/toggle-hold", payload: { index } })}
+                    aria-label={`${docked.index + 1}번 주사위 ${docked.die || "아직 안 굴림"} 보류 해제`}
+                    onClick={() => onAction({ type: "yacht-dice/toggle-hold", payload: { index: docked.index } })}
                   >
-                    {renderDieFace(die)}
+                    {renderDieFace(docked.die)}
                   </button>
                 ) : (
-                  <span className="yacht-dock-slot" key={`dock-${index}`} aria-hidden="true" />
-                )
-              )}
+                  <span className="yacht-dock-slot" key={`dock-empty-${slotIndex}`} aria-hidden="true" />
+                );
+              })}
             </div>
             {state.dice.map((die, index) => state.held[index] ? null : (
               <button
