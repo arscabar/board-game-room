@@ -236,27 +236,46 @@
   left: 9px;
   right: 9px;
   bottom: 8px;
-  z-index: 1;
+  z-index: 4;
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 5px;
-  pointer-events: none;
+  pointer-events: auto;
 }
 
-.yacht-keep-slots span {
+.yacht-dock-slot {
   min-height: 46px;
+  min-width: 0;
+  display: grid;
+  place-items: center;
   border: 1px dashed rgba(255, 239, 199, 0.2);
   border-radius: 8px;
+  padding: 0;
   background:
     linear-gradient(180deg, rgba(255, 239, 199, 0.08), rgba(0, 0, 0, 0.13));
+  box-shadow: none;
+  touch-action: manipulation;
 }
 
-.yacht-keep-slots span.filled {
+.yacht-dock-slot.filled {
   border-style: solid;
   border-color: rgba(224, 173, 98, 0.48);
   background:
     radial-gradient(circle at 50% 40%, rgba(224, 173, 98, 0.16), transparent 58%),
     linear-gradient(180deg, rgba(255, 239, 199, 0.12), rgba(0, 0, 0, 0.18));
+}
+
+.yacht-dock-slot:disabled {
+  cursor: not-allowed;
+  opacity: 1;
+}
+
+.yacht-dock-slot .yacht-die-face {
+  animation: none !important;
+  width: clamp(34px, 5.8vw, 42px);
+  padding: 5px;
+  outline: 2px solid rgba(201, 154, 66, 0.72);
+  outline-offset: 1px;
 }
 
 .yacht-score-table,
@@ -914,8 +933,13 @@
     gap: 4px;
   }
 
-  .yacht-keep-slots span {
+  .yacht-dock-slot {
     min-height: 44px;
+  }
+
+  .yacht-dock-slot .yacht-die-face {
+    width: 34px;
+    padding: 5px;
   }
 
   .yacht-scoreboard-head {

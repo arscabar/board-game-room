@@ -530,6 +530,19 @@ export function Component({
     } as CSSProperties;
   }
 
+  function renderDieFace(die: DieValue) {
+    return (
+      <span className="yacht-die-face" aria-hidden="true">
+        {Array.from({ length: 9 }, (_, pipIndex) => (
+          <span
+            className={`yacht-pip ${DIE_PIP_MAP[die].includes(pipIndex) ? "on" : ""}`}
+            key={pipIndex}
+          />
+        ))}
+      </span>
+    );
+  }
+
   return (
     <section className="game-module yacht-dice-module" style={styles.shell} aria-label="요트 다이스 보드">
       <div className="yacht-top-grid" style={styles.topGrid}>
@@ -544,31 +557,38 @@ export function Component({
             <strong>{state.rollsThisTurn}/{MAX_ROLLS}</strong>
           </div>
           <div className={`yacht-throw-tray ${rolling ? "rolling" : ""}`} aria-label="주사위 던지는 판">
-            <div className="yacht-keep-slots" aria-hidden="true">
-              {Array.from({ length: DICE_COUNT }, (_, index) => (
-                <span className={state.held[index] ? "filled" : ""} key={index} />
-              ))}
+            <div className="yacht-keep-slots" aria-label="보류 주사위 슬롯">
+              {state.dice.map((die, index) =>
+                state.held[index] ? (
+                  <button
+                    className="yacht-dock-slot filled"
+                    type="button"
+                    key={`dock-${index}`}
+                    disabled={!canAct || state.rollsThisTurn === 0 || rolling}
+                    aria-pressed="true"
+                    aria-label={`${index + 1}번 주사위 ${die || "아직 안 굴림"} 보류 해제`}
+                    onClick={() => onAction({ type: "yacht-dice/toggle-hold", payload: { index } })}
+                  >
+                    {renderDieFace(die)}
+                  </button>
+                ) : (
+                  <span className="yacht-dock-slot" key={`dock-${index}`} aria-hidden="true" />
+                )
+              )}
             </div>
-            {state.dice.map((die, index) => (
+            {state.dice.map((die, index) => state.held[index] ? null : (
               <button
-                className={`yacht-die-button ${state.held[index] ? "held" : ""} ${rolling && !state.held[index] ? "rolling" : ""}`}
-                style={dieTrayStyle(index, state.held[index])}
+                className={`yacht-die-button ${rolling ? "rolling" : ""}`}
+                style={dieTrayStyle(index, false)}
                 type="button"
-                key={index}
-                disabled={!canAct || state.rollsThisTurn === 0}
-                aria-pressed={state.held[index]}
+                key={`die-${index}`}
+                disabled={!canAct || state.rollsThisTurn === 0 || rolling}
+                aria-pressed="false"
                 aria-label={`${index + 1}번 주사위 ${die || "아직 안 굴림"} 보류 전환`}
                 onClick={() => onAction({ type: "yacht-dice/toggle-hold", payload: { index } })}
               >
-                <span className="yacht-die-face" aria-hidden="true">
-                  {Array.from({ length: 9 }, (_, pipIndex) => (
-                    <span
-                      className={`yacht-pip ${DIE_PIP_MAP[die].includes(pipIndex) ? "on" : ""}`}
-                      key={pipIndex}
-                    />
-                  ))}
-                </span>
-                <span className="yacht-die-label">{state.held[index] ? "보류" : "자유"}</span>
+                {renderDieFace(die)}
+                <span className="yacht-die-label">자유</span>
               </button>
             ))}
           </div>
