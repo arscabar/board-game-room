@@ -702,6 +702,7 @@ function HomeView({
   const disabled = connection !== "connected";
   const hasRooms = rooms.length > 0;
   const savedRoom = lastRoomCode ? rooms.find((openRoom) => openRoom.code === lastRoomCode) ?? null : null;
+  const showRoomTools = hasRooms || Boolean(savedRoom) || Boolean(notice);
 
   return (
     <section className="home-grid room-first-home" aria-labelledby="home-title">
@@ -709,19 +710,30 @@ function HomeView({
         <div className="panel-header room-list-heading">
           <div>
             <span className="eyebrow">방 목록</span>
-            <h2 id="home-title">같이 할 방을 고르세요.</h2>
-            <p>열린 방에 바로 들어가거나, 새 방을 만들어 친구를 기다리세요.</p>
+            <h2 id="home-title">열린 방</h2>
+            <p>참여할 방을 선택하세요. 방이 없으면 새 방을 여세요.</p>
           </div>
-          <button
-            className="icon-button"
-            type="button"
-            onClick={onRefreshRooms}
-            disabled={roomsLoading}
-            aria-label="방 목록 새로고침"
-            title="방 목록 새로고침"
-          >
-            <RefreshCw size={18} />
-          </button>
+          <div className="room-header-actions">
+            <button
+              className="icon-button"
+              type="button"
+              onClick={onRefreshRooms}
+              disabled={roomsLoading}
+              aria-label="방 목록 새로고침"
+              title="방 목록 새로고침"
+            >
+              <RefreshCw size={18} />
+            </button>
+            <button
+              className="icon-button"
+              type="button"
+              onClick={onResetLocalIdentity}
+              aria-label="새 손님으로 시작"
+              title="새 손님으로 시작"
+            >
+              <RotateCcw size={18} />
+            </button>
+          </div>
         </div>
 
         <div className="home-name-row">
@@ -801,28 +813,26 @@ function HomeView({
         )}
       </div>
 
-      <div className="entry-stack room-entry-stack">
-        {hasRooms ? (
-          <form className="entry-panel compact-entry-panel" onSubmit={onCreateRoom}>
-            <span className="entry-panel-title">다른 방 열기</span>
-            <button className="secondary-button" type="submit" disabled={disabled || !name.trim()}>
-              <Plus size={18} />
-              새 방 만들기
+      {showRoomTools ? (
+        <div className="entry-stack room-entry-stack">
+          {hasRooms ? (
+            <form className="entry-panel compact-entry-panel" onSubmit={onCreateRoom}>
+              <span className="entry-panel-title">새 방</span>
+              <button className="secondary-button" type="submit" disabled={disabled || !name.trim()}>
+                <Plus size={18} />
+                만들기
+              </button>
+            </form>
+          ) : null}
+          {savedRoom ? (
+            <button className="secondary-button saved-room-button" type="button" onClick={onResumeSavedRoom} disabled={disabled}>
+              <LogIn size={18} />
+              최근 방 복귀
             </button>
-          </form>
-        ) : null}
-        {savedRoom ? (
-          <button className="secondary-button saved-room-button" type="button" onClick={onResumeSavedRoom} disabled={disabled}>
-            <LogIn size={18} />
-            최근 방으로 돌아가기
-          </button>
-        ) : null}
-        <button className="secondary-button saved-room-button" type="button" onClick={onResetLocalIdentity}>
-          <RotateCcw size={18} />
-          새 손님으로 시작
-        </button>
-        {notice ? <p className="notice" role="alert">{notice}</p> : null}
-      </div>
+          ) : null}
+          {notice ? <p className="notice" role="alert">{notice}</p> : null}
+        </div>
+      ) : null}
     </section>
   );
 }

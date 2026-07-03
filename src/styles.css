@@ -6153,3 +6153,515 @@ a:focus-visible,
     scrollbar-gutter: auto;
   }
 }
+
+/* Human-made table pass: compact club table, low gloss, fewer generated-looking effects. */
+:root {
+  --club-bg: #15100c;
+  --club-wood-0: #20150f;
+  --club-wood-1: #2a1b12;
+  --club-wood-2: #352418;
+  --club-felt: #15543f;
+  --club-felt-2: #0d3b2e;
+  --club-ink: #f0dfbd;
+  --club-muted: #bda77f;
+  --club-faint: #8d7658;
+  --club-line: rgba(214, 174, 103, 0.22);
+  --club-line-strong: rgba(226, 190, 126, 0.36);
+  --club-danger: #7f302c;
+  --club-warn: #b9842f;
+  --club-radius: 6px;
+  --club-shadow: 0 1px 0 rgba(255, 232, 184, 0.05);
+}
+
+.app-shell {
+  color: var(--club-ink);
+  background:
+    repeating-linear-gradient(90deg, rgba(255, 226, 170, 0.025) 0 1px, transparent 1px 42px),
+    repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.16) 0 1px, transparent 1px 36px),
+    var(--club-bg);
+}
+
+.topbar,
+.room-list-panel,
+.entry-panel,
+.seat-panel,
+.work-panel,
+.detail-panel,
+.stats-block,
+.room-card,
+.empty-room-state,
+.saved-room-button,
+.detail-summary-card,
+.detail-panel .fold-card,
+.win-condition,
+.play-panel .turn-guide,
+.play-panel .table-control-panel,
+.play-panel .action-form,
+.play-panel .turn-actions,
+.play-panel .move-log,
+.player-turn-chip,
+.game-module-shell {
+  border-color: var(--club-line) !important;
+  border-radius: var(--club-radius) !important;
+  color: var(--club-ink);
+  background:
+    repeating-linear-gradient(90deg, rgba(255, 222, 160, 0.018) 0 1px, transparent 1px 56px),
+    var(--club-wood-1) !important;
+  box-shadow: var(--club-shadow) !important;
+}
+
+.topbar {
+  max-width: 1320px;
+  padding: 10px 12px;
+}
+
+.topbar h1,
+.panel-header h2,
+.intro-panel h2,
+.game-row strong,
+.seat-row strong,
+.room-card-title,
+.detail-summary-card strong,
+.win-condition strong,
+.detail-panel .fold-card summary,
+label {
+  color: var(--club-ink) !important;
+  letter-spacing: 0;
+  text-shadow: none !important;
+}
+
+.topbar p,
+.panel-header p,
+.helper-text,
+.eyebrow,
+.seat-row span,
+.room-card-meta,
+.room-card-game,
+.detail-summary-card span,
+.win-condition span,
+.detail-panel .fold-content,
+.game-row small,
+.game-row-meta span {
+  color: var(--club-muted) !important;
+  text-shadow: none !important;
+}
+
+.brand-mark {
+  width: 38px;
+  height: 38px;
+  border-color: var(--club-line);
+  border-radius: 6px;
+  background: var(--club-felt-2);
+  box-shadow: none;
+}
+
+.primary-button,
+.secondary-button,
+.icon-button,
+.detail-learn-link,
+.turn-actions .primary-button,
+.yacht-roll-button,
+.yacht-score-button,
+.dvc-action,
+.qdr-action,
+.qaw-actions button,
+.yinsh-action-button {
+  border: 1px solid var(--club-line) !important;
+  border-radius: 6px !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+  transition:
+    transform 140ms ease,
+    border-color 140ms ease,
+    background 140ms ease,
+    color 140ms ease;
+}
+
+.primary-button,
+.icon-button.strong,
+.detail-learn-link,
+.turn-actions .primary-button,
+.dvc-action,
+.qdr-action,
+.qaw-actions button,
+.yinsh-action-button {
+  color: #f4ead4 !important;
+  background: var(--club-felt) !important;
+}
+
+.secondary-button,
+.icon-button {
+  color: var(--club-ink) !important;
+  background: var(--club-wood-2) !important;
+}
+
+.icon-button.danger,
+.secondary-button.danger {
+  color: #f7e2d5 !important;
+  background: var(--club-danger) !important;
+}
+
+.primary-button:hover:not(:disabled),
+.secondary-button:hover:not(:disabled),
+.icon-button:hover:not(:disabled),
+.detail-learn-link:hover,
+.dvc-action:hover:not(:disabled),
+.qdr-action:hover:not(:disabled),
+.qaw-actions button:hover:not(:disabled),
+.yinsh-action-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  border-color: var(--club-line-strong) !important;
+  filter: none !important;
+}
+
+.primary-button:active:not(:disabled),
+.secondary-button:active:not(:disabled),
+.icon-button:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.28) !important;
+}
+
+input,
+select,
+textarea {
+  border-color: var(--club-line) !important;
+  border-radius: 6px !important;
+  color: var(--club-ink) !important;
+  background: #120c08 !important;
+  box-shadow: inset 0 1px 0 rgba(255, 232, 184, 0.05) !important;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--club-faint) !important;
+}
+
+.room-card,
+.seat-row,
+.game-row,
+.turn-guide-coach span,
+.metric-chip,
+.status-pill,
+.rate-pill,
+.room-owner-chip,
+.room-count-chip,
+.room-state-chip {
+  border-color: var(--club-line) !important;
+  border-radius: 6px !important;
+  background: var(--club-wood-0) !important;
+  box-shadow: none !important;
+}
+
+.room-card:hover,
+.seat-row.filled,
+.lobby-panel .game-row:not(:disabled):hover {
+  border-color: var(--club-line-strong) !important;
+  background: #2b1c13 !important;
+}
+
+.lobby-panel .game-row {
+  min-height: 44px;
+  background: #21160f !important;
+}
+
+.lobby-panel .game-row.selected,
+.player-turn-chip.active {
+  border-color: rgba(83, 176, 130, 0.58) !important;
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--game-accent, var(--club-felt)) 18%, transparent), transparent 64%),
+    var(--club-felt-2) !important;
+}
+
+.work-panel.lobby-panel .game-row.is-unavailable,
+.work-panel.lobby-panel .game-row.is-unavailable:disabled {
+  border-color: rgba(117, 103, 82, 0.2) !important;
+  color: rgba(184, 170, 145, 0.72) !important;
+  background: #14100d !important;
+  filter: grayscale(0.9) brightness(0.72) !important;
+}
+
+.game-row-icon,
+.game-row-thumb {
+  border-color: var(--club-line) !important;
+  background: #16100c !important;
+  box-shadow: none !important;
+}
+
+.game-swatch,
+.seat-number,
+.player-turn-swatch {
+  border-radius: 3px !important;
+  box-shadow: none !important;
+}
+
+.notice,
+.game-message-strip {
+  border-color: rgba(185, 132, 47, 0.34) !important;
+  color: #f4dbad !important;
+  background: #2a1d12 !important;
+}
+
+.play-timer-chip,
+.lobby-timer-select {
+  border-color: var(--club-line) !important;
+  border-radius: 6px !important;
+  color: var(--club-ink) !important;
+  background: #17100b !important;
+  box-shadow: none !important;
+}
+
+.move-log-list,
+.recent-match-list,
+.seat-list,
+.room-list,
+.game-list {
+  scrollbar-color: var(--club-line-strong) transparent;
+}
+
+@media (max-width: 820px) {
+  .app-shell {
+    padding: 8px;
+  }
+
+  .topbar {
+    margin-bottom: 8px;
+  }
+
+  .room-layout,
+  .home-grid {
+    gap: 8px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Handmade club-table refinement: remove landing-page scale and generated-looking trim. */
+.app-shell {
+  background:
+    radial-gradient(circle at 18% 10%, rgba(96, 62, 34, 0.18), transparent 34rem),
+    linear-gradient(90deg, rgba(34, 22, 15, 0.84), rgba(16, 12, 9, 0.94) 52%, rgba(36, 24, 15, 0.86)),
+    repeating-linear-gradient(90deg, rgba(255, 232, 184, 0.035) 0 1px, transparent 1px 162px),
+    var(--club-bg);
+}
+
+.topbar,
+main {
+  max-width: 1160px;
+}
+
+.topbar {
+  min-height: 56px;
+  margin-bottom: 10px;
+  background:
+    linear-gradient(180deg, rgba(44, 29, 19, 0.98), rgba(27, 18, 12, 0.98)) !important;
+}
+
+.topbar h1 {
+  font-size: 1rem !important;
+}
+
+.topbar p {
+  font-size: 0.82rem;
+}
+
+.room-first-home {
+  width: min(100%, 980px);
+  max-width: 980px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+}
+
+.room-first-home:has(.room-entry-stack) {
+  width: min(100%, 1120px);
+  max-width: 1120px;
+  grid-template-columns: minmax(0, 1fr) minmax(184px, 220px);
+}
+
+.room-list-panel {
+  padding: 12px !important;
+  background:
+    linear-gradient(180deg, rgba(39, 25, 16, 0.98), rgba(24, 16, 11, 0.99)) !important;
+}
+
+.room-list-panel::before,
+.entry-panel::before,
+.topbar::after,
+.room-command::after,
+.seat-panel::before,
+.work-panel::before,
+.detail-panel::before,
+.stats-panel::before,
+.rule-check-panel::after,
+.table-control-panel::after {
+  display: none !important;
+}
+
+.room-list-heading {
+  margin-bottom: 10px;
+  align-items: center;
+}
+
+.room-list-heading h2 {
+  font-size: clamp(1.15rem, 2vw, 1.45rem) !important;
+  line-height: 1.15;
+}
+
+.room-list-heading p {
+  max-width: 520px;
+  margin-top: 3px;
+  font-size: 0.84rem !important;
+}
+
+.room-header-actions {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.home-name-row {
+  grid-template-columns: 82px minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.home-name-row label {
+  font-size: 0.82rem;
+}
+
+.home-name-row input {
+  min-height: 38px;
+}
+
+.empty-room-state {
+  min-height: 170px !important;
+  gap: 8px;
+  padding: 18px !important;
+  background:
+    linear-gradient(180deg, rgba(16, 11, 8, 0.72), rgba(12, 8, 6, 0.78)) !important;
+}
+
+.empty-room-state svg {
+  opacity: 0.78;
+}
+
+.empty-room-state h3 {
+  font-size: 1rem !important;
+}
+
+.empty-room-state p {
+  font-size: 0.86rem;
+}
+
+.room-card {
+  min-height: 76px !important;
+  padding: 8px !important;
+  background:
+    linear-gradient(180deg, rgba(36, 24, 16, 0.98), rgba(24, 16, 11, 0.99)) !important;
+}
+
+.room-owner-chip,
+.room-count-chip,
+.room-state-chip,
+.room-card-meta span {
+  min-height: 24px;
+  border-radius: 5px !important;
+  padding: 3px 6px;
+}
+
+.room-owner-chip {
+  font-size: 0.92rem;
+}
+
+.room-card-game,
+.room-card-meta {
+  font-size: 0.78rem !important;
+}
+
+.room-card > button,
+.compact-entry-panel button,
+.saved-room-button {
+  min-height: 38px;
+}
+
+.room-entry-stack {
+  gap: 6px;
+}
+
+.compact-entry-panel {
+  padding: 10px !important;
+}
+
+.entry-panel-title {
+  font-size: 0.78rem;
+}
+
+.primary-button,
+.secondary-button,
+.icon-button {
+  min-height: 38px;
+}
+
+.icon-button {
+  width: 38px;
+  min-width: 38px;
+  padding: 0;
+}
+
+.primary-button {
+  background: #164f3d !important;
+}
+
+.secondary-button,
+.icon-button {
+  background: #2b1d14 !important;
+}
+
+.notice {
+  padding: 9px 10px !important;
+  font-size: 0.82rem;
+}
+
+@media (max-width: 900px) {
+  .room-first-home,
+  .room-first-home:has(.room-entry-stack) {
+    width: 100%;
+    max-width: none;
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  .topbar {
+    min-height: 52px;
+    padding: 8px 9px;
+  }
+
+  .home-name-row {
+    grid-template-columns: 1fr;
+    gap: 5px;
+  }
+
+  .room-list-heading {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .room-header-actions .icon-button {
+    width: 34px;
+    min-width: 34px;
+  }
+
+  .empty-room-state {
+    min-height: 150px !important;
+  }
+}

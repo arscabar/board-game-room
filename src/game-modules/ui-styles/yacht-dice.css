@@ -1148,3 +1148,37 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Score choices must stay readable even before the first roll disables them. */
+.yacht-score-choice,
+.yacht-score-choice:disabled {
+  color: #203135 !important;
+  opacity: 1 !important;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(246, 239, 214, 0.98)) !important;
+}
+
+.yacht-score-choice:disabled:not(.used) {
+  cursor: not-allowed;
+}
+
+.yacht-score-choice-label,
+.yacht-score-choice:disabled .yacht-score-choice-label {
+  color: #203135 !important;
+}
+
+.yacht-score-choice-value,
+.yacht-score-choice:disabled .yacht-score-choice-value {
+  color: #fffdf4 !important;
+  background: #2f6f73 !important;
+}
+
+.yacht-score-choice.used,
+.yacht-score-choice.used .yacht-score-choice-label {
+  color: #526167 !important;
+}
+
+.yacht-score-choice.used .yacht-score-choice-value {
+  color: #26464c !important;
+  background: rgba(255, 255, 255, 0.72) !important;
+}
