@@ -21,15 +21,10 @@ import {
   Hexagon,
   Layers3,
   ListChecks,
-  LogIn,
   Medal,
-  Pause,
-  Play,
-  Plus,
   Puzzle,
   Radio,
   RefreshCw,
-  RotateCcw,
   Route,
   Send,
   ShieldQuestion,
@@ -53,7 +48,7 @@ import type { Ack, GameDefinition, PlayerSnapshot, PublicRoomListItem, RoomSnaps
 import { getGameComponent } from "./game-modules/ui-registry";
 import type { GameAction } from "./game-modules/types";
 import type { LeaderboardEntry, MatchRecord, PlayerStatsResponse, StatsSummary } from "./shared/stats";
-import { BoardButton, BoardCard, BoardIconButton } from "./ui/BoardKit";
+import { BoardButton, BoardIconButton } from "./ui/BoardKit";
 
 type JoinResult = {
   room: RoomSnapshot;
@@ -705,66 +700,61 @@ function HomeView({
   const savedRoom = lastRoomCode ? rooms.find((openRoom) => openRoom.code === lastRoomCode) ?? null : null;
 
   return (
-    <section className="home-game-lobby" aria-labelledby="home-title">
-      <BoardCard className="home-player-panel">
-        <div className="home-player-head">
+    <section className="home-console" aria-labelledby="home-title">
+      <div className="home-toolbar" aria-label="로비 조작">
+        <div className="home-toolbar-title">
           <span className="eyebrow">로비</span>
-          <h2 id="home-title">플레이어</h2>
+          <h2 id="home-title">방 목록</h2>
         </div>
 
-        <div className="home-name-row">
-          <label htmlFor="player-name">내 이름</label>
+        <label className="home-inline-name" htmlFor="player-name">
+          <span>이름</span>
           <input
             id="player-name"
             value={name}
             maxLength={16}
             onChange={(event) => onNameChange(event.target.value)}
           />
-        </div>
+        </label>
 
-        <form className="home-create-form" onSubmit={onCreateRoom}>
-          <BoardButton tone="primary" type="submit" disabled={disabled || !name.trim()}>
-            <Plus size={18} />
-            방 만들기
-          </BoardButton>
-        </form>
-
-        <div className="home-utility-actions">
-          <BoardIconButton
+        <div className="home-toolbar-actions">
+          <BoardButton
             type="button"
             onClick={onRefreshRooms}
             disabled={roomsLoading}
             aria-label="방 목록 새로고침"
             title="방 목록 새로고침"
           >
-            <RefreshCw size={18} />
-          </BoardIconButton>
-          <BoardIconButton
+            갱신
+          </BoardButton>
+          <BoardButton
             type="button"
             onClick={onResetLocalIdentity}
             aria-label="새 손님으로 시작"
             title="새 손님으로 시작"
           >
-            <RotateCcw size={18} />
-          </BoardIconButton>
-        </div>
-
-        {savedRoom ? (
-          <BoardButton className="saved-room-button" type="button" onClick={onResumeSavedRoom} disabled={disabled}>
-            <LogIn size={18} />
-            최근 방 복귀
+            초기화
           </BoardButton>
-        ) : null}
+          {savedRoom ? (
+            <BoardButton className="saved-room-button" type="button" onClick={onResumeSavedRoom} disabled={disabled}>
+              복귀
+            </BoardButton>
+          ) : null}
+          <form className="home-create-form" onSubmit={onCreateRoom}>
+            <BoardButton tone="primary" type="submit" disabled={disabled || !name.trim()}>
+              방 만들기
+            </BoardButton>
+          </form>
+        </div>
+      </div>
 
-        {notice ? <p className="notice" role="alert">{notice}</p> : null}
-      </BoardCard>
+      {notice ? <p className="notice" role="alert">{notice}</p> : null}
 
-      <BoardCard className="room-list-panel home-tables-panel">
-        <div className="panel-header room-list-heading">
+      <div className="home-room-board">
+        <div className="room-browser-heading">
           <div>
-            <span className="eyebrow">방 목록</span>
-            <h2>테이블</h2>
-            <p>열린 방을 선택하면 바로 입장합니다. 게임은 방 안에서 고릅니다.</p>
+            <strong>테이블</strong>
+            <span>방에 들어간 뒤 인원에 맞는 게임을 고릅니다.</span>
           </div>
         </div>
 
@@ -791,23 +781,19 @@ function HomeView({
                     <div className="room-card-main">
                       <div className="room-card-title">
                         <span className="room-owner-chip">
-                          <Crown size={17} aria-hidden="true" />
                           {roomOwnerLabel}
                         </span>
                       </div>
                       <div className="room-card-meta">
                         <span>
-                          <Clock3 size={16} aria-hidden="true" />
                           {formatTime(openRoom.createdAt)}
                         </span>
                       </div>
                     </div>
                     <span className="room-count-chip">
-                      <Users size={16} aria-hidden="true" />
                       {openRoom.playerCount}/{openRoom.maxPlayers}
                     </span>
                     <p className="room-card-game">
-                      <Gamepad2 size={16} aria-hidden="true" />
                       {openRoom.selectedGameTitle ?? "선택 전"}
                     </p>
                     <span className={`room-state-chip ${openRoom.status}`}>
@@ -819,7 +805,6 @@ function HomeView({
                       disabled={disabled || !name.trim() || !canUseRoom}
                       onClick={canResume ? onResumeSavedRoom : () => onJoinListedRoom(openRoom.code)}
                     >
-                      <LogIn size={18} />
                       {canResume ? "복귀" : openRoom.canJoin ? "입장" : "대기"}
                     </BoardButton>
                   </article>
@@ -829,14 +814,13 @@ function HomeView({
           </div>
         ) : (
           <div className="room-list-placeholder compact-empty-room">
-            <DoorOpen size={30} aria-hidden="true" />
             <div>
               <h3>열린 방 없음</h3>
-              <p>왼쪽에서 방을 만들면 이 목록에 바로 표시됩니다.</p>
+              <p>위쪽에서 방을 만들면 이 목록에 바로 표시됩니다.</p>
             </div>
           </div>
         )}
-      </BoardCard>
+      </div>
     </section>
   );
 }
@@ -1253,12 +1237,16 @@ function LobbyPanel({
             </label>
           ) : null}
           <BoardButton tone="primary" type="button" onClick={onStartGame} disabled={!canStart}>
-            <Play size={18} />
             시작
           </BoardButton>
         </div>
       </div>
 
+      <div className="game-list-head" aria-hidden="true">
+        <span>게임</span>
+        <span>인원</span>
+        <span>상태</span>
+      </div>
       <div className="game-list">
         {games.map((game) => {
           const available = canPlayGame(game, playerCount);
@@ -1275,13 +1263,12 @@ function LobbyPanel({
               aria-label={`${game.title}, ${formatAllowedPlayers(game)}, ${gameAvailabilityLabel(game, playerCount)}`}
               style={{ "--game-accent": game.accent } as CSSProperties}
             >
-              <span className="game-row-icon" aria-hidden="true">
-                <GameKindIcon game={game} />
-                <span className="game-swatch" />
-              </span>
+              <span className="game-row-marker" aria-hidden="true" />
               <span className="game-row-copy">
                 <strong>{game.title}</strong>
               </span>
+              <span className="game-row-players">{formatAllowedPlayers(game)}</span>
+              <span className="game-row-state">{available ? "가능" : `${playerCount}명 불가`}</span>
             </button>
           );
         })}
@@ -1444,25 +1431,21 @@ function PlayPanel({
           {isHost ? (
             paused ? (
               <BoardButton type="button" onClick={resumeGame} disabled={isFinished}>
-                <Play size={18} />
                 재개
               </BoardButton>
             ) : (
               <BoardButton type="button" onClick={pauseGame} disabled={isFinished}>
-                <Pause size={18} />
                 일시정지
               </BoardButton>
             )
           ) : null}
           {canClaimTimeout ? (
             <BoardButton tone="danger" className="timeout-claimable" type="button" onClick={claimTimeout}>
-              <FastForward size={18} />
               타임아웃
             </BoardButton>
           ) : null}
           {isHost ? (
             <BoardButton type="button" onClick={onReturnLobby}>
-              <RotateCcw size={18} />
               로비
             </BoardButton>
           ) : null}
@@ -1560,7 +1543,6 @@ function PlayPanel({
 
       <div className="turn-actions">
         <BoardButton tone="primary" type="button" onClick={advanceTurn} disabled={!canAdvanceTurn} title={turnEndRestriction || undefined}>
-          <CheckCircle2 size={18} />
           {isMyTurn ? "턴 종료" : "강제 턴 넘김"}
         </BoardButton>
         <span>
