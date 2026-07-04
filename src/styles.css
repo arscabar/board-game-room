@@ -8919,6 +8919,94 @@ textarea:focus-visible {
   color: var(--atelier-gold);
 }
 
+.empty-table-scene {
+  position: relative;
+  width: 128px;
+  height: 82px;
+  border: 1px solid rgba(229, 183, 109, 0.2);
+  border-radius: 14px;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(213, 173, 98, 0.13), transparent 44%),
+    linear-gradient(135deg, rgba(18, 59, 44, 0.62), rgba(8, 37, 28, 0.92));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 242, 214, 0.08),
+    inset 0 -12px 28px rgba(0, 0, 0, 0.18);
+}
+
+.empty-table-scene::before {
+  content: "";
+  position: absolute;
+  inset: 13px 18px;
+  border: 1px solid rgba(244, 219, 174, 0.14);
+  border-radius: 10px;
+}
+
+.empty-seat {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border: 1px solid rgba(229, 183, 109, 0.22);
+  border-radius: 5px;
+  background: rgba(255, 231, 190, 0.06);
+}
+
+.empty-seat.top {
+  top: -9px;
+  left: calc(50% - 9px);
+}
+
+.empty-seat.right {
+  top: calc(50% - 9px);
+  right: -9px;
+}
+
+.empty-seat.bottom {
+  bottom: -9px;
+  left: calc(50% - 9px);
+}
+
+.empty-seat.left {
+  top: calc(50% - 9px);
+  left: -9px;
+}
+
+.empty-table-center {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: rgba(244, 231, 206, 0.64);
+  font-family: "SF Mono", "Cascadia Mono", Consolas, monospace;
+  font-size: 1.15rem;
+  font-weight: 800;
+}
+
+.home-room-board .compact-empty-room {
+  min-height: 112px !important;
+  display: grid !important;
+  grid-template-columns: 150px minmax(0, 1fr) !important;
+  gap: 26px;
+  align-items: center;
+  justify-content: start;
+  justify-items: start;
+  padding: 18px 24px !important;
+}
+
+.home-room-board .compact-empty-room > div:not(.empty-table-scene) {
+  max-width: 560px;
+}
+
+.home-room-board .compact-empty-room h3 {
+  font-size: 0.98rem !important;
+}
+
+.home-room-board .compact-empty-room p {
+  max-width: 62ch;
+  line-height: 1.45;
+  word-break: keep-all;
+  overflow-wrap: normal;
+}
+
 .player-turn-chip {
   border-color: var(--atelier-rule) !important;
   border-radius: var(--atelier-radius-sm) !important;
@@ -9032,6 +9120,12 @@ textarea:focus-visible {
   .room-browser-heading {
     min-height: 46px;
     padding: 9px;
+  }
+
+  .home-room-board .compact-empty-room {
+    grid-template-columns: 1fr !important;
+    gap: 14px;
+    padding: 16px 12px !important;
   }
 
   .room-layout {

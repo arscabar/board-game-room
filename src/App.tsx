@@ -818,9 +818,16 @@ function HomeView({
           </div>
         ) : (
           <div className="room-list-placeholder compact-empty-room">
+            <div className="empty-table-scene" aria-hidden="true">
+              <span className="empty-seat top" />
+              <span className="empty-seat right" />
+              <span className="empty-seat bottom" />
+              <span className="empty-seat left" />
+              <span className="empty-table-center">0</span>
+            </div>
             <div>
               <h3>열린 방 없음</h3>
-              <p>위쪽에서 방을 만들면 이 목록에 바로 표시됩니다.</p>
+              <p>방을 만들면 이 목록에 바로 표시되고, 다른 플레이어가 바로 입장할 수 있습니다.</p>
             </div>
           </div>
         )}
