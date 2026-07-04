@@ -58,66 +58,70 @@ function game(gameId: string) {
 function runGuryongtuPrivacy() {
   const gamePlayers = players(2);
   const state = guryongtuModule.createInitialState({ game: game("guryongtu"), players: gamePlayers });
+  const firstId = (state as any).activePlayerId as string;
+  const secondId = gamePlayers.find((player) => player.id !== firstId)?.id ?? "";
+  assert(firstId && secondId, "구룡투: 선공/후공을 결정하지 못했습니다.");
   let after = guryongtuModule.applyAction(
     state,
     { type: "guryongtu/select-tile", payload: { tile: 7 } },
-    context("guryongtu", gamePlayers, "p1")
+    context("guryongtu", gamePlayers, firstId, firstId)
   ).state;
-  const p1View = guryongtuModule.getPublicState(after, {
-    ...context("guryongtu", gamePlayers, "p1", "p2"),
-    viewerId: "p1"
+  const firstView = guryongtuModule.getPublicState(after, {
+    ...context("guryongtu", gamePlayers, firstId, secondId),
+    viewerId: firstId
   }) as any;
-  const p2View = guryongtuModule.getPublicState(after, {
-    ...context("guryongtu", gamePlayers, "p2"),
-    viewerId: "p2"
+  const secondView = guryongtuModule.getPublicState(after, {
+    ...context("guryongtu", gamePlayers, secondId, secondId),
+    viewerId: secondId
   }) as any;
 
-  assert(p1View.pendingChoices.p1.tile === 7, "구룡투: 본인 선택 타일이 본인에게 보이지 않습니다.");
-  assert(p2View.pendingChoices.p1.selected === true, "구룡투: 상대 선택 완료 여부가 보이지 않습니다.");
-  assert(p2View.pendingChoices.p1.tile === null, "구룡투: 상대에게 비공개 선택 타일이 노출됩니다.");
+  assert(firstView.pendingChoices[firstId].tile === 7, "구룡투: 본인 선택 타일이 본인에게 보이지 않습니다.");
+  assert(secondView.pendingChoices[firstId].selected === true, "구룡투: 상대 선택 완료 여부가 보이지 않습니다.");
+  assert(secondView.pendingChoices[firstId].color !== null, "구룡투: 상대가 선택한 색상이 즉시 보이지 않습니다.");
+  assert(secondView.pendingChoices[firstId].tile === null, "구룡투: 상대에게 비공개 선택 타일이 노출됩니다.");
+  assert((after as any).activePlayerId === secondId, "구룡투: 선공 제출 후 후공 차례로 넘어가지 않았습니다.");
 
   after = guryongtuModule.applyAction(
     after,
     { type: "guryongtu/select-tile", payload: { tile: 8 } },
-    context("guryongtu", gamePlayers, "p2")
+    context("guryongtu", gamePlayers, secondId, secondId)
   ).state;
-  const p1AfterRoundView = guryongtuModule.getPublicState(after, {
-    ...context("guryongtu", gamePlayers, "p1", "p2"),
-    viewerId: "p1"
+  const firstAfterRoundView = guryongtuModule.getPublicState(after, {
+    ...context("guryongtu", gamePlayers, firstId, (after as any).activePlayerId),
+    viewerId: firstId
   }) as any;
 
-  assert(p1AfterRoundView.playedStacks.p2[0].color !== null, "구룡투: 상대가 낸 색상 스택이 보이지 않습니다.");
-  assert(p1AfterRoundView.playedStacks.p2[0].tile === null, "구룡투: 라운드 중 상대 스택 숫자가 노출됩니다.");
-  assert(p1AfterRoundView.rounds[0].plays.p2.tile === null, "구룡투: 라운드 기록에서 상대 숫자가 노출됩니다.");
+  assert(firstAfterRoundView.playedStacks[secondId][0].color !== null, "구룡투: 상대가 낸 색상 스택이 보이지 않습니다.");
+  assert(firstAfterRoundView.playedStacks[secondId][0].tile === null, "구룡투: 라운드 중 상대 스택 숫자가 노출됩니다.");
+  assert(firstAfterRoundView.rounds[0].plays[secondId].tile === null, "구룡투: 라운드 기록에서 상대 숫자가 노출됩니다.");
 
-  const p1Tiles = [1, 2, 3, 4, 5, 6, 8, 9];
-  const p2Tiles = [1, 2, 3, 4, 5, 6, 7, 9];
-  for (let index = 0; index < p1Tiles.length && (after as any).phase !== "complete"; index += 1) {
+  const plans = new Map<string, number[]>([
+    [firstId, [1, 2, 3, 4, 5, 6, 8, 9]],
+    [secondId, [1, 2, 3, 4, 5, 6, 7, 9]]
+  ]);
+  for (let index = 0; index < 20 && (after as any).phase !== "complete"; index += 1) {
+    const activeId = (after as any).activePlayerId as string;
+    const used = ((after as any).usedTiles?.[activeId] ?? []) as number[];
+    const tile = plans.get(activeId)?.find((candidate) => !used.includes(candidate)) ?? 1;
     after = guryongtuModule.applyAction(
       after,
-      { type: "guryongtu/select-tile", payload: { tile: p1Tiles[index] } },
-      context("guryongtu", gamePlayers, "p1")
-    ).state;
-    if ((after as any).phase === "complete") break;
-    after = guryongtuModule.applyAction(
-      after,
-      { type: "guryongtu/select-tile", payload: { tile: p2Tiles[index] } },
-      context("guryongtu", gamePlayers, "p2")
+      { type: "guryongtu/select-tile", payload: { tile } },
+      context("guryongtu", gamePlayers, activeId, activeId)
     ).state;
   }
 
   assert((after as any).phase === "complete", "구룡투: 테스트 대결이 종료되지 않았습니다.");
 
   const p1FinalView = guryongtuModule.getPublicState(after, {
-    ...context("guryongtu", gamePlayers, "p1", "p2"),
-    viewerId: "p1"
+    ...context("guryongtu", gamePlayers, firstId, null),
+    viewerId: firstId
   }) as any;
   assert(
-    p1FinalView.playedStacks.p2.length > 0 && p1FinalView.playedStacks.p2.every((play: any) => typeof play.tile === "number"),
+    p1FinalView.playedStacks[secondId].length > 0 && p1FinalView.playedStacks[secondId].every((play: any) => typeof play.tile === "number"),
     "구룡투: 게임 종료 후 상대 스택 숫자가 전체 공개되지 않습니다."
   );
   assert(
-    p1FinalView.rounds.every((round: any) => typeof round.plays.p2.tile === "number"),
+    p1FinalView.rounds.every((round: any) => typeof round.plays[secondId].tile === "number"),
     "구룡투: 게임 종료 후 라운드 비교 숫자가 공개되지 않습니다."
   );
 

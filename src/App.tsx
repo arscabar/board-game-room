@@ -344,7 +344,7 @@ function blockedReason({
   if (paused) return "게임이 잠시 멈춰 있습니다. 방장이 재개하면 이어서 진행됩니다.";
   if (gameId === "hangman-board-game" && phase === "setup") return "준비 단계입니다. 각자 비밀 단어를 입력하세요.";
   if (gameId === "hangman-board-game" && phase === "round-complete") return "라운드가 끝났습니다. 다음 라운드를 시작하세요.";
-  if (gameId === "guryongtu" && phase === "selecting") return "각자 비공개 타일을 제출할 수 있습니다. 둘 다 제출되면 동시에 공개됩니다.";
+  if (gameId === "guryongtu" && phase === "selecting") return "선공이 먼저 타일을 내고, 후공은 공개된 색상만 보고 응수합니다.";
   if (gameId === "ghosts" && phase === "setup") return "각자 좋은 유령 4개와 나쁜 유령 4개의 위치를 비공개로 제출하세요.";
   if (gameId === "davinci-code-plus" && isMyTurn && (phase === "draw" || phase === "guessing")) {
     return "다빈치 코드는 타일 뽑기/추측이 필수입니다. 이 단계에서 직접 턴 종료는 막혀 있습니다.";
@@ -1366,9 +1366,8 @@ function PlayPanel({
   const canClaimTimeout = usesTurnTimer && timerExpired && !isMyTurn && Boolean(activePlayer);
   const latestMove = room.gameState.moveLog.at(-1);
   const hangmanOpenPhase = selectedGame?.id === "hangman-board-game" && (phase === "setup" || phase === "round-complete");
-  const simultaneousChoicePhase = selectedGame?.id === "guryongtu" && phase === "selecting";
   const setupOpenPhase = selectedGame?.id === "ghosts" && phase === "setup";
-  const moduleDisabled = paused || (!isMyTurn && !hangmanOpenPhase && !simultaneousChoicePhase && !setupOpenPhase);
+  const moduleDisabled = paused || (!isMyTurn && !hangmanOpenPhase && !setupOpenPhase);
 
   useEffect(() => {
     if (!usesTurnTimer || isFinished || paused || !room.gameState.turnDeadlineAt) {
