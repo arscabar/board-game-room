@@ -9143,3 +9143,479 @@ textarea:focus-visible {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* First screen redesign: room list first, host controls docked, compact tabletop feel. */
+:root {
+  --lobby-canvas: #100c08;
+  --lobby-wood: #21160f;
+  --lobby-wood-2: #2b1d14;
+  --lobby-wood-3: #382719;
+  --lobby-felt: #123d2e;
+  --lobby-felt-2: #0c2b21;
+  --lobby-text: #f3e7cb;
+  --lobby-muted: #bca77d;
+  --lobby-dim: #7f6b4b;
+  --lobby-line: rgba(218, 176, 100, 0.24);
+  --lobby-line-strong: rgba(238, 198, 122, 0.42);
+  --lobby-green: #0f6f47;
+  --lobby-green-2: #0b5138;
+  --lobby-radius: 8px;
+}
+
+.app-shell.is-home {
+  min-height: 100svh;
+  padding: clamp(8px, 1.7vw, 22px) !important;
+  color: var(--lobby-text);
+  background:
+    linear-gradient(90deg, rgba(255, 225, 170, 0.028) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(255, 225, 170, 0.018) 1px, transparent 1px),
+    radial-gradient(circle at 30% -10%, rgba(34, 105, 75, 0.24), transparent 34%),
+    linear-gradient(180deg, #181009, var(--lobby-canvas) 46%, #0b0705);
+  background-size: 48px 48px, 48px 48px, auto, auto;
+}
+
+.app-shell.is-home .topbar {
+  width: min(100%, 1180px);
+  max-width: 1180px;
+  min-height: 50px;
+  margin: 0 auto 10px !important;
+  padding: 8px 10px !important;
+  border: 1px solid var(--lobby-line) !important;
+  border-radius: var(--lobby-radius) !important;
+  background:
+    linear-gradient(90deg, rgba(18, 61, 46, 0.32), transparent 48%),
+    rgba(30, 20, 13, 0.92) !important;
+  box-shadow: none !important;
+}
+
+.app-shell.is-home .brand-mark {
+  width: 34px;
+  height: 34px;
+  border-radius: 7px;
+  background: var(--lobby-felt-2);
+}
+
+.app-shell.is-home .topbar h1 {
+  font-size: 0.96rem !important;
+  font-weight: 850;
+}
+
+.app-shell.is-home .topbar p {
+  margin-top: 1px;
+  color: var(--lobby-muted) !important;
+  font-size: 0.76rem !important;
+}
+
+.app-shell.is-home main {
+  width: min(100%, 1180px);
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+.home-console.home-lounge {
+  width: 100%;
+  min-height: calc(100svh - 86px);
+  display: block;
+  border: 0 !important;
+  background: transparent !important;
+}
+
+.home-stage {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 292px;
+  gap: 10px;
+  align-items: start;
+}
+
+.home-lounge .home-room-board,
+.home-host-dock {
+  border: 1px solid var(--lobby-line) !important;
+  border-radius: var(--lobby-radius) !important;
+  background:
+    repeating-linear-gradient(90deg, rgba(255, 220, 155, 0.022) 0 1px, transparent 1px 64px),
+    linear-gradient(180deg, rgba(255, 229, 175, 0.035), transparent 120px),
+    var(--lobby-wood) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 237, 196, 0.055),
+    0 14px 28px rgba(0, 0, 0, 0.14) !important;
+}
+
+.home-lounge .home-room-board {
+  min-height: clamp(300px, 48svh, 470px);
+  overflow: hidden;
+}
+
+.home-lounge .room-browser-heading {
+  min-height: 58px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 11px 13px;
+  border-bottom: 1px solid var(--lobby-line) !important;
+  background:
+    linear-gradient(90deg, rgba(18, 61, 46, 0.64), rgba(18, 61, 46, 0.16) 54%, transparent),
+    rgba(14, 10, 7, 0.72) !important;
+}
+
+.home-lounge .room-browser-title {
+  min-width: 0;
+}
+
+.home-lounge .room-browser-title .eyebrow,
+.home-host-dock .eyebrow {
+  color: var(--lobby-dim) !important;
+  font-size: 0.68rem !important;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+}
+
+.home-lounge .room-browser-title h2,
+.home-dock-head h3 {
+  margin: 2px 0 0;
+  color: var(--lobby-text) !important;
+  font-size: 1.02rem !important;
+  line-height: 1.15;
+}
+
+.home-lounge .room-browser-title span:last-child,
+.home-dock-head p {
+  display: block;
+  margin-top: 3px;
+  color: var(--lobby-muted) !important;
+  font-size: 0.76rem !important;
+  line-height: 1.35;
+}
+
+.home-lounge .room-browser-meta {
+  min-width: 74px;
+  min-height: 34px;
+  display: grid;
+  grid-template-columns: 16px auto;
+  grid-template-rows: auto auto;
+  column-gap: 7px;
+  align-items: center;
+  justify-content: end;
+  color: var(--lobby-muted);
+  text-align: right;
+}
+
+.home-lounge .room-browser-meta svg {
+  grid-row: 1 / 3;
+  color: var(--lobby-dim);
+}
+
+.home-lounge .room-browser-meta strong {
+  color: var(--lobby-text);
+  font-family: "SF Mono", "Cascadia Mono", Consolas, monospace;
+  font-size: 0.92rem;
+  line-height: 1;
+}
+
+.home-lounge .room-browser-meta span {
+  color: var(--lobby-dim) !important;
+  font-size: 0.66rem;
+  line-height: 1;
+}
+
+.home-lounge .room-table-head {
+  min-height: 32px;
+  grid-template-columns: minmax(190px, 1.35fr) 74px minmax(110px, 0.75fr) 82px 70px;
+  padding: 0 11px;
+  border-bottom: 1px solid var(--lobby-line) !important;
+  color: var(--lobby-dim) !important;
+  background: rgba(9, 7, 5, 0.74) !important;
+  font-size: 0.67rem;
+  font-weight: 850;
+}
+
+.home-lounge .room-list {
+  gap: 0;
+  border: 0;
+  background:
+    repeating-linear-gradient(0deg, rgba(255, 231, 190, 0.018) 0 1px, transparent 1px 42px),
+    rgba(7, 6, 4, 0.42);
+}
+
+.home-lounge .room-card {
+  min-height: 48px !important;
+  grid-template-columns: minmax(190px, 1.35fr) 74px minmax(110px, 0.75fr) 82px 70px;
+  gap: 0;
+  padding: 0 11px !important;
+  border: 0 !important;
+  border-bottom: 1px solid rgba(218, 176, 100, 0.16) !important;
+  border-radius: 0 !important;
+  background: rgba(18, 13, 9, 0.76) !important;
+  box-shadow: none !important;
+}
+
+.home-lounge .room-card:hover {
+  background:
+    linear-gradient(90deg, rgba(18, 61, 46, 0.32), transparent 55%),
+    rgba(24, 17, 11, 0.9) !important;
+}
+
+.home-lounge .room-owner-chip,
+.home-lounge .room-count-chip,
+.home-lounge .room-state-chip,
+.home-lounge .room-card-game,
+.home-lounge .room-card-meta span {
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: transparent !important;
+  box-shadow: none;
+}
+
+.home-lounge .room-owner-chip {
+  color: var(--lobby-text) !important;
+  font-size: 0.86rem;
+  font-weight: 850;
+}
+
+.home-lounge .room-card-meta span,
+.home-lounge .room-card-game,
+.home-lounge .room-state-chip {
+  color: var(--lobby-muted) !important;
+  font-size: 0.74rem;
+}
+
+.home-lounge .room-count-chip {
+  justify-self: start;
+  color: #d9c79d !important;
+  font-family: "SF Mono", "Cascadia Mono", Consolas, monospace;
+  font-size: 0.82rem;
+  font-weight: 850;
+}
+
+.home-lounge .room-state-chip.lobby {
+  color: #91d9ad !important;
+}
+
+.home-lounge .room-state-chip.playing {
+  color: #e2b56d !important;
+}
+
+.home-lounge .room-card > .board-sdk-button {
+  width: 58px;
+  min-height: 30px !important;
+  justify-self: end;
+  border-color: rgba(122, 188, 149, 0.42) !important;
+  border-radius: 6px !important;
+  background: var(--lobby-green-2) !important;
+  font-size: 0.74rem !important;
+}
+
+.home-lounge .room-card > .board-sdk-button:disabled {
+  border-color: rgba(124, 104, 72, 0.24) !important;
+  background: rgba(20, 14, 10, 0.78) !important;
+}
+
+.home-host-dock {
+  position: sticky;
+  top: 0;
+  display: grid;
+  gap: 10px;
+  margin-top: 0 !important;
+  padding: 12px;
+}
+
+.home-dock-head {
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--lobby-line);
+}
+
+.home-name-field {
+  display: grid;
+  gap: 6px;
+  color: var(--lobby-muted) !important;
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.home-name-field input {
+  width: 100%;
+  min-height: 42px !important;
+  border: 1px solid var(--lobby-line-strong) !important;
+  border-radius: 7px !important;
+  padding: 0 11px;
+  color: var(--lobby-text) !important;
+  background:
+    linear-gradient(180deg, rgba(0, 0, 0, 0.36), rgba(0, 0, 0, 0.18)),
+    #0d0906 !important;
+}
+
+.home-dock-create,
+.home-dock-create .board-sdk-button,
+.home-host-dock .saved-room-button {
+  width: 100%;
+}
+
+.home-host-dock .board-sdk-button {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 40px !important;
+  border-radius: 7px !important;
+  box-shadow: none !important;
+}
+
+.home-dock-create .primary-button {
+  min-height: 46px !important;
+  border-color: rgba(118, 199, 151, 0.56) !important;
+  background:
+    linear-gradient(180deg, var(--lobby-green), var(--lobby-green-2)) !important;
+  color: #f6f1dc !important;
+  font-size: 0.9rem !important;
+}
+
+.home-dock-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 7px;
+}
+
+.home-dock-actions .board-sdk-button,
+.home-host-dock .saved-room-button {
+  border-color: rgba(218, 176, 100, 0.28) !important;
+  background: rgba(17, 11, 7, 0.72) !important;
+  color: var(--lobby-text) !important;
+}
+
+.home-lounge > .notice {
+  margin: 10px 0 0;
+}
+
+.home-lounge .room-list-placeholder {
+  min-height: 236px !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  border-bottom: 1px solid rgba(218, 176, 100, 0.16) !important;
+  background:
+    linear-gradient(90deg, rgba(18, 61, 46, 0.2), transparent 54%),
+    rgba(13, 10, 7, 0.72) !important;
+}
+
+.home-lounge .compact-empty-room {
+  display: grid !important;
+  grid-template-columns: 148px minmax(0, 1fr) !important;
+  gap: 22px;
+  align-items: center;
+  justify-content: start;
+  justify-items: start;
+  padding: 24px !important;
+}
+
+.home-lounge .compact-empty-room h3 {
+  margin: 0;
+  color: var(--lobby-text) !important;
+  font-size: 1rem !important;
+}
+
+.home-lounge .compact-empty-room p {
+  max-width: 34ch;
+  margin-top: 4px;
+  color: var(--lobby-muted) !important;
+  font-size: 0.78rem !important;
+  line-height: 1.45;
+  word-break: keep-all;
+}
+
+.home-lounge .empty-table-scene {
+  width: 126px;
+  height: 84px;
+  border-radius: 12px;
+  border-color: rgba(218, 176, 100, 0.26);
+  background:
+    radial-gradient(circle at 50% 50%, rgba(218, 176, 100, 0.08), transparent 45%),
+    linear-gradient(145deg, var(--lobby-felt), var(--lobby-felt-2));
+}
+
+@media (max-width: 900px) {
+  .home-stage {
+    grid-template-columns: 1fr;
+  }
+
+  .home-host-dock {
+    position: static;
+  }
+}
+
+@media (max-width: 620px) {
+  .app-shell.is-home {
+    padding: 6px !important;
+  }
+
+  .app-shell.is-home .topbar {
+    margin-bottom: 8px !important;
+  }
+
+  .home-console.home-lounge {
+    min-height: 0;
+  }
+
+  .home-lounge .home-room-board {
+    min-height: 318px;
+  }
+
+  .home-lounge .room-browser-heading {
+    min-height: 56px;
+    padding: 10px;
+  }
+
+  .home-lounge .room-table-head {
+    display: none;
+  }
+
+  .home-lounge .room-card {
+    min-height: 86px !important;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "title count"
+      "game state"
+      "action action";
+    row-gap: 7px;
+    column-gap: 10px;
+    align-items: center;
+    padding: 12px !important;
+  }
+
+  .home-lounge .room-card-main {
+    grid-area: title;
+  }
+
+  .home-lounge .room-count-chip {
+    grid-area: count;
+    justify-self: end;
+  }
+
+  .home-lounge .room-card-game {
+    grid-area: game;
+  }
+
+  .home-lounge .room-state-chip {
+    grid-area: state;
+    justify-self: end;
+  }
+
+  .home-lounge .room-card > .board-sdk-button {
+    grid-area: action;
+    width: 100%;
+  }
+
+  .home-lounge .compact-empty-room {
+    min-height: 220px !important;
+    grid-template-columns: 1fr !important;
+    gap: 15px;
+    padding: 22px 14px !important;
+  }
+
+  .home-host-dock {
+    padding: 11px;
+  }
+
+  .home-host-dock .board-sdk-button {
+    min-height: 44px !important;
+  }
+}

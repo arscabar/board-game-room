@@ -700,138 +700,148 @@ function HomeView({
   const savedRoom = lastRoomCode ? rooms.find((openRoom) => openRoom.code === lastRoomCode) ?? null : null;
 
   return (
-    <section className="home-console" aria-labelledby="home-title">
-      <div className="home-toolbar" aria-label="로비 조작">
-        <div className="home-toolbar-title">
-          <span className="eyebrow">로비</span>
-          <h2 id="home-title">방 목록</h2>
+    <section className="home-console home-lounge" aria-labelledby="home-title">
+      <div className="home-stage">
+        <div className="home-room-board">
+          <div className="room-browser-heading">
+            <div className="room-browser-title">
+              <span className="eyebrow">로비</span>
+              <h2 id="home-title">방 목록</h2>
+              <span>입장 후 게임 선택</span>
+            </div>
+            <div className="room-browser-meta" aria-label="열린 방 수">
+              <Users size={15} aria-hidden="true" />
+              <strong>{rooms.length}</strong>
+              <span>열림</span>
+            </div>
+          </div>
+
+          {roomsLoading ? (
+            <div className="room-list-placeholder" role="status">
+              방 목록을 확인하고 있습니다.
+            </div>
+          ) : hasRooms ? (
+            <div className="room-table" aria-label="입장 가능한 방">
+              <div className="room-table-head" aria-hidden="true">
+                <span>방</span>
+                <span>인원</span>
+                <span>게임</span>
+                <span>상태</span>
+                <span />
+              </div>
+              <div className="room-list">
+                {rooms.map((openRoom) => {
+                  const canResume = lastRoomCode === openRoom.code;
+                  const canUseRoom = openRoom.canJoin || canResume;
+                  const roomOwnerLabel = openRoom.hostName ? `${openRoom.hostName}의 방` : "이름 없는 방";
+                  return (
+                    <article className={`room-card ${openRoom.canJoin ? "" : "is-locked"}`} key={openRoom.code}>
+                      <div className="room-card-main">
+                        <div className="room-card-title">
+                          <span className="room-owner-chip">
+                            {roomOwnerLabel}
+                          </span>
+                        </div>
+                        <div className="room-card-meta">
+                          <span>
+                            {formatTime(openRoom.createdAt)}
+                          </span>
+                        </div>
+                      </div>
+                      <span className="room-count-chip">
+                        {openRoom.playerCount}/{openRoom.maxPlayers}
+                      </span>
+                      <p className="room-card-game">
+                        {openRoom.selectedGameTitle ?? "선택 전"}
+                      </p>
+                      <span className={`room-state-chip ${openRoom.status}`}>
+                        {openRoom.status === "playing" ? "게임 중" : openRoom.canJoin ? "입장 가능" : "만석"}
+                      </span>
+                      <BoardButton
+                        tone={openRoom.canJoin || canResume ? "primary" : "secondary"}
+                        type="button"
+                        disabled={disabled || !name.trim() || !canUseRoom}
+                        onClick={canResume ? onResumeSavedRoom : () => onJoinListedRoom(openRoom.code)}
+                      >
+                        {canResume ? "복귀" : openRoom.canJoin ? "입장" : "대기"}
+                      </BoardButton>
+                    </article>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            <div className="room-list-placeholder compact-empty-room">
+              <div className="empty-table-scene" aria-hidden="true">
+                <span className="empty-seat top" />
+                <span className="empty-seat right" />
+                <span className="empty-seat bottom" />
+                <span className="empty-seat left" />
+                <span className="empty-table-center">0</span>
+              </div>
+              <div>
+                <h3>테이블이 없습니다</h3>
+                <p>방을 만들면 여기에 바로 표시됩니다.</p>
+              </div>
+            </div>
+          )}
         </div>
 
-        <label className="home-inline-name" htmlFor="player-name">
-          <span>이름</span>
-          <input
-            id="player-name"
-            value={name}
-            maxLength={16}
-            onChange={(event) => onNameChange(event.target.value)}
-          />
-        </label>
+        <aside className="home-host-dock" aria-label="방 만들기">
+          <div className="home-dock-head">
+            <span className="eyebrow">만들기</span>
+            <h3>새 테이블</h3>
+            <p>이름만 정하고 바로 시작합니다.</p>
+          </div>
 
-        <div className="home-toolbar-actions">
-          <BoardButton
-            type="button"
-            onClick={onRefreshRooms}
-            disabled={roomsLoading}
-            aria-label="방 목록 새로고침"
-            title="방 목록 새로고침"
-          >
-            갱신
-          </BoardButton>
-          <BoardButton
-            type="button"
-            onClick={onResetLocalIdentity}
-            aria-label="새 손님으로 시작"
-            title="새 손님으로 시작"
-          >
-            초기화
-          </BoardButton>
-          {savedRoom ? (
-            <BoardButton className="saved-room-button" type="button" onClick={onResumeSavedRoom} disabled={disabled}>
-              복귀
-            </BoardButton>
-          ) : null}
-          <form className="home-create-form" onSubmit={onCreateRoom}>
+          <label className="home-name-field" htmlFor="player-name">
+            <span>플레이어 이름</span>
+            <input
+              id="player-name"
+              value={name}
+              maxLength={16}
+              onChange={(event) => onNameChange(event.target.value)}
+            />
+          </label>
+
+          <form className="home-create-form home-dock-create" onSubmit={onCreateRoom}>
             <BoardButton tone="primary" type="submit" disabled={disabled || !name.trim()}>
+              <Dice5 size={16} aria-hidden="true" />
               방 만들기
             </BoardButton>
           </form>
-        </div>
+
+          {savedRoom ? (
+            <BoardButton className="saved-room-button" type="button" onClick={onResumeSavedRoom} disabled={disabled}>
+              <DoorOpen size={15} aria-hidden="true" />
+              이전 방 복귀
+            </BoardButton>
+          ) : null}
+
+          <div className="home-dock-actions">
+            <BoardButton
+              type="button"
+              onClick={onRefreshRooms}
+              disabled={roomsLoading}
+              aria-label="방 목록 새로고침"
+              title="방 목록 새로고침"
+            >
+              <RefreshCw size={15} aria-hidden="true" />
+              갱신
+            </BoardButton>
+            <BoardButton
+              type="button"
+              onClick={onResetLocalIdentity}
+              aria-label="새 손님으로 시작"
+              title="새 손님으로 시작"
+            >
+              초기화
+            </BoardButton>
+          </div>
+        </aside>
       </div>
 
       {notice ? <p className="notice" role="alert">{notice}</p> : null}
-
-      <div className="home-room-board">
-        <div className="room-browser-heading">
-          <div>
-            <strong>테이블</strong>
-            <span>방에 들어간 뒤 인원에 맞는 게임을 고릅니다.</span>
-          </div>
-          <div className="room-browser-meta" aria-label="열린 방 수">
-            <strong>{rooms.length}</strong>
-            <span>open</span>
-          </div>
-        </div>
-
-        {roomsLoading ? (
-          <div className="room-list-placeholder" role="status">
-            방 목록을 확인하고 있습니다.
-          </div>
-        ) : hasRooms ? (
-          <div className="room-table" aria-label="입장 가능한 방">
-            <div className="room-table-head" aria-hidden="true">
-              <span>방</span>
-              <span>인원</span>
-              <span>게임</span>
-              <span>상태</span>
-              <span />
-            </div>
-            <div className="room-list">
-              {rooms.map((openRoom) => {
-                const canResume = lastRoomCode === openRoom.code;
-                const canUseRoom = openRoom.canJoin || canResume;
-                const roomOwnerLabel = openRoom.hostName ? `${openRoom.hostName}의 방` : "이름 없는 방";
-                return (
-                  <article className={`room-card ${openRoom.canJoin ? "" : "is-locked"}`} key={openRoom.code}>
-                    <div className="room-card-main">
-                      <div className="room-card-title">
-                        <span className="room-owner-chip">
-                          {roomOwnerLabel}
-                        </span>
-                      </div>
-                      <div className="room-card-meta">
-                        <span>
-                          {formatTime(openRoom.createdAt)}
-                        </span>
-                      </div>
-                    </div>
-                    <span className="room-count-chip">
-                      {openRoom.playerCount}/{openRoom.maxPlayers}
-                    </span>
-                    <p className="room-card-game">
-                      {openRoom.selectedGameTitle ?? "선택 전"}
-                    </p>
-                    <span className={`room-state-chip ${openRoom.status}`}>
-                      {openRoom.status === "playing" ? "게임 중" : openRoom.canJoin ? "입장 가능" : "만석"}
-                    </span>
-                    <BoardButton
-                      tone={openRoom.canJoin || canResume ? "primary" : "secondary"}
-                      type="button"
-                      disabled={disabled || !name.trim() || !canUseRoom}
-                      onClick={canResume ? onResumeSavedRoom : () => onJoinListedRoom(openRoom.code)}
-                    >
-                      {canResume ? "복귀" : openRoom.canJoin ? "입장" : "대기"}
-                    </BoardButton>
-                  </article>
-                );
-              })}
-            </div>
-          </div>
-        ) : (
-          <div className="room-list-placeholder compact-empty-room">
-            <div className="empty-table-scene" aria-hidden="true">
-              <span className="empty-seat top" />
-              <span className="empty-seat right" />
-              <span className="empty-seat bottom" />
-              <span className="empty-seat left" />
-              <span className="empty-table-center">0</span>
-            </div>
-            <div>
-              <h3>열린 방 없음</h3>
-              <p>방을 만들면 이 목록에 바로 표시되고, 다른 플레이어가 바로 입장할 수 있습니다.</p>
-            </div>
-          </div>
-        )}
-      </div>
     </section>
   );
 }
