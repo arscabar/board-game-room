@@ -915,18 +915,18 @@
   }
 
   .yacht-throw-tray {
-    min-height: 268px;
+    min-height: 232px;
     border-width: 4px;
   }
 
   .yacht-throw-tray .yacht-die-button {
-    width: 44px;
-    height: 44px;
+    width: 38px;
+    height: 38px;
   }
 
   .yacht-throw-tray .yacht-die-face {
-    width: 34px;
-    padding: 5px;
+    width: 30px;
+    padding: 4px;
   }
 
   .yacht-keep-slots {
@@ -934,12 +934,32 @@
   }
 
   .yacht-dock-slot {
-    min-height: 44px;
+    min-height: 36px;
   }
 
   .yacht-dock-slot .yacht-die-face {
-    width: 34px;
-    padding: 5px;
+    width: 30px;
+    padding: 4px;
+  }
+
+  .yacht-score-choice-list {
+    gap: 6px;
+  }
+
+  .yacht-score-choice {
+    min-height: 42px;
+    gap: 6px;
+    padding: 7px 8px;
+  }
+
+  .yacht-score-choice-label {
+    font-size: 0.82rem;
+  }
+
+  .yacht-score-choice-value {
+    min-width: 34px;
+    min-height: 30px;
+    font-size: 0.92rem;
   }
 
   .yacht-scoreboard-head {

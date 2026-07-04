@@ -44,12 +44,12 @@ const scoreSheetLabels: Record<CategoryId, string> = {
   fours: "4",
   fives: "5",
   sixes: "6",
-  choice: "C",
-  fourKind: "4K",
-  fullHouse: "FH",
-  smallStraight: "SS",
-  largeStraight: "LS",
-  yacht: "Y"
+  choice: "초",
+  fourKind: "포",
+  fullHouse: "풀",
+  smallStraight: "스",
+  largeStraight: "라",
+  yacht: "요"
 };
 
 const DIE_TRAY_POSITIONS = [

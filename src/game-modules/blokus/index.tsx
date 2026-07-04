@@ -64,6 +64,10 @@ const BOARD_SIZE = 20;
 const PLAYER_COLORS = ["#2364aa", "#e0a11a", "#d94f45", "#258a5b"];
 const COLOR_NAMES = ["파랑", "노랑", "빨강", "초록"];
 
+function pieceDisplayName(piece: BlokusPiece) {
+  return `${piece.cells.length}칸 조각`;
+}
+
 const CORNERS_BY_PLAYER_COUNT: Record<number, Point[]> = {
   2: [
     { x: 0, y: 0 },
@@ -633,7 +637,7 @@ export const module: GameModule = {
       const winnerIds = finishGame(nextState);
       return {
         state: nextState,
-        log: `${actingName} ${piece.name} 배치. 블로커스 종료`,
+        log: `${actingName} ${pieceDisplayName(piece)} 배치. 블로커스 종료`,
         activePlayerId: null,
         phase: nextState.phase,
         message: nextState.message,
@@ -643,10 +647,10 @@ export const module: GameModule = {
 
     const nextPlayer = nextState.players.find((item) => item.id === turn.activeColorId);
     nextState.activeColorId = turn.activeColorId ?? null;
-    nextState.message = `${actingName}님이 ${piece.name} 블록을 놓았습니다. ${nextPlayer ? controllerName(nextPlayer) : "다음 색상"} 차례입니다.`;
+    nextState.message = `${actingName}님이 ${pieceDisplayName(piece)}을 놓았습니다. ${nextPlayer ? controllerName(nextPlayer) : "다음 색상"} 차례입니다.`;
     return {
       state: nextState,
-      log: `${actingName} ${piece.name} 배치`,
+      log: `${actingName} ${pieceDisplayName(piece)} 배치`,
       activePlayerId: turn.activePlayerId,
       turnNumber: turn.turnNumber,
       roundNumber: turn.roundNumber,
@@ -1310,7 +1314,7 @@ export function Component({
                     onClick={() => setSelectedPieceId(piece.id)}
                   >
                     <PieceMini piece={piece} color={currentBlokusPlayer?.color ?? "#64748b"} />
-                    <span>{piece.name}</span>
+                    <span>{pieceDisplayName(piece)}</span>
                   </button>
                 );
               })}

@@ -5,6 +5,8 @@ data/
 .local-host/
 qa-screenshots/
 reports/
+artifacts/
+.codex-remote-attachments/
 *.log
 .server.*.log
 .web.*.log

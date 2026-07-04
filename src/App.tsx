@@ -4,6 +4,8 @@ import {
   Brain,
   CheckCircle2,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   CircleDot,
   Clock3,
   Crown,
@@ -154,6 +156,14 @@ const gameKindIcons: Record<GameDefinition["table"]["kind"], LucideIcon> = {
 function GameKindIcon({ game, size = 17 }: { game: GameDefinition; size?: number }) {
   const Icon = gameKindIcons[game.visual?.iconKind ?? game.table.kind] ?? Gamepad2;
   return <Icon size={size} aria-hidden="true" />;
+}
+
+function gameCoverSrc(game: GameDefinition) {
+  return `/board-assets/game-covers/${game.id}.svg`;
+}
+
+function GameCoverImage({ game, className = "" }: { game: GameDefinition; className?: string }) {
+  return <img className={`game-cover-image ${className}`} src={gameCoverSrc(game)} alt={`${game.title} 대표 이미지`} draggable={false} />;
 }
 
 function foldIconFor(title: string) {
@@ -628,8 +638,8 @@ function App() {
           <img src="/brand/brand-mark.svg" alt="" />
         </div>
         <div>
-          <h1>Board Game Room</h1>
-          <p>웹에서 즐기는 보드게임</p>
+          <h1>웹에서 즐기는 보드게임</h1>
+          <p>방을 고르고 함께 플레이하세요</p>
         </div>
       </header>
 
@@ -780,8 +790,8 @@ function HomeView({
                 <span className="empty-table-center">0</span>
               </div>
               <div>
-                <h3>테이블이 없습니다</h3>
-                <p>방을 만들면 여기에 바로 표시됩니다.</p>
+                <h3>열린 방이 없습니다</h3>
+                <p>방을 만들면 다른 플레이어가 목록에서 바로 들어옵니다.</p>
               </div>
             </div>
           )}
@@ -800,6 +810,7 @@ function HomeView({
 
           <div className="home-command-actions">
             <BoardButton
+              className="utility-button"
               type="button"
               onClick={onRefreshRooms}
               disabled={roomsLoading}
@@ -807,21 +818,23 @@ function HomeView({
               title="방 목록 새로고침"
             >
               <RefreshCw size={15} aria-hidden="true" />
-              갱신
+              <span className="button-label">갱신</span>
             </BoardButton>
             {savedRoom ? (
-              <BoardButton className="saved-room-button" type="button" onClick={onResumeSavedRoom} disabled={disabled}>
+              <BoardButton className="saved-room-button utility-button" type="button" onClick={onResumeSavedRoom} disabled={disabled}>
                 <DoorOpen size={15} aria-hidden="true" />
-                복귀
+                <span className="button-label">복귀</span>
               </BoardButton>
             ) : null}
             <BoardButton
+              className="utility-button"
               type="button"
               onClick={onResetLocalIdentity}
               aria-label="새 손님으로 시작"
               title="새 손님으로 시작"
             >
-              초기화
+              <Trash2 size={15} aria-hidden="true" />
+              <span className="button-label">초기화</span>
             </BoardButton>
             <BoardButton tone="primary" type="submit" disabled={disabled || !name.trim()}>
               <Dice5 size={16} aria-hidden="true" />
@@ -1161,7 +1174,6 @@ function RoomView({
           />
         )}
 
-        <GameDetailPanel game={selectedGame} playerCount={playerCount} />
       </div>
     </section>
   );
@@ -1219,13 +1231,46 @@ function LobbyPanel({
   const eligibleGames = games.filter((game) => canPlayGame(game, playerCount));
   const usesTurnTimer = gameUsesTurnTimer(selectedGame?.id);
   const turnTimerMs = room.gameState.turnTimerMs ?? 120_000;
+  const selectedIndex = games.findIndex((game) => game.id === room.selectedGameId);
+  const firstEligibleIndex = games.findIndex((game) => canPlayGame(game, playerCount));
+  const fallbackPreviewIndex = selectedIndex >= 0 ? selectedIndex : firstEligibleIndex >= 0 ? firstEligibleIndex : 0;
+  const [previewIndex, setPreviewIndex] = useState(fallbackPreviewIndex);
+  const previewGame = games[previewIndex] ?? games[0];
+  const previewAvailable = canPlayGame(previewGame, playerCount);
+  const previewSelected = room.selectedGameId === previewGame.id;
+  const canSelectPreview = isHost && previewAvailable && !previewSelected;
+  const featureActionDisabled = previewSelected ? !canStart : !canSelectPreview;
+  const featureActionLabel = previewSelected ? (canStart ? "게임 시작" : "선택됨") : previewAvailable ? "이 게임 선택" : "인원 부족";
+
+  useEffect(() => {
+    if (selectedIndex >= 0) {
+      setPreviewIndex(selectedIndex);
+      return;
+    }
+
+    if (firstEligibleIndex >= 0) {
+      setPreviewIndex(firstEligibleIndex);
+    }
+  }, [firstEligibleIndex, selectedIndex]);
+
+  function movePreview(offset: number) {
+    setPreviewIndex((current) => (current + offset + games.length) % games.length);
+  }
+
+  function previewOrSelectGame(game: GameDefinition, index: number) {
+    const available = canPlayGame(game, playerCount);
+    setPreviewIndex(index);
+    if (isHost && available) {
+      onSelectGame(game.id);
+    }
+  }
 
   return (
     <section className="work-panel lobby-panel" aria-labelledby="lobby-title">
       <div className="panel-header lobby-panel-header">
         <div>
           <h2 id="lobby-title">게임 선택</h2>
-          <p>{playerCount}명으로 가능한 게임 {eligibleGames.length}개</p>
+          <p>{playerCount}명 · 선택 가능 {eligibleGames.length}개</p>
         </div>
         <div className="lobby-panel-actions">
           {usesTurnTimer ? (
@@ -1247,39 +1292,84 @@ function LobbyPanel({
               </select>
             </label>
           ) : null}
-          <BoardButton tone="primary" type="button" onClick={onStartGame} disabled={!canStart}>
-            시작
+        </div>
+      </div>
+
+      <div className="game-carousel" style={{ "--game-accent": previewGame.accent } as CSSProperties}>
+        <div className="game-carousel-topline">
+          <span>{previewAvailable ? "선택 가능" : gameAvailabilityLabel(previewGame, playerCount)}</span>
+          <strong>{previewIndex + 1}/{games.length}</strong>
+        </div>
+        <div className="game-carousel-stage">
+          <BoardIconButton
+            className="game-carousel-arrow"
+            type="button"
+            onClick={() => movePreview(-1)}
+            aria-label="이전 게임"
+            title="이전 게임"
+          >
+            <ChevronLeft size={18} />
+          </BoardIconButton>
+          <article className={`game-feature-card ${previewAvailable ? "" : "is-unavailable"} ${previewSelected ? "selected" : ""}`}>
+            <div className="game-feature-media">
+              <GameCoverImage game={previewGame} />
+            </div>
+            <div className="game-feature-copy">
+              <div>
+                <h3>{previewGame.title}</h3>
+              </div>
+              <div className="game-feature-badges">
+                <span>{formatAllowedPlayers(previewGame)}</span>
+                <span>{previewSelected ? "선택됨" : previewAvailable ? "선택 가능" : gameAvailabilityLabel(previewGame, playerCount)}</span>
+              </div>
+            </div>
+          </article>
+          <BoardIconButton
+            className="game-carousel-arrow"
+            type="button"
+            onClick={() => movePreview(1)}
+            aria-label="다음 게임"
+            title="다음 게임"
+          >
+            <ChevronRight size={18} />
+          </BoardIconButton>
+        </div>
+        <div className="game-feature-actions">
+          <BoardButton
+            tone="primary"
+            type="button"
+            onClick={previewSelected ? onStartGame : () => onSelectGame(previewGame.id)}
+            disabled={featureActionDisabled}
+          >
+            {featureActionLabel}
           </BoardButton>
         </div>
       </div>
 
-      <div className="game-list-head" aria-hidden="true">
-        <span>게임</span>
-        <span>인원</span>
-        <span>상태</span>
-      </div>
-      <div className="game-list">
-        {games.map((game) => {
+      <div className="game-filmstrip" aria-label="게임 빠른 선택">
+        {games.map((game, index) => {
           const available = canPlayGame(game, playerCount);
           const selected = room.selectedGameId === game.id;
+          const previewed = previewGame.id === game.id;
           return (
             <button
-              className={`game-row ${selected ? "selected" : ""} ${available ? "" : "is-unavailable"}`}
+              className={`game-token ${selected ? "selected" : ""} ${previewed ? "previewed" : ""} ${available ? "" : "is-unavailable"}`}
               key={game.id}
               type="button"
-              onClick={() => onSelectGame(game.id)}
-              disabled={!available || !isHost}
+              onClick={() => previewOrSelectGame(game, index)}
               aria-pressed={selected}
               aria-current={selected ? "true" : undefined}
               aria-label={`${game.title}, ${formatAllowedPlayers(game)}, ${gameAvailabilityLabel(game, playerCount)}`}
+              aria-disabled={!available || !isHost}
               style={{ "--game-accent": game.accent } as CSSProperties}
             >
-              <span className="game-row-marker" aria-hidden="true" />
-              <span className="game-row-copy">
-                <strong>{game.title}</strong>
+              <span className="game-token-icon">
+                <GameKindIcon game={game} size={16} />
               </span>
-              <span className="game-row-players">{formatAllowedPlayers(game)}</span>
-              <span className="game-row-state">{available ? "가능" : `${playerCount}명 불가`}</span>
+              <span className="game-token-copy">
+                <strong>{game.title}</strong>
+                <small>{formatAllowedPlayers(game)}</small>
+              </span>
             </button>
           );
         })}
@@ -1337,35 +1427,10 @@ function PlayPanel({
   const canAdvanceTurn =
     !paused && !isFinished && ((isMyTurn && !turnEndRestriction) || (!isMyTurn && isHost && timerExpired && Boolean(activePlayer)));
   const canClaimTimeout = usesTurnTimer && timerExpired && !isMyTurn && Boolean(activePlayer);
-  const winnerLabel = winnerNames.length > 0 ? winnerNames.join(", ") : isFinished ? "무승부 또는 종료" : null;
-  const message = runtimeMessage(room);
   const latestMove = room.gameState.moveLog.at(-1);
-  const guideTitle = isFinished
-    ? "게임이 끝났습니다"
-    : paused
-      ? "일시정지 중입니다"
-      : isMyTurn
-      ? "내 차례입니다"
-      : selectedGame?.id === "hangman-board-game" && (phase === "setup" || phase === "round-complete")
-        ? phase === "round-complete"
-          ? "라운드가 끝났습니다"
-          : "준비 단계입니다"
-        : "차례를 기다리는 중입니다";
-  const guideReason = blockedReason({
-    currentPlayer,
-    activePlayer,
-    isMyTurn,
-    winnerLabel,
-    phase,
-    gameId: selectedGame?.id,
-    paused
-  });
-  const guideObjective = objectiveFor(selectedGame?.id, phase, isFinished);
-  const guideAction = actionHintFor(selectedGame?.id, phase);
   const hangmanOpenPhase = selectedGame?.id === "hangman-board-game" && (phase === "setup" || phase === "round-complete");
   const simultaneousChoicePhase = selectedGame?.id === "guryongtu" && phase === "selecting";
   const setupOpenPhase = selectedGame?.id === "ghosts" && phase === "setup";
-  const guideTone = isFinished ? "complete" : paused ? "paused" : isMyTurn || hangmanOpenPhase || simultaneousChoicePhase || setupOpenPhase ? "active" : "waiting";
   const moduleDisabled = paused || (!isMyTurn && !hangmanOpenPhase && !simultaneousChoicePhase && !setupOpenPhase);
 
   useEffect(() => {
@@ -1375,13 +1440,6 @@ function PlayPanel({
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(timer);
   }, [isFinished, paused, room.gameState.turnDeadlineAt, usesTurnTimer]);
-
-  async function recordAction(event: FormEvent) {
-    event.preventDefault();
-    if (!action.trim()) return;
-    await emitWithAck<RoomSnapshot>("room:record-action", { code: room.code, action });
-    setAction("");
-  }
 
   async function advanceTurn() {
     const response = await emitWithAck<RoomSnapshot>("room:advance-turn", { code: room.code });
@@ -1436,7 +1494,7 @@ function PlayPanel({
           {usesTurnTimer ? (
             <div className={`play-timer-chip ${timerExpired ? "expired" : ""} ${timerUrgent ? "urgent" : ""}`} aria-label="턴 타이머">
               {timerExpired ? <TimerOff size={16} aria-hidden="true" /> : <Clock3 size={16} aria-hidden="true" />}
-              <span>{paused ? "PAUSE" : formatTimer(remainingMs)}</span>
+              <span>{paused ? "일시정지" : formatTimer(remainingMs)}</span>
             </div>
           ) : null}
           {isHost ? (
@@ -1462,37 +1520,6 @@ function PlayPanel({
           ) : null}
         </div>
       </div>
-
-      <div className={`turn-guide ${guideTone}`} role="status" aria-live="polite">
-        <div className="turn-guide-main">
-          <span className="turn-guide-icon" aria-hidden="true">
-            <CheckCircle2 size={18} />
-          </span>
-          <div>
-            <strong>{guideTitle}</strong>
-            <p>{guideAction}</p>
-          </div>
-        </div>
-        <div className="turn-guide-coach" aria-label="이번 턴 안내">
-          <span>
-            <Target size={13} aria-hidden="true" />
-            <strong>목표</strong>
-            <small>{guideObjective}</small>
-          </span>
-          <span>
-            <ListChecks size={13} aria-hidden="true" />
-            <strong>가능</strong>
-            <small>{guideAction}</small>
-          </span>
-          <span>
-            <ShieldQuestion size={13} aria-hidden="true" />
-            <strong>주의</strong>
-            <small>{guideReason}</small>
-          </span>
-        </div>
-      </div>
-
-      {message ? <p className="game-message-strip">{message}</p> : null}
 
       <div className="player-turn-strip" aria-label="플레이어 차례와 상태">
         {room.players.map((player) => {
@@ -1536,49 +1563,11 @@ function PlayPanel({
         <BoardPreview game={selectedGame} activePlayer={activePlayer} />
       )}
 
-      <form className="action-form" onSubmit={recordAction}>
-        <label htmlFor="action-log">공개 행동 기록</label>
-        <div>
-          <input
-            id="action-log"
-            value={action}
-            maxLength={120}
-            placeholder="모두에게 보이는 메모입니다"
-            onChange={(event) => setAction(event.target.value)}
-          />
-          <BoardIconButton tone="primary" type="submit" aria-label="행동 기록 추가" title="행동 기록 추가">
-            <Send size={18} />
-          </BoardIconButton>
-        </div>
-      </form>
-
-      <div className="turn-actions">
+      <div className="turn-actions compact-turn-actions">
         <BoardButton tone="primary" type="button" onClick={advanceTurn} disabled={!canAdvanceTurn} title={turnEndRestriction || undefined}>
           {isMyTurn ? "턴 종료" : "강제 턴 넘김"}
         </BoardButton>
-        <span>
-          {paused
-            ? "일시정지 중입니다."
-            : turnEndRestriction && isMyTurn
-              ? turnEndRestriction
-              : isMyTurn
-                ? "내 차례입니다."
-                : "현재 차례를 기다리는 중입니다."}
-        </span>
-      </div>
-
-      <div className="move-log" aria-label="진행 기록">
-        {room.gameState.moveLog.length === 0 ? (
-          <p className="helper-text">아직 기록된 행동이 없습니다.</p>
-        ) : (
-          room.gameState.moveLog.map((entry) => (
-            <div className="log-row" key={entry.id}>
-              <time>{formatTime(entry.time)}</time>
-              <strong>{entry.playerName}</strong>
-              <span>{entry.action}</span>
-            </div>
-          ))
-        )}
+        {action ? <span className="play-error-line">{action}</span> : null}
       </div>
     </section>
   );
@@ -1742,7 +1731,7 @@ function DavinciMiniRack() {
     <div className="davinci-mini-rack">
       {["hidden", "white", "black", "hidden", "joker"].map((kind, index) => (
         <span key={`${kind}-${index}`} className={kind}>
-          {kind === "hidden" ? "?" : kind === "joker" ? "J" : index + 1}
+          {kind === "hidden" ? "?" : kind === "joker" ? "★" : index + 1}
         </span>
       ))}
     </div>
@@ -1778,22 +1767,40 @@ function BlokusMiniBoard() {
 
 function YachtMiniBoard() {
   const dice = [6, 4, 4, 2, 1];
-  const rows = ["Aces", "Full", "Yacht"];
+  const rows = [
+    { label: "1", value: "3" },
+    { label: "풀", value: "25" },
+    { label: "요트", value: "-" }
+  ];
+  const pipsByValue: Record<number, number[]> = {
+    1: [4],
+    2: [0, 8],
+    3: [0, 4, 8],
+    4: [0, 2, 6, 8],
+    5: [0, 2, 4, 6, 8],
+    6: [0, 2, 3, 5, 6, 8]
+  };
 
   return (
     <div className="yacht-mini-board">
       <div className="yacht-mini-dice">
         {dice.map((value, index) => (
-          <span key={`${value}-${index}`} className={index === 1 || index === 2 ? "held" : ""}>
-            {value}
+          <span
+            key={`${value}-${index}`}
+            className={`yacht-mini-die ${index === 1 || index === 2 ? "held" : ""}`}
+            aria-label={`${value} 눈`}
+          >
+            {Array.from({ length: 9 }, (_, pipIndex) => (
+              <i className={pipsByValue[value]?.includes(pipIndex) ? "on" : ""} key={pipIndex} aria-hidden="true" />
+            ))}
           </span>
         ))}
       </div>
       <div className="yacht-mini-score">
-        {rows.map((row, index) => (
-          <span key={row}>
-            <strong>{row}</strong>
-            <i>{index === 0 ? "3" : index === 1 ? "25" : "-"}</i>
+        {rows.map((row) => (
+          <span key={row.label}>
+            <strong>{row.label}</strong>
+            <i>{row.value}</i>
           </span>
         ))}
       </div>
@@ -1818,16 +1825,14 @@ function YinshMiniBoard() {
 function HangmanMiniBoard() {
   return (
     <div className="hangman-mini-board">
-      <div className="hangman-mini-word">
-        {["B", "O", "A", "_", "D"].map((letter, index) => (
-          <span key={`${letter}-${index}`}>{letter}</span>
+      <div className="hangman-mini-word" aria-label="비밀 단어 타일">
+        {Array.from({ length: 5 }, (_, index) => (
+          <span key={index} className={index === 3 ? "blank" : "filled"} aria-hidden="true" />
         ))}
       </div>
-      <div className="hangman-mini-alpha">
-        {["A", "E", "M", "R", "S", "T"].map((letter, index) => (
-          <span key={letter} className={index < 3 ? "used" : ""}>
-            {letter}
-          </span>
+      <div className="hangman-mini-alpha" aria-label="글자 타일">
+        {Array.from({ length: 6 }, (_, index) => (
+          <span key={index} className={index < 3 ? "used" : ""} aria-hidden="true" />
         ))}
       </div>
       <div className="hangman-mini-track">
@@ -1853,9 +1858,9 @@ function DiceBoard() {
 
 function WordBoard() {
   return (
-    <div className="word-board">
-      {["G", "?", "M", "?", "?"].map((letter, index) => (
-        <span key={`${letter}-${index}`}>{letter}</span>
+    <div className="word-board" aria-label="단어 타일 미리보기">
+      {Array.from({ length: 5 }, (_, index) => (
+        <span key={index} className={index % 2 === 0 ? "filled" : "hidden"} aria-hidden="true" />
       ))}
     </div>
   );
@@ -1924,13 +1929,13 @@ function GameDetailPanel({ game, playerCount }: { game: GameDefinition | null; p
           <summary>
             <span>
               <BookOpen size={15} aria-hidden="true" />
-              선택한 게임 설명
+              게임 정보
             </span>
             <ChevronDown className="fold-chevron" size={16} aria-hidden="true" />
           </summary>
           <div className="fold-content">
-            <div className="detail-board-preview">
-              <BoardPreview game={game} activePlayer={null} previewLabel="미리보기" />
+            <div className="detail-board-preview detail-cover-preview">
+              <GameCoverImage game={game} className="detail-cover-image" />
             </div>
             <div className="detail-visual-cues" aria-label="시각적 조작 힌트">
               <span>

@@ -621,7 +621,7 @@ export const module: GameModule = {
 };
 
 function tileText(tile: PublicVinciTile, ownerId: string, viewerId: string | null) {
-  if (tile.kind === "joker" && (tile.revealed || ownerId === viewerId)) return "J";
+  if (tile.kind === "joker" && (tile.revealed || ownerId === viewerId)) return "★";
   if (tile.value !== null) return String(tile.value);
   if (ownerId === viewerId) return "?";
   return "?";
