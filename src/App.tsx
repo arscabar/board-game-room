@@ -700,7 +700,7 @@ function HomeView({
   const savedRoom = lastRoomCode ? rooms.find((openRoom) => openRoom.code === lastRoomCode) ?? null : null;
 
   return (
-    <section className="home-console home-lounge" aria-labelledby="home-title">
+    <section className="home-console home-lounge home-gallery" aria-labelledby="home-title">
       <div className="home-stage">
         <div className="home-room-board">
           <div className="room-browser-heading">
@@ -787,15 +787,9 @@ function HomeView({
           )}
         </div>
 
-        <aside className="home-host-dock" aria-label="방 만들기">
-          <div className="home-dock-head">
-            <span className="eyebrow">만들기</span>
-            <h3>새 테이블</h3>
-            <p>이름만 정하고 바로 시작합니다.</p>
-          </div>
-
+        <form className="home-command-bar" aria-label="방 만들기" onSubmit={onCreateRoom}>
           <label className="home-name-field" htmlFor="player-name">
-            <span>플레이어 이름</span>
+            <span>플레이어</span>
             <input
               id="player-name"
               value={name}
@@ -804,21 +798,7 @@ function HomeView({
             />
           </label>
 
-          <form className="home-create-form home-dock-create" onSubmit={onCreateRoom}>
-            <BoardButton tone="primary" type="submit" disabled={disabled || !name.trim()}>
-              <Dice5 size={16} aria-hidden="true" />
-              방 만들기
-            </BoardButton>
-          </form>
-
-          {savedRoom ? (
-            <BoardButton className="saved-room-button" type="button" onClick={onResumeSavedRoom} disabled={disabled}>
-              <DoorOpen size={15} aria-hidden="true" />
-              이전 방 복귀
-            </BoardButton>
-          ) : null}
-
-          <div className="home-dock-actions">
+          <div className="home-command-actions">
             <BoardButton
               type="button"
               onClick={onRefreshRooms}
@@ -829,6 +809,12 @@ function HomeView({
               <RefreshCw size={15} aria-hidden="true" />
               갱신
             </BoardButton>
+            {savedRoom ? (
+              <BoardButton className="saved-room-button" type="button" onClick={onResumeSavedRoom} disabled={disabled}>
+                <DoorOpen size={15} aria-hidden="true" />
+                복귀
+              </BoardButton>
+            ) : null}
             <BoardButton
               type="button"
               onClick={onResetLocalIdentity}
@@ -837,8 +823,12 @@ function HomeView({
             >
               초기화
             </BoardButton>
+            <BoardButton tone="primary" type="submit" disabled={disabled || !name.trim()}>
+              <Dice5 size={16} aria-hidden="true" />
+              방 만들기
+            </BoardButton>
           </div>
-        </aside>
+        </form>
       </div>
 
       {notice ? <p className="notice" role="alert">{notice}</p> : null}
