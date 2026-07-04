@@ -190,3 +190,234 @@
 .guryongtu-round-row {
   animation: tile-flip var(--motion-flip);
 }
+
+/* Privacy pass: played tiles become a side-growing color stack. */
+.guryongtu-player-panel {
+  display: grid !important;
+  gap: 7px !important;
+}
+
+.guryongtu-player-panel h3,
+.guryongtu-player-panel p {
+  margin: 0 !important;
+}
+
+.guryongtu-play-stack {
+  min-width: 0;
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 5px;
+  overflow-x: auto;
+  padding: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 7px;
+  background:
+    linear-gradient(180deg, rgba(0, 0, 0, 0.28), rgba(255, 255, 255, 0.035)),
+    rgba(0, 0, 0, 0.18);
+  scrollbar-width: thin;
+}
+
+.guryongtu-stack-token {
+  position: relative;
+  flex: 0 0 38px;
+  width: 38px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.34),
+    inset 0 -4px 0 rgba(0, 0, 0, 0.24),
+    0 5px 8px rgba(0, 0, 0, 0.28);
+}
+
+.guryongtu-stack-token small {
+  position: absolute;
+  top: 3px;
+  left: 4px;
+  color: inherit;
+  font-family: "SF Mono", "Cascadia Mono", Consolas, monospace;
+  font-size: 0.54rem;
+  font-weight: 900;
+  opacity: 0.68;
+}
+
+.guryongtu-stack-token strong {
+  color: inherit;
+  font-size: 1rem;
+  font-weight: 950;
+  line-height: 1;
+}
+
+.guryongtu-stack-token.white,
+.guryongtu-tile-button.white {
+  color: #121416 !important;
+  background:
+    radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.96), transparent 25%),
+    linear-gradient(180deg, #fffdf4, #d8d2c4 66%, #a79f90) !important;
+}
+
+.guryongtu-stack-token.black,
+.guryongtu-tile-button.black {
+  color: #f8f5eb !important;
+  background:
+    radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.18), transparent 25%),
+    linear-gradient(180deg, #292b2e, #08090a 68%, #000) !important;
+}
+
+.guryongtu-stack-token.hidden strong {
+  font-size: 0.88rem;
+}
+
+.guryongtu-stack-token.known {
+  outline: 1px solid rgba(216, 32, 39, 0.5);
+  outline-offset: -4px;
+}
+
+.guryongtu-stack-token.won {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.34),
+    inset 0 -4px 0 rgba(0, 0, 0, 0.24),
+    0 0 0 2px rgba(216, 32, 39, 0.34),
+    0 5px 8px rgba(0, 0, 0, 0.28);
+}
+
+.guryongtu-stack-token.lost {
+  opacity: 0.78;
+}
+
+.guryongtu-stack-token.tied {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.34),
+    inset 0 -4px 0 rgba(0, 0, 0, 0.24),
+    0 0 0 2px rgba(213, 173, 98, 0.24),
+    0 5px 8px rgba(0, 0, 0, 0.28);
+}
+
+.guryongtu-module.is-complete .guryongtu-stack-token.known {
+  animation: guryongtu-stack-reveal 520ms cubic-bezier(0.2, 0.76, 0.24, 1.08) both;
+  animation-delay: calc(var(--reveal-index, 0) * 34ms);
+  transform-origin: center center;
+}
+
+.guryongtu-module.is-complete .guryongtu-stack-token.known strong {
+  animation: guryongtu-number-pop 520ms cubic-bezier(0.2, 0.76, 0.24, 1.08) both;
+  animation-delay: calc(var(--reveal-index, 0) * 34ms);
+}
+
+.guryongtu-stack-empty,
+.guryongtu-hidden-note {
+  color: rgba(248, 245, 235, 0.62);
+  font-size: 0.76rem;
+  font-weight: 780;
+}
+
+.guryongtu-tile-button.used {
+  filter: grayscale(0.4) brightness(0.62);
+}
+
+.guryongtu-round-row {
+  gap: 6px !important;
+}
+
+.guryongtu-round-plays {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.guryongtu-round-play {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 7px;
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.guryongtu-round-play b {
+  min-width: 0;
+  overflow: hidden;
+  color: #f8f5eb;
+  font-size: 0.78rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.guryongtu-round-play i {
+  min-width: 30px;
+  min-height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 5px;
+  font-style: normal;
+  font-weight: 950;
+}
+
+.guryongtu-round-play.white i {
+  color: #121416;
+  background: linear-gradient(180deg, #fffdf4, #d8d2c4);
+}
+
+.guryongtu-round-play.black i {
+  color: #f8f5eb;
+  background: linear-gradient(180deg, #292b2e, #08090a);
+}
+
+.guryongtu-round-result {
+  color: rgba(248, 245, 235, 0.78);
+  font-size: 0.8rem;
+  font-weight: 820;
+  line-height: 1.35;
+}
+
+@media (max-width: 520px) {
+  .guryongtu-round-plays {
+    grid-template-columns: 1fr;
+  }
+
+  .guryongtu-stack-token {
+    flex-basis: 34px;
+    width: 34px;
+    height: 44px;
+  }
+}
+
+@keyframes guryongtu-stack-reveal {
+  0% {
+    transform: rotateY(0deg) translateY(0);
+    filter: brightness(0.78) saturate(0.82);
+  }
+  48% {
+    transform: rotateY(88deg) translateY(-3px);
+    filter: brightness(1.12) saturate(1.1);
+  }
+  100% {
+    transform: rotateY(0deg) translateY(0);
+    filter: brightness(1) saturate(1);
+  }
+}
+
+@keyframes guryongtu-number-pop {
+  0%,
+  42% {
+    opacity: 0;
+    transform: scale(0.82);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .guryongtu-module.is-complete .guryongtu-stack-token.known,
+  .guryongtu-module.is-complete .guryongtu-stack-token.known strong {
+    animation: none !important;
+  }
+}

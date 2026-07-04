@@ -5,6 +5,7 @@ import type { PlayerSnapshot } from "../../shared/types";
 const TILES = [1, 2, 3, 4, 5, 6, 7, 8, 9] as const;
 
 type Tile = (typeof TILES)[number];
+type TileColor = "black" | "white";
 
 interface RevealedRound {
   roundNumber: number;
@@ -27,6 +28,19 @@ interface GuryongtuState {
 interface PublicChoice {
   selected: boolean;
   tile: Tile | null;
+  color: TileColor | null;
+}
+
+interface PublicPlayedTile {
+  color: TileColor;
+  tile: Tile | null;
+}
+
+interface PublicRevealedRound {
+  roundNumber: number;
+  plays: Record<string, PublicPlayedTile>;
+  winnerId: string | null;
+  reason: string;
 }
 
 interface GuryongtuPublicState {
@@ -36,8 +50,9 @@ interface GuryongtuPublicState {
   pendingChoices: Record<string, PublicChoice>;
   usedTiles: Record<string, Tile[]>;
   remainingTiles: Record<string, Tile[]>;
+  playedStacks: Record<string, PublicPlayedTile[]>;
   scores: Record<string, number>;
-  rounds: RevealedRound[];
+  rounds: PublicRevealedRound[];
   winnerId: string | null;
 }
 
@@ -110,6 +125,16 @@ function readTile(action: GameAction): Tile | null {
   return raw as Tile;
 }
 
+function tileColor(tile: Tile): TileColor {
+  return tile % 2 === 0 ? "black" : "white";
+}
+
+function tileColorLabel(color: TileColor | null) {
+  if (color === "black") return "흑";
+  if (color === "white") return "백";
+  return "비공개";
+}
+
 function compareTiles(firstTile: Tile, secondTile: Tile) {
   if (firstTile === secondTile) {
     return 0;
@@ -131,6 +156,18 @@ function roundReason(firstTile: Tile, secondTile: Tile, result: number) {
     return "1이 9를 이기는 예외 규칙으로 승부가 났습니다.";
   }
   return "더 높은 숫자가 라운드를 이겼습니다.";
+}
+
+function publicRoundReason(round: RevealedRound) {
+  const values = Object.values(round.tiles);
+  const result = values.length >= 2 ? compareTiles(values[0], values[1]) : 0;
+  if (result === 0) {
+    return "같은 힘이라 무승부입니다.";
+  }
+  if ((values[0] === 1 && values[1] === 9) || (values[0] === 9 && values[1] === 1)) {
+    return "특수 상성으로 승부가 났습니다.";
+  }
+  return "강한 타일이 라운드를 이겼습니다.";
 }
 
 function getPlayerName(players: PlayerSnapshot[], playerId: string | null) {
@@ -180,14 +217,26 @@ function createState(context: Pick<GameContext, "players">): GuryongtuState {
 function publicStateFrom(state: GuryongtuState, viewerId: string | null): GuryongtuPublicState {
   const pendingChoices: Record<string, PublicChoice> = {};
   const remainingTiles: Record<string, Tile[]> = {};
+  const usedTiles: Record<string, Tile[]> = {};
+  const playedStacks: Record<string, PublicPlayedTile[]> = {};
+  const viewerHasSelected = Boolean(viewerId && state.choices[viewerId] !== null);
+  const revealAll = state.phase === "complete";
 
   for (const playerId of state.playerIds) {
     const selectedTile = state.choices[playerId] ?? null;
+    const canSeePendingColor = selectedTile !== null && (viewerId === playerId || viewerHasSelected);
+    const canSeePlayerTiles = revealAll || viewerId === playerId;
     pendingChoices[playerId] = {
       selected: selectedTile !== null,
-      tile: viewerId === playerId ? selectedTile : null
+      tile: canSeePlayerTiles ? selectedTile : null,
+      color: canSeePendingColor ? tileColor(selectedTile) : null
     };
-    remainingTiles[playerId] = TILES.filter((tile) => !(state.usedTiles[playerId] ?? []).includes(tile));
+    usedTiles[playerId] = canSeePlayerTiles ? state.usedTiles[playerId] ?? [] : [];
+    remainingTiles[playerId] = canSeePlayerTiles ? TILES.filter((tile) => !(state.usedTiles[playerId] ?? []).includes(tile)) : [];
+    playedStacks[playerId] = (state.usedTiles[playerId] ?? []).map((tile) => ({
+      color: tileColor(tile),
+      tile: canSeePlayerTiles ? tile : null
+    }));
   }
 
   return {
@@ -195,10 +244,27 @@ function publicStateFrom(state: GuryongtuState, viewerId: string | null): Guryon
     activePlayerId: state.activePlayerId,
     phase: state.phase,
     pendingChoices,
-    usedTiles: state.usedTiles,
+    usedTiles,
     remainingTiles,
+    playedStacks,
     scores: state.scores,
-    rounds: state.rounds,
+    rounds: state.rounds.map((round) => ({
+      roundNumber: round.roundNumber,
+      plays: Object.fromEntries(
+        state.playerIds.map((playerId) => {
+          const tile = round.tiles[playerId];
+          return [
+            playerId,
+            {
+              color: tileColor(tile),
+              tile: revealAll || viewerId === playerId ? tile : null
+            }
+          ];
+        })
+      ) as Record<string, PublicPlayedTile>,
+      winnerId: round.winnerId,
+      reason: publicRoundReason(round)
+    })),
     winnerId: state.winnerId
   };
 }
@@ -297,7 +363,7 @@ export const module: GameModule = {
 
     return {
       state: nextState,
-      log: `${roundNumber}라운드: ${firstTile} 대 ${secondTile}. ${winnerName} 승리`,
+      log: `${roundNumber}라운드 공개 완료. ${roundWinnerId ? `${winnerName} 승리` : "무승부"}`,
       activePlayerId,
       turnNumber: context.turnNumber + 1,
       roundNumber: completion.finished ? roundNumber : roundNumber + 1,
@@ -326,21 +392,49 @@ export function Component({
   const myPendingTile = myId ? state.pendingChoices[myId]?.tile ?? null : null;
   const actionDisabled = disabled || !canChoose;
   const activeName = getPlayerName(players, state.activePlayerId);
+  const moduleClassName = `game-module guryongtu-module ${state.phase === "complete" ? "is-complete" : "is-selecting"}`;
 
   return (
-    <section className="game-module guryongtu-module" style={styles.shell} aria-label="Guryongtu board">
+    <section className={moduleClassName} style={styles.shell} aria-label="Guryongtu board">
       <div className="guryongtu-status" style={styles.statusGrid}>
         {state.playerIds.map((playerId) => {
           const player = players.find((candidate) => candidate.id === playerId);
           const pending = state.pendingChoices[playerId];
           const score = state.scores[playerId] ?? 0;
+          const stack = state.playedStacks[playerId] ?? [];
+          const isMine = playerId === myId;
+          const pendingLabel = pending?.selected
+            ? pending.tile
+              ? `내 선택: ${tileColorLabel(pending.color)} ${pending.tile}`
+              : pending.color
+                ? `${tileColorLabel(pending.color)} 타일 제출`
+                : "선택 완료"
+            : "선택 중";
 
           return (
             <article className="guryongtu-player-panel" style={styles.panel} key={playerId}>
               <h3>{player?.name ?? "플레이어"}</h3>
               <p>승수: {score}</p>
-              <p>{pending?.selected ? (pending.tile ? `내 선택: ${pending.tile}` : "선택 완료") : "선택 중"}</p>
-              <p>사용: {(state.usedTiles[playerId] ?? []).join(", ") || "없음"}</p>
+              <p>{pendingLabel}</p>
+              <div className="guryongtu-play-stack" aria-label={`${player?.name ?? "플레이어"} 제출 타일 스택`}>
+                {stack.length === 0 ? <span className="guryongtu-stack-empty">아직 없음</span> : null}
+                {stack.map((play, index) => (
+                  <span
+                    className={`guryongtu-stack-token ${play.color} ${play.tile ? "known" : "hidden"} ${state.rounds[index]?.winnerId === playerId ? "won" : state.rounds[index]?.winnerId === null ? "tied" : "lost"}`}
+                    key={`${playerId}-${index}-${play.color}`}
+                    title={play.tile ? `${index + 1}라운드 ${play.tile}` : `${index + 1}라운드 ${tileColorLabel(play.color)} 타일`}
+                    style={{ "--reveal-index": index } as CSSProperties}
+                  >
+                    <small>{index + 1}</small>
+                    <strong>{play.tile ?? tileColorLabel(play.color)}</strong>
+                  </span>
+                ))}
+              </div>
+              {!isMine ? (
+                <p className="guryongtu-hidden-note">
+                  {state.phase === "complete" ? "종료 공개 · 숫자 비교 가능" : "상대 숫자는 비공개 · 색상만 기록"}
+                </p>
+              ) : null}
             </article>
           );
         })}
@@ -357,7 +451,7 @@ export function Component({
             const used = myUsedTiles.includes(tile);
             return (
               <button
-                className="guryongtu-tile-button"
+                className={`guryongtu-tile-button ${tileColor(tile)} ${used ? "used" : ""}`}
                 style={styles.tileButton}
                 type="button"
                 key={tile}
@@ -375,13 +469,24 @@ export function Component({
       <div className="guryongtu-history" style={styles.panel}>
         <h3>공개 기록</h3>
         <div style={styles.history}>
-          {state.rounds.length === 0 ? <p>아직 공개된 타일이 없습니다.</p> : null}
+          {state.rounds.length === 0 ? <p>아직 공개된 기록이 없습니다.</p> : null}
           {state.rounds.map((round) => (
             <div className="guryongtu-round-row" key={round.roundNumber}>
-              <strong>{round.roundNumber}라운드</strong>{" "}
-              {state.playerIds.map((playerId) => `${getPlayerName(players, playerId)}: ${round.tiles[playerId]}`).join(" / ")}
-              {" - "}
-              {round.winnerId ? `${getPlayerName(players, round.winnerId)} 승리` : "무승부"}
+              <strong>{round.roundNumber}라운드</strong>
+              <div className="guryongtu-round-plays">
+                {state.playerIds.map((playerId) => {
+                  const play = round.plays[playerId];
+                  return (
+                    <span className={`guryongtu-round-play ${play.color}`} key={playerId}>
+                      <b>{getPlayerName(players, playerId)}</b>
+                      <i>{play.tile ?? tileColorLabel(play.color)}</i>
+                    </span>
+                  );
+                })}
+              </div>
+              <span className="guryongtu-round-result">
+                {round.winnerId ? `${getPlayerName(players, round.winnerId)} 승리` : "무승부"} · {round.reason}
+              </span>
             </div>
           ))}
         </div>
