@@ -10897,6 +10897,138 @@ textarea:focus-visible {
   align-items: center !important;
 }
 
+.room-section.is-lobby .game-card-grid {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.room-section.is-lobby .game-card-tile {
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+  display: grid;
+  grid-template-rows: minmax(108px, 1fr) auto;
+  padding: 0;
+  border: 1px solid rgba(229, 183, 109, 0.24);
+  border-radius: 10px;
+  color: #f7ead0;
+  background:
+    linear-gradient(180deg, rgba(255, 232, 196, 0.045), rgba(5, 4, 3, 0.74)),
+    rgba(11, 8, 6, 0.88);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 242, 214, 0.08),
+    0 12px 22px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  text-align: left;
+}
+
+.room-section.is-lobby .game-card-tile:not(:disabled):hover,
+.room-section.is-lobby .game-card-tile:not(:disabled):focus-visible {
+  border-color: color-mix(in srgb, var(--game-accent) 62%, #f0c779 38%);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--game-accent) 42%, transparent),
+    0 14px 26px rgba(0, 0, 0, 0.26);
+  transform: translateY(-1px);
+}
+
+.room-section.is-lobby .game-card-tile.selected {
+  border-color: color-mix(in srgb, var(--game-accent) 70%, #f4cf88 30%);
+  box-shadow:
+    inset 0 0 0 2px color-mix(in srgb, var(--game-accent) 54%, transparent),
+    0 14px 26px rgba(0, 0, 0, 0.24);
+}
+
+.room-section.is-lobby .game-card-tile.is-unavailable {
+  color: rgba(224, 204, 166, 0.66);
+  border-color: rgba(172, 141, 92, 0.22);
+  cursor: not-allowed;
+}
+
+.room-section.is-lobby .game-card-media {
+  min-width: 0;
+  min-height: 108px;
+  aspect-ratio: 4 / 3;
+  background: #080604;
+}
+
+.room-section.is-lobby .game-card-media .game-cover-image {
+  object-fit: cover !important;
+  object-position: center 30% !important;
+}
+
+.room-section.is-lobby .game-card-tile.is-unavailable .game-cover-image {
+  filter: grayscale(0.72) brightness(0.62);
+  opacity: 0.78;
+}
+
+.room-section.is-lobby .game-card-copy {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+  padding: 9px 10px 10px;
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--game-accent) 16%, transparent), transparent 70%),
+    rgba(8, 6, 4, 0.86);
+}
+
+.room-section.is-lobby .game-card-copy strong,
+.room-section.is-lobby .game-card-copy small {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.room-section.is-lobby .game-card-copy strong {
+  font-size: 0.86rem;
+  font-weight: 860;
+  line-height: 1.15;
+}
+
+.room-section.is-lobby .game-card-copy small {
+  color: rgba(228, 205, 163, 0.72);
+  font-size: 0.7rem;
+  font-weight: 780;
+  line-height: 1.15;
+}
+
+.room-section.is-lobby .game-card-state {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  max-width: calc(100% - 16px);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 7px;
+  border: 1px solid rgba(229, 183, 109, 0.26);
+  border-radius: 999px;
+  color: #f7ead0;
+  background: rgba(5, 4, 3, 0.72);
+  font-size: 0.66rem;
+  font-weight: 840;
+  line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.room-section.is-lobby .game-card-tile.is-unavailable .game-card-state {
+  color: rgba(228, 205, 163, 0.74);
+  border-color: rgba(172, 141, 92, 0.24);
+  background: rgba(5, 4, 3, 0.74);
+}
+
+.room-section.is-lobby .game-selection-actions {
+  display: grid;
+  gap: 8px;
+}
+
+.room-section.is-lobby .game-selection-actions .board-sdk-button {
+  width: 100% !important;
+}
+
 @media (min-width: 1080px) {
   .room-section.is-lobby .game-feature-card {
     grid-template-rows: minmax(330px, 1fr) auto !important;
@@ -10911,6 +11043,40 @@ textarea:focus-visible {
 @media (max-width: 620px) {
   .room-section.is-lobby .game-feature-actions {
     grid-template-columns: minmax(0, 1fr) !important;
+  }
+}
+
+@media (min-width: 720px) {
+  .room-section.is-lobby .game-card-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1080px) {
+  .room-section.is-lobby .game-card-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 420px) {
+  .room-section.is-lobby .game-card-grid {
+    gap: 7px;
+  }
+
+  .room-section.is-lobby .game-card-tile {
+    grid-template-rows: minmax(96px, 1fr) auto;
+  }
+
+  .room-section.is-lobby .game-card-copy {
+    padding: 8px;
+  }
+
+  .room-section.is-lobby .game-card-state {
+    top: 6px;
+    right: 6px;
+    max-width: calc(100% - 12px);
+    padding: 4px 6px;
+    font-size: 0.61rem;
   }
 }
 

@@ -6,6 +6,7 @@ data/
 qa-screenshots/
 reports/
 artifacts/
+exports/
 .codex-remote-attachments/
 *.log
 .server.*.log

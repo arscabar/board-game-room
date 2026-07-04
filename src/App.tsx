@@ -4,8 +4,6 @@ import {
   Brain,
   CheckCircle2,
   ChevronDown,
-  ChevronLeft,
-  ChevronRight,
   CircleDot,
   Clock3,
   Crown,
@@ -159,7 +157,7 @@ function GameKindIcon({ game, size = 17 }: { game: GameDefinition; size?: number
 }
 
 function gameCoverSrc(game: GameDefinition) {
-  return `/board-assets/game-covers/${game.id}.svg`;
+  return `/board-assets/game-covers/${game.id}.png`;
 }
 
 function GameCoverImage({ game, className = "" }: { game: GameDefinition; className?: string }) {
@@ -1231,35 +1229,9 @@ function LobbyPanel({
   const eligibleGames = games.filter((game) => canPlayGame(game, playerCount));
   const usesTurnTimer = gameUsesTurnTimer(selectedGame?.id);
   const turnTimerMs = room.gameState.turnTimerMs ?? 120_000;
-  const selectedIndex = games.findIndex((game) => game.id === room.selectedGameId);
-  const firstEligibleIndex = games.findIndex((game) => canPlayGame(game, playerCount));
-  const fallbackPreviewIndex = selectedIndex >= 0 ? selectedIndex : firstEligibleIndex >= 0 ? firstEligibleIndex : 0;
-  const [previewIndex, setPreviewIndex] = useState(fallbackPreviewIndex);
-  const previewGame = games[previewIndex] ?? games[0];
-  const previewAvailable = canPlayGame(previewGame, playerCount);
-  const previewSelected = room.selectedGameId === previewGame.id;
-  const canSelectPreview = isHost && previewAvailable && !previewSelected;
-  const featureActionDisabled = previewSelected ? !canStart : !canSelectPreview;
-  const featureActionLabel = previewSelected ? (canStart ? "게임 시작" : "선택됨") : previewAvailable ? "이 게임 선택" : "인원 부족";
 
-  useEffect(() => {
-    if (selectedIndex >= 0) {
-      setPreviewIndex(selectedIndex);
-      return;
-    }
-
-    if (firstEligibleIndex >= 0) {
-      setPreviewIndex(firstEligibleIndex);
-    }
-  }, [firstEligibleIndex, selectedIndex]);
-
-  function movePreview(offset: number) {
-    setPreviewIndex((current) => (current + offset + games.length) % games.length);
-  }
-
-  function previewOrSelectGame(game: GameDefinition, index: number) {
+  function selectGame(game: GameDefinition) {
     const available = canPlayGame(game, playerCount);
-    setPreviewIndex(index);
     if (isHost && available) {
       onSelectGame(game.id);
     }
@@ -1295,84 +1267,49 @@ function LobbyPanel({
         </div>
       </div>
 
-      <div className="game-carousel" style={{ "--game-accent": previewGame.accent } as CSSProperties}>
-        <div className="game-carousel-topline">
-          <span>{previewAvailable ? "선택 가능" : gameAvailabilityLabel(previewGame, playerCount)}</span>
-          <strong>{previewIndex + 1}/{games.length}</strong>
-        </div>
-        <div className="game-carousel-stage">
-          <BoardIconButton
-            className="game-carousel-arrow"
-            type="button"
-            onClick={() => movePreview(-1)}
-            aria-label="이전 게임"
-            title="이전 게임"
-          >
-            <ChevronLeft size={18} />
-          </BoardIconButton>
-          <article className={`game-feature-card ${previewAvailable ? "" : "is-unavailable"} ${previewSelected ? "selected" : ""}`}>
-            <div className="game-feature-media">
-              <GameCoverImage game={previewGame} />
-            </div>
-            <div className="game-feature-copy">
-              <div>
-                <h3>{previewGame.title}</h3>
-              </div>
-              <div className="game-feature-badges">
-                <span>{formatAllowedPlayers(previewGame)}</span>
-                <span>{previewSelected ? "선택됨" : previewAvailable ? "선택 가능" : gameAvailabilityLabel(previewGame, playerCount)}</span>
-              </div>
-            </div>
-          </article>
-          <BoardIconButton
-            className="game-carousel-arrow"
-            type="button"
-            onClick={() => movePreview(1)}
-            aria-label="다음 게임"
-            title="다음 게임"
-          >
-            <ChevronRight size={18} />
-          </BoardIconButton>
-        </div>
-        <div className="game-feature-actions">
-          <BoardButton
-            tone="primary"
-            type="button"
-            onClick={previewSelected ? onStartGame : () => onSelectGame(previewGame.id)}
-            disabled={featureActionDisabled}
-          >
-            {featureActionLabel}
-          </BoardButton>
-        </div>
-      </div>
-
-      <div className="game-filmstrip" aria-label="게임 빠른 선택">
-        {games.map((game, index) => {
+      <div className="game-card-grid" aria-label="게임 선택 카드">
+        {games.map((game) => {
           const available = canPlayGame(game, playerCount);
           const selected = room.selectedGameId === game.id;
-          const previewed = previewGame.id === game.id;
           return (
             <button
-              className={`game-token ${selected ? "selected" : ""} ${previewed ? "previewed" : ""} ${available ? "" : "is-unavailable"}`}
+              className={`game-card-tile ${selected ? "selected" : ""} ${available ? "" : "is-unavailable"}`}
               key={game.id}
               type="button"
-              onClick={() => previewOrSelectGame(game, index)}
+              onClick={() => selectGame(game)}
+              disabled={!isHost || !available}
               aria-pressed={selected}
               aria-current={selected ? "true" : undefined}
               aria-label={`${game.title}, ${formatAllowedPlayers(game)}, ${gameAvailabilityLabel(game, playerCount)}`}
-              aria-disabled={!available || !isHost}
               style={{ "--game-accent": game.accent } as CSSProperties}
             >
-              <span className="game-token-icon">
-                <GameKindIcon game={game} size={16} />
+              <span className="game-card-media">
+                <GameCoverImage game={game} />
               </span>
-              <span className="game-token-copy">
+              <span className="game-card-copy">
                 <strong>{game.title}</strong>
                 <small>{formatAllowedPlayers(game)}</small>
+              </span>
+              <span className="game-card-state">
+                {selected ? (
+                  <>
+                    <CheckCircle2 size={14} aria-hidden="true" />
+                    선택됨
+                  </>
+                ) : available ? (
+                  "선택 가능"
+                ) : (
+                  gameAvailabilityLabel(game, playerCount)
+                )}
               </span>
             </button>
           );
         })}
+      </div>
+      <div className="game-selection-actions">
+        <BoardButton tone="primary" type="button" onClick={onStartGame} disabled={!canStart}>
+          {selectedGame ? "게임 시작" : "게임을 선택하세요"}
+        </BoardButton>
       </div>
       {!isHost ? <p className="helper-text">게임 선택과 시작은 방장이 진행합니다.</p> : null}
     </section>
