@@ -1869,9 +1869,29 @@ function GameDetailPanel({ game, playerCount }: { game: GameDefinition | null; p
     return (
       <aside className="detail-panel" aria-label="게임 정보">
         <div className="panel-header">
-          <h2>게임 정보</h2>
+          <div>
+            <h2>테이블 준비</h2>
+            <p>{playerCount}명 입장</p>
+          </div>
         </div>
-        <p className="helper-text">현재 인원에 맞는 게임을 선택하면 세팅과 턴 진행 규칙이 표시됩니다.</p>
+        <div className="detail-empty-state">
+          <strong>게임을 고르면 이곳에 미리보기와 규칙이 고정됩니다.</strong>
+          <p>현재 인원수로 가능한 행만 선택할 수 있고, 시작 전 턴 제한도 여기 흐름에 맞춰 설정됩니다.</p>
+          <div className="table-flow-list" aria-label="테이블 진행 흐름">
+            <span>
+              <Users size={14} aria-hidden="true" />
+              인원 확인
+            </span>
+            <span>
+              <ListChecks size={14} aria-hidden="true" />
+              게임 선택
+            </span>
+            <span>
+              <CheckCircle2 size={14} aria-hidden="true" />
+              시작
+            </span>
+          </div>
+        </div>
       </aside>
     );
   }
