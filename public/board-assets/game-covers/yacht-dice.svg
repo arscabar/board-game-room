@@ -1,72 +1,73 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="960" height="540" viewBox="0 0 960 540" role="img" aria-labelledby="yacht-dice-title yacht-dice-desc">
-  <title id="yacht-dice-title">yacht-dice board game cover</title>
-  <desc id="yacht-dice-desc">A handcrafted tabletop style representative image for the board game.</desc>
+  <title id="yacht-dice-title">yacht-dice tabletop cover</title>
+  <desc id="yacht-dice-desc">A custom tabletop representative image focused on the physical board-game components.</desc>
   <defs>
     <linearGradient id="table" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#321f13"/>
-      <stop offset=".5" stop-color="#1f130c"/>
-      <stop offset="1" stop-color="#0d0805"/>
+      <stop offset="0" stop-color="#4e2f1c"/>
+      <stop offset=".38" stop-color="#24140c"/>
+      <stop offset="1" stop-color="#100906"/>
     </linearGradient>
     <linearGradient id="rail" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#5b3922"/>
-      <stop offset=".52" stop-color="#3d2516"/>
-      <stop offset="1" stop-color="#25160d"/>
+      <stop offset="0" stop-color="#795031"/>
+      <stop offset=".5" stop-color="#4e2f1c"/>
+      <stop offset="1" stop-color="#24140c"/>
     </linearGradient>
     <linearGradient id="felt" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#0c4a37"/>
-      <stop offset="1" stop-color="#06291f"/>
+      <stop offset="0" stop-color="#0b5a42"/>
+      <stop offset="1" stop-color="#073125"/>
     </linearGradient>
-    <radialGradient id="glow" cx="50%" cy="44%" r="62%">
-      <stop offset="0" stop-color="#21a078" stop-opacity=".28"/>
-      <stop offset="1" stop-color="#21a078" stop-opacity="0"/>
+    <radialGradient id="spot" cx="50%" cy="42%" r="70%">
+      <stop offset="0" stop-color="#2f8f83" stop-opacity=".32"/>
+      <stop offset=".64" stop-color="#2f8f83" stop-opacity=".08"/>
+      <stop offset="1" stop-color="#2f8f83" stop-opacity="0"/>
     </radialGradient>
-    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="14" stdDeviation="16" flood-color="#000" flood-opacity=".42"/>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="14" stdDeviation="18" flood-color="#000" flood-opacity=".42"/>
     </filter>
-    <filter id="softShadow" x="-30%" y="-30%" width="160%" height="160%">
-      <feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#000" flood-opacity=".3"/>
+    <filter id="chipShadow" x="-35%" y="-35%" width="170%" height="170%">
+      <feDropShadow dx="0" dy="7" stdDeviation="7" flood-color="#000" flood-opacity=".32"/>
     </filter>
-    <pattern id="grain" width="54" height="54" patternUnits="userSpaceOnUse">
-      <path d="M0 12c18-9 34 9 54 0M0 31c18 7 33-7 54 0M0 48c20-8 34 8 54 0" fill="none" stroke="#ffe1a0" stroke-opacity=".055" stroke-width="2"/>
+    <pattern id="woodgrain" width="90" height="46" patternUnits="userSpaceOnUse">
+      <path d="M0 9c22-10 47 10 90 0M0 25c30 12 59-12 90 0M0 41c24-8 52 9 90 0" fill="none" stroke="#ffe2aa" stroke-opacity=".055" stroke-width="2"/>
     </pattern>
-    <pattern id="feltLines" width="42" height="42" patternUnits="userSpaceOnUse" patternTransform="rotate(22)">
-      <path d="M0 0h42" stroke="#ffffff" stroke-opacity=".045" stroke-width="2"/>
+    <pattern id="feltthread" width="38" height="38" patternUnits="userSpaceOnUse" patternTransform="rotate(25)">
+      <path d="M0 0h38" stroke="#fff" stroke-opacity=".045" stroke-width="2"/>
     </pattern>
   </defs>
-  <rect width="960" height="540" rx="36" fill="url(#table)"/>
-  <rect width="960" height="540" rx="36" fill="url(#grain)"/>
-  <rect x="48" y="42" width="864" height="456" rx="34" fill="url(#rail)" filter="url(#shadow)"/>
-  <rect x="75" y="69" width="810" height="402" rx="26" fill="url(#felt)"/>
-  <rect x="75" y="69" width="810" height="402" rx="26" fill="url(#feltLines)"/>
-  <rect x="75" y="69" width="810" height="402" rx="26" fill="url(#glow)"/>
-  <rect x="93" y="87" width="774" height="366" rx="20" fill="none" stroke="rgba(255,232,185,.32)" stroke-width="2"/>
+  <rect width="960" height="540" rx="34" fill="url(#table)"/>
+  <rect width="960" height="540" rx="34" fill="url(#woodgrain)"/>
+  <rect x="42" y="34" width="876" height="472" rx="38" fill="url(#rail)" filter="url(#shadow)"/>
+  <rect x="70" y="62" width="820" height="416" rx="28" fill="url(#felt)"/>
+  <rect x="70" y="62" width="820" height="416" rx="28" fill="url(#feltthread)"/>
+  <rect x="70" y="62" width="820" height="416" rx="28" fill="url(#spot)"/>
+  <rect x="91" y="83" width="778" height="374" rx="20" fill="none" stroke="#ead0a0" stroke-opacity=".28" stroke-width="2"/>
   
-    <path d="M206 116c80-30 154-18 220 10 76 32 144 22 221-3 46-14 85 6 102 49 20 49 9 150-30 191-48 51-147 32-222 22-74-10-134 25-205 17-64-8-103-50-103-118 0-73 7-129 17-168z" fill="#0a3f2f" stroke="#d9b06a" stroke-opacity=".44" stroke-width="4" filter="url(#softShadow)"/>
-    <g transform="translate(285 164) rotate(-15 37 37)" filter="url(#softShadow)">
-    <rect width="74" height="74" rx="16" fill="#f8efdd"/>
-    <rect x="5" y="5" width="64" height="64" rx="12" fill="none" stroke="#cdbb9d" stroke-width="2"/>
-    <circle cx="22.2" cy="22.2" r="6" fill="#55251f" /><circle cx="51.8" cy="22.2" r="6" fill="#55251f" /><circle cx="37.0" cy="37.0" r="6" fill="#55251f" /><circle cx="22.2" cy="51.8" r="6" fill="#55251f" /><circle cx="51.8" cy="51.8" r="6" fill="#55251f" />
+    <path d="M204 118c82-33 158-18 225 9 75 31 143 22 221-3 45-14 86 8 103 53 20 55 7 151-33 192-48 49-146 32-221 21-76-10-136 25-207 16-66-8-103-51-103-119 0-74 6-129 15-169z" fill="#0a4030" stroke="#e0be79" stroke-opacity=".5" stroke-width="5" filter="url(#chipShadow)"/>
+    <g transform="translate(282 159) rotate(-14 47 47)" filter="url(#chipShadow)">
+    <rect width="94" height="94" rx="16.919999999999998" fill="#f7edd8"/>
+    <rect x="6.580000000000001" y="6.580000000000001" width="80.84" height="80.84" rx="12.22" fill="none" stroke="#ceb990" stroke-width="2"/>
+    <circle cx="26.320000000000004" cy="26.320000000000004" r="7.05" fill="#54241f" /><circle cx="67.67999999999999" cy="26.320000000000004" r="7.05" fill="#54241f" /><circle cx="47" cy="47" r="7.05" fill="#54241f" /><circle cx="26.320000000000004" cy="67.67999999999999" r="7.05" fill="#54241f" /><circle cx="67.67999999999999" cy="67.67999999999999" r="7.05" fill="#54241f" />
   </g>
-    <g transform="translate(410 122) rotate(12 37 37)" filter="url(#softShadow)">
-    <rect width="74" height="74" rx="16" fill="#f8efdd"/>
-    <rect x="5" y="5" width="64" height="64" rx="12" fill="none" stroke="#cdbb9d" stroke-width="2"/>
-    <circle cx="22.2" cy="22.2" r="6" fill="#55251f" /><circle cx="51.8" cy="51.8" r="6" fill="#55251f" />
+    <g transform="translate(413 111) rotate(12 47 47)" filter="url(#chipShadow)">
+    <rect width="94" height="94" rx="16.919999999999998" fill="#f7edd8"/>
+    <rect x="6.580000000000001" y="6.580000000000001" width="80.84" height="80.84" rx="12.22" fill="none" stroke="#ceb990" stroke-width="2"/>
+    <circle cx="26.320000000000004" cy="26.320000000000004" r="7.05" fill="#54241f" /><circle cx="67.67999999999999" cy="67.67999999999999" r="7.05" fill="#54241f" />
   </g>
-    <g transform="translate(535 180) rotate(-8 37 37)" filter="url(#softShadow)">
-    <rect width="74" height="74" rx="16" fill="#f8efdd"/>
-    <rect x="5" y="5" width="64" height="64" rx="12" fill="none" stroke="#cdbb9d" stroke-width="2"/>
-    <circle cx="22.2" cy="18.5" r="6" fill="#55251f" /><circle cx="51.8" cy="18.5" r="6" fill="#55251f" /><circle cx="22.2" cy="37.0" r="6" fill="#55251f" /><circle cx="51.8" cy="37.0" r="6" fill="#55251f" /><circle cx="22.2" cy="55.5" r="6" fill="#55251f" /><circle cx="51.8" cy="55.5" r="6" fill="#55251f" />
+    <g transform="translate(544 178) rotate(-8 47 47)" filter="url(#chipShadow)">
+    <rect width="94" height="94" rx="16.919999999999998" fill="#f7edd8"/>
+    <rect x="6.580000000000001" y="6.580000000000001" width="80.84" height="80.84" rx="12.22" fill="none" stroke="#ceb990" stroke-width="2"/>
+    <circle cx="26.320000000000004" cy="22.56" r="7.05" fill="#54241f" /><circle cx="67.67999999999999" cy="22.56" r="7.05" fill="#54241f" /><circle cx="26.320000000000004" cy="47" r="7.05" fill="#54241f" /><circle cx="67.67999999999999" cy="47" r="7.05" fill="#54241f" /><circle cx="26.320000000000004" cy="71.44" r="7.05" fill="#54241f" /><circle cx="67.67999999999999" cy="71.44" r="7.05" fill="#54241f" />
   </g>
-    <g transform="translate(376 285) rotate(8 37 37)" filter="url(#softShadow)">
-    <rect width="74" height="74" rx="16" fill="#f8efdd"/>
-    <rect x="5" y="5" width="64" height="64" rx="12" fill="none" stroke="#cdbb9d" stroke-width="2"/>
-    <circle cx="22.2" cy="22.2" r="6" fill="#55251f" /><circle cx="51.8" cy="22.2" r="6" fill="#55251f" /><circle cx="22.2" cy="51.8" r="6" fill="#55251f" /><circle cx="51.8" cy="51.8" r="6" fill="#55251f" />
+    <g transform="translate(371 301) rotate(8 47 47)" filter="url(#chipShadow)">
+    <rect width="94" height="94" rx="16.919999999999998" fill="#f7edd8"/>
+    <rect x="6.580000000000001" y="6.580000000000001" width="80.84" height="80.84" rx="12.22" fill="none" stroke="#ceb990" stroke-width="2"/>
+    <circle cx="26.320000000000004" cy="26.320000000000004" r="7.05" fill="#54241f" /><circle cx="67.67999999999999" cy="26.320000000000004" r="7.05" fill="#54241f" /><circle cx="26.320000000000004" cy="67.67999999999999" r="7.05" fill="#54241f" /><circle cx="67.67999999999999" cy="67.67999999999999" r="7.05" fill="#54241f" />
   </g>
-    <g transform="translate(555 304) rotate(-14 37 37)" filter="url(#softShadow)">
-    <rect width="74" height="74" rx="16" fill="#f8efdd"/>
-    <rect x="5" y="5" width="64" height="64" rx="12" fill="none" stroke="#cdbb9d" stroke-width="2"/>
-    <circle cx="37.0" cy="37.0" r="6" fill="#55251f" />
+    <g transform="translate(565 307) rotate(-13 47 47)" filter="url(#chipShadow)">
+    <rect width="94" height="94" rx="16.919999999999998" fill="#f7edd8"/>
+    <rect x="6.580000000000001" y="6.580000000000001" width="80.84" height="80.84" rx="12.22" fill="none" stroke="#ceb990" stroke-width="2"/>
+    <circle cx="47" cy="47" r="7.05" fill="#54241f" />
   </g>
-    <rect x="210" y="410" width="540" height="24" rx="12" fill="#d7b36d" opacity=".32"/>
+    <rect x="220" y="424" width="520" height="23" rx="12" fill="#d7b36d" opacity=".35"/>
   
 </svg>

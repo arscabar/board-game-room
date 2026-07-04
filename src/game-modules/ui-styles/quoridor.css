@@ -216,3 +216,112 @@
     min-height: 34px !important;
   }
 }
+
+/* Docking pass: the maze stays central and wall controls attach as an inspector. */
+.qdr-shell {
+  display: grid !important;
+  grid-template-rows: auto minmax(0, 1fr) !important;
+  gap: 12px !important;
+  padding: 12px !important;
+  border: 1px solid rgba(226, 184, 109, 0.26) !important;
+  border-radius: 12px !important;
+  background:
+    linear-gradient(135deg, rgba(214, 161, 91, 0.2), transparent 32%),
+    linear-gradient(180deg, #3d2415, #120b07) !important;
+}
+
+.qdr-status {
+  border-color: rgba(226, 184, 109, 0.34) !important;
+  border-radius: 10px !important;
+  background:
+    linear-gradient(180deg, rgba(255, 238, 200, 0.96), rgba(225, 190, 132, 0.88)) !important;
+  color: #24170f !important;
+}
+
+.qdr-layout {
+  display: grid !important;
+  grid-template-columns: minmax(430px, 1fr) minmax(282px, 0.54fr) !important;
+  gap: 12px !important;
+  align-items: start !important;
+  overflow: visible !important;
+}
+
+.qdr-board {
+  justify-self: center !important;
+  align-self: start !important;
+  width: min(100%, 640px) !important;
+  max-width: 100% !important;
+  border-width: 12px !important;
+  border-radius: 12px !important;
+}
+
+.qdr-panel {
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 10px !important;
+  align-self: stretch !important;
+  min-width: 0 !important;
+}
+
+.qdr-players,
+.qdr-guidance,
+.qdr-wall-controls {
+  min-width: 0 !important;
+  border: 1px solid rgba(226, 184, 109, 0.28) !important;
+  border-radius: 10px !important;
+  padding: 10px !important;
+  background:
+    linear-gradient(180deg, rgba(255, 238, 200, 0.96), rgba(225, 190, 132, 0.88)) !important;
+  color: #24170f !important;
+}
+
+.qdr-wall-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  max-height: 260px !important;
+  overflow-y: auto !important;
+}
+
+.qdr-wall-grid button {
+  min-width: 0 !important;
+  min-height: 38px !important;
+  font-size: 0.72rem !important;
+}
+
+.qdr-segment {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+}
+
+@media (max-width: 980px) {
+  .qdr-layout {
+    grid-template-columns: 1fr !important;
+  }
+
+  .qdr-panel {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+
+  .qdr-wall-grid {
+    grid-template-columns: repeat(8, minmax(0, 1fr)) !important;
+    max-height: none !important;
+  }
+}
+
+@media (max-width: 680px) {
+  .qdr-shell {
+    padding: 8px !important;
+  }
+
+  .qdr-board {
+    width: min(100%, calc(100vw - 42px)) !important;
+    border-width: 7px !important;
+  }
+
+  .qdr-panel {
+    grid-template-columns: 1fr !important;
+  }
+
+  .qdr-wall-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  }
+}

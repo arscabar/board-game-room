@@ -698,3 +698,219 @@
     width: 100%;
   }
 }
+
+/* Docking pass: make Hangman read as one board with attached controls. */
+.hangman-module {
+  display: grid !important;
+  gap: 12px !important;
+  padding: 12px !important;
+  border: 8px solid #4b2d1b !important;
+  border-radius: 12px !important;
+  color: #f8ecd0 !important;
+  background:
+    linear-gradient(180deg, rgba(255, 230, 180, 0.05), rgba(0, 0, 0, 0.18)),
+    linear-gradient(135deg, #3c2416, #17100b 62%, #0d0906) !important;
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 222, 153, 0.16),
+    inset 0 18px 44px rgba(255, 220, 146, 0.04),
+    0 18px 36px rgba(0, 0, 0, 0.28) !important;
+}
+
+.hangman-board-grid {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 10px !important;
+  align-items: stretch !important;
+}
+
+.hangman-setup-panel,
+.hangman-word-panel,
+.hangman-guess-panel {
+  min-width: 0 !important;
+  border: 1px solid rgba(226, 184, 109, 0.36) !important;
+  border-radius: 10px !important;
+  background:
+    linear-gradient(180deg, rgba(255, 244, 216, 0.95), rgba(227, 202, 156, 0.9)) !important;
+  color: #24170f !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    0 8px 20px rgba(0, 0, 0, 0.14) !important;
+}
+
+.hangman-word-panel {
+  display: grid !important;
+  grid-template-rows: auto auto minmax(76px, auto) auto !important;
+  gap: 7px !important;
+}
+
+.hangman-word-panel h3,
+.hangman-word-panel p,
+.hangman-turn-meta strong,
+.hangman-target-card strong {
+  color: #24170f !important;
+}
+
+.hangman-guess-panel {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) minmax(240px, 0.58fr) !important;
+  grid-template-areas:
+    "meta meta"
+    "console target"
+    "alphabet target"
+    "letter word"
+    "history history" !important;
+  gap: 10px !important;
+  align-items: start !important;
+}
+
+.hangman-turn-meta {
+  grid-area: meta !important;
+}
+
+.hangman-target-card {
+  grid-area: target !important;
+  align-self: stretch !important;
+  grid-template-columns: 1fr !important;
+  margin: 0 !important;
+}
+
+.hangman-console-top {
+  grid-area: console !important;
+  margin: 0 !important;
+}
+
+.hangman-alphabet {
+  grid-area: alphabet !important;
+}
+
+.hangman-letter-guess-form {
+  grid-area: letter !important;
+  margin-top: 0 !important;
+}
+
+.hangman-word-guess-form {
+  grid-area: word !important;
+  margin-top: 0 !important;
+}
+
+.hangman-history-strip {
+  grid-area: history !important;
+  margin-top: 0 !important;
+}
+
+.hangman-toy-board {
+  width: 100% !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  display: grid !important;
+  grid-template-columns: minmax(0, 1.05fr) minmax(150px, 0.75fr) !important;
+  gap: 10px !important;
+  border: 8px solid #5b3821 !important;
+  border-radius: 10px !important;
+  padding: 10px !important;
+  background:
+    linear-gradient(180deg, rgba(255, 236, 189, 0.08), rgba(0, 0, 0, 0.18)),
+    linear-gradient(135deg, #0b6045, #073225) !important;
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 228, 166, 0.16),
+    0 8px 16px rgba(0, 0, 0, 0.18) !important;
+}
+
+.hangman-toy-letters {
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  gap: 6px !important;
+  align-content: center !important;
+  background:
+    linear-gradient(180deg, #20140e, #100b08) !important;
+}
+
+.hangman-toy-figure,
+.hangman-gallows {
+  background:
+    linear-gradient(180deg, #f7efd8, #d8bd86) !important;
+}
+
+.hangman-word-display {
+  justify-content: center !important;
+  gap: 6px !important;
+  padding: 10px !important;
+  background:
+    linear-gradient(180deg, #20140e, #100b08) !important;
+}
+
+.hangman-letter-slot {
+  width: clamp(28px, 6vw, 40px) !important;
+  min-height: clamp(34px, 7vw, 46px) !important;
+  background:
+    linear-gradient(180deg, #fff7de, #d8b76e) !important;
+  color: #24170f !important;
+}
+
+.hangman-alphabet {
+  display: grid !important;
+  grid-template-columns: repeat(13, minmax(0, 1fr)) !important;
+  gap: 6px !important;
+}
+
+.hangman-letter-button {
+  min-width: 0 !important;
+  min-height: 38px !important;
+  border-radius: 7px !important;
+}
+
+.hangman-letter-guess-form,
+.hangman-word-guess-form {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  gap: 8px !important;
+  align-items: end !important;
+}
+
+.hangman-letter-guess-form input,
+.hangman-word-guess-form input {
+  width: 100% !important;
+  min-width: 0 !important;
+}
+
+@media (max-width: 900px) {
+  .hangman-guess-panel {
+    grid-template-columns: 1fr !important;
+    grid-template-areas:
+      "meta"
+      "target"
+      "console"
+      "alphabet"
+      "letter"
+      "word"
+      "history" !important;
+  }
+
+  .hangman-alphabet {
+    grid-template-columns: repeat(7, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 620px) {
+  .hangman-module {
+    padding: 8px !important;
+    border-width: 5px !important;
+  }
+
+  .hangman-board-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .hangman-toy-board {
+    grid-template-columns: 1fr !important;
+    border-width: 5px !important;
+  }
+
+  .hangman-alphabet {
+    grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
+  }
+
+  .hangman-letter-guess-form,
+  .hangman-word-guess-form {
+    grid-template-columns: 1fr !important;
+  }
+}

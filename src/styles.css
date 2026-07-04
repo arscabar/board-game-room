@@ -10913,3 +10913,62 @@ textarea:focus-visible {
     grid-template-columns: minmax(0, 1fr) !important;
   }
 }
+
+/* Board-room correction: bottom game choices are a docked tile rack, not a horizontal scroller. */
+.room-section.is-lobby .game-filmstrip {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr)) !important;
+  gap: 8px !important;
+  overflow: visible !important;
+  padding: 0 !important;
+  scrollbar-width: none !important;
+  scroll-snap-type: none !important;
+}
+
+.room-section.is-lobby .game-filmstrip::-webkit-scrollbar {
+  display: none !important;
+}
+
+.room-section.is-lobby .game-token {
+  width: 100% !important;
+  flex: none !important;
+  min-height: 48px !important;
+  scroll-snap-align: none !important;
+}
+
+.room-section.is-lobby .game-carousel {
+  display: grid !important;
+  grid-template-rows: auto minmax(0, 1fr) auto !important;
+}
+
+.room-section.is-lobby .game-carousel-stage {
+  align-items: stretch !important;
+}
+
+.room-section.is-lobby .game-feature-media {
+  display: grid !important;
+  place-items: center !important;
+}
+
+.room-section.is-lobby .game-cover-image {
+  object-fit: cover !important;
+  object-position: center center !important;
+}
+
+@media (min-width: 1080px) {
+  .room-section.is-lobby .game-filmstrip {
+    grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 760px) {
+  .room-section.is-lobby .game-filmstrip {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .room-section.is-lobby .game-feature-media {
+    aspect-ratio: 16 / 9 !important;
+    min-height: 170px !important;
+    max-height: none !important;
+  }
+}

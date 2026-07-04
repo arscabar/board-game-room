@@ -104,3 +104,136 @@
 .blokus-palette button.selected .blokus-piece-mini {
   transform: translateY(-2px) rotate(-1deg);
 }
+
+/* Docking pass: board centered, controls attached below, no drifting side UI. */
+.blokus-module {
+  display: grid !important;
+  grid-template-rows: auto auto minmax(0, 1fr) !important;
+  gap: 12px !important;
+  padding: 12px !important;
+  color: #f7ead0 !important;
+  background:
+    linear-gradient(135deg, rgba(35, 100, 170, 0.16), transparent 28%),
+    linear-gradient(225deg, rgba(36, 155, 87, 0.12), transparent 30%),
+    linear-gradient(180deg, #332012, #100a06) !important;
+}
+
+.blokus-status,
+.blokus-coach-card {
+  border-color: rgba(226, 184, 109, 0.32) !important;
+  border-radius: 10px !important;
+  background:
+    linear-gradient(180deg, rgba(255, 238, 200, 0.96), rgba(226, 203, 162, 0.9)) !important;
+  color: #24170f !important;
+}
+
+.blokus-layout {
+  display: grid !important;
+  grid-template-columns: minmax(420px, 1fr) minmax(280px, 0.62fr) !important;
+  grid-template-areas: "board controls" !important;
+  gap: 12px !important;
+  align-items: start !important;
+  overflow: visible !important;
+}
+
+.blokus-board {
+  grid-area: board !important;
+  width: min(100%, 620px, calc(100vh - 280px)) !important;
+  min-width: min(100%, 520px) !important;
+  max-width: 100% !important;
+  justify-self: center !important;
+  border-width: 12px !important;
+  border-color: #4e2f1c !important;
+  border-radius: 10px !important;
+  background:
+    linear-gradient(90deg, rgba(69, 86, 104, 0.32) 0 1px, transparent 1px),
+    linear-gradient(0deg, rgba(69, 86, 104, 0.32) 0 1px, transparent 1px),
+    linear-gradient(180deg, #f8f4e7, #dfd3b7) !important;
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 255, 255, 0.66),
+    0 16px 28px rgba(0, 0, 0, 0.28) !important;
+}
+
+.blokus-side {
+  grid-area: controls !important;
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 10px !important;
+  align-self: stretch !important;
+  min-width: 0 !important;
+}
+
+.blokus-controls,
+.blokus-scoreboard,
+.blokus-palette {
+  min-width: 0 !important;
+  border-color: rgba(226, 184, 109, 0.28) !important;
+  border-radius: 10px !important;
+  background:
+    linear-gradient(180deg, rgba(255, 238, 200, 0.96), rgba(226, 203, 162, 0.9)) !important;
+  color: #24170f !important;
+}
+
+.blokus-controls-row {
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+}
+
+.blokus-palette-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  max-height: min(42vh, 360px) !important;
+  overflow-y: auto !important;
+  padding-right: 2px !important;
+}
+
+.blokus-palette button {
+  min-width: 0 !important;
+  min-height: 54px !important;
+}
+
+.blokus-palette button span:last-child {
+  max-width: 100% !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+@media (max-width: 980px) {
+  .blokus-layout {
+    grid-template-columns: 1fr !important;
+    grid-template-areas:
+      "board"
+      "controls" !important;
+  }
+
+  .blokus-board {
+    width: min(100%, 620px) !important;
+    min-width: 0 !important;
+  }
+
+  .blokus-side {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 680px) {
+  .blokus-module {
+    padding: 8px !important;
+  }
+
+  .blokus-board {
+    border-width: 7px !important;
+  }
+
+  .blokus-side {
+    grid-template-columns: 1fr !important;
+  }
+
+  .blokus-palette-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    max-height: none !important;
+  }
+
+  .blokus-controls-row {
+    grid-template-columns: 1fr !important;
+  }
+}

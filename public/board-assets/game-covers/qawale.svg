@@ -1,48 +1,98 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="960" height="540" viewBox="0 0 960 540" role="img" aria-labelledby="qawale-title qawale-desc">
-  <title id="qawale-title">qawale board game cover</title>
-  <desc id="qawale-desc">A handcrafted tabletop style representative image for the board game.</desc>
+  <title id="qawale-title">qawale tabletop cover</title>
+  <desc id="qawale-desc">A custom tabletop representative image focused on the physical board-game components.</desc>
   <defs>
     <linearGradient id="table" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#321f13"/>
-      <stop offset=".5" stop-color="#1f130c"/>
-      <stop offset="1" stop-color="#0d0805"/>
+      <stop offset="0" stop-color="#4e2f1c"/>
+      <stop offset=".38" stop-color="#24140c"/>
+      <stop offset="1" stop-color="#100906"/>
     </linearGradient>
     <linearGradient id="rail" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#5b3922"/>
-      <stop offset=".52" stop-color="#3d2516"/>
-      <stop offset="1" stop-color="#25160d"/>
+      <stop offset="0" stop-color="#795031"/>
+      <stop offset=".5" stop-color="#4e2f1c"/>
+      <stop offset="1" stop-color="#24140c"/>
     </linearGradient>
     <linearGradient id="felt" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#0c4a37"/>
-      <stop offset="1" stop-color="#06291f"/>
+      <stop offset="0" stop-color="#0b5a42"/>
+      <stop offset="1" stop-color="#073125"/>
     </linearGradient>
-    <radialGradient id="glow" cx="50%" cy="44%" r="62%">
-      <stop offset="0" stop-color="#3c75a5" stop-opacity=".28"/>
-      <stop offset="1" stop-color="#3c75a5" stop-opacity="0"/>
+    <radialGradient id="spot" cx="50%" cy="42%" r="70%">
+      <stop offset="0" stop-color="#315c8c" stop-opacity=".32"/>
+      <stop offset=".64" stop-color="#315c8c" stop-opacity=".08"/>
+      <stop offset="1" stop-color="#315c8c" stop-opacity="0"/>
     </radialGradient>
-    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="14" stdDeviation="16" flood-color="#000" flood-opacity=".42"/>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="14" stdDeviation="18" flood-color="#000" flood-opacity=".42"/>
     </filter>
-    <filter id="softShadow" x="-30%" y="-30%" width="160%" height="160%">
-      <feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#000" flood-opacity=".3"/>
+    <filter id="chipShadow" x="-35%" y="-35%" width="170%" height="170%">
+      <feDropShadow dx="0" dy="7" stdDeviation="7" flood-color="#000" flood-opacity=".32"/>
     </filter>
-    <pattern id="grain" width="54" height="54" patternUnits="userSpaceOnUse">
-      <path d="M0 12c18-9 34 9 54 0M0 31c18 7 33-7 54 0M0 48c20-8 34 8 54 0" fill="none" stroke="#ffe1a0" stroke-opacity=".055" stroke-width="2"/>
+    <pattern id="woodgrain" width="90" height="46" patternUnits="userSpaceOnUse">
+      <path d="M0 9c22-10 47 10 90 0M0 25c30 12 59-12 90 0M0 41c24-8 52 9 90 0" fill="none" stroke="#ffe2aa" stroke-opacity=".055" stroke-width="2"/>
     </pattern>
-    <pattern id="feltLines" width="42" height="42" patternUnits="userSpaceOnUse" patternTransform="rotate(22)">
-      <path d="M0 0h42" stroke="#ffffff" stroke-opacity=".045" stroke-width="2"/>
+    <pattern id="feltthread" width="38" height="38" patternUnits="userSpaceOnUse" patternTransform="rotate(25)">
+      <path d="M0 0h38" stroke="#fff" stroke-opacity=".045" stroke-width="2"/>
     </pattern>
   </defs>
-  <rect width="960" height="540" rx="36" fill="url(#table)"/>
-  <rect width="960" height="540" rx="36" fill="url(#grain)"/>
-  <rect x="48" y="42" width="864" height="456" rx="34" fill="url(#rail)" filter="url(#shadow)"/>
-  <rect x="75" y="69" width="810" height="402" rx="26" fill="url(#felt)"/>
-  <rect x="75" y="69" width="810" height="402" rx="26" fill="url(#feltLines)"/>
-  <rect x="75" y="69" width="810" height="402" rx="26" fill="url(#glow)"/>
-  <rect x="93" y="87" width="774" height="366" rx="20" fill="none" stroke="rgba(255,232,185,.32)" stroke-width="2"/>
+  <rect width="960" height="540" rx="34" fill="url(#table)"/>
+  <rect width="960" height="540" rx="34" fill="url(#woodgrain)"/>
+  <rect x="42" y="34" width="876" height="472" rx="38" fill="url(#rail)" filter="url(#shadow)"/>
+  <rect x="70" y="62" width="820" height="416" rx="28" fill="url(#felt)"/>
+  <rect x="70" y="62" width="820" height="416" rx="28" fill="url(#feltthread)"/>
+  <rect x="70" y="62" width="820" height="416" rx="28" fill="url(#spot)"/>
+  <rect x="91" y="83" width="778" height="374" rx="20" fill="none" stroke="#ead0a0" stroke-opacity=".28" stroke-width="2"/>
   
-    <g filter="url(#softShadow)"><rect x="330" y="107" width="60" height="50" rx="12" fill="#94724c" stroke="#e0c28e" stroke-opacity=".28"/><rect x="410" y="107" width="60" height="50" rx="12" fill="#94724c" stroke="#e0c28e" stroke-opacity=".28"/><rect x="490" y="107" width="60" height="50" rx="12" fill="#94724c" stroke="#e0c28e" stroke-opacity=".28"/><rect x="570" y="107" width="60" height="50" rx="12" fill="#94724c" stroke="#e0c28e" stroke-opacity=".28"/><rect x="330" y="176" width="60" height="50" rx="12" fill="#94724c" stroke="#e0c28e" stroke-opacity=".28"/><rect x="410" y="176" width="60" height="50" rx="12" fill="#94724c" stroke="#e0c28e" stroke-opacity=".28"/><rect x="490" y="176" width="60" height="50" rx="12" fill="#94724c" stroke="#e0c28e" stroke-opacity=".28"/><rect x="570" y="176" width="60" height="50" rx="12" fill="#94724c" stroke="#e0c28e" stroke-opacity=".28"/><rect x="330" y="245" width="60" height="50" rx="12" fill="#94724c" stroke="#e0c28e" stroke-opacity=".28"/><rect x="410" y="245" width="60" height="50" rx="12" fill="#94724c" stroke="#e0c28e" stroke-opacity=".28"/><rect x="490" y="245" width="60" height="50" rx="12" fill="#94724c" stroke="#e0c28e" stroke-opacity=".28"/><rect x="570" y="245" width="60" height="50" rx="12" fill="#94724c" stroke="#e0c28e" stroke-opacity=".28"/><rect x="330" y="314" width="60" height="50" rx="12" fill="#94724c" stroke="#e0c28e" stroke-opacity=".28"/><rect x="410" y="314" width="60" height="50" rx="12" fill="#94724c" stroke="#e0c28e" stroke-opacity=".28"/><rect x="490" y="314" width="60" height="50" rx="12" fill="#94724c" stroke="#e0c28e" stroke-opacity=".28"/><rect x="570" y="314" width="60" height="50" rx="12" fill="#94724c" stroke="#e0c28e" stroke-opacity=".28"/></g>
-    <g filter="url(#softShadow)"><circle cx="330" cy="107" r="26" fill="#e7d9bd" /><circle cx="330" cy="97" r="26" fill="#e7d9bd" /></g><g filter="url(#softShadow)"><circle cx="650" cy="112" r="26" fill="#e7d9bd" /><circle cx="650" cy="97" r="26" fill="#e7d9bd" /></g><g filter="url(#softShadow)"><circle cx="410" cy="270" r="26" fill="#234b7c" /><circle cx="410" cy="260" r="26" fill="#234b7c" /></g><g filter="url(#softShadow)"><circle cx="490" cy="275" r="26" fill="#d8a447" /><circle cx="490" cy="260" r="26" fill="#d8a447" /></g><g filter="url(#softShadow)"><circle cx="570" cy="270" r="26" fill="#234b7c" /><circle cx="570" cy="260" r="26" fill="#234b7c" /></g><g filter="url(#softShadow)"><circle cx="330" cy="388" r="26" fill="#e7d9bd" /><circle cx="330" cy="373" r="26" fill="#e7d9bd" /></g><g filter="url(#softShadow)"><circle cx="650" cy="383" r="26" fill="#e7d9bd" /><circle cx="650" cy="373" r="26" fill="#e7d9bd" /></g>
-    <path d="M410 270h160" stroke="#f4d27d" stroke-width="9" stroke-linecap="round"/>
+    <rect x="290" y="82" width="390" height="366" rx="28" fill="#6a482d" stroke="#e8c27e" stroke-opacity=".35" filter="url(#chipShadow)"/>
+    <g filter="url(#chipShadow)">
+        <rect x="330" y="114" width="72" height="56" rx="16" fill="#8b6844" stroke="#e4c487" stroke-opacity=".3"/>
+        <ellipse cx="366" cy="142" rx="24" ry="15" fill="#5d4028" opacity=".45"/>
+      </g><g filter="url(#chipShadow)">
+        <rect x="429" y="114" width="72" height="56" rx="16" fill="#8b6844" stroke="#e4c487" stroke-opacity=".3"/>
+        <ellipse cx="465" cy="142" rx="24" ry="15" fill="#5d4028" opacity=".45"/>
+      </g><g filter="url(#chipShadow)">
+        <rect x="528" y="114" width="72" height="56" rx="16" fill="#8b6844" stroke="#e4c487" stroke-opacity=".3"/>
+        <ellipse cx="564" cy="142" rx="24" ry="15" fill="#5d4028" opacity=".45"/>
+      </g><g filter="url(#chipShadow)">
+        <rect x="627" y="114" width="72" height="56" rx="16" fill="#8b6844" stroke="#e4c487" stroke-opacity=".3"/>
+        <ellipse cx="663" cy="142" rx="24" ry="15" fill="#5d4028" opacity=".45"/>
+      </g><g filter="url(#chipShadow)">
+        <rect x="330" y="191" width="72" height="56" rx="16" fill="#8b6844" stroke="#e4c487" stroke-opacity=".3"/>
+        <ellipse cx="366" cy="219" rx="24" ry="15" fill="#5d4028" opacity=".45"/>
+      </g><g filter="url(#chipShadow)">
+        <rect x="429" y="191" width="72" height="56" rx="16" fill="#8b6844" stroke="#e4c487" stroke-opacity=".3"/>
+        <ellipse cx="465" cy="219" rx="24" ry="15" fill="#5d4028" opacity=".45"/>
+      </g><g filter="url(#chipShadow)">
+        <rect x="528" y="191" width="72" height="56" rx="16" fill="#8b6844" stroke="#e4c487" stroke-opacity=".3"/>
+        <ellipse cx="564" cy="219" rx="24" ry="15" fill="#5d4028" opacity=".45"/>
+      </g><g filter="url(#chipShadow)">
+        <rect x="627" y="191" width="72" height="56" rx="16" fill="#8b6844" stroke="#e4c487" stroke-opacity=".3"/>
+        <ellipse cx="663" cy="219" rx="24" ry="15" fill="#5d4028" opacity=".45"/>
+      </g><g filter="url(#chipShadow)">
+        <rect x="330" y="268" width="72" height="56" rx="16" fill="#8b6844" stroke="#e4c487" stroke-opacity=".3"/>
+        <ellipse cx="366" cy="296" rx="24" ry="15" fill="#5d4028" opacity=".45"/>
+      </g><g filter="url(#chipShadow)">
+        <rect x="429" y="268" width="72" height="56" rx="16" fill="#8b6844" stroke="#e4c487" stroke-opacity=".3"/>
+        <ellipse cx="465" cy="296" rx="24" ry="15" fill="#5d4028" opacity=".45"/>
+      </g><g filter="url(#chipShadow)">
+        <rect x="528" y="268" width="72" height="56" rx="16" fill="#8b6844" stroke="#e4c487" stroke-opacity=".3"/>
+        <ellipse cx="564" cy="296" rx="24" ry="15" fill="#5d4028" opacity=".45"/>
+      </g><g filter="url(#chipShadow)">
+        <rect x="627" y="268" width="72" height="56" rx="16" fill="#8b6844" stroke="#e4c487" stroke-opacity=".3"/>
+        <ellipse cx="663" cy="296" rx="24" ry="15" fill="#5d4028" opacity=".45"/>
+      </g><g filter="url(#chipShadow)">
+        <rect x="330" y="345" width="72" height="56" rx="16" fill="#8b6844" stroke="#e4c487" stroke-opacity=".3"/>
+        <ellipse cx="366" cy="373" rx="24" ry="15" fill="#5d4028" opacity=".45"/>
+      </g><g filter="url(#chipShadow)">
+        <rect x="429" y="345" width="72" height="56" rx="16" fill="#8b6844" stroke="#e4c487" stroke-opacity=".3"/>
+        <ellipse cx="465" cy="373" rx="24" ry="15" fill="#5d4028" opacity=".45"/>
+      </g><g filter="url(#chipShadow)">
+        <rect x="528" y="345" width="72" height="56" rx="16" fill="#8b6844" stroke="#e4c487" stroke-opacity=".3"/>
+        <ellipse cx="564" cy="373" rx="24" ry="15" fill="#5d4028" opacity=".45"/>
+      </g><g filter="url(#chipShadow)">
+        <rect x="627" y="345" width="72" height="56" rx="16" fill="#8b6844" stroke="#e4c487" stroke-opacity=".3"/>
+        <ellipse cx="663" cy="373" rx="24" ry="15" fill="#5d4028" opacity=".45"/>
+      </g>
+    <g filter="url(#chipShadow)"><circle cx="366" cy="129" r="27" fill="#e8ddc0" /><circle cx="366" cy="113" r="27" fill="#e8ddc0" /><circle cx="366" cy="97" r="27" fill="#e8ddc0" /></g><g filter="url(#chipShadow)"><circle cx="663" cy="129" r="27" fill="#e8ddc0" /><circle cx="663" cy="113" r="27" fill="#e8ddc0" /><circle cx="663" cy="97" r="27" fill="#e8ddc0" /></g><g filter="url(#chipShadow)"><circle cx="366" cy="360" r="27" fill="#e8ddc0" /><circle cx="366" cy="344" r="27" fill="#e8ddc0" /><circle cx="366" cy="328" r="27" fill="#e8ddc0" /></g><g filter="url(#chipShadow)"><circle cx="663" cy="360" r="27" fill="#e8ddc0" /><circle cx="663" cy="344" r="27" fill="#e8ddc0" /><circle cx="663" cy="328" r="27" fill="#e8ddc0" /></g><g filter="url(#chipShadow)"><circle cx="465" cy="282" r="27" fill="#315c8c" /><circle cx="465" cy="266" r="27" fill="#315c8c" /></g><g filter="url(#chipShadow)"><circle cx="564" cy="282" r="27" fill="#d8a748" /><circle cx="564" cy="266" r="27" fill="#d8a748" /></g><g filter="url(#chipShadow)"><circle cx="564" cy="205" r="27" fill="#315c8c" /><circle cx="564" cy="189" r="27" fill="#315c8c" /></g><g filter="url(#chipShadow)"><circle cx="465" cy="359" r="27" fill="#d8a748" /><circle cx="465" cy="343" r="27" fill="#d8a748" /></g>
+    <path d="M465 270h99m0-77v77m-99 77v-77" stroke="#f0cf7e" stroke-width="10" stroke-linecap="round" opacity=".75"/>
   
 </svg>
