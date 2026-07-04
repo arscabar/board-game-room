@@ -9167,11 +9167,13 @@ textarea:focus-visible {
   padding: clamp(8px, 1.7vw, 22px) !important;
   color: var(--lobby-text);
   background:
+    linear-gradient(rgba(13, 9, 6, 0.78), rgba(13, 9, 6, 0.86)),
+    url("/board-assets/wood-rail.svg"),
     linear-gradient(90deg, rgba(255, 225, 170, 0.028) 1px, transparent 1px),
     linear-gradient(0deg, rgba(255, 225, 170, 0.018) 1px, transparent 1px),
     radial-gradient(circle at 30% -10%, rgba(34, 105, 75, 0.24), transparent 34%),
     linear-gradient(180deg, #181009, var(--lobby-canvas) 46%, #0b0705);
-  background-size: 48px 48px, 48px 48px, auto, auto;
+  background-size: auto, 720px 135px, 48px 48px, 48px 48px, auto, auto;
 }
 
 .app-shell.is-home .topbar {
@@ -9184,6 +9186,7 @@ textarea:focus-visible {
   border-radius: var(--lobby-radius) !important;
   background:
     linear-gradient(90deg, rgba(18, 61, 46, 0.32), transparent 48%),
+    url("/board-assets/wood-rail.svg") center / cover,
     rgba(30, 20, 13, 0.92) !important;
   box-shadow: none !important;
 }
@@ -9638,9 +9641,8 @@ textarea:focus-visible {
   min-height: clamp(430px, 64svh, 620px);
   border-radius: 14px 14px 0 0 !important;
   background:
-    radial-gradient(circle at 18% 12%, rgba(40, 127, 86, 0.24), transparent 32%),
-    linear-gradient(135deg, rgba(19, 58, 44, 0.28), transparent 48%),
-    repeating-linear-gradient(90deg, rgba(255, 220, 155, 0.018) 0 1px, transparent 1px 76px),
+    linear-gradient(180deg, rgba(7, 5, 3, 0.26), transparent 20%, rgba(7, 5, 3, 0.18)),
+    url("/board-assets/felt-table.svg") center / cover no-repeat,
     #17100b !important;
   box-shadow:
     inset 0 1px 0 rgba(255, 237, 196, 0.07),
@@ -9652,6 +9654,7 @@ textarea:focus-visible {
   padding: 16px 18px;
   background:
     linear-gradient(90deg, rgba(14, 62, 44, 0.78), rgba(14, 62, 44, 0.18) 44%, transparent),
+    url("/board-assets/wood-rail.svg") center / cover,
     rgba(8, 7, 5, 0.58) !important;
 }
 
@@ -9708,42 +9711,15 @@ textarea:focus-visible {
 .home-gallery .empty-table-scene {
   width: clamp(164px, 20vw, 216px);
   height: clamp(112px, 13vw, 148px);
-  border-radius: 18px;
+  border: 0;
+  border-radius: 0;
+  background: url("/board-assets/empty-room-table.svg") center / contain no-repeat !important;
+  box-shadow: none;
 }
 
-.home-gallery .empty-table-scene::before {
-  inset: 19px 26px;
-  border-radius: 14px;
-}
-
-.home-gallery .empty-seat {
-  width: 22px;
-  height: 22px;
-}
-
-.home-gallery .empty-seat.top,
-.home-gallery .empty-seat.bottom {
-  left: calc(50% - 11px);
-}
-
-.home-gallery .empty-seat.left {
-  left: -11px;
-}
-
-.home-gallery .empty-seat.right {
-  right: -11px;
-}
-
-.home-gallery .empty-seat.top {
-  top: -11px;
-}
-
-.home-gallery .empty-seat.bottom {
-  bottom: -11px;
-}
-
-.home-gallery .empty-table-center {
-  font-size: 1.35rem;
+.home-gallery .empty-table-scene::before,
+.home-gallery .empty-table-scene > * {
+  display: none;
 }
 
 .home-gallery .compact-empty-room h3 {
@@ -9768,6 +9744,7 @@ textarea:focus-visible {
   padding: 12px;
   background:
     linear-gradient(180deg, rgba(255, 229, 175, 0.045), transparent),
+    url("/board-assets/wood-rail.svg") center / cover,
     rgba(36, 24, 15, 0.94);
   box-shadow:
     inset 0 1px 0 rgba(255, 237, 196, 0.04),
@@ -9889,4 +9866,27 @@ textarea:focus-visible {
     min-width: 0;
     order: -1;
   }
+}
+
+/* Shared material pass: reuse real board assets beyond the first screen. */
+.seat-panel,
+.work-panel,
+.detail-panel,
+.play-panel .turn-guide,
+.play-panel .action-form,
+.play-panel .turn-actions,
+.play-panel .move-log {
+  background-image:
+    linear-gradient(180deg, rgba(255, 235, 189, 0.035), rgba(10, 7, 5, 0.18)),
+    url("/board-assets/wood-rail.svg") !important;
+  background-size: auto, 760px 142px !important;
+  background-position: center, center !important;
+}
+
+.game-module-shell {
+  background-image:
+    linear-gradient(180deg, rgba(8, 6, 4, 0.14), rgba(8, 6, 4, 0.46)),
+    url("/board-assets/felt-table.svg") !important;
+  background-size: auto, cover !important;
+  background-position: center, center !important;
 }

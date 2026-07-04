@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="520" height="340" viewBox="0 0 520 340" role="img" aria-label="empty board game table">
+  <defs>
+    <linearGradient id="wood" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#54331f"/>
+      <stop offset="0.44" stop-color="#2b1b11"/>
+      <stop offset="1" stop-color="#120c08"/>
+    </linearGradient>
+    <linearGradient id="felt" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1a6548"/>
+      <stop offset="1" stop-color="#082b21"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="150%">
+      <feDropShadow dx="0" dy="16" stdDeviation="16" flood-color="#000000" flood-opacity="0.36"/>
+    </filter>
+    <filter id="grain" x="-10%" y="-10%" width="120%" height="120%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.03 0.24" numOctaves="3" seed="9"/>
+      <feColorMatrix type="matrix" values="0.32 0 0 0 0.12  0 0.25 0 0 0.07  0 0 0.16 0 0.04  0 0 0 0.22 0"/>
+    </filter>
+  </defs>
+  <g filter="url(#shadow)">
+    <rect x="74" y="56" width="372" height="228" rx="38" fill="url(#wood)"/>
+    <rect x="96" y="78" width="328" height="184" rx="28" fill="url(#felt)"/>
+    <rect x="96" y="78" width="328" height="184" rx="28" fill="url(#grain)" opacity="0.42"/>
+    <rect x="130" y="112" width="260" height="116" rx="20" fill="none" stroke="#f3d68d" stroke-opacity="0.18" stroke-width="3"/>
+    <path d="M150 247h220" stroke="#f3d68d" stroke-opacity="0.12" stroke-width="2"/>
+  </g>
+  <g fill="#2a2114" stroke="#c8a15c" stroke-opacity="0.38">
+    <rect x="238" y="24" width="44" height="44" rx="10"/>
+    <rect x="238" y="272" width="44" height="44" rx="10"/>
+    <rect x="34" y="148" width="44" height="44" rx="10"/>
+    <rect x="442" y="148" width="44" height="44" rx="10"/>
+  </g>
+  <g fill="#efd99c" opacity="0.74">
+    <circle cx="252" cy="164" r="6"/>
+    <circle cx="268" cy="164" r="6"/>
+    <circle cx="252" cy="180" r="6"/>
+    <circle cx="268" cy="180" r="6"/>
+  </g>
+</svg>
