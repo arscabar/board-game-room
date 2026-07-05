@@ -682,8 +682,6 @@ export function Component(props: GameComponentProps) {
     Boolean(effectiveTargetId) &&
     targetHiddenIndices.includes(effectiveTileIndex);
   const canDecide = canAct && publicState.phase === "decide";
-  const hasTeamClues = publicState.players.some((player) => player.hand.some((tile) => tile.teamClue));
-
   function sendGuess() {
     if (!canGuess) return;
     onAction({
@@ -704,12 +702,6 @@ export function Component(props: GameComponentProps) {
           <strong>{publicState.winnerIds.length > 0 ? "승자" : "차례"}</strong>
           <span>{publicState.winnerIds.length > 0 ? winnerLabel : activeModulePlayer?.name ?? "대기"}</span>
         </div>
-        <div className="dvc-metrics">
-          <span>더미 {publicState.deckCount}</span>
-          <span>연속 정답 {publicState.currentStreak}</span>
-          <span>보너스 카드</span>
-        </div>
-        <p>{publicState.message}</p>
       </div>
 
       <div className="dvc-layout">
@@ -728,7 +720,7 @@ export function Component(props: GameComponentProps) {
                     </span>
                   </div>
                   <span className={player.eliminated ? "dvc-badge out" : "dvc-badge"}>
-                    {player.eliminated ? "탈락" : `숨은 타일 ${hiddenTileIndices(player).length}개 · 점수 ${player.points} · 보너스 ${player.bonusCards}`}
+                    {player.eliminated ? "탈락" : player.teamId ? `${player.teamId}팀` : isViewer ? "나" : `${player.seat}번`}
                   </span>
                 </div>
                 <div className="dvc-hand">
@@ -763,10 +755,6 @@ export function Component(props: GameComponentProps) {
           <button className="dvc-action" disabled={!canDraw} onClick={() => onAction({ type: "draw" })} type="button">
             타일 뽑기
           </button>
-
-          {publicState.phase === "draw" ? <p className="dvc-panel-hint">이번 턴은 타일을 먼저 뽑은 뒤 추측합니다.</p> : null}
-          <p className="dvc-panel-hint warning">추측 단계에서 시간이 초과되면 자동 오답으로 처리되어 보너스 카드 또는 자기 타일 공개 페널티가 적용됩니다.</p>
-          {hasTeamClues ? <p className="dvc-panel-hint">팀전 보조 단서: 같은 팀원의 첫 숨은 타일 1개는 팀 단서로 표시됩니다.</p> : null}
 
           <label htmlFor="dvc-target">상대</label>
           <select
@@ -841,8 +829,9 @@ const davinciStyles = `
   color: #17201d;
 }
 .dvc-status {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1.4fr);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
   gap: 12px;
   align-items: center;
   border: 1px solid rgba(99, 57, 51, 0.18);
@@ -856,20 +845,9 @@ const davinciStyles = `
   display: block;
 }
 .dvc-status span,
-.dvc-status p {
+.dvc-player-head span {
   color: #52625d;
 }
-.dvc-status p {
-  margin: 0;
-  text-align: right;
-}
-.dvc-metrics {
-  display: flex;
-  gap: 7px;
-  flex-wrap: wrap;
-  justify-content: center;
-}
-.dvc-metrics span,
 .dvc-badge {
   border: 1px solid rgba(99, 57, 51, 0.18);
   border-radius: 8px;
@@ -1010,21 +988,6 @@ const davinciStyles = `
   color: #17201d;
   font: inherit;
 }
-.dvc-panel-hint {
-  margin: 0;
-  border: 1px solid rgba(214, 155, 45, 0.28);
-  border-radius: 8px;
-  padding: 8px;
-  background: rgba(255, 239, 190, 0.72);
-  color: #69452a;
-  font-size: 0.86rem;
-  font-weight: 800;
-}
-.dvc-panel-hint.warning {
-  border-color: rgba(157, 63, 71, 0.2);
-  background: rgba(255, 241, 232, 0.82);
-  color: #7f2c25;
-}
 .dvc-action,
 .dvc-decision button {
   border: 1px solid rgba(99, 57, 51, 0.18);
@@ -1044,14 +1007,8 @@ const davinciStyles = `
   gap: 7px;
 }
 @media (max-width: 780px) {
-  .dvc-layout,
-  .dvc-status {
+  .dvc-layout {
     grid-template-columns: 1fr;
-  }
-  .dvc-status p,
-  .dvc-metrics {
-    text-align: left;
-    justify-content: flex-start;
   }
 }
 @media (max-width: 440px) {

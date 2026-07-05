@@ -1074,7 +1074,6 @@ export function Component({
     rotation: number;
     flipped: boolean;
   } | null>(null);
-  const [placementHint, setPlacementHint] = useState("초록 점이 있는 칸에서 배치를 시작할 수 있습니다.");
   const state = isBlokusPublicState(publicState) ? publicState : null;
   const activeBlokusPlayer = state?.players.find((player) => player.id === state.activeColorId) ?? null;
   const ownedBlokusPlayers = state?.players.filter((player) => player.ownerId === currentPlayer?.id) ?? [];
@@ -1122,12 +1121,6 @@ export function Component({
   }, [canInteract, currentBlokusPlayer, flipped, rotation, selectedPiece, state]);
   const orientedPieceCells = selectedPiece ? transformCells(selectedPiece.cells, rotation, flipped) : [];
   const orientationLabel = `${rotation * 90}도 ${flipped ? "뒤집힘" : "기본면"}`;
-  const placementStatus =
-    !canInteract
-      ? "내 차례가 되면 보드 후보가 켜집니다."
-      : legalAnchors.size === 0
-        ? "현재 방향으로 놓을 수 있는 위치가 없습니다. 회전하거나 다른 블록을 고르세요."
-        : `${legalAnchors.size}곳에 놓을 수 있습니다. 초록 점은 합법적인 기준 칸입니다.`;
 
   useEffect(() => {
     setPendingPlacement(null);
@@ -1150,7 +1143,6 @@ export function Component({
       ? getPlacementError(state, currentBlokusPlayer, selectedPiece.id, point.x, point.y, rotation, flipped)
       : "블로커스 플레이어를 찾을 수 없습니다.";
     if (error) {
-      setPlacementHint(error);
       setPendingPlacement(null);
       setHoveredCell(point);
       return;
@@ -1164,10 +1156,8 @@ export function Component({
     if (!confirmed) {
       setPendingPlacement({ point, pieceId: selectedPiece.id, rotation, flipped });
       setHoveredCell(point);
-      setPlacementHint(`${selectedPiece.name} 블록 위치를 고정했습니다. 같은 칸을 다시 누르거나 확정을 누르세요.`);
       return;
     }
-    setPlacementHint(`${selectedPiece.name} 블록을 ${point.x + 1}열 ${point.y + 1}행에 놓습니다.`);
     setPendingPlacement(null);
     onAction({
       type: "place-piece",
@@ -1192,11 +1182,10 @@ export function Component({
       <div className="blokus-status">
         <div>
           <strong>{state.phase === "finished" ? "게임 종료" : `${activeBlokusPlayer ? controllerName(activeBlokusPlayer) : "대기"} 차례`}</strong>
-          <div>{state.message}</div>
         </div>
         {currentBlokusPlayer ? (
           <span style={{ color: currentBlokusPlayer.color }}>
-            담당 색 {ownedBlokusPlayers.map((player) => player.colorName).join(", ")} · 현재 색 점수 {currentBlokusPlayer.score}
+            {ownedBlokusPlayers.map((player) => player.colorName).join(", ")}
           </span>
         ) : null}
       </div>
@@ -1209,7 +1198,6 @@ export function Component({
         </div>
         <div>
           <strong>{selectedPiece ? `${selectedPiece.name} 블록` : "블록 선택 필요"}</strong>
-          <p>{placementStatus}</p>
         </div>
         <div className="blokus-state-chips" aria-label="블록 상태">
           <span>{orientationLabel}</span>
@@ -1260,7 +1248,6 @@ export function Component({
         <aside className="blokus-side" aria-label="블로커스 조작">
           <section className="blokus-controls">
             <strong>블록 조작</strong>
-            <p className="blokus-placement-hint">{placementHint}</p>
             <div className="blokus-controls-row">
               <button type="button" onClick={() => setRotation((value) => (value + 1) % 4)} disabled={!canInteract}>
                 <RotateCw size={16} />
@@ -1280,10 +1267,7 @@ export function Component({
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  setPendingPlacement(null);
-                  setPlacementHint("배치 미리보기를 취소했습니다.");
-                }}
+                onClick={() => setPendingPlacement(null)}
                 disabled={!pendingPlacement}
               >
                 취소
@@ -1301,7 +1285,6 @@ export function Component({
           </section>
 
           <section className="blokus-palette" style={{ "--player-color": currentBlokusPlayer?.color ?? "#64748b" } as CSSProperties}>
-            <strong>남은 블록</strong>
             <div className="blokus-palette-grid">
               {state.pieceCatalog.map((piece) => {
                 const available = Boolean(currentBlokusPlayer?.remainingPieceIds.includes(piece.id));
@@ -1312,29 +1295,14 @@ export function Component({
                     type="button"
                     disabled={!available}
                     onClick={() => setSelectedPieceId(piece.id)}
+                    aria-label={pieceDisplayName(piece)}
+                    title={pieceDisplayName(piece)}
                   >
                     <PieceMini piece={piece} color={currentBlokusPlayer?.color ?? "#64748b"} />
-                    <span>{pieceDisplayName(piece)}</span>
                   </button>
                 );
               })}
             </div>
-          </section>
-
-          <section className="blokus-scoreboard" aria-label="점수">
-            <strong>점수</strong>
-            {state.players.map((player) => (
-              <div
-                key={player.id}
-                className={`blokus-player-row ${player.id === activeBlokusPlayer?.id ? "active" : ""}`}
-                style={{ "--player-color": player.color } as CSSProperties}
-              >
-                <span className="swatch" aria-hidden="true" />
-                <strong>{player.name}</strong>
-                <span>{player.shared ? "공용" : player.ownerName}</span>
-                <span>{player.score}점</span>
-              </div>
-            ))}
           </section>
         </aside>
       </div>

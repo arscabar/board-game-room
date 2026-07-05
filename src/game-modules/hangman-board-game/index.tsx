@@ -602,7 +602,6 @@ export function Component({
   const state = publicState;
   const [secretWord, setSecretWord] = useState("");
   const [showOwnSecret, setShowOwnSecret] = useState(false);
-  const [letterGuess, setLetterGuess] = useState("");
   const [wholeWord, setWholeWord] = useState("");
   const myId = currentPlayer?.id ?? null;
   const myProgress = myId ? state.progress[myId] : undefined;
@@ -633,16 +632,6 @@ export function Component({
     }
     onAction({ type: "hangman-board-game/guess-word", payload: { word } });
     setWholeWord("");
-  }
-
-  function submitLetter(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const letter = normalizeLetter(letterGuess);
-    if (!letter || guessedLetters.has(letter)) {
-      return;
-    }
-    onAction({ type: "hangman-board-game/guess-letter", payload: { letter } });
-    setLetterGuess("");
   }
 
   return (
@@ -699,9 +688,6 @@ export function Component({
                   <h3>{getPlayerName(players, playerId)}</h3>
                   <p>{isOwnSecret ? "내 비밀 단어" : "상대 단어"}</p>
                   <WordDisplay letters={state.displays[playerId] ?? []} />
-                  <p>
-                    라운드 승수: {state.wins[playerId] ?? 0}/{state.targetWins}
-                  </p>
                 </article>
               );
             })}
@@ -711,8 +697,8 @@ export function Component({
             className="hangman-guess-panel"
             style={{ ...styles.panel, "--misses": myProgress?.misses ?? 0 } as CSSProperties}
           >
-            <div className="hangman-turn-meta" style={styles.meta}>
-              <strong>
+              <div className="hangman-turn-meta" style={styles.meta}>
+                <strong>
                 {state.phase === "complete"
                   ? "매치 종료"
                   : state.phase === "round-complete"
@@ -724,18 +710,11 @@ export function Component({
                   오답: {myProgress.misses}/{state.maxMisses}
                 </span>
               ) : null}
-              {state.lastGuess ? (
-                <span>
-                  최근: {getPlayerName(players, state.lastGuess.playerId)} {state.lastGuess.guess} (
-                  {state.lastGuess.hit ? "정답" : "오답"})
-                </span>
-              ) : null}
             </div>
 
             <div className="hangman-target-card">
               <div>
-                <strong>{targetName ? `${targetName}님의 단어 추측` : "추측 대상 대기"}</strong>
-                <span>{canGuess ? "글자 버튼이나 전체 단어 중 하나를 선택하세요." : "차례가 오면 글자판이 켜집니다."}</span>
+                <strong>{targetName ? `${targetName} 단어` : "대기"}</strong>
               </div>
               <HangmanMissCounter misses={myProgress?.misses ?? 0} maxMisses={state.maxMisses} />
             </div>
@@ -787,22 +766,6 @@ export function Component({
               ))}
             </div>
 
-            <form className="hangman-letter-guess-form" style={{ ...styles.form, marginTop: "0.75rem" }} onSubmit={submitLetter}>
-              <label style={styles.inputGroup}>
-                글자 추측
-                <input
-                  value={letterGuess}
-                  maxLength={1}
-                  pattern="[A-Za-z가-힣]{1}"
-                  autoCapitalize="characters"
-                  onChange={(event) => setLetterGuess(event.currentTarget.value)}
-                />
-              </label>
-              <button type="submit" disabled={!canGuess || !normalizeLetter(letterGuess) || guessedLetters.has(normalizeLetter(letterGuess) ?? "")}>
-                글자 추측
-              </button>
-            </form>
-
             <form className="hangman-word-guess-form" style={{ ...styles.form, marginTop: "0.75rem" }} onSubmit={submitWholeWord}>
               <label style={styles.inputGroup}>
                 전체 단어 추측
@@ -822,7 +785,6 @@ export function Component({
             {myProgress ? (
               <div className="hangman-history-strip">
                 <span>틀린 글자: {myProgress.missedLetters.join(", ") || "없음"}</span>
-                <span>전체 단어: {myProgress.wholeWordGuesses.join(", ") || "없음"}</span>
               </div>
             ) : null}
 

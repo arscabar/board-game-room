@@ -39,10 +39,15 @@
 }
 
 .dvc-tile {
+  position: relative;
+  overflow: hidden;
   width: 52px !important;
   height: 78px !important;
   border-radius: 5px 5px 9px 9px !important;
   transform: perspective(420px) rotateX(3deg);
+  transition:
+    transform 160ms ease,
+    box-shadow 160ms ease;
 }
 
 .dvc-tile {
@@ -52,18 +57,13 @@
     0 6px 8px rgba(45, 31, 20, 0.24) !important;
 }
 
-.dvc-tile.hidden,
-.dvc-tile:not(.revealed):not(.private):not(.team-clue) {
-  background:
-    linear-gradient(180deg, #2b2521, #0e0d0b) !important;
-  color: #f7ead0 !important;
-}
-
 .dvc-tile.revealed,
 .dvc-tile.private,
-.dvc-tile.team-clue {
+.dvc-tile.team-clue,
+.dvc-tile:not(.revealed):not(.private) {
   background:
-    linear-gradient(180deg, #fff7dd, #d8b566) !important;
+    radial-gradient(circle at 28% 18%, rgba(255, 255, 255, 0.3), transparent 20%),
+    linear-gradient(180deg, color-mix(in srgb, var(--tile-bg) 74%, white), var(--tile-bg)) !important;
 }
 
 .dvc-tile.team-clue {
@@ -96,20 +96,6 @@
     linear-gradient(120deg, rgba(255, 255, 255, 0.18), transparent 42% 76%, rgba(0, 0, 0, 0.13));
 }
 
-.dvc-tile.hidden,
-.dvc-tile:not(.revealed):not(.private):not(.team-clue) {
-  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.8);
-}
-
-.dvc-tile.private,
-.dvc-tile.hidden,
-.dvc-tile:not(.revealed):not(.private):not(.team-clue) {
-  background-image:
-    radial-gradient(circle at 28% 18%, rgba(255, 255, 255, 0.24), transparent 18%),
-    repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0 2px, transparent 2px 7px),
-    linear-gradient(180deg, #586273, #242d39) !important;
-}
-
 .dvc-tile.revealed {
   animation: tile-flip var(--motion-flip);
 }
@@ -117,4 +103,9 @@
 .dvc-tile.selected,
 .dvc-tile.drawn {
   transform: translateY(-4px);
+}
+
+.dvc-tile.team-clue small::after,
+.dvc-tile.drawn small::after {
+  content: "" !important;
 }
