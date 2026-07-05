@@ -10934,10 +10934,38 @@ textarea:focus-visible {
 }
 
 .room-section.is-lobby .game-card-tile.selected {
-  border-color: color-mix(in srgb, var(--game-accent) 70%, #f4cf88 30%);
+  border-color: color-mix(in srgb, var(--game-accent) 54%, #ffd98b 46%);
   box-shadow:
-    inset 0 0 0 2px color-mix(in srgb, var(--game-accent) 54%, transparent),
-    0 14px 26px rgba(0, 0, 0, 0.24);
+    inset 0 0 0 2px color-mix(in srgb, var(--game-accent) 58%, rgba(255, 217, 139, 0.54)),
+    0 0 0 2px rgba(245, 208, 138, 0.18),
+    0 16px 30px rgba(0, 0, 0, 0.32);
+  transform: translateY(-1px);
+}
+
+.room-section.is-lobby .game-card-tile.selected::before {
+  content: "";
+  position: absolute;
+  inset: 5px;
+  z-index: 2;
+  border: 2px solid color-mix(in srgb, var(--game-accent) 50%, #ffd98b 50%);
+  border-radius: 7px;
+  pointer-events: none;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 244, 216, 0.18),
+    0 0 18px color-mix(in srgb, var(--game-accent) 22%, transparent);
+}
+
+.room-section.is-lobby .game-card-tile.selected::after {
+  content: "";
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  left: 8px;
+  z-index: 3;
+  height: 4px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #ffd98b, color-mix(in srgb, var(--game-accent) 74%, #ffe7b8 26%));
+  box-shadow: 0 0 14px color-mix(in srgb, var(--game-accent) 34%, transparent);
 }
 
 .room-section.is-lobby .game-card-tile.is-unavailable {
@@ -11018,6 +11046,17 @@ textarea:focus-visible {
   color: rgba(228, 205, 163, 0.74);
   border-color: rgba(172, 141, 92, 0.24);
   background: rgba(5, 4, 3, 0.74);
+}
+
+.room-section.is-lobby .game-card-tile.selected .game-card-state {
+  z-index: 4;
+  color: #fff7dd;
+  border-color: rgba(255, 226, 154, 0.72);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--game-accent) 74%, #226b55 26%), #0b5f4f);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    0 8px 18px rgba(0, 0, 0, 0.28);
 }
 
 .room-section.is-lobby .game-selection-actions {

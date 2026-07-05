@@ -1272,6 +1272,11 @@ io.on("connection", (socket) => {
     result.room.gamePrivateState = registration
       ? registration.module.createInitialState({ game, players: snapshotPlayers(result.room).filter((player) => player.connected) })
       : null;
+    const initialPrivateState = asRecord(result.room.gamePrivateState);
+    if (initialPrivateState && Object.prototype.hasOwnProperty.call(initialPrivateState, "activePlayerId")) {
+      result.room.gameState.activePlayerId =
+        typeof initialPrivateState.activePlayerId === "string" ? initialPrivateState.activePlayerId : null;
+    }
     if (registration) {
       const context = buildGameContext(result.room, result.player.id);
       result.room.gameState.publicState = context
