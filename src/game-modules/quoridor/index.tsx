@@ -44,6 +44,10 @@ interface WallPayload {
 
 const playerColors = ["#111827", "#f8fafc", "#b94f45", "#2364aa"];
 
+function wallReserveSize(playerCount: number) {
+  return playerCount >= 4 ? 5 : 10;
+}
+
 function key(row: number, col: number) {
   return `${row},${col}`;
 }
@@ -304,7 +308,7 @@ function createInitialState(context: Pick<GameContext, "players">): QuoridorStat
     .filter((player) => player.connected)
     .sort((a, b) => a.seat - b.seat)
     .slice(0, context.players.length >= 4 ? 4 : 2);
-  const wallCount = seatedPlayers.length === 4 ? 5 : 10;
+  const wallCount = wallReserveSize(seatedPlayers.length);
 
   return {
     players: seatedPlayers.map((player, index) => {
@@ -450,6 +454,7 @@ export function Component(props: GameComponentProps) {
   const [orientation, setOrientation] = useState<Orientation>("horizontal");
   const [wallRow, setWallRow] = useState(0);
   const [wallCol, setWallCol] = useState(0);
+  const wallReserveTotal = wallReserveSize(publicState.players.length);
   const activeModulePlayer = publicState.players.find((player) => player.id === activePlayer?.id) ?? null;
   const currentModulePlayer = publicState.players.find((player) => player.id === currentPlayer?.id) ?? null;
   const canAct = !disabled && !publicState.winnerId && currentPlayer?.id === activePlayer?.id && Boolean(currentModulePlayer);
@@ -624,8 +629,17 @@ export function Component(props: GameComponentProps) {
                 <div>
                   <strong>{player.name}</strong>
                   <span>
-                    남은 벽 {player.wallsRemaining}개 · 목표 {goalLabel(player.goal)}
+                    남은 벽 {player.wallsRemaining}/{wallReserveTotal} · 목표 {goalLabel(player.goal)}
                   </span>
+                  <div
+                    className="qdr-wall-reserve"
+                    aria-label={`${player.name} 남은 벽 ${player.wallsRemaining}개`}
+                    style={{ "--wall-reserve-total": wallReserveTotal } as CSSProperties}
+                  >
+                    {Array.from({ length: wallReserveTotal }, (_, index) => (
+                      <i key={index} className={index < player.wallsRemaining ? "available" : "spent"} />
+                    ))}
+                  </div>
                 </div>
               </div>
             ))}
@@ -679,7 +693,7 @@ export function Component(props: GameComponentProps) {
                       }`}
                       title={`${row + 1}-${col + 1} ${blocked ? "불가" : "가능"}`}
                     >
-                      {orientation === "horizontal" ? "가" : "세"}
+                      <span className="qdr-wall-grid-mark" aria-hidden="true" />
                     </button>
                   );
                 })
@@ -915,13 +929,16 @@ const quoridorStyles = `
   content: "";
   position: absolute;
   border-radius: inherit;
-  opacity: 0.2;
+  opacity: 0;
   background: #f9df80;
-  box-shadow: 0 0 0 1px rgba(255, 247, 209, 0.22);
+  box-shadow: 0 0 0 1px rgba(255, 247, 209, 0.16);
   transition:
     opacity 140ms ease,
     transform 140ms ease,
     background 140ms ease;
+}
+.qdr-board:hover .qdr-wall-hit.valid::before {
+  opacity: 0.08;
 }
 .qdr-wall-hit.horizontal {
   left: calc(var(--qdr-padding) + (var(--wall-col) * (var(--qdr-cell) + var(--qdr-gap))) + (var(--qdr-cell) * 0.08));
@@ -999,6 +1016,29 @@ const quoridorStyles = `
 .qdr-player span {
   color: #52625d;
   font-size: 0.84rem;
+}
+.qdr-wall-reserve {
+  display: grid;
+  grid-template-columns: repeat(var(--wall-reserve-total), minmax(0, 1fr));
+  gap: 3px;
+  margin-top: 6px;
+}
+.qdr-wall-reserve i {
+  display: block;
+  min-width: 0;
+  height: 14px;
+  border: 1px solid rgba(74, 40, 17, 0.28);
+  border-radius: 3px;
+  background:
+    linear-gradient(90deg, rgba(255, 226, 155, 0.16), transparent 48%),
+    linear-gradient(180deg, #5d351c, #211208);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 229, 166, 0.18),
+    0 1px 2px rgba(48, 27, 12, 0.18);
+}
+.qdr-wall-reserve i.spent {
+  opacity: 0.22;
+  background: rgba(92, 54, 24, 0.34);
 }
 .qdr-swatch {
   width: 18px;
