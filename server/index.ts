@@ -38,6 +38,7 @@ interface RoomRecord {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const app = express();
+app.set("etag", false);
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
   cors: {
@@ -133,9 +134,29 @@ app.get("/api/stats/recent", async (request, response) => {
   }
 });
 
+function setNoStoreHeaders(response: express.Response, clearCache = false) {
+  response.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+  response.setHeader("Pragma", "no-cache");
+  response.setHeader("Expires", "0");
+  response.setHeader("Surrogate-Control", "no-store");
+  if (clearCache) {
+    response.setHeader("Clear-Site-Data", '"cache"');
+  }
+}
+
 const distPath = path.resolve(__dirname, "../dist");
-app.use(express.static(distPath));
+app.use(
+  express.static(distPath, {
+    etag: false,
+    index: false,
+    lastModified: false,
+    setHeaders: (response) => {
+      setNoStoreHeaders(response);
+    }
+  })
+);
 app.get(/.*/, (_request, response) => {
+  setNoStoreHeaders(response, true);
   response.sendFile(path.join(distPath, "index.html"));
 });
 
