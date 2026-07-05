@@ -807,7 +807,26 @@ const abaloneStyles = `
   line-height: 1;
 }
 .abl-dir-button:disabled {
-  opacity: 0.45;
+  opacity: 1 !important;
+  color: #17201d;
+  background:
+    linear-gradient(180deg, #f8faf7, #d8dee3);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.62),
+    0 2px 0 rgba(31, 41, 55, 0.08);
+  cursor: not-allowed;
+}
+.abl-dir-button:disabled span {
+  opacity: 0.82;
+}
+.abl-dir-button:not(:disabled) {
+  border-color: rgba(40, 119, 124, 0.42);
+  background:
+    linear-gradient(180deg, #ffffff, #e6f1ee);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.72),
+    0 0 0 2px rgba(40, 119, 124, 0.12),
+    0 2px 0 rgba(31, 41, 55, 0.12);
 }
 .abl-dir-button.dir-NW {
   grid-column: 1;
