@@ -27,6 +27,7 @@ interface QawaleState {
   phase: "playing" | "complete";
   winnerId: string | null;
   message: string;
+  activePlayerId?: string | null;
 }
 
 type QawalePublicState = QawaleState;
@@ -204,18 +205,24 @@ function createInitialState(context: Pick<GameContext, "players">): QawaleState 
     reserves[player.id] = STARTING_RESERVE;
   }
 
-  return {
-    players: seatedPlayers.map((player, index) => ({
+  const players = seatedPlayers.map((player, index) => ({
       id: player.id,
       name: player.name,
       seat: player.seat,
       color: playerColors[index]
-    })),
+    }));
+  const firstPlayer = players.length > 0 ? players[Math.floor(Math.random() * players.length)] : null;
+
+  return {
+    players,
     board: createInitialBoard(),
     reserves,
     phase: "playing",
     winnerId: null,
-    message: "비어 있지 않은 스택을 고르고 자기 돌을 얹은 뒤 스택을 분배하세요."
+    message: firstPlayer
+      ? `${firstPlayer.name}님이 무작위 선공입니다. 비어 있지 않은 스택을 고르고 자기 돌을 얹은 뒤 스택을 분배하세요.`
+      : "비어 있지 않은 스택을 고르고 자기 돌을 얹은 뒤 스택을 분배하세요.",
+    activePlayerId: firstPlayer?.id ?? null
   };
 }
 
