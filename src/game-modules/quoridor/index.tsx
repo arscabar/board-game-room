@@ -444,15 +444,6 @@ function goalLabel(goal: Goal) {
   return "오른쪽 끝줄";
 }
 
-function cellWallStyle(state: QuoridorPublicState, row: number, col: number): CSSProperties {
-  const style: CSSProperties = {};
-  if (row > 0 && wallBlocksMove(state, { row, col }, { row: row - 1, col })) style.borderTopColor = "#7c4a24";
-  if (row < BOARD_SIZE - 1 && wallBlocksMove(state, { row, col }, { row: row + 1, col })) style.borderBottomColor = "#7c4a24";
-  if (col > 0 && wallBlocksMove(state, { row, col }, { row, col: col - 1 })) style.borderLeftColor = "#7c4a24";
-  if (col < BOARD_SIZE - 1 && wallBlocksMove(state, { row, col }, { row, col: col + 1 })) style.borderRightColor = "#7c4a24";
-  return style;
-}
-
 function isDark(color: string) {
   return color !== "#f8fafc";
 }
@@ -646,7 +637,6 @@ export function Component(props: GameComponentProps) {
                   disabled={!legal}
                   key={key(row, col)}
                   onClick={() => selectPawnMove(row, col)}
-                  style={cellWallStyle(publicState, row, col)}
                   type="button"
                   title={`${row + 1}행 ${col + 1}열`}
                 >
@@ -760,20 +750,10 @@ export function Component(props: GameComponentProps) {
 
           {currentModulePlayer ? (
             <div className="qdr-current-walls" aria-label={`내 남은 벽 ${currentModulePlayer.wallsRemaining}개`}>
-              <div>
-                <strong>내 벽</strong>
-                <span>
-                  {currentModulePlayer.wallsRemaining}/{wallReserveTotal}
-                </span>
-              </div>
-              <div
-                className="qdr-wall-rack"
-                style={{ "--wall-reserve-total": wallReserveTotal } as CSSProperties}
-                aria-hidden="true"
-              >
-                {Array.from({ length: wallReserveTotal }, (_, index) => (
-                  <i key={index} className={index < currentModulePlayer.wallsRemaining ? "available" : "spent"} />
-                ))}
+              <strong>내 벽</strong>
+              <div className="qdr-wall-count">
+                <span>{currentModulePlayer.wallsRemaining}</span>
+                <small>/ {wallReserveTotal}개</small>
               </div>
             </div>
           ) : null}
@@ -1054,30 +1034,11 @@ const quoridorStyles = `
   cursor: pointer;
   touch-action: manipulation;
 }
-.qdr-wall-hit::before {
-  content: "";
-  position: absolute;
-  border-radius: inherit;
-  opacity: 0;
-  background: #f9df80;
-  box-shadow: 0 0 0 1px rgba(255, 247, 209, 0.16);
-  transition:
-    opacity 140ms ease,
-    transform 140ms ease,
-    background 140ms ease;
-}
 .qdr-wall-hit.horizontal {
   left: calc(var(--qdr-padding) + (var(--wall-col) * (var(--qdr-cell) + var(--qdr-gap))) + (var(--qdr-cell) * 0.08));
   top: calc(var(--qdr-padding) + ((var(--wall-row) + 1) * var(--qdr-cell)) + (var(--wall-row) * var(--qdr-gap)) - 7px);
   width: calc((var(--qdr-cell) * 1.84) + var(--qdr-gap));
   height: max(18px, calc(var(--qdr-gap) * 3));
-}
-.qdr-wall-hit.horizontal::before {
-  top: 50%;
-  right: 0;
-  left: 0;
-  height: max(5px, calc(var(--qdr-gap) * 0.9));
-  transform: translateY(-50%);
 }
 .qdr-wall-hit.vertical {
   left: calc(var(--qdr-padding) + ((var(--wall-col) + 1) * var(--qdr-cell)) + (var(--wall-col) * var(--qdr-gap)) - 7px);
@@ -1085,43 +1046,16 @@ const quoridorStyles = `
   width: max(18px, calc(var(--qdr-gap) * 3));
   height: calc((var(--qdr-cell) * 1.84) + var(--qdr-gap));
 }
-.qdr-wall-hit.vertical::before {
-  top: 0;
-  bottom: 0;
-  left: 50%;
-  width: max(5px, calc(var(--qdr-gap) * 0.9));
-  transform: translateX(-50%);
-}
-.qdr-wall-hit.valid:hover::before,
-.qdr-wall-hit.valid:focus-visible::before,
-.qdr-wall-hit.selected::before {
-  opacity: 0.9;
-  background:
-    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.26) 0 4px, transparent 4px 8px),
-    linear-gradient(180deg, #f9df80, #b06a2d);
-  box-shadow:
-    0 0 0 2px rgba(255, 247, 209, 0.68),
-    0 0 14px rgba(249, 223, 128, 0.45);
-}
-.qdr-wall-hit.blocked:hover::before,
-.qdr-wall-hit.blocked:focus-visible::before,
-.qdr-wall-hit.blocked.selected::before {
-  opacity: 0.78;
-  background:
-    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.28) 0 4px, transparent 4px 8px),
-    linear-gradient(180deg, #b74a3b, #5e2b24);
-  box-shadow:
-    0 0 0 2px rgba(255, 215, 190, 0.58),
-    0 0 12px rgba(183, 74, 59, 0.42);
-}
 .qdr-panel {
   display: grid;
   gap: 14px;
   min-width: 0;
 }
 .qdr-current-walls {
-  display: grid;
-  gap: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
   border: 1px solid rgba(255, 218, 135, 0.24);
   border-radius: 8px;
   padding: 10px;
@@ -1130,42 +1064,24 @@ const quoridorStyles = `
   color: #211513;
   box-shadow: inset 0 -3px 0 rgba(75, 42, 19, 0.14);
 }
-.qdr-current-walls > div:first-child {
+.qdr-wall-count {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 10px;
+  gap: 6px;
 }
-.qdr-current-walls span {
+.qdr-wall-count span {
   display: inline-grid;
   place-items: center;
-  min-width: 56px;
+  min-width: 42px;
   border-radius: 999px;
   padding: 5px 9px;
   background: #2f2018;
   color: #fff2cb;
   font-weight: 900;
 }
-.qdr-wall-rack {
-  display: grid;
-  grid-template-columns: repeat(var(--wall-reserve-total), minmax(0, 1fr));
-  gap: 4px;
-}
-.qdr-wall-rack i {
-  display: block;
-  height: 18px;
-  border: 1px solid rgba(58, 32, 14, 0.36);
-  border-radius: 4px;
-  background:
-    linear-gradient(90deg, rgba(255, 219, 144, 0.16), transparent 22% 78%, rgba(0, 0, 0, 0.22)),
-    linear-gradient(180deg, #5a351d, #1d1008);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 230, 169, 0.2),
-    0 1px 2px rgba(42, 22, 10, 0.18);
-}
-.qdr-wall-rack i.spent {
-  opacity: 0.22;
-  background: rgba(92, 54, 24, 0.34);
+.qdr-wall-count small {
+  color: #4c3a2a;
+  font-weight: 900;
 }
 .qdr-current-walls strong {
   font-weight: 800;

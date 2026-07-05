@@ -93,7 +93,6 @@
 .qaw-cell.next:not(:disabled) .qaw-layer.top {
   transform: translateY(-3px);
 }
-.qdr-wall-grid button.blocked:hover,
 .blokus-cell.preview.invalid {
   animation: invalid-shake 180ms ease-in-out;
 }

@@ -158,15 +158,6 @@
     linear-gradient(180deg, #4a2d19, #1b0e07) !important;
 }
 
-.qdr-wall-piece::after {
-  content: "";
-  position: absolute;
-  inset: 3px;
-  border-radius: 2px;
-  border: 1px solid rgba(255, 220, 143, 0.14);
-  pointer-events: none;
-}
-
 .qdr-wall-piece {
   animation: wall-snap var(--motion-shift);
 }
@@ -265,21 +256,22 @@
 }
 
 .qdr-current-walls {
-  display: grid !important;
-  gap: 9px !important;
-}
-
-.qdr-current-walls > div:first-child {
   display: flex !important;
   align-items: center !important;
   justify-content: space-between !important;
   gap: 10px !important;
 }
 
-.qdr-current-walls span {
+.qdr-wall-count {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+}
+
+.qdr-wall-count span {
   display: inline-grid !important;
   place-items: center !important;
-  min-width: 56px !important;
+  min-width: 42px !important;
   border-radius: 999px !important;
   padding: 5px 9px !important;
   background: #2f2018 !important;
@@ -287,28 +279,9 @@
   font-weight: 900 !important;
 }
 
-.qdr-wall-rack {
-  display: grid !important;
-  grid-template-columns: repeat(var(--wall-reserve-total), minmax(0, 1fr)) !important;
-  gap: 4px !important;
-}
-
-.qdr-wall-rack i {
-  display: block !important;
-  height: 18px !important;
-  border: 1px solid rgba(58, 32, 14, 0.36) !important;
-  border-radius: 4px !important;
-  background:
-    linear-gradient(90deg, rgba(255, 219, 144, 0.16), transparent 22% 78%, rgba(0, 0, 0, 0.22)),
-    linear-gradient(180deg, #5a351d, #1d1008) !important;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 230, 169, 0.2),
-    0 1px 2px rgba(42, 22, 10, 0.18) !important;
-}
-
-.qdr-wall-rack i.spent {
-  opacity: 0.22 !important;
-  background: rgba(92, 54, 24, 0.34) !important;
+.qdr-wall-count small {
+  color: #4c3a2a !important;
+  font-weight: 900 !important;
 }
 
 .qdr-mode-segment button,
