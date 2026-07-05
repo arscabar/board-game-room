@@ -16,6 +16,7 @@
 }
 
 .abl-marble {
+  position: relative !important;
   border-width: 2px !important;
   box-shadow:
     inset 0 8px 10px rgba(255, 255, 255, 0.22),
@@ -81,10 +82,15 @@
     overflow-x: hidden !important;
   }
 
+  .abl-status {
+    align-items: flex-start !important;
+    flex-direction: column !important;
+  }
+
   .abl-board {
-    --abl-cell-size: clamp(28px, calc((100vw - 104px) / 9), 40px);
+    --abl-cell-size: clamp(27px, calc((100vw - 80px) / 9), 38px);
     justify-content: center !important;
-    width: min(100%, calc(100vw - 54px)) !important;
+    width: min(100%, calc(100vw - 40px)) !important;
     max-width: 100% !important;
     overflow-x: hidden !important;
     gap: 3px !important;
@@ -106,5 +112,35 @@
   .abl-marble {
     width: 80% !important;
     border-width: 1px !important;
+  }
+
+  .abl-panel {
+    gap: 8px !important;
+  }
+
+  .abl-controls {
+    gap: 8px !important;
+    padding: 9px !important;
+  }
+
+  .abl-directions {
+    gap: 5px !important;
+  }
+
+  .abl-directions button {
+    min-height: 46px !important;
+  }
+
+  .abl-directions button small {
+    font-size: 0.62rem !important;
+  }
+
+  .abl-players {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .abl-player {
+    min-width: 0 !important;
+    padding: 8px !important;
   }
 }

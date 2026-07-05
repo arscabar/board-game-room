@@ -259,7 +259,7 @@ function createInitialState(context: Pick<GameContext, "players">): AbaloneState
     marbles: placeInitialMarbles(players),
     pushedOff,
     winnerId: null,
-    message: "자기 구슬 1~3개를 한 줄로 선택한 뒤 이동 방향을 고르세요."
+    message: "구슬 1개만 선택해도 이동할 수 있습니다. 밀기는 2개 이상이 상대보다 많을 때 가능합니다."
   };
 }
 
@@ -293,7 +293,7 @@ function moveInline(state: AbaloneState, player: AbalonePlayer, cells: Coord[], 
   if (!firstOwner) {
     for (const cell of ordered) delete next.marbles[key(cell)];
     for (const cell of ordered) next.marbles[key(add(cell, direction))] = player.id;
-    next.message = `${player.name} moved inline ${direction.label}.`;
+    next.message = `${player.name}님이 구슬 ${ordered.length}개를 ${direction.label} 방향으로 이동했습니다.`;
     return next;
   }
 
@@ -444,10 +444,14 @@ export function Component(props: GameComponentProps) {
   const selectionHint = !canAct
     ? "현재 차례가 되면 자기 구슬을 선택할 수 있습니다."
     : selection.length === 0
-      ? "밀고 싶은 자기 구슬 1~3개를 선택하세요."
+      ? "이동할 자기 구슬을 1개 선택하세요. 이어진 2~3개를 선택하면 함께 밀 수 있습니다."
       : !validSelection
         ? "선택한 구슬은 한 줄로 이어져야 합니다."
-        : `${selection.length}개 구슬이 한 줄로 선택되었습니다. 이동 방향을 고르세요.`;
+        : selection.length === 1
+          ? "1개 선택됨: 빈칸으로 이동할 수 있습니다. 상대 구슬은 2개 이상 선택해야 밀 수 있습니다."
+          : selection.length === 2
+            ? "2개 선택됨: 한 줄 이동 또는 상대 구슬 1개 밀기가 가능합니다."
+            : "3개 선택됨: 한 줄 이동 또는 상대 구슬 1~2개 밀기가 가능합니다.";
 
   function toggleSelection(coord: Coord) {
     if (!canAct) return;
@@ -518,6 +522,31 @@ export function Component(props: GameComponentProps) {
         </div>
 
         <aside className="abl-panel">
+          <div className="abl-controls">
+            <div className="abl-control-head">
+              <strong>이동/밀기</strong>
+              <span>{selection.length}/3 선택</span>
+            </div>
+            <p className={validSelection ? "abl-selection-guide ready" : "abl-selection-guide"}>{selectionHint}</p>
+            <div className="abl-directions" aria-label="이동 또는 밀기 방향">
+              {directions.map((direction) => (
+                <button
+                  disabled={!canAct || !validSelection}
+                  key={direction.id}
+                  onClick={() => sendMove(direction)}
+                  title={`${direction.id} 방향으로 이동 또는 밀기`}
+                  type="button"
+                >
+                  <span>{direction.label}</span>
+                  <small>이동/밀기</small>
+                </button>
+              ))}
+            </div>
+            <button className="abl-clear" disabled={selection.length === 0} onClick={() => setSelection([])} type="button">
+              선택 취소
+            </button>
+          </div>
+
           <div className="abl-players">
             {publicState.players.map((player) => (
               <div className="abl-player" key={player.id}>
@@ -528,28 +557,6 @@ export function Component(props: GameComponentProps) {
                 </div>
               </div>
             ))}
-          </div>
-
-          <div className="abl-controls">
-            <strong>이동 방향</strong>
-            <span>선택한 구슬 {selection.length}개</span>
-            <p className={validSelection ? "abl-selection-guide ready" : "abl-selection-guide"}>{selectionHint}</p>
-            <div className="abl-directions">
-              {directions.map((direction) => (
-                <button
-                  disabled={!canAct || !validSelection}
-                  key={direction.id}
-                  onClick={() => sendMove(direction)}
-                  title={`${direction.id} 방향으로 이동`}
-                  type="button"
-                >
-                  {direction.label}
-                </button>
-              ))}
-            </div>
-            <button className="abl-clear" disabled={selection.length === 0} onClick={() => setSelection([])} type="button">
-              선택 취소
-            </button>
           </div>
         </aside>
       </div>
@@ -593,6 +600,7 @@ const abaloneStyles = `
   min-width: 0;
 }
 .abl-board {
+  --abl-cell-size: 44px;
   display: grid;
   justify-content: center;
   gap: 4px;
@@ -610,16 +618,16 @@ const abaloneStyles = `
 }
 .abl-row {
   display: grid;
-  grid-template-columns: repeat(var(--row-size), 44px);
+  grid-template-columns: repeat(var(--row-size), var(--abl-cell-size));
   justify-content: center;
   gap: 5px;
 }
 .abl-cell {
   display: grid;
   place-items: center;
-  width: 44px;
-  height: 44px;
-  min-height: 44px;
+  width: var(--abl-cell-size);
+  height: var(--abl-cell-size);
+  min-height: var(--abl-cell-size);
   border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: 999px;
   background:
@@ -673,7 +681,7 @@ const abaloneStyles = `
   display: block;
 }
 .abl-player span,
-.abl-controls > span {
+.abl-control-head span {
   color: #52625d;
   font-size: 0.84rem;
 }
@@ -707,6 +715,12 @@ const abaloneStyles = `
   background:
     linear-gradient(180deg, #fbfcfa, #e3e8eb);
 }
+.abl-control-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
 .abl-directions {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -720,7 +734,21 @@ const abaloneStyles = `
   color: #17201d;
 }
 .abl-directions button {
+  display: grid;
+  place-items: center;
+  gap: 2px;
+  min-height: 54px;
   font-weight: 900;
+}
+.abl-directions button span {
+  font-size: 1.15rem;
+  line-height: 1;
+}
+.abl-directions button small {
+  font-size: 0.68rem;
+  font-weight: 800;
+  line-height: 1;
+  opacity: 0.72;
 }
 .abl-clear {
   color: white;
@@ -730,17 +758,26 @@ const abaloneStyles = `
   .abl-layout {
     grid-template-columns: 1fr;
   }
+  .abl-panel {
+    order: -1;
+  }
   .abl-board {
-    justify-content: start;
+    --abl-cell-size: clamp(30px, calc((100vw - 88px) / 9), 42px);
+    justify-content: center;
     max-width: 100%;
-    overflow-x: auto;
+    overflow-x: hidden;
+    padding: 12px;
   }
   .abl-row {
-    grid-template-columns: repeat(var(--row-size), 44px);
+    grid-template-columns: repeat(var(--row-size), var(--abl-cell-size));
   }
   .abl-cell {
-    width: 44px;
-    height: 44px;
+    width: var(--abl-cell-size);
+    height: var(--abl-cell-size);
+    min-height: var(--abl-cell-size);
+  }
+  .abl-directions button {
+    min-height: 48px;
   }
 }
 `;
