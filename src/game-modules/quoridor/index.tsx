@@ -558,7 +558,7 @@ export function Component(props: GameComponentProps) {
 
   function previewWallOnBoard(row: number, col: number) {
     if (!wallModeActive || wallTouchesOuterEdge(row, col) || wallSlotOccupied(publicState, row, col)) return;
-    if (compactControls) return;
+    if (!compactControls) return;
     setWallSelection(row, col);
     setWallPreviewVisible(true);
   }
@@ -679,7 +679,8 @@ export function Component(props: GameComponentProps) {
               />
             );
           })}
-          {canAct &&
+          {compactControls &&
+          canAct &&
           wallModeActive &&
           wallPreviewVisible &&
           !wallTouchesOuterEdge(wallRow, wallCol) &&
