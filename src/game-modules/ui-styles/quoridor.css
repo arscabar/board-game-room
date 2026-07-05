@@ -125,11 +125,13 @@
 }
 
 .qdr-wall-piece {
-  background:
-    linear-gradient(180deg, #4a2d1a, #21120a) !important;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 221, 151, 0.2),
-    0 3px 5px rgba(32, 18, 9, 0.3) !important;
+  position: absolute !important;
+  display: block !important;
+  overflow: visible !important;
+  border: 0 !important;
+  border-radius: 4px !important;
+  background: linear-gradient(180deg, #4d301d, #241409) !important;
+  box-shadow: 0 3px 5px rgba(32, 18, 9, 0.34) !important;
 }
 
 .qdr-pawn {
@@ -148,14 +150,6 @@
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.36);
   filter: blur(1px);
-}
-
-.qdr-wall-piece {
-  border: 1px solid rgba(22, 12, 6, 0.58) !important;
-  background:
-    linear-gradient(90deg, rgba(255, 219, 144, 0.14), transparent 16% 84%, rgba(0, 0, 0, 0.22)),
-    repeating-linear-gradient(0deg, rgba(255, 211, 130, 0.1) 0 1px, transparent 1px 8px),
-    linear-gradient(180deg, #4a2d19, #1b0e07) !important;
 }
 
 .qdr-wall-piece {

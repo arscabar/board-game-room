@@ -657,7 +657,7 @@ export function Component(props: GameComponentProps) {
               );
             })
           )}
-          {publicState.walls.horizontal.map((wallKey) => {
+          {Array.from(new Set(publicState.walls.horizontal)).map((wallKey) => {
             const wall = coordFromKey(wallKey);
             return (
               <span
@@ -668,7 +668,7 @@ export function Component(props: GameComponentProps) {
               />
             );
           })}
-          {publicState.walls.vertical.map((wallKey) => {
+          {Array.from(new Set(publicState.walls.vertical)).map((wallKey) => {
             const wall = coordFromKey(wallKey);
             return (
               <span
@@ -965,48 +965,42 @@ const quoridorStyles = `
   background: #28777c;
 }
 .qdr-wall-piece {
-  position: absolute;
-  z-index: 2;
+  position: absolute !important;
+  z-index: 3;
+  display: block;
+  overflow: visible !important;
   pointer-events: none;
-  border-radius: 999px;
-  background:
-    radial-gradient(circle at 28% 24%, rgba(255, 244, 205, 0.72), transparent 28%),
-    linear-gradient(180deg, #f4c873, #9a5a24);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 244, 205, 0.5),
-    inset 0 -4px 0 rgba(74, 40, 17, 0.28),
-    0 4px 8px rgba(54, 31, 15, 0.34);
+  border: 0;
+  border-radius: 4px;
+  background: linear-gradient(180deg, #4d301d, #241409);
+  box-shadow: 0 3px 5px rgba(32, 18, 9, 0.34);
 }
 .qdr-wall-piece.horizontal {
   left: calc(var(--qdr-padding) + (var(--wall-col) * (var(--qdr-cell) + var(--qdr-gap))) + (var(--qdr-cell) * 0.08));
   top: calc(var(--qdr-padding) + ((var(--wall-row) + 1) * var(--qdr-cell)) + (var(--wall-row) * var(--qdr-gap)) + (var(--qdr-gap) * 0.05));
   width: calc((var(--qdr-cell) * 1.84) + var(--qdr-gap));
-  height: calc(var(--qdr-gap) * 0.9);
+  height: max(5px, calc(var(--qdr-gap) * 0.72));
 }
 .qdr-wall-piece.vertical {
   left: calc(var(--qdr-padding) + ((var(--wall-col) + 1) * var(--qdr-cell)) + (var(--wall-col) * var(--qdr-gap)) + (var(--qdr-gap) * 0.05));
   top: calc(var(--qdr-padding) + (var(--wall-row) * (var(--qdr-cell) + var(--qdr-gap))) + (var(--qdr-cell) * 0.08));
-  width: calc(var(--qdr-gap) * 0.9);
+  width: max(5px, calc(var(--qdr-gap) * 0.72));
   height: calc((var(--qdr-cell) * 1.84) + var(--qdr-gap));
 }
 .qdr-wall-preview {
   position: absolute;
   z-index: 4;
   pointer-events: none;
-  border-radius: 999px;
-  opacity: 0.88;
-  background:
-    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.32) 0 4px, transparent 4px 8px),
-    linear-gradient(180deg, #f9df80, #b06a2d);
+  border-radius: 4px;
+  opacity: 0.78;
+  background: linear-gradient(180deg, #ffd36d, #a76227);
   box-shadow:
-    0 0 0 2px rgba(255, 247, 209, 0.74),
-    0 0 14px rgba(249, 223, 128, 0.5);
+    0 0 0 2px rgba(255, 247, 209, 0.62),
+    0 0 10px rgba(249, 223, 128, 0.36);
 }
 .qdr-wall-preview.blocked {
-  opacity: 0.72;
-  background:
-    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.34) 0 4px, transparent 4px 8px),
-    linear-gradient(180deg, #b74a3b, #5e2b24);
+  opacity: 0.64;
+  background: linear-gradient(180deg, #b74a3b, #5e2b24);
   box-shadow:
     0 0 0 2px rgba(255, 215, 190, 0.58),
     0 0 12px rgba(183, 74, 59, 0.42);
@@ -1015,12 +1009,12 @@ const quoridorStyles = `
   left: calc(var(--qdr-padding) + (var(--wall-col) * (var(--qdr-cell) + var(--qdr-gap))) + (var(--qdr-cell) * 0.08));
   top: calc(var(--qdr-padding) + ((var(--wall-row) + 1) * var(--qdr-cell)) + (var(--wall-row) * var(--qdr-gap)) + (var(--qdr-gap) * 0.05));
   width: calc((var(--qdr-cell) * 1.84) + var(--qdr-gap));
-  height: calc(var(--qdr-gap) * 0.9);
+  height: max(5px, calc(var(--qdr-gap) * 0.72));
 }
 .qdr-wall-preview.vertical {
   left: calc(var(--qdr-padding) + ((var(--wall-col) + 1) * var(--qdr-cell)) + (var(--wall-col) * var(--qdr-gap)) + (var(--qdr-gap) * 0.05));
   top: calc(var(--qdr-padding) + (var(--wall-row) * (var(--qdr-cell) + var(--qdr-gap))) + (var(--qdr-cell) * 0.08));
-  width: calc(var(--qdr-gap) * 0.9);
+  width: max(5px, calc(var(--qdr-gap) * 0.72));
   height: calc((var(--qdr-cell) * 1.84) + var(--qdr-gap));
 }
 .qdr-wall-hit {
