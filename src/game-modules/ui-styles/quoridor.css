@@ -66,9 +66,19 @@
     linear-gradient(180deg, #f4d692, #c99145) !important;
 }
 
+.qdr-cell.selected {
+  outline: 3px solid #fff3b8 !important;
+  outline-offset: -4px !important;
+  box-shadow:
+    inset 0 0 0 3px #15847b,
+    inset 0 -4px 0 rgba(0, 0, 0, 0.18),
+    0 0 14px rgba(21, 132, 123, 0.42) !important;
+}
+
 .qdr-wall-grid button,
 .qdr-segment button,
-.qdr-action {
+.qdr-action,
+.qdr-confirm-actions button {
   background:
     linear-gradient(90deg, rgba(255, 247, 211, 0.72), transparent 28%),
     linear-gradient(180deg, #f0c56c, #b87934) !important;
@@ -265,6 +275,7 @@
 
 .qdr-players,
 .qdr-guidance,
+.qdr-action-mode,
 .qdr-wall-controls {
   min-width: 0 !important;
   border: 1px solid rgba(226, 184, 109, 0.28) !important;
@@ -273,6 +284,33 @@
   background:
     linear-gradient(180deg, rgba(255, 238, 200, 0.96), rgba(225, 190, 132, 0.88)) !important;
   color: #24170f !important;
+}
+
+.qdr-action-mode {
+  display: grid !important;
+  gap: 8px !important;
+}
+
+.qdr-mode-segment button,
+.qdr-confirm-actions button {
+  min-height: 42px !important;
+  font-weight: 900 !important;
+}
+
+.qdr-move-controls {
+  display: grid !important;
+  gap: 9px !important;
+}
+
+.qdr-move-controls span {
+  display: block !important;
+  min-height: 36px !important;
+  border: 1px solid rgba(84, 45, 20, 0.2) !important;
+  border-radius: 7px !important;
+  padding: 9px !important;
+  background: rgba(255, 248, 220, 0.64) !important;
+  color: #2b1a12 !important;
+  font-weight: 900 !important;
 }
 
 .qdr-wall-grid {
@@ -324,4 +362,49 @@
   .qdr-wall-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
   }
+}
+
+.qdr-confirm-backdrop {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 60 !important;
+  display: grid !important;
+  place-items: center !important;
+  padding: 18px !important;
+  background: rgba(19, 11, 7, 0.54) !important;
+}
+
+.qdr-confirm-dialog {
+  display: grid !important;
+  gap: 12px !important;
+  width: min(100%, 360px) !important;
+  border: 1px solid rgba(255, 222, 150, 0.58) !important;
+  border-radius: 10px !important;
+  padding: 16px !important;
+  background:
+    linear-gradient(180deg, rgba(255, 240, 203, 0.98), rgba(211, 151, 76, 0.96)) !important;
+  color: #20140f !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.42),
+    0 18px 52px rgba(0, 0, 0, 0.45) !important;
+}
+
+.qdr-confirm-dialog p {
+  margin: 0 !important;
+  color: #3b2a21 !important;
+  line-height: 1.4 !important;
+}
+
+.qdr-confirm-check {
+  display: flex !important;
+  gap: 8px !important;
+  align-items: center !important;
+  color: #2b1a12 !important;
+  font-weight: 800 !important;
+}
+
+.qdr-confirm-actions {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 8px !important;
 }

@@ -6,7 +6,21 @@ const BOARD_SIZE = 9;
 const WALL_GRID = 8;
 
 type Orientation = "horizontal" | "vertical";
+type ActionMode = "move" | "wall";
 type Goal = "top" | "bottom" | "left" | "right";
+
+type PendingConfirm =
+  | {
+      type: "move";
+      row: number;
+      col: number;
+    }
+  | {
+      type: "wall";
+      orientation: Orientation;
+      row: number;
+      col: number;
+    };
 
 interface QuoridorPlayer {
   id: string;
@@ -43,6 +57,7 @@ interface WallPayload {
 }
 
 const playerColors = ["#111827", "#f8fafc", "#b94f45", "#2364aa"];
+const skipConfirmStorageKey = "board-room-quoridor-skip-confirm";
 
 function wallReserveSize(playerCount: number) {
   return playerCount >= 4 ? 5 : 10;
@@ -79,6 +94,10 @@ function inBoard(row: number, col: number) {
 
 function inWallGrid(row: number, col: number) {
   return row >= 0 && row < WALL_GRID && col >= 0 && col < WALL_GRID;
+}
+
+function wallTouchesOuterEdge(row: number, col: number) {
+  return !inWallGrid(row, col) || row === 0 || col === 0 || row === WALL_GRID - 1 || col === WALL_GRID - 1;
 }
 
 function cloneState(state: QuoridorState): QuoridorState {
@@ -385,6 +404,9 @@ function placeWall(state: QuoridorState, action: GameAction, context: GameContex
   if (player.wallsRemaining <= 0) {
     throw new Error("남은 벽이 없습니다.");
   }
+  if (wallTouchesOuterEdge(row, col)) {
+    throw new Error("가장 바깥 끝선에는 벽을 설치할 수 없습니다.");
+  }
   if (wallWouldOverlap(state, orientation, row, col)) {
     throw new Error("이미 벽이 있거나 교차되는 위치입니다.");
   }
@@ -448,12 +470,42 @@ function wallPieceStyle(row: number, col: number): CSSProperties {
   return { "--wall-row": row, "--wall-col": col } as CSSProperties;
 }
 
+function sameCoord(a: Coord | null, row: number, col: number) {
+  return Boolean(a && a.row === row && a.col === col);
+}
+
+function readSkipConfirm() {
+  if (typeof localStorage === "undefined") {
+    return false;
+  }
+  return localStorage.getItem(skipConfirmStorageKey) === "1";
+}
+
+function writeSkipConfirm(value: boolean) {
+  if (typeof localStorage === "undefined") {
+    return;
+  }
+  if (value) {
+    localStorage.setItem(skipConfirmStorageKey, "1");
+  } else {
+    localStorage.removeItem(skipConfirmStorageKey);
+  }
+}
+
+function orientationLabel(orientation: Orientation) {
+  return orientation === "horizontal" ? "가로" : "세로";
+}
+
 export function Component(props: GameComponentProps) {
   const { currentPlayer, activePlayer, disabled, onAction } = props;
   const publicState = props.publicState as QuoridorPublicState;
+  const [mode, setMode] = useState<ActionMode>("move");
   const [orientation, setOrientation] = useState<Orientation>("horizontal");
-  const [wallRow, setWallRow] = useState(0);
-  const [wallCol, setWallCol] = useState(0);
+  const [wallRow, setWallRow] = useState(1);
+  const [wallCol, setWallCol] = useState(1);
+  const [selectedMove, setSelectedMove] = useState<Coord | null>(null);
+  const [pendingConfirm, setPendingConfirm] = useState<PendingConfirm | null>(null);
+  const [skipConfirm, setSkipConfirm] = useState(() => readSkipConfirm());
   const wallReserveTotal = wallReserveSize(publicState.players.length);
   const activeModulePlayer = publicState.players.find((player) => player.id === activePlayer?.id) ?? null;
   const currentModulePlayer = publicState.players.find((player) => player.id === currentPlayer?.id) ?? null;
@@ -462,36 +514,45 @@ export function Component(props: GameComponentProps) {
     activeModulePlayer,
     publicState
   ]);
-  const legalMoveKeys = new Set(moves.map((move) => key(move.row, move.col)));
+  const legalMoveKeys = useMemo(() => new Set(moves.map((move) => key(move.row, move.col))), [moves]);
+  const selectedMoveBlocked = !selectedMove || !legalMoveKeys.has(key(selectedMove.row, selectedMove.col));
   const selectedWallBlocked =
     !currentModulePlayer ||
     currentModulePlayer.wallsRemaining <= 0 ||
+    wallTouchesOuterEdge(wallRow, wallCol) ||
     wallWouldOverlap(publicState, orientation, wallRow, wallCol) ||
     !wallPreservesPaths(publicState, orientation, wallRow, wallCol);
   const selectedWallReason = !currentModulePlayer
     ? "플레이어 정보를 찾을 수 없습니다."
     : currentModulePlayer.wallsRemaining <= 0
       ? "남은 벽이 없습니다."
-      : wallWouldOverlap(publicState, orientation, wallRow, wallCol)
-        ? "이미 벽이 있거나 교차되는 위치입니다."
-        : !wallPreservesPaths(publicState, orientation, wallRow, wallCol)
-          ? "누군가의 길을 완전히 막는 위치입니다."
-          : "놓을 수 있는 벽 위치입니다.";
+      : wallTouchesOuterEdge(wallRow, wallCol)
+        ? "가장 바깥 끝선과 맞닿는 위치에는 벽을 놓을 수 없습니다."
+        : wallWouldOverlap(publicState, orientation, wallRow, wallCol)
+          ? "이미 벽이 있거나 교차되는 위치입니다."
+          : !wallPreservesPaths(publicState, orientation, wallRow, wallCol)
+            ? "누군가의 길을 완전히 막는 위치입니다."
+            : "놓을 수 있는 벽 위치입니다.";
 
-  function sendPawnMove(row: number, col: number) {
-    if (!canAct || !legalMoveKeys.has(key(row, col))) return;
-    onAction({ type: "movePawn", payload: { row, col } });
+  function selectMode(nextMode: ActionMode) {
+    setMode(nextMode);
+    setPendingConfirm(null);
+    if (nextMode === "move") {
+      setSelectedMove(null);
+    }
   }
 
-  function sendWall() {
-    if (!canAct || selectedWallBlocked) return;
-    onAction({ type: "placeWall", payload: { orientation, row: wallRow, col: wallCol } });
+  function selectPawnMove(row: number, col: number) {
+    if (!canAct || mode !== "move" || !legalMoveKeys.has(key(row, col))) return;
+    setSelectedMove({ row, col });
+    setPendingConfirm(null);
   }
 
   function wallBlockedAt(nextOrientation: Orientation, row: number, col: number) {
     return (
       !currentModulePlayer ||
       currentModulePlayer.wallsRemaining <= 0 ||
+      wallTouchesOuterEdge(row, col) ||
       wallWouldOverlap(publicState, nextOrientation, row, col) ||
       !wallPreservesPaths(publicState, nextOrientation, row, col)
     );
@@ -502,12 +563,75 @@ export function Component(props: GameComponentProps) {
     setWallCol(col);
   }
 
-  function sendWallAt(row: number, col: number) {
+  function selectWallAt(row: number, col: number) {
+    if (!canAct || mode !== "wall") return;
     previewWall(row, col);
-    if (!canAct || wallBlockedAt(orientation, row, col)) {
+    setPendingConfirm(null);
+  }
+
+  function setSkipConfirmChoice(value: boolean) {
+    setSkipConfirm(value);
+    writeSkipConfirm(value);
+  }
+
+  function applyConfirmedAction(action: PendingConfirm) {
+    if (!canAct) return;
+
+    if (action.type === "move") {
+      if (!legalMoveKeys.has(key(action.row, action.col))) {
+        setPendingConfirm(null);
+        return;
+      }
+      setSelectedMove(null);
+      setPendingConfirm(null);
+      onAction({ type: "movePawn", payload: { row: action.row, col: action.col } });
       return;
     }
-    onAction({ type: "placeWall", payload: { orientation, row, col } });
+
+    if (wallBlockedAt(action.orientation, action.row, action.col)) {
+      setPendingConfirm(null);
+      return;
+    }
+    setPendingConfirm(null);
+    onAction({
+      type: "placeWall",
+      payload: { orientation: action.orientation, row: action.row, col: action.col }
+    });
+  }
+
+  function requestConfirm(action: PendingConfirm) {
+    if (action.type === "move" && !legalMoveKeys.has(key(action.row, action.col))) return;
+    if (action.type === "wall") {
+      previewWall(action.row, action.col);
+      if (wallBlockedAt(action.orientation, action.row, action.col)) return;
+    }
+    if (skipConfirm) {
+      applyConfirmedAction(action);
+      return;
+    }
+    setPendingConfirm(action);
+  }
+
+  function confirmSelectedMove() {
+    if (!selectedMove || selectedMoveBlocked) return;
+    requestConfirm({ type: "move", row: selectedMove.row, col: selectedMove.col });
+  }
+
+  function sendWall() {
+    if (selectedWallBlocked) return;
+    requestConfirm({ type: "wall", orientation, row: wallRow, col: wallCol });
+  }
+
+  function confirmPending() {
+    if (!pendingConfirm) return;
+    applyConfirmedAction(pendingConfirm);
+  }
+
+  function pendingDescription(action: PendingConfirm) {
+    if (action.type === "move") {
+      return `${action.row + 1}행 ${action.col + 1}열로 말을 이동합니다.`;
+    }
+    return `${action.row + 1}행 ${action.col + 1}열에 ${orientationLabel(action.orientation)} 벽을 설치합니다.`;
   }
 
   return (
@@ -537,13 +661,14 @@ export function Component(props: GameComponentProps) {
           {Array.from({ length: BOARD_SIZE }, (_, row) =>
             Array.from({ length: BOARD_SIZE }, (_, col) => {
               const pawn = publicState.players.find((player) => player.row === row && player.col === col);
-              const legal = canAct && legalMoveKeys.has(key(row, col));
+              const legal = canAct && mode === "move" && legalMoveKeys.has(key(row, col));
+              const selected = mode === "move" && sameCoord(selectedMove, row, col);
               return (
                 <button
-                  className={`qdr-cell ${legal ? "legal" : ""}`}
+                  className={`qdr-cell ${legal ? "legal" : ""} ${selected ? "selected" : ""}`}
                   disabled={!legal}
                   key={key(row, col)}
-                  onClick={() => sendPawnMove(row, col)}
+                  onClick={() => selectPawnMove(row, col)}
                   style={cellWallStyle(publicState, row, col)}
                   type="button"
                   title={`${row + 1}행 ${col + 1}열`}
@@ -587,32 +712,35 @@ export function Component(props: GameComponentProps) {
               />
             );
           })}
-          {canAct ? (
+          {canAct && mode === "wall" && !wallTouchesOuterEdge(wallRow, wallCol) ? (
             <span
               aria-hidden="true"
               className={`qdr-wall-preview ${orientation} ${selectedWallBlocked ? "blocked" : "valid"}`}
               style={wallPieceStyle(wallRow, wallCol)}
             />
           ) : null}
-          {canAct
+          {canAct && mode === "wall"
             ? Array.from({ length: WALL_GRID }, (_, row) =>
                 Array.from({ length: WALL_GRID }, (_, col) => {
+                  if (wallTouchesOuterEdge(row, col)) {
+                    return null;
+                  }
                   const selected = row === wallRow && col === wallCol;
                   const blocked = wallBlockedAt(orientation, row, col);
                   return (
                     <button
                       aria-disabled={blocked}
                       aria-label={`${row + 1}행 ${col + 1}열 ${orientation === "horizontal" ? "가로" : "세로"} 벽 ${
-                        blocked ? "불가" : "바로 놓기"
+                        blocked ? "불가" : "후보 선택"
                       }`}
                       className={`qdr-wall-hit ${orientation} ${selected ? "selected" : ""} ${blocked ? "blocked" : "valid"}`}
                       key={`hit-${orientation}-${row}-${col}`}
-                      onClick={() => sendWallAt(row, col)}
+                      onClick={() => selectWallAt(row, col)}
                       onFocus={() => previewWall(row, col)}
                       onPointerEnter={() => previewWall(row, col)}
                       style={wallPieceStyle(row, col)}
                       tabIndex={-1}
-                      title={`${row + 1}-${col + 1} ${blocked ? "불가" : "벽 놓기"}`}
+                      title={`${row + 1}-${col + 1} ${blocked ? "불가" : "벽 후보"}`}
                       type="button"
                     />
                   );
@@ -645,69 +773,149 @@ export function Component(props: GameComponentProps) {
             ))}
           </div>
 
+          <div className="qdr-action-mode" aria-label="쿼리도 행동 모드">
+            <strong>행동 선택</strong>
+            <div className="qdr-segment qdr-mode-segment">
+              <button
+                className={mode === "move" ? "active" : ""}
+                disabled={!canAct}
+                onClick={() => selectMode("move")}
+                type="button"
+              >
+                말 이동
+              </button>
+              <button
+                className={mode === "wall" ? "active" : ""}
+                disabled={!canAct || !currentModulePlayer || currentModulePlayer.wallsRemaining <= 0}
+                onClick={() => selectMode("wall")}
+                type="button"
+              >
+                벽 설치
+              </button>
+            </div>
+          </div>
+
           <div className="qdr-guidance" aria-label="쿼리도 행동 안내">
             <strong>이번 턴 후보</strong>
-            <span>말 이동 {moves.length}곳 · 선택 벽 {wallRow + 1}-{wallCol + 1} {orientation === "horizontal" ? "가로" : "세로"}</span>
-            <p>방향을 고른 뒤 보드 위 칸 사이를 누르면 바로 벽이 놓입니다. {selectedWallReason}</p>
+            <span>
+              {mode === "move"
+                ? `말 이동 ${moves.length}곳${selectedMove ? ` · 선택 ${selectedMove.row + 1}-${selectedMove.col + 1}` : ""}`
+                : `선택 벽 ${wallRow + 1}-${wallCol + 1} ${orientationLabel(orientation)}`}
+            </span>
+            <p>
+              {mode === "move"
+                ? selectedMove
+                  ? "선택한 이동 칸을 확인한 뒤 확정하세요."
+                  : "밝게 표시된 칸 중 하나를 누른 뒤 이동을 확정하세요."
+                : `벽은 두 칸 길이로 놓입니다. 바깥 테두리선과 맞닿는 위치는 선택할 수 없습니다. ${selectedWallReason}`}
+            </p>
           </div>
 
           <div className="qdr-wall-controls">
-            <strong>벽 놓기</strong>
-            <div className="qdr-segment">
-              <button
-                className={orientation === "horizontal" ? "active" : ""}
-                disabled={!canAct}
-                onClick={() => setOrientation("horizontal")}
-                type="button"
-              >
-                가로
-              </button>
-              <button
-                className={orientation === "vertical" ? "active" : ""}
-                disabled={!canAct}
-                onClick={() => setOrientation("vertical")}
-                type="button"
-              >
-                세로
-              </button>
-            </div>
-            <div className={`qdr-wall-grid ${orientation}`} aria-label="벽 후보 위치">
-              {Array.from({ length: WALL_GRID }, (_, row) =>
-                Array.from({ length: WALL_GRID }, (_, col) => {
-                  const selected = row === wallRow && col === wallCol;
-                  const blocked =
-                    wallWouldOverlap(publicState, orientation, row, col) ||
-                    !wallPreservesPaths(publicState, orientation, row, col);
-                  return (
-                    <button
-                      className={`${selected ? "selected" : ""} ${blocked ? "blocked" : "valid"}`}
-                      disabled={!canAct}
-                      key={key(row, col)}
-                      onClick={() => {
-                        previewWall(row, col);
-                      }}
-                      type="button"
-                      aria-pressed={selected}
-                      aria-label={`${row + 1}행 ${col + 1}열 ${orientation === "horizontal" ? "가로" : "세로"} 벽 ${
-                        blocked ? "불가" : "가능"
-                      }`}
-                      title={`${row + 1}-${col + 1} ${blocked ? "불가" : "가능"}`}
-                    >
-                      <span className="qdr-wall-grid-mark" aria-hidden="true" />
-                    </button>
-                  );
-                })
-              )}
-            </div>
-            <span className={selectedWallBlocked ? "qdr-wall-hint blocked" : "qdr-wall-hint"}>
-              {selectedWallReason}
-            </span>
-            <button className="qdr-action" disabled={!canAct || selectedWallBlocked} onClick={sendWall} type="button">
-              {wallRow + 1}-{wallCol + 1}에 벽 놓기
-            </button>
+            {mode === "move" ? (
+              <>
+                <strong>말 이동</strong>
+                <div className="qdr-move-controls">
+                  <span>{selectedMove ? `${selectedMove.row + 1}-${selectedMove.col + 1} 칸 선택됨` : "이동할 칸을 선택하세요."}</span>
+                  <button
+                    className="qdr-action"
+                    disabled={!canAct || selectedMoveBlocked}
+                    onClick={confirmSelectedMove}
+                    type="button"
+                  >
+                    이동 확정
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <strong>벽 설치</strong>
+                <div className="qdr-segment">
+                  <button
+                    className={orientation === "horizontal" ? "active" : ""}
+                    disabled={!canAct}
+                    onClick={() => setOrientation("horizontal")}
+                    type="button"
+                  >
+                    가로
+                  </button>
+                  <button
+                    className={orientation === "vertical" ? "active" : ""}
+                    disabled={!canAct}
+                    onClick={() => setOrientation("vertical")}
+                    type="button"
+                  >
+                    세로
+                  </button>
+                </div>
+                <div className={`qdr-wall-grid ${orientation}`} aria-label="벽 후보 위치">
+                  {Array.from({ length: WALL_GRID }, (_, row) =>
+                    Array.from({ length: WALL_GRID }, (_, col) => {
+                      const selected = row === wallRow && col === wallCol;
+                      const blocked = wallBlockedAt(orientation, row, col);
+                      return (
+                        <button
+                          className={`${selected ? "selected" : ""} ${blocked ? "blocked" : "valid"}`}
+                          disabled={!canAct}
+                          key={key(row, col)}
+                          onClick={() => {
+                            selectWallAt(row, col);
+                          }}
+                          type="button"
+                          aria-pressed={selected}
+                          aria-label={`${row + 1}행 ${col + 1}열 ${orientation === "horizontal" ? "가로" : "세로"} 벽 ${
+                            blocked ? "불가" : "가능"
+                          }`}
+                          title={`${row + 1}-${col + 1} ${blocked ? "불가" : "가능"}`}
+                        >
+                          <span className="qdr-wall-grid-mark" aria-hidden="true" />
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+                <span className={selectedWallBlocked ? "qdr-wall-hint blocked" : "qdr-wall-hint"}>
+                  {selectedWallReason}
+                </span>
+                <button className="qdr-action" disabled={!canAct || selectedWallBlocked} onClick={sendWall} type="button">
+                  벽 설치 확정
+                </button>
+              </>
+            )}
           </div>
         </aside>
       </div>
+      {pendingConfirm ? (
+        <div className="qdr-confirm-backdrop" role="presentation">
+          <section
+            aria-labelledby="qdr-confirm-title"
+            aria-modal="true"
+            className="qdr-confirm-dialog"
+            role="dialog"
+          >
+            <strong id="qdr-confirm-title">
+              {pendingConfirm.type === "move" ? "말을 이동하시겠습니까?" : "벽을 설치하시겠습니까?"}
+            </strong>
+            <p>{pendingDescription(pendingConfirm)}</p>
+            <label className="qdr-confirm-check">
+              <input
+                checked={skipConfirm}
+                onChange={(event) => setSkipConfirmChoice(event.currentTarget.checked)}
+                type="checkbox"
+              />
+              다음부터 표기하지 않음
+            </label>
+            <div className="qdr-confirm-actions">
+              <button onClick={() => setPendingConfirm(null)} type="button">
+                취소
+              </button>
+              <button className="primary" onClick={confirmPending} type="button">
+                확정
+              </button>
+            </div>
+          </section>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -835,6 +1043,14 @@ const quoridorStyles = `
   box-shadow:
     inset 0 0 0 3px #f7c845,
     inset 0 -4px 0 rgba(0, 0, 0, 0.24);
+}
+.qdr-cell.selected {
+  outline: 3px solid #fff3b8;
+  outline-offset: -4px;
+  box-shadow:
+    inset 0 0 0 3px #15847b,
+    inset 0 -4px 0 rgba(0, 0, 0, 0.24),
+    0 0 14px rgba(21, 132, 123, 0.44);
 }
 .qdr-pawn {
   display: grid;
@@ -1074,6 +1290,18 @@ const quoridorStyles = `
   font-size: 0.86rem;
   line-height: 1.35;
 }
+.qdr-action-mode {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  border: 1px solid rgba(255, 218, 135, 0.24);
+  border-radius: 8px;
+  padding: 10px;
+  background:
+    linear-gradient(180deg, #ffefc7, #d89c55);
+  color: #211513;
+  box-shadow: inset 0 -3px 0 rgba(75, 42, 19, 0.14);
+}
 .qdr-wall-controls {
   display: grid;
   gap: 10px;
@@ -1090,9 +1318,14 @@ const quoridorStyles = `
   grid-template-columns: 1fr 1fr;
   gap: 6px;
 }
+.qdr-mode-segment button {
+  min-height: 42px;
+  font-weight: 900;
+}
 .qdr-segment button,
 .qdr-action,
-.qdr-wall-grid button {
+.qdr-wall-grid button,
+.qdr-confirm-actions button {
   border: 1px solid rgba(84, 45, 20, 0.34);
   border-radius: 6px;
   background:
@@ -1104,10 +1337,25 @@ const quoridorStyles = `
     0 2px 0 rgba(42, 20, 10, 0.18);
 }
 .qdr-segment button.active,
-.qdr-action {
+.qdr-action,
+.qdr-confirm-actions .primary {
   background:
     linear-gradient(180deg, #f9d36f, #9d5626);
   color: #211513;
+}
+.qdr-move-controls {
+  display: grid;
+  gap: 9px;
+}
+.qdr-move-controls span {
+  display: block;
+  min-height: 36px;
+  border: 1px solid rgba(84, 45, 20, 0.2);
+  border-radius: 7px;
+  padding: 9px;
+  background: rgba(255, 248, 220, 0.64);
+  color: #2b1a12;
+  font-weight: 900;
 }
 .qdr-wall-grid {
   display: grid;
@@ -1163,6 +1411,53 @@ const quoridorStyles = `
 }
 .qdr-wall-hint.blocked {
   color: #8f2c25;
+}
+.qdr-confirm-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(19, 11, 7, 0.54);
+}
+.qdr-confirm-dialog {
+  display: grid;
+  gap: 12px;
+  width: min(100%, 360px);
+  border: 1px solid rgba(255, 222, 150, 0.58);
+  border-radius: 10px;
+  padding: 16px;
+  background:
+    linear-gradient(180deg, rgba(255, 240, 203, 0.98), rgba(211, 151, 76, 0.96));
+  color: #20140f;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.42),
+    0 18px 52px rgba(0, 0, 0, 0.45);
+}
+.qdr-confirm-dialog strong {
+  font-size: 1.08rem;
+}
+.qdr-confirm-dialog p {
+  margin: 0;
+  color: #3b2a21;
+  line-height: 1.4;
+}
+.qdr-confirm-check {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  color: #2b1a12;
+  font-weight: 800;
+}
+.qdr-confirm-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.qdr-confirm-actions button {
+  min-height: 42px;
+  font-weight: 900;
 }
 @media (max-width: 1320px) {
   .qdr-layout {
