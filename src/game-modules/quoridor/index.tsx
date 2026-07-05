@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { CSSProperties } from "react";
 import type { GameAction, GameActionResult, GameComponentProps, GameContext, GameModule } from "../types";
 
@@ -8,19 +8,6 @@ const WALL_GRID = 8;
 type Orientation = "horizontal" | "vertical";
 type ActionMode = "move" | "wall";
 type Goal = "top" | "bottom" | "left" | "right";
-
-type PendingConfirm =
-  | {
-      type: "move";
-      row: number;
-      col: number;
-    }
-  | {
-      type: "wall";
-      orientation: Orientation;
-      row: number;
-      col: number;
-    };
 
 interface QuoridorPlayer {
   id: string;
@@ -57,7 +44,6 @@ interface WallPayload {
 }
 
 const playerColors = ["#111827", "#f8fafc", "#b94f45", "#2364aa"];
-const skipConfirmStorageKey = "board-room-quoridor-skip-confirm";
 
 function wallReserveSize(playerCount: number) {
   return playerCount >= 4 ? 5 : 10;
@@ -479,26 +465,15 @@ function sameCoord(a: Coord | null, row: number, col: number) {
   return Boolean(a && a.row === row && a.col === col);
 }
 
-function readSkipConfirm() {
-  if (typeof localStorage === "undefined") {
-    return false;
-  }
-  return localStorage.getItem(skipConfirmStorageKey) === "1";
-}
-
-function writeSkipConfirm(value: boolean) {
-  if (typeof localStorage === "undefined") {
-    return;
-  }
-  if (value) {
-    localStorage.setItem(skipConfirmStorageKey, "1");
-  } else {
-    localStorage.removeItem(skipConfirmStorageKey);
-  }
-}
-
 function orientationLabel(orientation: Orientation) {
   return orientation === "horizontal" ? "가로" : "세로";
+}
+
+function readCompactControls() {
+  if (typeof window === "undefined" || typeof window.matchMedia === "undefined") {
+    return false;
+  }
+  return window.matchMedia("(max-width: 767px), (pointer: coarse)").matches;
 }
 
 export function Component(props: GameComponentProps) {
@@ -510,8 +485,7 @@ export function Component(props: GameComponentProps) {
   const [wallCol, setWallCol] = useState(1);
   const [wallPreviewVisible, setWallPreviewVisible] = useState(false);
   const [selectedMove, setSelectedMove] = useState<Coord | null>(null);
-  const [pendingConfirm, setPendingConfirm] = useState<PendingConfirm | null>(null);
-  const [skipConfirm, setSkipConfirm] = useState(() => readSkipConfirm());
+  const [compactControls, setCompactControls] = useState(() => readCompactControls());
   const wallReserveTotal = wallReserveSize(publicState.players.length);
   const activeModulePlayer = publicState.players.find((player) => player.id === activePlayer?.id) ?? null;
   const currentModulePlayer = publicState.players.find((player) => player.id === currentPlayer?.id) ?? null;
@@ -521,7 +495,8 @@ export function Component(props: GameComponentProps) {
     publicState
   ]);
   const legalMoveKeys = useMemo(() => new Set(moves.map((move) => key(move.row, move.col))), [moves]);
-  const selectedMoveBlocked = !selectedMove || !legalMoveKeys.has(key(selectedMove.row, selectedMove.col));
+  const moveModeActive = compactControls || mode === "move";
+  const wallModeActive = compactControls || mode === "wall";
   const selectedWallBlocked =
     !currentModulePlayer ||
     currentModulePlayer.wallsRemaining <= 0 ||
@@ -542,9 +517,24 @@ export function Component(props: GameComponentProps) {
               ? "누군가의 길을 완전히 막는 위치입니다."
               : "놓을 수 있는 벽 위치입니다.";
 
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof window.matchMedia === "undefined") {
+      return undefined;
+    }
+    const widthQuery = window.matchMedia("(max-width: 767px)");
+    const pointerQuery = window.matchMedia("(pointer: coarse)");
+    const update = () => setCompactControls(widthQuery.matches || pointerQuery.matches);
+    update();
+    widthQuery.addEventListener("change", update);
+    pointerQuery.addEventListener("change", update);
+    return () => {
+      widthQuery.removeEventListener("change", update);
+      pointerQuery.removeEventListener("change", update);
+    };
+  }, []);
+
   function selectMode(nextMode: ActionMode) {
     setMode(nextMode);
-    setPendingConfirm(null);
     setWallPreviewVisible(false);
     if (nextMode === "move") {
       setSelectedMove(null);
@@ -552,9 +542,10 @@ export function Component(props: GameComponentProps) {
   }
 
   function selectPawnMove(row: number, col: number) {
-    if (!canAct || mode !== "move" || !legalMoveKeys.has(key(row, col))) return;
+    if (!canAct || !moveModeActive || !legalMoveKeys.has(key(row, col))) return;
     setSelectedMove({ row, col });
-    setPendingConfirm(null);
+    setWallPreviewVisible(false);
+    onAction({ type: "movePawn", payload: { row, col } });
   }
 
   function wallBlockedAt(nextOrientation: Orientation, row: number, col: number) {
@@ -573,7 +564,7 @@ export function Component(props: GameComponentProps) {
   }
 
   function previewWallOnBoard(row: number, col: number) {
-    if (wallTouchesOuterEdge(row, col) || wallSlotOccupied(publicState, row, col)) return;
+    if (!wallModeActive || wallTouchesOuterEdge(row, col) || wallSlotOccupied(publicState, row, col)) return;
     setWallSelection(row, col);
     setWallPreviewVisible(true);
   }
@@ -583,81 +574,18 @@ export function Component(props: GameComponentProps) {
   }
 
   function selectWallAt(row: number, col: number, source: "board" | "panel") {
-    if (!canAct || mode !== "wall" || wallTouchesOuterEdge(row, col) || wallSlotOccupied(publicState, row, col)) return;
+    if (!canAct || !wallModeActive || wallTouchesOuterEdge(row, col) || wallSlotOccupied(publicState, row, col)) return;
     setWallSelection(row, col);
     setWallPreviewVisible(source === "board");
-    setPendingConfirm(null);
-  }
-
-  function setSkipConfirmChoice(value: boolean) {
-    setSkipConfirm(value);
-    writeSkipConfirm(value);
-  }
-
-  function applyConfirmedAction(action: PendingConfirm) {
-    if (!canAct) return;
-
-    if (action.type === "move") {
-      if (!legalMoveKeys.has(key(action.row, action.col))) {
-        setPendingConfirm(null);
-        return;
-      }
-      setSelectedMove(null);
-      setPendingConfirm(null);
-      setWallPreviewVisible(false);
-      onAction({ type: "movePawn", payload: { row: action.row, col: action.col } });
-      return;
-    }
-
-    if (wallBlockedAt(action.orientation, action.row, action.col)) {
-      setPendingConfirm(null);
-      return;
-    }
-    setPendingConfirm(null);
-    setWallPreviewVisible(false);
-    onAction({
-      type: "placeWall",
-      payload: { orientation: action.orientation, row: action.row, col: action.col }
-    });
-  }
-
-  function requestConfirm(action: PendingConfirm) {
-    if (action.type === "move" && !legalMoveKeys.has(key(action.row, action.col))) return;
-    if (action.type === "wall") {
-      setWallSelection(action.row, action.col);
-      if (wallBlockedAt(action.orientation, action.row, action.col)) return;
-    }
-    if (skipConfirm) {
-      applyConfirmedAction(action);
-      return;
-    }
-    setPendingConfirm(action);
-  }
-
-  function confirmSelectedMove() {
-    if (!selectedMove || selectedMoveBlocked) return;
-    requestConfirm({ type: "move", row: selectedMove.row, col: selectedMove.col });
   }
 
   function sendWall() {
-    if (selectedWallBlocked) return;
-    requestConfirm({ type: "wall", orientation, row: wallRow, col: wallCol });
-  }
-
-  function confirmPending() {
-    if (!pendingConfirm) return;
-    applyConfirmedAction(pendingConfirm);
-  }
-
-  function toggleWallMode() {
-    selectMode(mode === "wall" ? "move" : "wall");
-  }
-
-  function pendingDescription(action: PendingConfirm) {
-    if (action.type === "move") {
-      return `${action.row + 1}행 ${action.col + 1}열로 말을 이동합니다.`;
-    }
-    return `${action.row + 1}행 ${action.col + 1}열에 ${orientationLabel(action.orientation)} 벽을 설치합니다.`;
+    if (!canAct || selectedWallBlocked) return;
+    setWallPreviewVisible(false);
+    onAction({
+      type: "placeWall",
+      payload: { orientation, row: wallRow, col: wallCol }
+    });
   }
 
   return (
@@ -696,8 +624,8 @@ export function Component(props: GameComponentProps) {
           {Array.from({ length: BOARD_SIZE }, (_, row) =>
             Array.from({ length: BOARD_SIZE }, (_, col) => {
               const pawn = publicState.players.find((player) => player.row === row && player.col === col);
-              const legal = canAct && mode === "move" && legalMoveKeys.has(key(row, col));
-              const selected = mode === "move" && sameCoord(selectedMove, row, col);
+              const legal = canAct && moveModeActive && legalMoveKeys.has(key(row, col));
+              const selected = moveModeActive && sameCoord(selectedMove, row, col);
               return (
                 <button
                   className={`qdr-cell ${legal ? "legal" : ""} ${selected ? "selected" : ""}`}
@@ -748,7 +676,7 @@ export function Component(props: GameComponentProps) {
             );
           })}
           {canAct &&
-          mode === "wall" &&
+          wallModeActive &&
           wallPreviewVisible &&
           !wallTouchesOuterEdge(wallRow, wallCol) &&
           !wallSlotOccupied(publicState, wallRow, wallCol) ? (
@@ -758,7 +686,7 @@ export function Component(props: GameComponentProps) {
               style={wallPieceStyle(wallRow, wallCol)}
             />
           ) : null}
-          {canAct && mode === "wall"
+          {canAct && wallModeActive
             ? Array.from({ length: WALL_GRID }, (_, row) =>
                 Array.from({ length: WALL_GRID }, (_, col) => {
                   if (wallTouchesOuterEdge(row, col)) {
@@ -815,50 +743,56 @@ export function Component(props: GameComponentProps) {
             ))}
           </div>
 
-          <div className="qdr-action-mode" aria-label="쿼리도 벽 설치 모드">
-            <strong>벽 설치 모드</strong>
-            <button
-              aria-pressed={mode === "wall"}
-              className={`qdr-wall-mode-toggle ${mode === "wall" ? "active" : ""}`}
-              disabled={!canAct || !currentModulePlayer || currentModulePlayer.wallsRemaining <= 0}
-              onClick={toggleWallMode}
-              type="button"
-            >
-              {mode === "wall" ? "벽 설치 모드 끄기" : "벽 설치 모드 켜기"}
-            </button>
-            <span>{mode === "wall" ? "보드 위 홈을 고른 뒤 확정하세요." : "꺼져 있을 때는 말 이동만 선택됩니다."}</span>
-          </div>
+          {!compactControls ? (
+            <div className="qdr-action-mode" aria-label="쿼리도 행동 모드">
+              <strong>행동 모드</strong>
+              <div className="qdr-segment qdr-mode-segment">
+                <button
+                  aria-pressed={mode === "move"}
+                  className={mode === "move" ? "active" : ""}
+                  disabled={!canAct}
+                  onClick={() => selectMode("move")}
+                  type="button"
+                >
+                  말 이동
+                </button>
+                <button
+                  aria-pressed={mode === "wall"}
+                  className={mode === "wall" ? "active" : ""}
+                  disabled={!canAct || !currentModulePlayer || currentModulePlayer.wallsRemaining <= 0}
+                  onClick={() => selectMode("wall")}
+                  type="button"
+                >
+                  벽 설치
+                </button>
+              </div>
+            </div>
+          ) : null}
 
           <div className="qdr-guidance" aria-label="쿼리도 행동 안내">
             <strong>이번 턴 후보</strong>
             <span>
-              {mode === "move"
+              {compactControls
+                ? `말 이동 ${moves.length}곳 · 선택 벽 ${wallRow + 1}-${wallCol + 1} ${orientationLabel(orientation)}`
+                : mode === "move"
                 ? `말 이동 ${moves.length}곳${selectedMove ? ` · 선택 ${selectedMove.row + 1}-${selectedMove.col + 1}` : ""}`
                 : `선택 벽 ${wallRow + 1}-${wallCol + 1} ${orientationLabel(orientation)}`}
             </span>
             <p>
-              {mode === "move"
-                ? selectedMove
-                  ? "선택한 이동 칸을 확인한 뒤 확정하세요."
-                  : "밝게 표시된 칸 중 하나를 누른 뒤 이동을 확정하세요."
+              {compactControls
+                ? `말은 밝은 칸을 누르면 바로 이동합니다. 벽은 위치를 고른 뒤 벽 설치 확정을 누르세요. ${selectedWallReason}`
+                : mode === "move"
+                  ? "밝게 표시된 칸을 클릭하면 바로 이동합니다."
                 : `벽은 두 칸 길이로 놓입니다. 바깥 테두리선과 맞닿는 위치는 선택할 수 없습니다. ${selectedWallReason}`}
             </p>
           </div>
 
           <div className="qdr-wall-controls">
-            {mode === "move" ? (
+            {!wallModeActive ? (
               <>
-                <strong>말 이동</strong>
+                <strong>말 이동 모드</strong>
                 <div className="qdr-move-controls">
-                  <span>{selectedMove ? `${selectedMove.row + 1}-${selectedMove.col + 1} 칸 선택됨` : "이동할 칸을 선택하세요."}</span>
-                  <button
-                    className="qdr-action"
-                    disabled={!canAct || selectedMoveBlocked}
-                    onClick={confirmSelectedMove}
-                    type="button"
-                  >
-                    이동 확정
-                  </button>
+                  <span>밝게 표시된 칸을 클릭하면 바로 이동합니다.</span>
                 </div>
               </>
             ) : (
@@ -920,37 +854,6 @@ export function Component(props: GameComponentProps) {
           </div>
         </aside>
       </div>
-      {pendingConfirm ? (
-        <div className="qdr-confirm-backdrop" role="presentation">
-          <section
-            aria-labelledby="qdr-confirm-title"
-            aria-modal="true"
-            className="qdr-confirm-dialog"
-            role="dialog"
-          >
-            <strong id="qdr-confirm-title">
-              {pendingConfirm.type === "move" ? "말을 이동하시겠습니까?" : "벽을 설치하시겠습니까?"}
-            </strong>
-            <p>{pendingDescription(pendingConfirm)}</p>
-            <label className="qdr-confirm-check">
-              <input
-                checked={skipConfirm}
-                onChange={(event) => setSkipConfirmChoice(event.currentTarget.checked)}
-                type="checkbox"
-              />
-              다음부터 표기하지 않음
-            </label>
-            <div className="qdr-confirm-actions">
-              <button onClick={() => setPendingConfirm(null)} type="button">
-                취소
-              </button>
-              <button className="primary" onClick={confirmPending} type="button">
-                확정
-              </button>
-            </div>
-          </section>
-        </div>
-      ) : null}
     </div>
   );
 }
@@ -1359,9 +1262,7 @@ const quoridorStyles = `
 }
 .qdr-segment button,
 .qdr-action,
-.qdr-wall-mode-toggle,
-.qdr-wall-grid button,
-.qdr-confirm-actions button {
+.qdr-wall-grid button {
   border: 1px solid rgba(84, 45, 20, 0.34);
   border-radius: 6px;
   background:
@@ -1373,21 +1274,10 @@ const quoridorStyles = `
     0 2px 0 rgba(42, 20, 10, 0.18);
 }
 .qdr-segment button.active,
-.qdr-wall-mode-toggle.active,
-.qdr-action,
-.qdr-confirm-actions .primary {
+.qdr-action {
   background:
     linear-gradient(180deg, #f9d36f, #9d5626);
   color: #211513;
-}
-.qdr-wall-mode-toggle {
-  min-height: 46px;
-  font-weight: 900;
-}
-.qdr-wall-mode-toggle + span {
-  color: #52625d;
-  font-size: 0.84rem;
-  font-weight: 800;
 }
 .qdr-move-controls {
   display: grid;
@@ -1466,53 +1356,6 @@ const quoridorStyles = `
 }
 .qdr-wall-hint.blocked {
   color: #8f2c25;
-}
-.qdr-confirm-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 60;
-  display: grid;
-  place-items: center;
-  padding: 18px;
-  background: rgba(19, 11, 7, 0.54);
-}
-.qdr-confirm-dialog {
-  display: grid;
-  gap: 12px;
-  width: min(100%, 360px);
-  border: 1px solid rgba(255, 222, 150, 0.58);
-  border-radius: 10px;
-  padding: 16px;
-  background:
-    linear-gradient(180deg, rgba(255, 240, 203, 0.98), rgba(211, 151, 76, 0.96));
-  color: #20140f;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.42),
-    0 18px 52px rgba(0, 0, 0, 0.45);
-}
-.qdr-confirm-dialog strong {
-  font-size: 1.08rem;
-}
-.qdr-confirm-dialog p {
-  margin: 0;
-  color: #3b2a21;
-  line-height: 1.4;
-}
-.qdr-confirm-check {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  color: #2b1a12;
-  font-weight: 800;
-}
-.qdr-confirm-actions {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-}
-.qdr-confirm-actions button {
-  min-height: 42px;
-  font-weight: 900;
 }
 @media (max-width: 1320px) {
   .qdr-layout {

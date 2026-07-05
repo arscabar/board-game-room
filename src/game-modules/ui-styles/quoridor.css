@@ -77,9 +77,7 @@
 
 .qdr-wall-grid button,
 .qdr-segment button,
-.qdr-action,
-.qdr-wall-mode-toggle,
-.qdr-confirm-actions button {
+.qdr-action {
   background:
     linear-gradient(90deg, rgba(255, 247, 211, 0.72), transparent 28%),
     linear-gradient(180deg, #f0c56c, #b87934) !important;
@@ -293,32 +291,9 @@
 }
 
 .qdr-mode-segment button,
-.qdr-wall-mode-toggle,
-.qdr-confirm-actions button {
+.qdr-action {
   min-height: 42px !important;
   font-weight: 900 !important;
-}
-
-.qdr-wall-mode-toggle {
-  width: 100% !important;
-  border: 1px solid rgba(84, 45, 20, 0.34) !important;
-  border-radius: 6px !important;
-  color: #271915 !important;
-  box-shadow:
-    inset 0 -3px 0 rgba(90, 45, 16, 0.18),
-    0 2px 0 rgba(42, 20, 10, 0.18) !important;
-}
-
-.qdr-wall-mode-toggle.active {
-  background:
-    linear-gradient(180deg, #f9d36f, #9d5626) !important;
-  color: #211513 !important;
-}
-
-.qdr-wall-mode-toggle + span {
-  color: #52625d !important;
-  font-size: 0.84rem !important;
-  font-weight: 800 !important;
 }
 
 .qdr-move-controls {
@@ -397,49 +372,4 @@
   .qdr-wall-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
   }
-}
-
-.qdr-confirm-backdrop {
-  position: fixed !important;
-  inset: 0 !important;
-  z-index: 60 !important;
-  display: grid !important;
-  place-items: center !important;
-  padding: 18px !important;
-  background: rgba(19, 11, 7, 0.54) !important;
-}
-
-.qdr-confirm-dialog {
-  display: grid !important;
-  gap: 12px !important;
-  width: min(100%, 360px) !important;
-  border: 1px solid rgba(255, 222, 150, 0.58) !important;
-  border-radius: 10px !important;
-  padding: 16px !important;
-  background:
-    linear-gradient(180deg, rgba(255, 240, 203, 0.98), rgba(211, 151, 76, 0.96)) !important;
-  color: #20140f !important;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.42),
-    0 18px 52px rgba(0, 0, 0, 0.45) !important;
-}
-
-.qdr-confirm-dialog p {
-  margin: 0 !important;
-  color: #3b2a21 !important;
-  line-height: 1.4 !important;
-}
-
-.qdr-confirm-check {
-  display: flex !important;
-  gap: 8px !important;
-  align-items: center !important;
-  color: #2b1a12 !important;
-  font-weight: 800 !important;
-}
-
-.qdr-confirm-actions {
-  display: grid !important;
-  grid-template-columns: 1fr 1fr !important;
-  gap: 8px !important;
 }
