@@ -372,6 +372,14 @@ function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value));
 }
 
+function stoneLayerRadius(index: number) {
+  return Math.max(0.28, 0.58 - index * 0.06);
+}
+
+function stoneLayerY(index: number) {
+  return 0.17 + index * 0.17;
+}
+
 function cellPosition(row: number, col: number) {
   return new THREE.Vector3(col * cellSpacing - boardOffset, 0, row * cellSpacing - boardOffset);
 }
@@ -641,7 +649,7 @@ function QawaleThreeBoard({
     const selectedMaterial = new THREE.MeshBasicMaterial({ color: 0xf2cf72, transparent: true, opacity: 0.9 });
     const pathMaterial = new THREE.MeshBasicMaterial({ color: 0x9fc9b8, transparent: true, opacity: 0.72 });
     const nextMaterial = new THREE.MeshBasicMaterial({ color: 0x66d19e, transparent: true, opacity: 0.78 });
-    const heightPinMaterial = new THREE.MeshStandardMaterial({ color: 0xd7a545, roughness: 0.58, metalness: 0.18 });
+    const separatorMaterial = new THREE.MeshBasicMaterial({ color: 0x100905, transparent: true, opacity: 0.54 });
     const hitMaterial = new THREE.MeshBasicMaterial({
       color: 0xffffff,
       transparent: true,
@@ -680,84 +688,91 @@ function QawaleThreeBoard({
 
         if (next) {
           const previewStone = carryStones[path.length] ?? null;
-          const preview = new THREE.Mesh(
-            new THREE.SphereGeometry(0.42, 32, 16),
-            new THREE.MeshPhysicalMaterial({
-              color: new THREE.Color(stoneColor(publicState, previewStone)),
-              roughness: 0.48,
-              clearcoat: 0.36,
-              transparent: true,
-              opacity: 0.5
-            })
+          const previewRadius = stoneLayerRadius(stack.length);
+          const previewColor = new THREE.Color(stoneColor(publicState, previewStone));
+          const previewMaterial = new THREE.MeshPhysicalMaterial({
+            color: previewColor,
+            roughness: 0.46,
+            clearcoat: 0.4,
+            clearcoatRoughness: 0.38,
+            transparent: true,
+            opacity: 0.5
+          });
+          const previewBase = new THREE.Mesh(
+            new THREE.CylinderGeometry(previewRadius * 0.92, previewRadius, 0.14, 56),
+            previewMaterial
           );
-          preview.scale.y = 0.2;
-          preview.position.set(position.x, 0.28 + stack.length * 0.11, position.z);
-          group.add(preview);
+          previewBase.position.set(position.x, stoneLayerY(stack.length), position.z);
+          previewBase.castShadow = true;
+          group.add(previewBase);
+          const previewRim = new THREE.Mesh(
+            new THREE.TorusGeometry(previewRadius * 0.96, 0.018, 8, 56),
+            new THREE.MeshBasicMaterial({ color: previewColor, transparent: true, opacity: 0.7 })
+          );
+          previewRim.rotation.x = Math.PI / 2;
+          previewRim.position.set(position.x, stoneLayerY(stack.length) + 0.08, position.z);
+          group.add(previewRim);
         }
 
+        const stackLift = selected ? 0.13 : 0;
         stack.forEach((stone, stoneIndex) => {
-          const radius = Math.max(0.34, 0.49 - stoneIndex * 0.025);
-          const stoneMesh = new THREE.Mesh(
-            new THREE.SphereGeometry(radius, 40, 18),
-            new THREE.MeshPhysicalMaterial({
-              color: new THREE.Color(stoneColor(publicState, stone)),
-              roughness: stone === NEUTRAL ? 0.38 : 0.5,
-              metalness: 0,
-              clearcoat: 0.32,
-              clearcoatRoughness: 0.42
+          const radius = stoneLayerRadius(stoneIndex);
+          const layerY = stoneLayerY(stoneIndex) + stackLift;
+          const layerColor = new THREE.Color(stoneColor(publicState, stone));
+          const layerMaterial = new THREE.MeshPhysicalMaterial({
+            color: layerColor,
+            roughness: stone === NEUTRAL ? 0.36 : 0.48,
+            metalness: 0.02,
+            clearcoat: 0.34,
+            clearcoatRoughness: 0.44
+          });
+          const layerBase = new THREE.Mesh(new THREE.CylinderGeometry(radius * 0.9, radius, 0.145, 64), layerMaterial);
+          layerBase.position.set(position.x, layerY, position.z);
+          layerBase.rotation.y = stoneIndex * 0.18;
+          layerBase.castShadow = true;
+          layerBase.receiveShadow = true;
+          group.add(layerBase);
+
+          const layerDome = new THREE.Mesh(new THREE.SphereGeometry(radius * 0.98, 48, 14), layerMaterial);
+          layerDome.scale.y = 0.115;
+          layerDome.position.set(position.x, layerY + 0.078, position.z);
+          layerDome.castShadow = true;
+          layerDome.receiveShadow = true;
+          group.add(layerDome);
+
+          const layerEdge = new THREE.Mesh(
+            new THREE.TorusGeometry(radius * 0.98, 0.018, 8, 64),
+            new THREE.MeshStandardMaterial({
+              color: layerColor,
+              roughness: 0.6,
+              metalness: 0.08
             })
           );
-          stoneMesh.scale.y = 0.18;
-          stoneMesh.position.set(
-            position.x + (stoneIndex % 2 === 0 ? -0.018 : 0.018) * stoneIndex,
-            0.18 + stoneIndex * 0.115 + (selected ? 0.14 : 0),
-            position.z - stoneIndex * 0.028
-          );
-          stoneMesh.rotation.y = stoneIndex * 0.7;
-          stoneMesh.castShadow = true;
-          stoneMesh.receiveShadow = true;
-          group.add(stoneMesh);
+          layerEdge.rotation.x = Math.PI / 2;
+          layerEdge.position.set(position.x, layerY + 0.08, position.z);
+          group.add(layerEdge);
 
-          if (stoneIndex < stack.length - 1) {
-            const sideBand = new THREE.Mesh(
-              new THREE.TorusGeometry(radius * 1.02, 0.018, 8, 36),
-              new THREE.MeshStandardMaterial({
-                color: new THREE.Color(stoneColor(publicState, stone)),
-                roughness: 0.58,
-                metalness: 0.06
-              })
-            );
-            sideBand.rotation.x = Math.PI / 2;
-            sideBand.position.set(stoneMesh.position.x, stoneMesh.position.y + 0.006, stoneMesh.position.z);
-            group.add(sideBand);
+          if (stoneIndex > 0) {
+            const separator = new THREE.Mesh(new THREE.TorusGeometry(radius + 0.035, 0.011, 8, 56), separatorMaterial);
+            separator.rotation.x = Math.PI / 2;
+            separator.position.set(position.x, layerY - 0.078, position.z);
+            group.add(separator);
           }
         });
 
         if (stack.length > 0) {
           const topColor = new THREE.Color(stoneColor(publicState, top));
           const ownerRing = new THREE.Mesh(
-            new THREE.TorusGeometry(0.54, 0.026, 10, 56),
+            new THREE.TorusGeometry(stoneLayerRadius(stack.length - 1) * 0.84, 0.02, 10, 56),
             new THREE.MeshBasicMaterial({ color: topColor, transparent: true, opacity: 0.9 })
           );
           ownerRing.rotation.x = Math.PI / 2;
-          ownerRing.position.set(position.x, 0.22 + stack.length * 0.115, position.z);
+          ownerRing.position.set(position.x, stoneLayerY(stack.length - 1) + stackLift + 0.105, position.z);
           group.add(ownerRing);
-
-          for (let markerIndex = 0; markerIndex < Math.min(stack.length, 6); markerIndex += 1) {
-            const marker = new THREE.Mesh(new THREE.SphereGeometry(0.065, 16, 8), heightPinMaterial);
-            marker.scale.y = 0.5;
-            marker.position.set(
-              position.x + 0.5 - markerIndex * 0.12,
-              0.16 + stack.length * 0.115,
-              position.z + 0.56
-            );
-            marker.castShadow = true;
-            group.add(marker);
-          }
         }
 
-        const hit = new THREE.Mesh(new THREE.CylinderGeometry(0.72, 0.72, 0.38, 24), hitMaterial) as unknown as CellHitMesh;
-        hit.position.set(position.x, 0.25, position.z);
+        const hit = new THREE.Mesh(new THREE.CylinderGeometry(0.75, 0.75, 1.2, 24), hitMaterial) as unknown as CellHitMesh;
+        hit.position.set(position.x, 0.42, position.z);
         hit.userData = { row, col };
         group.add(hit);
         clickableRef.current.push(hit);
@@ -940,8 +955,8 @@ export function Component(props: GameComponentProps) {
             <div className="qaw-carry-preview">
               <span>
                 {source && currentModulePlayer
-                  ? `기존 ${carryLength - 1}개 + 내 돌 1개 = ${carryLength}개`
-                  : "홈을 고르면 놓을 순서가 표시됩니다"}
+                  ? "보드 위 3D 레이어 순서대로 놓입니다"
+                  : "홈을 고르면 놓을 색상 순서가 표시됩니다"}
               </span>
               <div>
                 {carryStones.map((stone, index) => (
