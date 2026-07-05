@@ -25,7 +25,6 @@
 }
 
 .qdr-status,
-.qdr-player,
 .qdr-wall-controls {
   border-color: rgba(92, 54, 24, 0.2) !important;
   background:
@@ -75,17 +74,11 @@
     0 0 14px rgba(21, 132, 123, 0.42) !important;
 }
 
-.qdr-wall-grid button,
 .qdr-segment button,
 .qdr-action {
   background:
     linear-gradient(90deg, rgba(255, 247, 211, 0.72), transparent 28%),
     linear-gradient(180deg, #f0c56c, #b87934) !important;
-}
-
-.qdr-wall-grid button::before {
-  background:
-    linear-gradient(180deg, #f8d987, #c98431) !important;
 }
 
 .qdr-layout {
@@ -104,15 +97,6 @@
   display: grid !important;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)) !important;
   gap: 12px !important;
-  min-width: 0 !important;
-}
-
-.qdr-wall-grid {
-  min-width: 0 !important;
-  grid-template-columns: repeat(8, minmax(28px, 1fr)) !important;
-}
-
-.qdr-wall-grid button {
   min-width: 0 !important;
 }
 
@@ -215,15 +199,6 @@
     width: auto !important;
   }
 
-  .qdr-wall-grid {
-    min-width: 0 !important;
-    grid-template-columns: repeat(8, minmax(0, 1fr)) !important;
-  }
-
-  .qdr-wall-grid button {
-    min-width: 0 !important;
-    min-height: 34px !important;
-  }
 }
 
 /* Docking pass: the maze stays central and wall controls attach as an inspector. */
@@ -272,7 +247,6 @@
   min-width: 0 !important;
 }
 
-.qdr-players,
 .qdr-guidance,
 .qdr-action-mode,
 .qdr-wall-controls {
@@ -312,29 +286,6 @@
   font-weight: 900 !important;
 }
 
-.qdr-wall-grid {
-  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
-  max-height: 260px !important;
-  overflow-y: auto !important;
-}
-
-.qdr-wall-grid button {
-  min-width: 0 !important;
-  min-height: 38px !important;
-  font-size: 0.72rem !important;
-}
-
-.qdr-wall-grid button.occupied {
-  cursor: not-allowed !important;
-  background: #2d211b !important;
-  opacity: 0.72 !important;
-}
-
-.qdr-wall-grid button.occupied::before {
-  background:
-    linear-gradient(180deg, #4a2d1a, #1b0e07) !important;
-}
-
 .qdr-segment {
   display: grid !important;
   grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
@@ -349,10 +300,6 @@
     grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
   }
 
-  .qdr-wall-grid {
-    grid-template-columns: repeat(8, minmax(0, 1fr)) !important;
-    max-height: none !important;
-  }
 }
 
 @media (max-width: 680px) {
@@ -369,7 +316,4 @@
     grid-template-columns: 1fr !important;
   }
 
-  .qdr-wall-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
-  }
 }

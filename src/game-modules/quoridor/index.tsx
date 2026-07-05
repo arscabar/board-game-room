@@ -484,9 +484,9 @@ export function Component(props: GameComponentProps) {
   const [wallRow, setWallRow] = useState(1);
   const [wallCol, setWallCol] = useState(1);
   const [wallPreviewVisible, setWallPreviewVisible] = useState(false);
+  const [wallSelectionReady, setWallSelectionReady] = useState(false);
   const [selectedMove, setSelectedMove] = useState<Coord | null>(null);
   const [compactControls, setCompactControls] = useState(() => readCompactControls());
-  const wallReserveTotal = wallReserveSize(publicState.players.length);
   const activeModulePlayer = publicState.players.find((player) => player.id === activePlayer?.id) ?? null;
   const currentModulePlayer = publicState.players.find((player) => player.id === currentPlayer?.id) ?? null;
   const canAct = !disabled && !publicState.winnerId && currentPlayer?.id === activePlayer?.id && Boolean(currentModulePlayer);
@@ -495,8 +495,8 @@ export function Component(props: GameComponentProps) {
     publicState
   ]);
   const legalMoveKeys = useMemo(() => new Set(moves.map((move) => key(move.row, move.col))), [moves]);
-  const moveModeActive = compactControls || mode === "move";
-  const wallModeActive = compactControls || mode === "wall";
+  const moveModeActive = mode === "move";
+  const wallModeActive = mode === "wall";
   const selectedWallBlocked =
     !currentModulePlayer ||
     currentModulePlayer.wallsRemaining <= 0 ||
@@ -536,6 +536,7 @@ export function Component(props: GameComponentProps) {
   function selectMode(nextMode: ActionMode) {
     setMode(nextMode);
     setWallPreviewVisible(false);
+    setWallSelectionReady(false);
     if (nextMode === "move") {
       setSelectedMove(null);
     }
@@ -565,6 +566,7 @@ export function Component(props: GameComponentProps) {
 
   function previewWallOnBoard(row: number, col: number) {
     if (!wallModeActive || wallTouchesOuterEdge(row, col) || wallSlotOccupied(publicState, row, col)) return;
+    if (compactControls) return;
     setWallSelection(row, col);
     setWallPreviewVisible(true);
   }
@@ -573,23 +575,34 @@ export function Component(props: GameComponentProps) {
     setWallPreviewVisible(false);
   }
 
-  function selectWallAt(row: number, col: number, source: "board" | "panel") {
+  function selectWallAt(row: number, col: number) {
     if (!canAct || !wallModeActive || wallTouchesOuterEdge(row, col) || wallSlotOccupied(publicState, row, col)) return;
     setWallSelection(row, col);
-    setWallPreviewVisible(source === "board");
+    if (!compactControls) {
+      placeWallAt(row, col);
+      return;
+    }
+    setWallSelectionReady(true);
+    setWallPreviewVisible(true);
   }
 
-  function sendWall() {
-    if (!canAct || selectedWallBlocked) return;
+  function placeWallAt(row: number, col: number) {
+    if (!canAct || !wallModeActive || wallBlockedAt(orientation, row, col)) return;
     setWallPreviewVisible(false);
+    setWallSelectionReady(false);
     onAction({
       type: "placeWall",
-      payload: { orientation, row: wallRow, col: wallCol }
+      payload: { orientation, row, col }
     });
   }
 
+  function sendWall() {
+    if (!canAct || selectedWallBlocked || (compactControls && !wallSelectionReady)) return;
+    placeWallAt(wallRow, wallCol);
+  }
+
   return (
-    <div className="qdr-shell">
+    <div className={`qdr-shell ${compactControls ? "compact" : "desktop"} ${wallModeActive ? "wall-mode" : "move-mode"}`}>
       <style>{quoridorStyles}</style>
       <div className="qdr-status">
         <div>
@@ -705,7 +718,7 @@ export function Component(props: GameComponentProps) {
                       }`}
                       className={`qdr-wall-hit ${orientation} ${selected ? "selected" : ""} ${blocked ? "blocked" : "valid"}`}
                       key={`hit-${orientation}-${row}-${col}`}
-                      onClick={() => selectWallAt(row, col, "board")}
+                      onClick={() => selectWallAt(row, col)}
                       onFocus={() => previewWallOnBoard(row, col)}
                       onPointerEnter={() => previewWallOnBoard(row, col)}
                       style={wallPieceStyle(row, col)}
@@ -720,70 +733,51 @@ export function Component(props: GameComponentProps) {
         </div>
 
         <aside className="qdr-panel">
-          <div className="qdr-players">
-            {publicState.players.map((player) => (
-              <div className="qdr-player" key={player.id}>
-                <span className="qdr-swatch" style={{ background: player.color }} />
-                <div>
-                  <strong>{player.name}</strong>
-                  <span>
-                    남은 벽 {player.wallsRemaining}/{wallReserveTotal} · 목표 {goalLabel(player.goal)}
-                  </span>
-                  <div
-                    className="qdr-wall-reserve"
-                    aria-label={`${player.name} 남은 벽 ${player.wallsRemaining}개`}
-                    style={{ "--wall-reserve-total": wallReserveTotal } as CSSProperties}
-                  >
-                    {Array.from({ length: wallReserveTotal }, (_, index) => (
-                      <i key={index} className={index < player.wallsRemaining ? "available" : "spent"} />
-                    ))}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {!compactControls ? (
-            <div className="qdr-action-mode" aria-label="쿼리도 행동 모드">
-              <strong>행동 모드</strong>
-              <div className="qdr-segment qdr-mode-segment">
-                <button
-                  aria-pressed={mode === "move"}
-                  className={mode === "move" ? "active" : ""}
-                  disabled={!canAct}
-                  onClick={() => selectMode("move")}
-                  type="button"
-                >
-                  말 이동
-                </button>
-                <button
-                  aria-pressed={mode === "wall"}
-                  className={mode === "wall" ? "active" : ""}
-                  disabled={!canAct || !currentModulePlayer || currentModulePlayer.wallsRemaining <= 0}
-                  onClick={() => selectMode("wall")}
-                  type="button"
-                >
-                  벽 설치
-                </button>
-              </div>
+          <div className="qdr-action-mode" aria-label="쿼리도 행동 모드">
+            <strong>행동 모드</strong>
+            <div className="qdr-segment qdr-mode-segment">
+              <button
+                aria-pressed={mode === "move"}
+                className={mode === "move" ? "active" : ""}
+                disabled={!canAct}
+                onClick={() => selectMode("move")}
+                type="button"
+              >
+                말 이동
+              </button>
+              <button
+                aria-pressed={mode === "wall"}
+                className={mode === "wall" ? "active" : ""}
+                disabled={!canAct || !currentModulePlayer || currentModulePlayer.wallsRemaining <= 0}
+                onClick={() => selectMode("wall")}
+                type="button"
+              >
+                벽 설치
+              </button>
             </div>
-          ) : null}
+          </div>
 
           <div className="qdr-guidance" aria-label="쿼리도 행동 안내">
             <strong>이번 턴 후보</strong>
             <span>
               {compactControls
-                ? `말 이동 ${moves.length}곳 · 선택 벽 ${wallRow + 1}-${wallCol + 1} ${orientationLabel(orientation)}`
+                ? mode === "move"
+                  ? `말 이동 ${moves.length}곳`
+                  : `선택 벽 ${wallRow + 1}-${wallCol + 1} ${orientationLabel(orientation)}`
                 : mode === "move"
                 ? `말 이동 ${moves.length}곳${selectedMove ? ` · 선택 ${selectedMove.row + 1}-${selectedMove.col + 1}` : ""}`
                 : `선택 벽 ${wallRow + 1}-${wallCol + 1} ${orientationLabel(orientation)}`}
             </span>
             <p>
               {compactControls
-                ? `말은 밝은 칸을 누르면 바로 이동합니다. 벽은 위치를 고른 뒤 벽 설치 확정을 누르세요. ${selectedWallReason}`
+                ? mode === "move"
+                  ? "밝게 표시된 칸을 누르면 바로 이동합니다."
+                  : wallSelectionReady
+                    ? `선택한 위치를 확인한 뒤 벽 설치 확정을 누르세요. ${selectedWallReason}`
+                    : "보드 위 홈을 눌러 벽 위치를 먼저 선택하세요."
                 : mode === "move"
                   ? "밝게 표시된 칸을 클릭하면 바로 이동합니다."
-                : `벽은 두 칸 길이로 놓입니다. 바깥 테두리선과 맞닿는 위치는 선택할 수 없습니다. ${selectedWallReason}`}
+                  : `보드 위 홈을 클릭하면 바로 설치됩니다. ${selectedWallReason}`}
             </p>
           </div>
 
@@ -816,39 +810,23 @@ export function Component(props: GameComponentProps) {
                     세로
                   </button>
                 </div>
-                <div className={`qdr-wall-grid ${orientation}`} aria-label="벽 후보 위치">
-                  {Array.from({ length: WALL_GRID }, (_, row) =>
-                    Array.from({ length: WALL_GRID }, (_, col) => {
-                      const selected = row === wallRow && col === wallCol;
-                      const blocked = wallBlockedAt(orientation, row, col);
-                      const occupied = wallSlotOccupied(publicState, row, col);
-                      return (
-                        <button
-                          className={`${selected ? "selected" : ""} ${blocked ? "blocked" : "valid"} ${occupied ? "occupied" : ""}`}
-                          disabled={!canAct || occupied}
-                          key={key(row, col)}
-                          onClick={() => {
-                            selectWallAt(row, col, "panel");
-                          }}
-                          type="button"
-                          aria-pressed={selected}
-                          aria-label={`${row + 1}행 ${col + 1}열 ${orientation === "horizontal" ? "가로" : "세로"} 벽 ${
-                            occupied ? "이미 설치됨" : blocked ? "불가" : "가능"
-                          }`}
-                          title={`${row + 1}-${col + 1} ${occupied ? "이미 설치됨" : blocked ? "불가" : "가능"}`}
-                        >
-                          <span className="qdr-wall-grid-mark" aria-hidden="true" />
-                        </button>
-                      );
-                    })
-                  )}
-                </div>
                 <span className={selectedWallBlocked ? "qdr-wall-hint blocked" : "qdr-wall-hint"}>
-                  {selectedWallReason}
+                  {compactControls
+                    ? wallSelectionReady
+                      ? selectedWallReason
+                      : "보드에서 벽 위치를 선택하세요."
+                    : "데스크톱에서는 보드 위 벽 홈을 클릭하면 바로 설치됩니다."}
                 </span>
-                <button className="qdr-action" disabled={!canAct || selectedWallBlocked} onClick={sendWall} type="button">
-                  벽 설치 확정
-                </button>
+                {compactControls ? (
+                  <button
+                    className="qdr-action"
+                    disabled={!canAct || selectedWallBlocked || !wallSelectionReady}
+                    onClick={sendWall}
+                    type="button"
+                  >
+                    벽 설치 확정
+                  </button>
+                ) : null}
               </>
             )}
           </div>
@@ -1147,59 +1125,6 @@ const quoridorStyles = `
   gap: 14px;
   min-width: 0;
 }
-.qdr-players {
-  display: grid;
-  gap: 8px;
-}
-.qdr-player {
-  display: grid;
-  grid-template-columns: 18px minmax(0, 1fr);
-  gap: 9px;
-  align-items: center;
-  border: 1px solid rgba(255, 218, 135, 0.24);
-  border-radius: 8px;
-  padding: 9px;
-  background:
-    linear-gradient(180deg, #ffe9b7, #d99b4f);
-  box-shadow: inset 0 -3px 0 rgba(75, 42, 19, 0.16);
-}
-.qdr-player strong,
-.qdr-player span {
-  display: block;
-}
-.qdr-player span {
-  color: #52625d;
-  font-size: 0.84rem;
-}
-.qdr-wall-reserve {
-  display: grid;
-  grid-template-columns: repeat(var(--wall-reserve-total), minmax(0, 1fr));
-  gap: 3px;
-  margin-top: 6px;
-}
-.qdr-wall-reserve i {
-  display: block;
-  min-width: 0;
-  height: 14px;
-  border: 1px solid rgba(74, 40, 17, 0.28);
-  border-radius: 3px;
-  background:
-    linear-gradient(90deg, rgba(255, 226, 155, 0.16), transparent 48%),
-    linear-gradient(180deg, #5d351c, #211208);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 229, 166, 0.18),
-    0 1px 2px rgba(48, 27, 12, 0.18);
-}
-.qdr-wall-reserve i.spent {
-  opacity: 0.22;
-  background: rgba(92, 54, 24, 0.34);
-}
-.qdr-swatch {
-  width: 18px;
-  height: 18px;
-  border: 1px solid rgba(23, 32, 29, 0.2);
-  border-radius: 999px;
-}
 .qdr-guidance {
   display: grid;
   gap: 5px;
@@ -1261,8 +1186,7 @@ const quoridorStyles = `
   font-weight: 900;
 }
 .qdr-segment button,
-.qdr-action,
-.qdr-wall-grid button {
+.qdr-action {
   border: 1px solid rgba(84, 45, 20, 0.34);
   border-radius: 6px;
   background:
@@ -1293,62 +1217,6 @@ const quoridorStyles = `
   color: #2b1a12;
   font-weight: 900;
 }
-.qdr-wall-grid {
-  display: grid;
-  grid-template-columns: repeat(8, 1fr);
-  gap: 5px;
-  min-width: 360px;
-}
-.qdr-wall-grid button {
-  min-width: 40px;
-  min-height: 34px;
-  padding: 0;
-  color: transparent;
-  font-size: 0;
-}
-.qdr-wall-grid button::before {
-  content: "";
-  display: block;
-  width: 72%;
-  height: 9px;
-  margin: 0 auto;
-  border-radius: 999px;
-  background: #ffe08a;
-  box-shadow:
-    inset 0 -3px 0 rgba(101, 55, 22, 0.24),
-    0 2px 0 rgba(0, 0, 0, 0.16);
-}
-.qdr-wall-grid.vertical button::before {
-  width: 9px;
-  height: 72%;
-}
-.qdr-wall-grid button.selected {
-  outline: 2px solid #fdf7c3;
-  outline-offset: 1px;
-}
-.qdr-wall-grid button.valid {
-  box-shadow:
-    inset 0 -3px 0 rgba(90, 45, 16, 0.18),
-    0 0 0 1px rgba(28, 117, 76, 0.22),
-    0 2px 0 rgba(42, 20, 10, 0.18);
-}
-.qdr-wall-grid button.blocked {
-  background: #5e3a32;
-}
-.qdr-wall-grid button.blocked::before {
-  background:
-    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.24) 0 4px, transparent 4px 8px),
-    #9b3d34;
-}
-.qdr-wall-grid button.occupied {
-  cursor: not-allowed;
-  background: #2d211b;
-  opacity: 0.72;
-}
-.qdr-wall-grid button.occupied::before {
-  background:
-    linear-gradient(180deg, #4a2d1a, #1b0e07);
-}
 .qdr-wall-hint {
   color: #155847;
   font-size: 0.84rem;
@@ -1378,14 +1246,6 @@ const quoridorStyles = `
   }
   .qdr-board {
     width: 450px;
-  }
-  .qdr-wall-grid {
-    min-width: 336px;
-    gap: 4px;
-  }
-  .qdr-wall-grid button {
-    min-width: 38px;
-    min-height: 38px;
   }
 }
 `;
