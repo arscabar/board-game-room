@@ -94,10 +94,6 @@ const styles: Record<string, CSSProperties> = {
     gap: "0.5rem",
     alignItems: "center"
   },
-  history: {
-    display: "grid",
-    gap: "0.45rem"
-  }
 };
 
 function orderedPlayers(players: PlayerSnapshot[], count: number) {
@@ -510,39 +506,12 @@ export function Component({
         </div>
       </div>
 
-      <div className="guryongtu-history" style={styles.panel}>
-        <h3>공개 기록</h3>
-        <div style={styles.history}>
-          {state.rounds.length === 0 ? <p>아직 공개된 기록이 없습니다.</p> : null}
-          {state.rounds.map((round) => (
-            <div className="guryongtu-round-row" key={round.roundNumber}>
-              <strong>{round.roundNumber}라운드</strong>
-              <div className="guryongtu-round-plays">
-                {state.playerIds.map((playerId) => {
-                  const play = round.plays[playerId];
-                  return (
-                    <span className={`guryongtu-round-play ${play.color}`} key={playerId}>
-                      <b>
-                        {getPlayerName(players, playerId)}
-                        {round.attackerId === playerId ? " · 선공" : ""}
-                      </b>
-                      <i>{play.tile ?? tileColorLabel(play.color)}</i>
-                    </span>
-                  );
-                })}
-              </div>
-              <span className="guryongtu-round-result">
-                {round.winnerId ? `${getPlayerName(players, round.winnerId)} 승리` : "무승부"} · {round.reason}
-              </span>
-            </div>
-          ))}
+      {state.phase === "complete" ? (
+        <div className="guryongtu-result-strip" aria-label="구룡투 결과">
+          <strong>결과</strong>
+          <span>{state.winnerId ? `${getPlayerName(players, state.winnerId)} 승리` : "무승부"}</span>
         </div>
-        {state.phase === "complete" ? (
-          <p>
-            승자: {state.winnerId ? getPlayerName(players, state.winnerId) : "무승부"}
-          </p>
-        ) : null}
-      </div>
+      ) : null}
     </section>
   );
 }
