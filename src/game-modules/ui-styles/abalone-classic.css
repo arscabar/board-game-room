@@ -123,16 +123,14 @@
     padding: 9px !important;
   }
 
-  .abl-directions {
+  .abl-direction-pad {
     gap: 5px !important;
+    grid-template-rows: repeat(3, 46px) !important;
+    width: min(100%, 220px) !important;
   }
 
-  .abl-directions button {
+  .abl-dir-button {
     min-height: 46px !important;
-  }
-
-  .abl-directions button small {
-    font-size: 0.62rem !important;
   }
 
   .abl-players {
