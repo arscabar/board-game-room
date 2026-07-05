@@ -464,7 +464,7 @@ function readCompactControls() {
   if (typeof window === "undefined" || typeof window.matchMedia === "undefined") {
     return false;
   }
-  return window.matchMedia("(max-width: 767px), (pointer: coarse)").matches;
+  return window.matchMedia("(max-width: 767px)").matches;
 }
 
 export function Component(props: GameComponentProps) {
@@ -514,14 +514,11 @@ export function Component(props: GameComponentProps) {
       return undefined;
     }
     const widthQuery = window.matchMedia("(max-width: 767px)");
-    const pointerQuery = window.matchMedia("(pointer: coarse)");
-    const update = () => setCompactControls(widthQuery.matches || pointerQuery.matches);
+    const update = () => setCompactControls(widthQuery.matches);
     update();
     widthQuery.addEventListener("change", update);
-    pointerQuery.addEventListener("change", update);
     return () => {
       widthQuery.removeEventListener("change", update);
-      pointerQuery.removeEventListener("change", update);
     };
   }, []);
 
@@ -554,13 +551,6 @@ export function Component(props: GameComponentProps) {
   function setWallSelection(row: number, col: number) {
     setWallRow(row);
     setWallCol(col);
-  }
-
-  function previewWallOnBoard(row: number, col: number) {
-    if (!wallModeActive || wallTouchesOuterEdge(row, col) || wallSlotOccupied(publicState, row, col)) return;
-    if (!compactControls) return;
-    setWallSelection(row, col);
-    setWallPreviewVisible(true);
   }
 
   function hideWallPreview() {
@@ -711,8 +701,6 @@ export function Component(props: GameComponentProps) {
                       className={`qdr-wall-hit ${orientation} ${selected ? "selected" : ""} ${blocked ? "blocked" : "valid"}`}
                       key={`hit-${orientation}-${row}-${col}`}
                       onClick={() => selectWallAt(row, col)}
-                      onFocus={() => previewWallOnBoard(row, col)}
-                      onPointerEnter={() => previewWallOnBoard(row, col)}
                       style={wallPieceStyle(row, col)}
                       tabIndex={-1}
                       title={`${row + 1}-${col + 1} ${blocked ? "불가" : "벽 후보"}`}
@@ -998,6 +986,9 @@ const quoridorStyles = `
   box-shadow:
     0 0 0 2px rgba(255, 247, 209, 0.62),
     0 0 10px rgba(249, 223, 128, 0.36);
+}
+.qdr-shell.desktop .qdr-wall-preview {
+  display: none !important;
 }
 .qdr-wall-preview.blocked {
   opacity: 0.64;
