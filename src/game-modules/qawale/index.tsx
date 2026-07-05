@@ -97,10 +97,6 @@ function playerName(state: QawaleState, playerId: string) {
   return state.players.find((player) => player.id === playerId)?.name ?? "플레이어";
 }
 
-function hasAlternativeForwardStep(current: Coord, previous: Coord) {
-  return neighbors(current).some((candidate) => !sameCoord(candidate, previous));
-}
-
 function validatePath(source: Coord, path: Coord[], carryLength: number) {
   if (path.length !== carryLength) {
     throw new Error(`경로는 ${carryLength}칸이어야 합니다.`);
@@ -115,8 +111,8 @@ function validatePath(source: Coord, path: Coord[], carryLength: number) {
 
     if (index > 0) {
       const previous = index === 1 ? source : path[index - 2];
-      if (sameCoord(target, previous) && hasAlternativeForwardStep(current, previous)) {
-        throw new Error("다른 길이 있으면 바로 되돌아갈 수 없습니다.");
+      if (sameCoord(target, previous)) {
+        throw new Error("방금 지나온 칸으로 바로 되돌아갈 수 없습니다.");
       }
     }
   }
@@ -314,13 +310,33 @@ function stoneLabel(state: QawalePublicState, stone: Stone | null) {
   return String(state.players.find((player) => player.id === stone)?.seat ?? "?");
 }
 
+function stoneName(state: QawalePublicState, stone: Stone | null) {
+  if (!stone) return "없음";
+  if (stone === NEUTRAL) return "중립";
+  return state.players.find((player) => player.id === stone)?.name ?? "플레이어";
+}
+
+function visibleTopCounts(state: QawalePublicState) {
+  const counts: Record<string, number> = { [NEUTRAL]: 0 };
+  for (const player of state.players) counts[player.id] = 0;
+
+  for (const row of state.board) {
+    for (const stack of row) {
+      const top = stack[stack.length - 1] ?? null;
+      if (top) counts[top] = (counts[top] ?? 0) + 1;
+    }
+  }
+
+  return counts;
+}
+
 function canAppendPath(source: Coord | null, path: Coord[], target: Coord) {
   if (!source) return false;
   const current = path.length === 0 ? source : path[path.length - 1];
   if (!inBoard(target.row, target.col) || !adjacent(current, target)) return false;
   if (path.length > 0) {
     const previous = path.length === 1 ? source : path[path.length - 2];
-    if (sameCoord(target, previous) && hasAlternativeForwardStep(current, previous)) {
+    if (sameCoord(target, previous)) {
       return false;
     }
   }
@@ -341,7 +357,17 @@ export function Component(props: GameComponentProps) {
     currentPlayer?.id === activePlayer?.id &&
     Boolean(currentModulePlayer);
   const carryLength = source ? publicState.board[source.row][source.col].length + 1 : 0;
+  const carryStones = source && currentModulePlayer ? [...publicState.board[source.row][source.col], currentModulePlayer.id] : [];
   const pathComplete = source && path.length === carryLength;
+  const topCounts = useMemo(() => visibleTopCounts(publicState), [publicState]);
+  const pathStepsByCell = useMemo(() => {
+    const steps = new Map<string, number[]>();
+    path.forEach((coord, index) => {
+      const cellKey = key(coord.row, coord.col);
+      steps.set(cellKey, [...(steps.get(cellKey) ?? []), index + 1]);
+    });
+    return steps;
+  }, [path]);
   const nextTargets = useMemo(() => {
     if (!source || pathComplete) return new Set<string>();
     return new Set(
@@ -412,12 +438,16 @@ export function Component(props: GameComponentProps) {
               const top = stack[stack.length - 1] ?? null;
               const cellKey = key(rowIndex, colIndex);
               const selected = source?.row === rowIndex && source.col === colIndex;
-              const inPath = path.some((coord) => coord.row === rowIndex && coord.col === colIndex);
+              const pathSteps = pathStepsByCell.get(cellKey) ?? [];
+              const inPath = pathSteps.length > 0;
               const next = nextTargets.has(cellKey);
+              const sourceCandidate = canAct && !source && stack.length > 0;
               const invalidTarget = Boolean(source && !pathComplete && !next && !selected && !inPath);
               return (
                 <button
-                  className={`qaw-cell ${selected ? "selected" : ""} ${inPath ? "path" : ""} ${next ? "next" : ""} ${invalidTarget ? "invalid-target" : ""}`}
+                  className={`qaw-cell ${selected ? "selected" : ""} ${sourceCandidate ? "source-candidate" : ""} ${
+                    inPath ? "path" : ""
+                  } ${next ? "next" : ""} ${invalidTarget ? "invalid-target" : ""}`}
                   disabled={!canAct || (!source && stack.length === 0) || invalidTarget || Boolean(source && pathComplete)}
                   key={cellKey}
                   onClick={() => selectCell(rowIndex, colIndex)}
@@ -453,13 +483,35 @@ export function Component(props: GameComponentProps) {
                               } as CSSProperties
                             }
                           >
-                            {stoneIndex === stack.length - 1 ? stoneLabel(publicState, top) : ""}
+                            {stoneIndex === stack.length - 1 ? <span>{stoneLabel(publicState, top)}</span> : ""}
                           </span>
                         );
                       })
                     )}
                   </span>
                   <span className="qaw-height">{stack.length}</span>
+                  <span
+                    className="qaw-top-owner"
+                    style={
+                      {
+                        "--stone-color": stoneColor(publicState, top),
+                        color: top && top !== NEUTRAL ? "white" : "#17201d"
+                      } as CSSProperties
+                    }
+                  >
+                    {top ? stoneLabel(publicState, top) : "-"}
+                  </span>
+                  {sourceCandidate || selected || inPath || next ? (
+                    <span className="qaw-cell-cue">
+                      {selected
+                        ? `출발 +1`
+                        : inPath
+                          ? pathSteps.join("/")
+                          : next
+                            ? `${path.length + 1}`
+                            : "올림"}
+                    </span>
+                  ) : null}
                 </button>
               );
             })
@@ -473,10 +525,28 @@ export function Component(props: GameComponentProps) {
                 <span className="qaw-swatch" style={{ background: player.color }} />
                 <div>
                   <strong>{player.name}</strong>
-                  <span>남은 돌 {publicState.reserves[player.id] ?? 0}개</span>
+                  <span>
+                    남은 돌 {publicState.reserves[player.id] ?? 0}개 · 윗면 {topCounts[player.id] ?? 0}개
+                  </span>
                 </div>
               </div>
             ))}
+          </div>
+
+          <div className="qaw-top-summary" aria-label="윗면 현황">
+            <strong>윗면 현황</strong>
+            <div>
+              {publicState.players.map((player) => (
+                <span key={player.id}>
+                  <i style={{ "--stone-color": player.color } as CSSProperties} />
+                  {topCounts[player.id] ?? 0}
+                </span>
+              ))}
+              <span>
+                <i style={{ "--stone-color": stoneColor(publicState, NEUTRAL) } as CSSProperties} />
+                {topCounts[NEUTRAL] ?? 0}
+              </span>
+            </div>
           </div>
 
           <div className="qaw-route">
@@ -487,6 +557,29 @@ export function Component(props: GameComponentProps) {
                 : "비어 있지 않은 출발 스택을 고르세요"}
             </span>
             <p className="qaw-route-hint">{routeHint}</p>
+            <div className="qaw-carry-preview">
+              <span>
+                {source && currentModulePlayer
+                  ? `기존 ${carryLength - 1}개 + 내 돌 1개 = ${carryLength}개`
+                  : "출발 스택을 고르면 분배 순서가 표시됩니다"}
+              </span>
+              <div>
+                {carryStones.map((stone, index) => (
+                  <i
+                    key={`${stone}-${index}`}
+                    style={
+                      {
+                        "--stone-color": stoneColor(publicState, stone),
+                        color: stone !== NEUTRAL ? "white" : "#17201d"
+                      } as CSSProperties
+                    }
+                    title={`${index + 1}번째: ${stoneName(publicState, stone)}`}
+                  >
+                    {index + 1}
+                  </i>
+                ))}
+              </div>
+            </div>
             <div className="qaw-route-list">
               {path.map((coord, index) => (
                 <span key={`${index}-${key(coord.row, coord.col)}`}>{`${coord.row + 1}-${coord.col + 1}`}</span>
@@ -581,6 +674,11 @@ const qawaleStyles = `
   outline: 3px solid #e5c55c;
   outline-offset: 1px;
 }
+.qaw-cell.source-candidate {
+  box-shadow:
+    inset 0 0 0 2px rgba(229, 197, 92, 0.56),
+    inset 0 4px 10px rgba(0, 0, 0, 0.42);
+}
 .qaw-cell.path {
   background:
     radial-gradient(circle at 50% 42%, rgba(229, 197, 92, 0.26), transparent 62%),
@@ -626,6 +724,16 @@ const qawaleStyles = `
     inset 0 -8px 10px rgba(0, 0, 0, 0.22),
     0 4px 7px rgba(0, 0, 0, 0.32);
 }
+.qaw-layer > span {
+  display: grid;
+  place-items: center;
+  width: 58%;
+  aspect-ratio: 1;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.14);
+  font-size: 0.8rem;
+  line-height: 1;
+}
 .qaw-layer.top {
   z-index: 12;
 }
@@ -637,6 +745,45 @@ const qawaleStyles = `
   font-family: "Cascadia Mono", Consolas, monospace;
   font-size: 0.8rem;
   font-weight: 800;
+}
+.qaw-top-owner {
+  position: absolute;
+  left: 6px;
+  top: 5px;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  min-width: 21px;
+  height: 21px;
+  border: 1px solid rgba(255, 255, 255, 0.54);
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 30% 24%, rgba(255, 255, 255, 0.58), transparent 28%),
+    var(--stone-color);
+  color: #17201d;
+  font-size: 0.72rem;
+  font-weight: 950;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.32);
+}
+.qaw-cell-cue {
+  position: absolute;
+  left: 50%;
+  bottom: 6px;
+  z-index: 22;
+  display: inline-grid;
+  place-items: center;
+  min-width: 34px;
+  min-height: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 999px;
+  padding: 0 7px;
+  background: rgba(229, 197, 92, 0.95);
+  color: #2b1b10;
+  font-size: 0.72rem;
+  font-weight: 950;
+  line-height: 1;
+  transform: translateX(-50%);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.28);
 }
 .qaw-panel {
   display: grid;
@@ -670,6 +817,50 @@ const qawaleStyles = `
   height: 18px;
   border-radius: 999px;
 }
+.qaw-top-summary {
+  display: grid;
+  gap: 8px;
+  border: 1px solid rgba(23, 32, 29, 0.14);
+  border-radius: 8px;
+  padding: 10px;
+  background: linear-gradient(180deg, #fffaf0, #eadabe);
+}
+.qaw-top-summary > div {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.qaw-top-summary span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 34px;
+  border: 1px solid rgba(23, 32, 29, 0.12);
+  border-radius: 8px;
+  background: rgba(255, 250, 240, 0.78);
+  color: #17201d;
+  font-weight: 950;
+}
+.qaw-top-summary i,
+.qaw-carry-preview i {
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  aspect-ratio: 1;
+  border: 1px solid rgba(23, 32, 29, 0.2);
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 30% 22%, rgba(255, 255, 255, 0.62), transparent 28%),
+    var(--stone-color);
+  color: #17201d;
+  font-style: normal;
+  font-size: 0.68rem;
+  font-weight: 950;
+  box-shadow:
+    inset 0 -3px 5px rgba(0, 0, 0, 0.18),
+    0 2px 4px rgba(0, 0, 0, 0.18);
+}
 .qaw-route {
   display: grid;
   gap: 10px;
@@ -690,6 +881,28 @@ const qawaleStyles = `
   color: #4f4639;
   font-size: 0.86rem;
   line-height: 1.4;
+}
+.qaw-carry-preview {
+  display: grid;
+  gap: 7px;
+  border: 1px solid rgba(23, 32, 29, 0.12);
+  border-radius: 8px;
+  padding: 8px;
+  background: rgba(255, 250, 240, 0.72);
+}
+.qaw-carry-preview > span {
+  color: #52625d;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+.qaw-carry-preview > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-height: 22px;
+}
+.qaw-carry-preview i {
+  width: 24px;
 }
 .qaw-route-list {
   display: flex;
