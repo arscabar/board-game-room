@@ -553,6 +553,15 @@ export function Component(props: GameComponentProps) {
     setWallCol(col);
   }
 
+  function previewWallOnBoard(row: number, col: number) {
+    if (!canAct || !wallModeActive || compactControls || wallTouchesOuterEdge(row, col) || wallSlotOccupied(publicState, row, col)) {
+      return;
+    }
+    setWallSelection(row, col);
+    setWallSelectionReady(false);
+    setWallPreviewVisible(true);
+  }
+
   function hideWallPreview() {
     setWallPreviewVisible(false);
   }
@@ -669,8 +678,7 @@ export function Component(props: GameComponentProps) {
               />
             );
           })}
-          {compactControls &&
-          canAct &&
+          {canAct &&
           wallModeActive &&
           wallPreviewVisible &&
           !wallTouchesOuterEdge(wallRow, wallCol) &&
@@ -690,7 +698,7 @@ export function Component(props: GameComponentProps) {
                   if (wallSlotOccupied(publicState, row, col)) {
                     return null;
                   }
-                  const selected = compactControls && wallPreviewVisible && row === wallRow && col === wallCol;
+                  const selected = wallPreviewVisible && row === wallRow && col === wallCol;
                   const blocked = wallBlockedAt(orientation, row, col);
                   return (
                     <button
@@ -701,6 +709,7 @@ export function Component(props: GameComponentProps) {
                       className={`qdr-wall-hit ${orientation} ${selected ? "selected" : ""} ${blocked ? "blocked" : "valid"}`}
                       key={`hit-${orientation}-${row}-${col}`}
                       onClick={() => selectWallAt(row, col)}
+                      onPointerEnter={() => previewWallOnBoard(row, col)}
                       style={wallPieceStyle(row, col)}
                       tabIndex={-1}
                       type="button"
@@ -985,9 +994,6 @@ const quoridorStyles = `
   box-shadow:
     0 0 0 2px rgba(255, 247, 209, 0.62),
     0 0 10px rgba(249, 223, 128, 0.36);
-}
-.qdr-shell.desktop .qdr-wall-preview {
-  display: none !important;
 }
 .qdr-wall-preview.blocked {
   opacity: 0.64;
