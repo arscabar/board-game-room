@@ -78,6 +78,7 @@
 .qdr-wall-grid button,
 .qdr-segment button,
 .qdr-action,
+.qdr-wall-mode-toggle,
 .qdr-confirm-actions button {
   background:
     linear-gradient(90deg, rgba(255, 247, 211, 0.72), transparent 28%),
@@ -292,9 +293,32 @@
 }
 
 .qdr-mode-segment button,
+.qdr-wall-mode-toggle,
 .qdr-confirm-actions button {
   min-height: 42px !important;
   font-weight: 900 !important;
+}
+
+.qdr-wall-mode-toggle {
+  width: 100% !important;
+  border: 1px solid rgba(84, 45, 20, 0.34) !important;
+  border-radius: 6px !important;
+  color: #271915 !important;
+  box-shadow:
+    inset 0 -3px 0 rgba(90, 45, 16, 0.18),
+    0 2px 0 rgba(42, 20, 10, 0.18) !important;
+}
+
+.qdr-wall-mode-toggle.active {
+  background:
+    linear-gradient(180deg, #f9d36f, #9d5626) !important;
+  color: #211513 !important;
+}
+
+.qdr-wall-mode-toggle + span {
+  color: #52625d !important;
+  font-size: 0.84rem !important;
+  font-weight: 800 !important;
 }
 
 .qdr-move-controls {

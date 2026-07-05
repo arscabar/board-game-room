@@ -508,6 +508,7 @@ export function Component(props: GameComponentProps) {
   const [orientation, setOrientation] = useState<Orientation>("horizontal");
   const [wallRow, setWallRow] = useState(1);
   const [wallCol, setWallCol] = useState(1);
+  const [wallPreviewVisible, setWallPreviewVisible] = useState(false);
   const [selectedMove, setSelectedMove] = useState<Coord | null>(null);
   const [pendingConfirm, setPendingConfirm] = useState<PendingConfirm | null>(null);
   const [skipConfirm, setSkipConfirm] = useState(() => readSkipConfirm());
@@ -544,6 +545,7 @@ export function Component(props: GameComponentProps) {
   function selectMode(nextMode: ActionMode) {
     setMode(nextMode);
     setPendingConfirm(null);
+    setWallPreviewVisible(false);
     if (nextMode === "move") {
       setSelectedMove(null);
     }
@@ -565,14 +567,25 @@ export function Component(props: GameComponentProps) {
     );
   }
 
-  function previewWall(row: number, col: number) {
+  function setWallSelection(row: number, col: number) {
     setWallRow(row);
     setWallCol(col);
   }
 
-  function selectWallAt(row: number, col: number) {
+  function previewWallOnBoard(row: number, col: number) {
+    if (wallTouchesOuterEdge(row, col) || wallSlotOccupied(publicState, row, col)) return;
+    setWallSelection(row, col);
+    setWallPreviewVisible(true);
+  }
+
+  function hideWallPreview() {
+    setWallPreviewVisible(false);
+  }
+
+  function selectWallAt(row: number, col: number, source: "board" | "panel") {
     if (!canAct || mode !== "wall" || wallTouchesOuterEdge(row, col) || wallSlotOccupied(publicState, row, col)) return;
-    previewWall(row, col);
+    setWallSelection(row, col);
+    setWallPreviewVisible(source === "board");
     setPendingConfirm(null);
   }
 
@@ -591,6 +604,7 @@ export function Component(props: GameComponentProps) {
       }
       setSelectedMove(null);
       setPendingConfirm(null);
+      setWallPreviewVisible(false);
       onAction({ type: "movePawn", payload: { row: action.row, col: action.col } });
       return;
     }
@@ -600,6 +614,7 @@ export function Component(props: GameComponentProps) {
       return;
     }
     setPendingConfirm(null);
+    setWallPreviewVisible(false);
     onAction({
       type: "placeWall",
       payload: { orientation: action.orientation, row: action.row, col: action.col }
@@ -609,7 +624,7 @@ export function Component(props: GameComponentProps) {
   function requestConfirm(action: PendingConfirm) {
     if (action.type === "move" && !legalMoveKeys.has(key(action.row, action.col))) return;
     if (action.type === "wall") {
-      previewWall(action.row, action.col);
+      setWallSelection(action.row, action.col);
       if (wallBlockedAt(action.orientation, action.row, action.col)) return;
     }
     if (skipConfirm) {
@@ -632,6 +647,10 @@ export function Component(props: GameComponentProps) {
   function confirmPending() {
     if (!pendingConfirm) return;
     applyConfirmedAction(pendingConfirm);
+  }
+
+  function toggleWallMode() {
+    selectMode(mode === "wall" ? "move" : "wall");
   }
 
   function pendingDescription(action: PendingConfirm) {
@@ -657,7 +676,16 @@ export function Component(props: GameComponentProps) {
       </div>
 
       <div className="qdr-layout">
-        <div className="qdr-board" aria-label="쿼리도 보드">
+        <div
+          className="qdr-board"
+          aria-label="쿼리도 보드"
+          onBlur={(event) => {
+            if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+              hideWallPreview();
+            }
+          }}
+          onPointerLeave={hideWallPreview}
+        >
           {activeModulePlayer ? (
             <span
               className={`qdr-goal-edge ${activeModulePlayer.goal}`}
@@ -719,7 +747,11 @@ export function Component(props: GameComponentProps) {
               />
             );
           })}
-          {canAct && mode === "wall" && !wallTouchesOuterEdge(wallRow, wallCol) && !wallSlotOccupied(publicState, wallRow, wallCol) ? (
+          {canAct &&
+          mode === "wall" &&
+          wallPreviewVisible &&
+          !wallTouchesOuterEdge(wallRow, wallCol) &&
+          !wallSlotOccupied(publicState, wallRow, wallCol) ? (
             <span
               aria-hidden="true"
               className={`qdr-wall-preview ${orientation} ${selectedWallBlocked ? "blocked" : "valid"}`}
@@ -735,7 +767,7 @@ export function Component(props: GameComponentProps) {
                   if (wallSlotOccupied(publicState, row, col)) {
                     return null;
                   }
-                  const selected = row === wallRow && col === wallCol;
+                  const selected = wallPreviewVisible && row === wallRow && col === wallCol;
                   const blocked = wallBlockedAt(orientation, row, col);
                   return (
                     <button
@@ -745,9 +777,9 @@ export function Component(props: GameComponentProps) {
                       }`}
                       className={`qdr-wall-hit ${orientation} ${selected ? "selected" : ""} ${blocked ? "blocked" : "valid"}`}
                       key={`hit-${orientation}-${row}-${col}`}
-                      onClick={() => selectWallAt(row, col)}
-                      onFocus={() => previewWall(row, col)}
-                      onPointerEnter={() => previewWall(row, col)}
+                      onClick={() => selectWallAt(row, col, "board")}
+                      onFocus={() => previewWallOnBoard(row, col)}
+                      onPointerEnter={() => previewWallOnBoard(row, col)}
                       style={wallPieceStyle(row, col)}
                       tabIndex={-1}
                       title={`${row + 1}-${col + 1} ${blocked ? "불가" : "벽 후보"}`}
@@ -783,26 +815,18 @@ export function Component(props: GameComponentProps) {
             ))}
           </div>
 
-          <div className="qdr-action-mode" aria-label="쿼리도 행동 모드">
-            <strong>행동 선택</strong>
-            <div className="qdr-segment qdr-mode-segment">
-              <button
-                className={mode === "move" ? "active" : ""}
-                disabled={!canAct}
-                onClick={() => selectMode("move")}
-                type="button"
-              >
-                말 이동
-              </button>
-              <button
-                className={mode === "wall" ? "active" : ""}
-                disabled={!canAct || !currentModulePlayer || currentModulePlayer.wallsRemaining <= 0}
-                onClick={() => selectMode("wall")}
-                type="button"
-              >
-                벽 설치
-              </button>
-            </div>
+          <div className="qdr-action-mode" aria-label="쿼리도 벽 설치 모드">
+            <strong>벽 설치 모드</strong>
+            <button
+              aria-pressed={mode === "wall"}
+              className={`qdr-wall-mode-toggle ${mode === "wall" ? "active" : ""}`}
+              disabled={!canAct || !currentModulePlayer || currentModulePlayer.wallsRemaining <= 0}
+              onClick={toggleWallMode}
+              type="button"
+            >
+              {mode === "wall" ? "벽 설치 모드 끄기" : "벽 설치 모드 켜기"}
+            </button>
+            <span>{mode === "wall" ? "보드 위 홈을 고른 뒤 확정하세요." : "꺼져 있을 때는 말 이동만 선택됩니다."}</span>
           </div>
 
           <div className="qdr-guidance" aria-label="쿼리도 행동 안내">
@@ -870,7 +894,7 @@ export function Component(props: GameComponentProps) {
                           disabled={!canAct || occupied}
                           key={key(row, col)}
                           onClick={() => {
-                            selectWallAt(row, col);
+                            selectWallAt(row, col, "panel");
                           }}
                           type="button"
                           aria-pressed={selected}
@@ -1335,6 +1359,7 @@ const quoridorStyles = `
 }
 .qdr-segment button,
 .qdr-action,
+.qdr-wall-mode-toggle,
 .qdr-wall-grid button,
 .qdr-confirm-actions button {
   border: 1px solid rgba(84, 45, 20, 0.34);
@@ -1348,11 +1373,21 @@ const quoridorStyles = `
     0 2px 0 rgba(42, 20, 10, 0.18);
 }
 .qdr-segment button.active,
+.qdr-wall-mode-toggle.active,
 .qdr-action,
 .qdr-confirm-actions .primary {
   background:
     linear-gradient(180deg, #f9d36f, #9d5626);
   color: #211513;
+}
+.qdr-wall-mode-toggle {
+  min-height: 46px;
+  font-weight: 900;
+}
+.qdr-wall-mode-toggle + span {
+  color: #52625d;
+  font-size: 0.84rem;
+  font-weight: 800;
 }
 .qdr-move-controls {
   display: grid;
