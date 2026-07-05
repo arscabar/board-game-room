@@ -483,6 +483,28 @@ export function Component(props: GameComponentProps) {
     onAction({ type: "placeWall", payload: { orientation, row: wallRow, col: wallCol } });
   }
 
+  function wallBlockedAt(nextOrientation: Orientation, row: number, col: number) {
+    return (
+      !currentModulePlayer ||
+      currentModulePlayer.wallsRemaining <= 0 ||
+      wallWouldOverlap(publicState, nextOrientation, row, col) ||
+      !wallPreservesPaths(publicState, nextOrientation, row, col)
+    );
+  }
+
+  function previewWall(row: number, col: number) {
+    setWallRow(row);
+    setWallCol(col);
+  }
+
+  function sendWallAt(row: number, col: number) {
+    previewWall(row, col);
+    if (!canAct || wallBlockedAt(orientation, row, col)) {
+      return;
+    }
+    onAction({ type: "placeWall", payload: { orientation, row, col } });
+  }
+
   return (
     <div className="qdr-shell">
       <style>{quoridorStyles}</style>
@@ -567,6 +589,31 @@ export function Component(props: GameComponentProps) {
               style={wallPieceStyle(wallRow, wallCol)}
             />
           ) : null}
+          {canAct
+            ? Array.from({ length: WALL_GRID }, (_, row) =>
+                Array.from({ length: WALL_GRID }, (_, col) => {
+                  const selected = row === wallRow && col === wallCol;
+                  const blocked = wallBlockedAt(orientation, row, col);
+                  return (
+                    <button
+                      aria-disabled={blocked}
+                      aria-label={`${row + 1}행 ${col + 1}열 ${orientation === "horizontal" ? "가로" : "세로"} 벽 ${
+                        blocked ? "불가" : "바로 놓기"
+                      }`}
+                      className={`qdr-wall-hit ${orientation} ${selected ? "selected" : ""} ${blocked ? "blocked" : "valid"}`}
+                      key={`hit-${orientation}-${row}-${col}`}
+                      onClick={() => sendWallAt(row, col)}
+                      onFocus={() => previewWall(row, col)}
+                      onPointerEnter={() => previewWall(row, col)}
+                      style={wallPieceStyle(row, col)}
+                      tabIndex={-1}
+                      title={`${row + 1}-${col + 1} ${blocked ? "불가" : "벽 놓기"}`}
+                      type="button"
+                    />
+                  );
+                })
+              )
+            : null}
         </div>
 
         <aside className="qdr-panel">
@@ -587,7 +634,7 @@ export function Component(props: GameComponentProps) {
           <div className="qdr-guidance" aria-label="쿼리도 행동 안내">
             <strong>이번 턴 후보</strong>
             <span>말 이동 {moves.length}곳 · 선택 벽 {wallRow + 1}-{wallCol + 1} {orientation === "horizontal" ? "가로" : "세로"}</span>
-            <p>{selectedWallReason}</p>
+            <p>방향을 고른 뒤 보드 위 칸 사이를 누르면 바로 벽이 놓입니다. {selectedWallReason}</p>
           </div>
 
           <div className="qdr-wall-controls">
@@ -623,8 +670,7 @@ export function Component(props: GameComponentProps) {
                       disabled={!canAct}
                       key={key(row, col)}
                       onClick={() => {
-                        setWallRow(row);
-                        setWallCol(col);
+                        previewWall(row, col);
                       }}
                       type="button"
                       aria-pressed={selected}
@@ -853,6 +899,77 @@ const quoridorStyles = `
   top: calc(var(--qdr-padding) + (var(--wall-row) * (var(--qdr-cell) + var(--qdr-gap))) + (var(--qdr-cell) * 0.08));
   width: calc(var(--qdr-gap) * 0.9);
   height: calc((var(--qdr-cell) * 1.84) + var(--qdr-gap));
+}
+.qdr-wall-hit {
+  position: absolute;
+  z-index: 5;
+  display: block;
+  border: 0;
+  border-radius: 999px;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.qdr-wall-hit::before {
+  content: "";
+  position: absolute;
+  border-radius: inherit;
+  opacity: 0.2;
+  background: #f9df80;
+  box-shadow: 0 0 0 1px rgba(255, 247, 209, 0.22);
+  transition:
+    opacity 140ms ease,
+    transform 140ms ease,
+    background 140ms ease;
+}
+.qdr-wall-hit.horizontal {
+  left: calc(var(--qdr-padding) + (var(--wall-col) * (var(--qdr-cell) + var(--qdr-gap))) + (var(--qdr-cell) * 0.08));
+  top: calc(var(--qdr-padding) + ((var(--wall-row) + 1) * var(--qdr-cell)) + (var(--wall-row) * var(--qdr-gap)) - 7px);
+  width: calc((var(--qdr-cell) * 1.84) + var(--qdr-gap));
+  height: max(18px, calc(var(--qdr-gap) * 3));
+}
+.qdr-wall-hit.horizontal::before {
+  top: 50%;
+  right: 0;
+  left: 0;
+  height: max(5px, calc(var(--qdr-gap) * 0.9));
+  transform: translateY(-50%);
+}
+.qdr-wall-hit.vertical {
+  left: calc(var(--qdr-padding) + ((var(--wall-col) + 1) * var(--qdr-cell)) + (var(--wall-col) * var(--qdr-gap)) - 7px);
+  top: calc(var(--qdr-padding) + (var(--wall-row) * (var(--qdr-cell) + var(--qdr-gap))) + (var(--qdr-cell) * 0.08));
+  width: max(18px, calc(var(--qdr-gap) * 3));
+  height: calc((var(--qdr-cell) * 1.84) + var(--qdr-gap));
+}
+.qdr-wall-hit.vertical::before {
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: max(5px, calc(var(--qdr-gap) * 0.9));
+  transform: translateX(-50%);
+}
+.qdr-wall-hit.valid:hover::before,
+.qdr-wall-hit.valid:focus-visible::before,
+.qdr-wall-hit.selected::before {
+  opacity: 0.9;
+  background:
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.26) 0 4px, transparent 4px 8px),
+    linear-gradient(180deg, #f9df80, #b06a2d);
+  box-shadow:
+    0 0 0 2px rgba(255, 247, 209, 0.68),
+    0 0 14px rgba(249, 223, 128, 0.45);
+}
+.qdr-wall-hit.blocked:hover::before,
+.qdr-wall-hit.blocked:focus-visible::before,
+.qdr-wall-hit.blocked.selected::before {
+  opacity: 0.78;
+  background:
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.28) 0 4px, transparent 4px 8px),
+    linear-gradient(180deg, #b74a3b, #5e2b24);
+  box-shadow:
+    0 0 0 2px rgba(255, 215, 190, 0.58),
+    0 0 12px rgba(183, 74, 59, 0.42);
 }
 .qdr-panel {
   display: grid;

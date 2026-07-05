@@ -1578,9 +1578,8 @@ io.on("connection", (socket) => {
 
     assignHost(room);
     clearInvalidSelection(room);
-    const finishedByDeparture = finishRoomIfPlayersCannotContinue(room, player?.name);
     scheduleEmptyRoomCleanup(room);
-    if (!finishedByDeparture && room.status === "playing" && room.gameState.activePlayerId === playerId) {
+    if (room.status === "playing" && room.gameState.activePlayerId === playerId && !roomGameIsFinished(room)) {
       appendSystemLog(room, `${player?.name ?? "플레이어"} 연결 끊김. 제한 시간 안에 다시 들어오면 이어서 진행합니다.`);
       scheduleTurnTimeout(room);
     }

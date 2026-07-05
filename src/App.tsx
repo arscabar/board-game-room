@@ -39,7 +39,7 @@ import {
   WifiOff,
   type LucideIcon
 } from "lucide-react";
-import { Suspense, type CSSProperties, type FormEvent, useEffect, useMemo, useState } from "react";
+import { Suspense, type CSSProperties, type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { socket } from "./lib/socket";
 import { games, getGameById } from "./shared/games";
 import { canPlayGame, formatAllowedPlayers, gameAvailabilityLabel } from "./shared/eligibility";
@@ -394,6 +394,25 @@ function App() {
   const [roomList, setRoomList] = useState<PublicRoomListItem[]>([]);
   const [roomListLoading, setRoomListLoading] = useState(true);
   const [notice, setNotice] = useState("");
+  const resumeStateRef = useRef({
+    clientKey: "",
+    inFlight: false,
+    key: "",
+    name: "",
+    playerId: "",
+    roomCode: ""
+  });
+
+  useEffect(() => {
+    resumeStateRef.current.name = name;
+    resumeStateRef.current.playerId = playerId;
+    resumeStateRef.current.clientKey = clientKey;
+    resumeStateRef.current.roomCode = room?.code ?? lastRoomCode;
+    if (!resumeStateRef.current.roomCode) {
+      resumeStateRef.current.key = "";
+      resumeStateRef.current.inFlight = false;
+    }
+  }, [clientKey, lastRoomCode, name, playerId, room?.code]);
 
   useEffect(() => {
     socket.connect();
@@ -401,6 +420,7 @@ function App() {
     const handleConnect = () => {
       setConnection("connected");
       void refreshRoomList(false);
+      void resumeSocketRoom();
     };
     const handleDisconnect = () => setConnection("offline");
     const handleRoomState = (nextRoom: RoomSnapshot) => setRoom(nextRoom);
@@ -538,6 +558,45 @@ function App() {
       return;
     }
 
+    setPlayerId(response.data.playerId);
+    setRoom(response.data.room);
+    setLastRoomCode(response.data.room.code);
+  }
+
+  async function resumeSocketRoom() {
+    const saved = resumeStateRef.current;
+    const code = saved.roomCode.trim().toUpperCase();
+    const savedClientKey = saved.clientKey;
+    const savedPlayerId = saved.playerId;
+    if (!code || (!savedPlayerId && !savedClientKey)) {
+      return;
+    }
+
+    const reconnectKey = `${socket.id ?? "socket"}:${code}:${savedPlayerId}:${savedClientKey}`;
+    if (saved.inFlight || saved.key === reconnectKey) {
+      return;
+    }
+
+    saved.inFlight = true;
+    const response = await emitWithAck<JoinResult>("room:resume", {
+      code,
+      name: saved.name,
+      playerId: savedPlayerId,
+      clientKey: savedClientKey
+    });
+    saved.inFlight = false;
+
+    if (!response.ok || !response.data) {
+      saved.key = "";
+      if (response.error?.includes("찾을 수 없습니다") || response.error?.includes("저장된 플레이어")) {
+        setRoom((currentRoom) => (currentRoom?.code === code ? null : currentRoom));
+        setLastRoomCode((currentCode) => (currentCode === code ? "" : currentCode));
+      }
+      setNotice(response.error ?? "방 연결을 복구할 수 없습니다.");
+      return;
+    }
+
+    saved.key = reconnectKey;
     setPlayerId(response.data.playerId);
     setRoom(response.data.room);
     setLastRoomCode(response.data.room.code);
