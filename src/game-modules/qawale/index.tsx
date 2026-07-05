@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { CSSProperties } from "react";
 import * as THREE from "three";
 import type { GameAction, GameActionResult, GameComponentProps, GameContext, GameModule } from "../types";
 
@@ -108,7 +107,7 @@ function validatePath(source: Coord, path: Coord[], carryLength: number) {
     const current = index === 0 ? source : path[index - 1];
     const target = path[index];
     if (!inBoard(target.row, target.col) || !adjacent(current, target)) {
-      throw new Error("놓을 순서는 상하좌우 인접 칸으로 한 칸씩 이어져야 합니다.");
+      throw new Error("배치 경로는 상하좌우 인접 칸으로 한 칸씩 이어져야 합니다.");
     }
 
     if (index > 0) {
@@ -229,7 +228,7 @@ function createInitialState(context: Pick<GameContext, "players">): QawaleState 
 
 function distribute(state: QawaleState, action: GameAction, context: GameContext): GameActionResult {
   if (!isDistributePayload(action.payload)) {
-    throw new Error("선택한 홈과 놓을 순서가 필요합니다.");
+    throw new Error("선택한 홈과 배치 경로가 필요합니다.");
   }
 
   const player = requireActivePlayer(state, context);
@@ -285,10 +284,10 @@ function distribute(state: QawaleState, action: GameAction, context: GameContext
     };
   }
 
-  next.message = `${player.name}님이 ${source.row + 1}-${source.col + 1} 홈에서 돌 ${carry.length}개를 놓았습니다.`;
+  next.message = "차례가 넘어갔습니다.";
   return {
     state: next,
-    log: `${player.name} 돌 배치`,
+    log: "카왈레 진행",
     message: next.message,
     ...advanceTurn(next, context)
   };
@@ -310,32 +309,6 @@ function stoneColor(state: QawalePublicState, stone: Stone | null) {
   if (!stone) return "transparent";
   if (stone === NEUTRAL) return "#eef0e8";
   return state.players.find((player) => player.id === stone)?.color ?? "#52625d";
-}
-
-function stoneLabel(state: QawalePublicState, stone: Stone | null) {
-  if (!stone) return "";
-  if (stone === NEUTRAL) return "중";
-  return String(state.players.find((player) => player.id === stone)?.seat ?? "?");
-}
-
-function stoneName(state: QawalePublicState, stone: Stone | null) {
-  if (!stone) return "없음";
-  if (stone === NEUTRAL) return "중립";
-  return state.players.find((player) => player.id === stone)?.name ?? "플레이어";
-}
-
-function visibleTopCounts(state: QawalePublicState) {
-  const counts: Record<string, number> = { [NEUTRAL]: 0 };
-  for (const player of state.players) counts[player.id] = 0;
-
-  for (const row of state.board) {
-    for (const stack of row) {
-      const top = stack[stack.length - 1] ?? null;
-      if (top) counts[top] = (counts[top] ?? 0) + 1;
-    }
-  }
-
-  return counts;
 }
 
 function canAppendPath(source: Coord | null, path: Coord[], target: Coord) {
@@ -827,7 +800,6 @@ export function Component(props: GameComponentProps) {
   const carryLength = source ? publicState.board[source.row][source.col].length + 1 : 0;
   const carryStones = source && currentModulePlayer ? [...publicState.board[source.row][source.col], currentModulePlayer.id] : [];
   const pathComplete = source && path.length === carryLength;
-  const topCounts = useMemo(() => visibleTopCounts(publicState), [publicState]);
   const pathStepsByCell = useMemo(() => {
     const steps = new Map<string, number[]>();
     path.forEach((coord, index) => {
@@ -844,15 +816,6 @@ export function Component(props: GameComponentProps) {
         .map((candidate) => key(candidate.row, candidate.col))
     );
   }, [source, path, pathComplete]);
-  const routeHint = !canAct
-    ? "상대 차례"
-    : !source
-      ? "홈 선택"
-      : pathComplete
-        ? "놓기 확정"
-        : nextTargets.size > 0
-          ? `다음 홈 ${nextTargets.size}곳`
-          : "경로 없음";
 
   function selectCell(row: number, col: number) {
     if (!canAct) return;
@@ -899,97 +862,30 @@ export function Component(props: GameComponentProps) {
       </div>
 
       <div className="qaw-layout">
-        <QawaleThreeBoard
-          publicState={publicState}
-          source={source}
-          path={path}
-          pathComplete={pathComplete}
-          pathStepsByCell={pathStepsByCell}
-          nextTargets={nextTargets}
-          canAct={canAct}
-          carryStones={carryStones}
-          onCellSelect={selectCell}
-        />
+        <div className="qaw-board-stack">
+          <QawaleThreeBoard
+            publicState={publicState}
+            source={source}
+            path={path}
+            pathComplete={pathComplete}
+            pathStepsByCell={pathStepsByCell}
+            nextTargets={nextTargets}
+            canAct={canAct}
+            carryStones={carryStones}
+            onCellSelect={selectCell}
+          />
 
-        <aside className="qaw-panel">
-          <div className="qaw-players">
-            {publicState.players.map((player) => (
-              <div className="qaw-player" key={player.id}>
-                <span className="qaw-swatch" style={{ background: player.color }} />
-                <div>
-                  <strong>{player.name}</strong>
-                  <span>
-                    남은 돌 {publicState.reserves[player.id] ?? 0}개 · 윗면 {topCounts[player.id] ?? 0}개
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="qaw-top-summary" aria-label="윗면 현황">
-            <strong>윗면 현황</strong>
-            <div>
-              {publicState.players.map((player) => (
-                <span key={player.id}>
-                  <i style={{ "--stone-color": player.color } as CSSProperties} />
-                  <b>{player.seat}</b>
-                  <em>{topCounts[player.id] ?? 0}</em>
-                </span>
-              ))}
-              <span>
-                <i style={{ "--stone-color": stoneColor(publicState, NEUTRAL) } as CSSProperties} />
-                <b>중</b>
-                <em>{topCounts[NEUTRAL] ?? 0}</em>
-              </span>
-            </div>
-          </div>
-
-          <div className="qaw-route">
-            <strong>놓을 순서</strong>
-            <span>
-              {source
-                ? `${source.row + 1}-${source.col + 1} 홈 · ${path.length}/${carryLength}칸`
-                : "색 돌이 있는 홈을 고르세요"}
-            </span>
-            <p className="qaw-route-hint">{routeHint}</p>
-            <div className="qaw-carry-preview">
-              <span>
-                {source && currentModulePlayer
-                  ? "보드 위 3D 레이어 순서대로 놓입니다"
-                  : "홈을 고르면 놓을 색상 순서가 표시됩니다"}
-              </span>
-              <div>
-                {carryStones.map((stone, index) => (
-                  <i
-                    key={`${stone}-${index}`}
-                    aria-label={`${index + 1}번째: ${stoneName(publicState, stone)}`}
-                    style={
-                      {
-                        "--stone-color": stoneColor(publicState, stone),
-                        "--stone-ink": stone !== NEUTRAL ? "#fff8e4" : "#17201d",
-                        color: stone !== NEUTRAL ? "white" : "#17201d"
-                      } as CSSProperties
-                    }
-                    title={`${index + 1}번째: ${stoneName(publicState, stone)}`}
-                  />
-                ))}
-              </div>
-            </div>
-            <div className="qaw-route-list">
-              {path.map((coord, index) => (
-                <span key={`${index}-${key(coord.row, coord.col)}`}>{`${coord.row + 1}-${coord.col + 1}`}</span>
-              ))}
-            </div>
-            <div className="qaw-actions">
+          {canAct ? (
+            <div className="qaw-board-actions" aria-label="카왈레 행동">
               <button disabled={!source} onClick={resetPath} type="button">
                 취소
               </button>
-              <button disabled={!canAct || !pathComplete} onClick={submitMove} type="button">
+              <button disabled={!pathComplete} onClick={submitMove} type="button">
                 놓기
               </button>
             </div>
-          </div>
-        </aside>
+          ) : null}
+        </div>
       </div>
     </div>
   );
