@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import type { GameAction, GameActionResult, GameComponentProps, GameContext, GameModule } from "../types";
 
@@ -68,6 +68,14 @@ interface MovePayload {
 
 interface SetupPayload {
   kinds: GhostKind[];
+}
+
+interface CaptureEffect {
+  id: string;
+  row: number;
+  col: number;
+  kind: GhostKind;
+  nonce: number;
 }
 
 const playerColors = ["#425a9e", "#9d3f47"];
@@ -469,8 +477,8 @@ function targetKey(coord: Coord) {
 }
 
 function kindLabel(kind: GhostKind | null) {
-  if (kind === "good") return "좋";
-  if (kind === "bad") return "나";
+  if (kind === "good") return "✦";
+  if (kind === "bad") return "◆";
   return "?";
 }
 
@@ -482,6 +490,12 @@ function publicKindName(kind: GhostKind | null) {
 
 function pieceTitle(piece: PublicGhostPiece, owner: GhostsPlayer | undefined) {
   return `${owner?.name ?? "플레이어"} ${publicKindName(piece.kind)} 유령`;
+}
+
+function setupDirectionFor(side: Side) {
+  return side === "south"
+    ? { label: "북쪽 모서리 탈출", arrows: ["↖", "↑", "↗"] }
+    : { label: "남쪽 모서리 탈출", arrows: ["↙", "↓", "↘"] };
 }
 
 function playerStats(state: GhostsPublicState, playerId: string) {
@@ -501,6 +515,8 @@ export function Component(props: GameComponentProps) {
   const publicState = props.publicState as GhostsPublicState;
   const [selectedPieceId, setSelectedPieceId] = useState<string | null>(null);
   const [setupKinds, setSetupKinds] = useState<GhostKind[]>(kindPattern);
+  const [captureEffect, setCaptureEffect] = useState<CaptureEffect | null>(null);
+  const previousCapturedIdsRef = useRef<Set<string> | null>(null);
   const currentModulePlayer = publicState.players.find((player) => player.id === currentPlayer?.id) ?? null;
   const activeModulePlayer = publicState.players.find((player) => player.id === activePlayer?.id) ?? null;
   const selectedPiece =
@@ -521,6 +537,34 @@ export function Component(props: GameComponentProps) {
   const mySetupSubmitted = currentModulePlayer ? publicState.setupSubmitted[currentModulePlayer.id] : false;
   const setupGoodCount = setupKinds.filter((kind) => kind === "good").length;
   const setupBadCount = setupKinds.filter((kind) => kind === "bad").length;
+
+  useEffect(() => {
+    const capturedIds = new Set(publicState.pieces.filter((piece) => piece.captured).map((piece) => piece.id));
+    if (!previousCapturedIdsRef.current) {
+      previousCapturedIdsRef.current = capturedIds;
+      return;
+    }
+
+    const newlyCaptured = publicState.pieces.find(
+      (piece) => piece.captured && piece.kind && !previousCapturedIdsRef.current?.has(piece.id)
+    );
+    previousCapturedIdsRef.current = capturedIds;
+    if (!newlyCaptured?.kind) return;
+
+    setCaptureEffect({
+      id: newlyCaptured.id,
+      row: newlyCaptured.row,
+      col: newlyCaptured.col,
+      kind: newlyCaptured.kind,
+      nonce: Date.now()
+    });
+  }, [publicState.pieces]);
+
+  useEffect(() => {
+    if (!captureEffect) return undefined;
+    const timer = window.setTimeout(() => setCaptureEffect(null), 1000);
+    return () => window.clearTimeout(timer);
+  }, [captureEffect]);
 
   function toggleSetupKind(index: number) {
     setSetupKinds((current) =>
@@ -571,6 +615,7 @@ export function Component(props: GameComponentProps) {
             {publicState.players.map((player) => {
               const isMine = player.id === currentPlayer?.id;
               const submitted = publicState.setupSubmitted[player.id];
+              const setupDirection = setupDirectionFor(player.side);
               const ownPieces = publicState.pieces
                 .filter((piece) => piece.ownerId === player.id)
                 .sort((a, b) => a.id.localeCompare(b.id));
@@ -579,6 +624,14 @@ export function Component(props: GameComponentProps) {
                   <div className="gho-player-headline">
                     <strong>{player.name}</strong>
                     <span>{submitted ? "제출 완료" : isMine ? "배치 선택 중" : "배치 대기"}</span>
+                  </div>
+                  <div className={`gho-setup-direction ${player.side}`} aria-label={`전진 방향: ${setupDirection.label}`}>
+                    {setupDirection.arrows.map((arrow) => (
+                      <span aria-hidden="true" key={arrow}>
+                        {arrow}
+                      </span>
+                    ))}
+                    <strong>{setupDirection.label}</strong>
                   </div>
                   <div className="gho-setup-slots">
                     {ownPieces.map((piece, index) => {
@@ -589,9 +642,12 @@ export function Component(props: GameComponentProps) {
                           disabled={!isMine || submitted || disabled}
                           key={piece.id}
                           onClick={() => toggleSetupKind(index)}
+                          aria-label={`${index + 1}번 ${publicKindName(kind)} 유령`}
                           type="button"
                         >
-                          {isMine ? kindLabel(kind) : submitted ? "완료" : "?"}
+                          <span className="gho-kind-symbol">
+                            {isMine ? kindLabel(kind) : submitted ? "✓" : "?"}
+                          </span>
                         </button>
                       );
                     })}
@@ -654,9 +710,13 @@ export function Component(props: GameComponentProps) {
                 const selected = selectedPieceId === piece?.id;
                 const legal = legalTargetKeys.has(targetKey({ row, col }));
                 const ownPiece = piece?.ownerId === currentModulePlayer?.id;
+                const captureFx =
+                  captureEffect && captureEffect.row === row && captureEffect.col === col ? captureEffect : null;
                 return (
                   <button
-                    className={`gho-cell ${legal ? "legal" : ""} ${selected ? "selected" : ""}`}
+                    className={`gho-cell ${legal ? "legal" : ""} ${selected ? "selected" : ""} ${
+                      captureFx ? `captured-${captureFx.kind}` : ""
+                    }`}
                     disabled={!canAct || (!ownPiece && !legal)}
                     key={targetKey({ row, col })}
                     onClick={() => selectOrMove(row, col)}
@@ -669,10 +729,17 @@ export function Component(props: GameComponentProps) {
                         style={{ "--ghost-color": owner?.color ?? "#17201d" } as CSSProperties}
                         title={pieceTitle(piece, owner)}
                       >
-                        {kindLabel(piece.kind)}
+                        <span className="gho-kind-symbol">{kindLabel(piece.kind)}</span>
                       </span>
                     ) : legal ? (
                       <span className="gho-move-dot" />
+                    ) : null}
+                    {captureFx ? (
+                      <span
+                        className={`gho-capture-fx ${captureFx.kind}`}
+                        key={`${captureFx.id}-${captureFx.nonce}`}
+                        aria-hidden="true"
+                      />
                     ) : null}
                   </button>
                 );
@@ -713,7 +780,7 @@ export function Component(props: GameComponentProps) {
                 <span className="gho-swatch" style={{ background: player.color }} />
                 <div>
                   <strong>{player.name}</strong>
-                  <span>{isCurrent ? "나" : player.side === "south" ? "남쪽" : "북쪽"}</span>
+                  <span>{isCurrent ? "내 플레이어" : player.side === "south" ? "남쪽" : "북쪽"}</span>
                 </div>
                 <dl>
                   <div>
@@ -817,12 +884,43 @@ const ghostsStyles = `
   font-size: 0.84rem;
   font-weight: 800;
 }
+.gho-setup-direction {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  align-items: center;
+  border: 1px solid rgba(46, 77, 132, 0.18);
+  border-radius: 8px;
+  padding: 7px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.74), rgba(218, 231, 248, 0.72));
+  color: #29457d;
+  text-align: center;
+}
+.gho-setup-direction span {
+  display: grid;
+  place-items: center;
+  min-height: 28px;
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.72);
+  font-size: 1.05rem;
+  font-weight: 950;
+}
+.gho-setup-direction strong {
+  grid-column: 1 / -1;
+  color: #52625d;
+  font-size: 0.78rem;
+}
 .gho-setup-slots {
   display: grid;
   grid-template-columns: repeat(4, minmax(44px, 1fr));
   gap: 8px;
 }
 .gho-setup-slot {
+  display: grid;
+  place-items: center;
+  position: relative;
+  overflow: hidden;
   min-height: 58px;
   border: 2px solid rgba(46, 77, 132, 0.22);
   border-radius: 999px 999px 42% 42%;
@@ -845,6 +943,19 @@ const ghostsStyles = `
 .gho-setup-slot.hidden {
   border-style: dashed;
   color: #52625d;
+}
+.gho-kind-symbol {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  min-width: 1em;
+  font-size: 1rem;
+  line-height: 1;
+}
+.gho-setup-slot .gho-kind-symbol {
+  font-size: 1.08rem;
+  font-weight: 950;
 }
 .gho-setup-actions {
   display: flex;
@@ -905,6 +1016,8 @@ const ghostsStyles = `
 .gho-cell {
   display: grid;
   place-items: center;
+  position: relative;
+  overflow: hidden;
   min-height: 0;
   aspect-ratio: 1;
   border: 1px solid rgba(255, 255, 255, 0.34);
@@ -929,6 +1042,7 @@ const ghostsStyles = `
   display: grid;
   place-items: center;
   position: relative;
+  z-index: 1;
   width: 70%;
   aspect-ratio: 0.82;
   border: 2px solid rgba(38, 54, 91, 0.22);
@@ -971,6 +1085,9 @@ const ghostsStyles = `
 .gho-token.opponent {
   border-style: dashed;
 }
+.gho-token.hidden .gho-kind-symbol {
+  opacity: 0;
+}
 .gho-token.opponent::after {
   background: #9aa9c4;
 }
@@ -993,6 +1110,69 @@ const ghostsStyles = `
   border-color: #e5c55c;
   background: #29457d;
   color: white;
+}
+.gho-capture-fx {
+  position: absolute;
+  inset: 8%;
+  z-index: 4;
+  pointer-events: none;
+  display: grid;
+  place-items: center;
+}
+.gho-capture-fx::before {
+  content: "";
+  position: absolute;
+  inset: 12%;
+  border: 3px solid #65a8ff;
+  border-radius: 999px;
+  animation: gho-capture-ring 900ms ease-out both;
+}
+.gho-capture-fx::after {
+  content: "✦";
+  position: absolute;
+  color: #eef7ff;
+  font-size: 1.35rem;
+  font-weight: 950;
+  text-shadow:
+    0 0 8px rgba(76, 151, 255, 0.88),
+    0 0 18px rgba(255, 255, 255, 0.72);
+  animation: gho-capture-mark 900ms ease-out both;
+}
+.gho-capture-fx.bad::before {
+  border-color: #e35a74;
+}
+.gho-capture-fx.bad::after {
+  content: "◆";
+  color: #fff0f3;
+  text-shadow:
+    0 0 8px rgba(227, 90, 116, 0.88),
+    0 0 18px rgba(255, 255, 255, 0.64);
+}
+@keyframes gho-capture-ring {
+  0% {
+    opacity: 0.95;
+    transform: scale(0.38);
+  }
+  72% {
+    opacity: 0.78;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.24);
+  }
+}
+@keyframes gho-capture-mark {
+  0% {
+    opacity: 0;
+    transform: translateY(6px) scale(0.82);
+  }
+  24% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-8px) scale(1.24);
+  }
 }
 .gho-panel {
   display: grid;
@@ -1066,8 +1246,18 @@ const ghostsStyles = `
   .gho-exits {
     gap: 4px;
   }
+  .gho-setup-direction {
+    gap: 4px;
+    padding: 6px;
+  }
   .gho-panel {
     grid-template-columns: 1fr;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .gho-capture-fx::before,
+  .gho-capture-fx::after {
+    animation-duration: 1ms;
   }
 }
 `;
