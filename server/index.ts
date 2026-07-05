@@ -30,6 +30,7 @@ interface RoomRecord {
   status: "lobby" | "playing";
   gameState: GameRuntimeState;
   gamePrivateState: unknown;
+  postGameNotices: Record<string, string>;
   statsRecorded: boolean;
   createdAt: number;
 }
@@ -157,6 +158,10 @@ function createEmptyRuntime(): GameRuntimeState {
   };
 }
 
+function clearPostGameNotices(room: RoomRecord) {
+  room.postGameNotices = {};
+}
+
 function statsErrorMessage(error: unknown) {
   const message = error instanceof Error ? error.message : "통계 저장소에 연결할 수 없습니다.";
   return message.slice(0, 180);
@@ -275,6 +280,7 @@ function snapshotRoom(room: RoomRecord, viewerId: string | null = null): RoomSna
     room.status === "playing" && registration && context
       ? registration.module.getPublicState(room.gamePrivateState, { ...context, viewerId })
       : room.gameState.publicState;
+  const viewerPostGameNotice = viewerId ? room.postGameNotices[viewerId] : undefined;
 
   return {
     code: room.code,
@@ -284,6 +290,7 @@ function snapshotRoom(room: RoomRecord, viewerId: string | null = null): RoomSna
     status: room.status,
     gameState: {
       ...room.gameState,
+      postGameNotice: viewerPostGameNotice ?? null,
       publicState,
       moveLog: [...room.gameState.moveLog]
     },
@@ -490,6 +497,79 @@ function clearInvalidSelection(room: RoomRecord) {
 
   if (!canPlayGame(selectedGame, connectedPlayers(room).length)) {
     room.selectedGameId = null;
+  }
+}
+
+function startGameInRoom(room: RoomRecord, game: NonNullable<ReturnType<typeof getGameById>>) {
+  const playerList = connectedPlayers(room);
+  room.status = "playing";
+  room.gameState = createEmptyRuntime();
+  room.gamePrivateState = null;
+  clearPostGameNotices(room);
+  room.statsRecorded = false;
+  room.gameState.activePlayerId = playerList[0]?.id ?? null;
+  room.gameState.turnNumber = 1;
+  room.gameState.startedAt = Date.now();
+
+  const registration = getGameRegistration(game.id);
+  room.gamePrivateState = registration
+    ? registration.module.createInitialState({ game, players: snapshotPlayers(room).filter((player) => player.connected) })
+    : null;
+
+  const initialPrivateState = asRecord(room.gamePrivateState);
+  if (initialPrivateState && Object.prototype.hasOwnProperty.call(initialPrivateState, "activePlayerId")) {
+    room.gameState.activePlayerId =
+      typeof initialPrivateState.activePlayerId === "string" ? initialPrivateState.activePlayerId : null;
+  }
+
+  if (registration) {
+    const contextPlayerId = playerList[0]?.id ?? room.gameState.activePlayerId;
+    const context = contextPlayerId ? buildGameContext(room, contextPlayerId) : null;
+    room.gameState.publicState = context
+      ? registration.module.getPublicState(room.gamePrivateState, { ...context, viewerId: contextPlayerId })
+      : null;
+  }
+
+  resetTurnClock(room);
+}
+
+function resetRoomToLobby(room: RoomRecord, options: { preservePostGameNotices?: boolean } = {}) {
+  void recordRoomStatsIfFinished(room);
+  clearScheduledTurnTimeout(room);
+  room.status = "lobby";
+  room.gameState = createEmptyRuntime();
+  room.gamePrivateState = null;
+  room.statsRecorded = false;
+  if (!options.preservePostGameNotices) {
+    clearPostGameNotices(room);
+  }
+  clearInvalidSelection(room);
+}
+
+function normalizePostGameChoice(choice: unknown) {
+  if (choice === "rematch" || choice === "game-select" || choice === "leave-room") {
+    return choice;
+  }
+  return null;
+}
+
+function postGameChoices(room: RoomRecord) {
+  if (!room.gameState.postGameChoices) {
+    room.gameState.postGameChoices = {};
+  }
+  return room.gameState.postGameChoices;
+}
+
+function pendingRematchPlayerIds(room: RoomRecord) {
+  const choices = postGameChoices(room);
+  return Object.entries(choices)
+    .filter(([, choice]) => choice === "rematch")
+    .map(([playerId]) => playerId);
+}
+
+function rejectPendingRematches(room: RoomRecord) {
+  for (const playerId of pendingRematchPlayerIds(room)) {
+    room.postGameNotices[playerId] = "상대가 재대결을 받지 않았습니다.";
   }
 }
 
@@ -1065,6 +1145,7 @@ io.on("connection", (socket) => {
       status: "lobby",
       gameState: createEmptyRuntime(),
       gamePrivateState: null,
+      postGameNotices: {},
       statsRecorded: false,
       createdAt: Date.now()
     };
@@ -1262,28 +1343,7 @@ io.on("connection", (socket) => {
       return;
     }
 
-    result.room.status = "playing";
-    result.room.gameState = createEmptyRuntime();
-    result.room.statsRecorded = false;
-    result.room.gameState.activePlayerId = playerList[0]?.id ?? null;
-    result.room.gameState.turnNumber = 1;
-    result.room.gameState.startedAt = Date.now();
-    const registration = getGameRegistration(game.id);
-    result.room.gamePrivateState = registration
-      ? registration.module.createInitialState({ game, players: snapshotPlayers(result.room).filter((player) => player.connected) })
-      : null;
-    const initialPrivateState = asRecord(result.room.gamePrivateState);
-    if (initialPrivateState && Object.prototype.hasOwnProperty.call(initialPrivateState, "activePlayerId")) {
-      result.room.gameState.activePlayerId =
-        typeof initialPrivateState.activePlayerId === "string" ? initialPrivateState.activePlayerId : null;
-    }
-    if (registration) {
-      const context = buildGameContext(result.room, result.player.id);
-      result.room.gameState.publicState = context
-        ? registration.module.getPublicState(result.room.gamePrivateState, { ...context, viewerId: result.player.id })
-        : null;
-    }
-    resetTurnClock(result.room);
+    startGameInRoom(result.room, game);
     appendLog(result.room, result.player, `${game.title} 게임 시작`);
     reply(ack, { ok: true, data: snapshotRoom(result.room, result.player.id) });
     broadcastRoom(result.room);
@@ -1535,6 +1595,116 @@ io.on("connection", (socket) => {
     broadcastRoom(result.room);
   });
 
+  socket.on(
+    "room:post-game-action",
+    (
+      payload: { code?: string; choice?: unknown },
+      ack?: (response: Ack<{ code: string; room?: RoomSnapshot; left?: boolean; deleted?: boolean }>) => void
+    ) => {
+      const result = requireRoom(socket, payload?.code);
+      if (!result.room) {
+        reply(ack, { ok: false, error: result.error });
+        return;
+      }
+
+      if (!roomGameIsFinished(result.room)) {
+        reply(ack, { ok: false, error: "승부가 난 뒤에 선택할 수 있습니다." });
+        return;
+      }
+
+      const choice = normalizePostGameChoice(payload?.choice);
+      if (!choice) {
+        reply(ack, { ok: false, error: "종료 후 선택 값이 올바르지 않습니다." });
+        return;
+      }
+
+      const choices = postGameChoices(result.room);
+      choices[result.player.id] = choice;
+
+      if (choice === "rematch") {
+        const connected = connectedPlayers(result.room);
+        const allConnectedWantRematch =
+          connected.length > 0 && connected.every((player) => choices[player.id] === "rematch");
+        if (allConnectedWantRematch) {
+          const game = getGameById(result.room.selectedGameId);
+          if (!game || !canPlayGame(game, connected.length)) {
+            for (const playerId of pendingRematchPlayerIds(result.room)) {
+              result.room.postGameNotices[playerId] = "현재 인원으로 재대결을 시작할 수 없습니다.";
+            }
+            resetRoomToLobby(result.room, { preservePostGameNotices: true });
+            reply(ack, { ok: true, data: { code: result.room.code, room: snapshotRoom(result.room, result.player.id) } });
+            broadcastRoom(result.room);
+            broadcastRoomList();
+            return;
+          }
+
+          void recordRoomStatsIfFinished(result.room);
+          startGameInRoom(result.room, game);
+          appendSystemLog(result.room, "모두 재대결에 동의해 새 판을 시작했습니다.");
+          reply(ack, { ok: true, data: { code: result.room.code, room: snapshotRoom(result.room, result.player.id) } });
+          broadcastRoom(result.room);
+          broadcastRoomList();
+          return;
+        }
+
+        appendLog(result.room, result.player, "재대결 요청");
+        reply(ack, { ok: true, data: { code: result.room.code, room: snapshotRoom(result.room, result.player.id) } });
+        broadcastRoom(result.room);
+        return;
+      }
+
+      if (choice === "game-select") {
+        rejectPendingRematches(result.room);
+        resetRoomToLobby(result.room, { preservePostGameNotices: true });
+        appendSystemLog(result.room, `${result.player.name}님이 게임 선택으로 돌아갔습니다.`);
+        reply(ack, { ok: true, data: { code: result.room.code, room: snapshotRoom(result.room, result.player.id) } });
+        broadcastRoom(result.room);
+        broadcastRoomList();
+        return;
+      }
+
+      const connectedBeforeLeave = connectedPlayers(result.room);
+      const allConnectedLeaving =
+        connectedBeforeLeave.length > 0 && connectedBeforeLeave.every((player) => choices[player.id] === "leave-room");
+      if (allConnectedLeaving) {
+        const code = result.room.code;
+        appendSystemLog(result.room, "모든 플레이어가 로비 이동을 선택해 방을 닫았습니다.");
+        deleteRoom(result.room, "모든 플레이어가 로비로 이동해 방이 닫혔습니다.");
+        delete socket.data.roomCode;
+        delete socket.data.playerId;
+        reply(ack, { ok: true, data: { code, left: true, deleted: true } });
+        return;
+      }
+
+      const hasPendingRematch = pendingRematchPlayerIds(result.room).length > 0;
+      if (hasPendingRematch) {
+        rejectPendingRematches(result.room);
+        resetRoomToLobby(result.room, { preservePostGameNotices: true });
+        appendSystemLog(result.room, `${result.player.name}님이 로비로 이동해 재대결이 취소되었습니다.`);
+      }
+
+      result.player.connected = false;
+      result.player.disconnectedAt = Date.now();
+      socket.leave(result.room.code);
+      delete socket.data.roomCode;
+      delete socket.data.playerId;
+      assignHost(result.room);
+      clearInvalidSelection(result.room);
+
+      const code = result.room.code;
+      if (connectedPlayers(result.room).length === 0) {
+        deleteRoom(result.room, "모든 플레이어가 로비로 이동해 방이 닫혔습니다.");
+        reply(ack, { ok: true, data: { code, left: true, deleted: true } });
+        return;
+      }
+
+      scheduleEmptyRoomCleanup(result.room);
+      void broadcastRoom(result.room);
+      broadcastRoomList();
+      reply(ack, { ok: true, data: { code, left: true, deleted: false } });
+    }
+  );
+
   socket.on("room:return-lobby", (payload: { code?: string }, ack?: (response: Ack<RoomSnapshot>) => void) => {
     const result = requireRoom(socket, payload?.code);
     if (!result.room) {
@@ -1547,12 +1717,7 @@ io.on("connection", (socket) => {
       return;
     }
 
-    void recordRoomStatsIfFinished(result.room);
-    clearScheduledTurnTimeout(result.room);
-    result.room.status = "lobby";
-    result.room.gameState = createEmptyRuntime();
-    result.room.gamePrivateState = null;
-    result.room.statsRecorded = false;
+    resetRoomToLobby(result.room);
     reply(ack, { ok: true, data: snapshotRoom(result.room, result.player.id) });
     broadcastRoom(result.room);
     broadcastRoomList();

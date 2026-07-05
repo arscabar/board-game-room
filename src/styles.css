@@ -10875,6 +10875,128 @@ textarea:focus-visible {
   font-weight: 800;
 }
 
+.post-game-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background:
+    linear-gradient(180deg, rgba(10, 6, 3, 0.42), rgba(10, 6, 3, 0.72)),
+    rgba(0, 0, 0, 0.34);
+  backdrop-filter: blur(6px);
+}
+
+.post-game-dialog {
+  width: min(100%, 430px);
+  display: grid;
+  gap: 14px;
+  padding: 20px;
+  border: 1px solid rgba(245, 208, 138, 0.48);
+  border-radius: 12px;
+  color: #fff4d7;
+  background:
+    linear-gradient(135deg, rgba(255, 232, 184, 0.1), transparent 34%),
+    linear-gradient(180deg, #442616, #160c07);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 248, 220, 0.13),
+    0 24px 70px rgba(0, 0, 0, 0.55);
+}
+
+.post-game-emblem {
+  width: 54px;
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255, 223, 149, 0.42);
+  border-radius: 999px;
+  color: #1c120b;
+  background: linear-gradient(180deg, #ffe4a0, #ba7834);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.42),
+    0 10px 22px rgba(0, 0, 0, 0.28);
+}
+
+.post-game-copy {
+  display: grid;
+  gap: 5px;
+}
+
+.post-game-copy span {
+  color: rgba(255, 226, 172, 0.78);
+  font-size: 0.78rem;
+  font-weight: 850;
+}
+
+.post-game-copy h3 {
+  margin: 0;
+  color: #fff8e5;
+  font-size: clamp(1.35rem, 5vw, 2rem);
+  line-height: 1.05;
+}
+
+.post-game-copy strong {
+  color: #ffd98b;
+  font-size: 1rem;
+}
+
+.post-game-copy p,
+.post-game-waiting {
+  margin: 0;
+  color: rgba(255, 242, 213, 0.84);
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.post-game-votes {
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid rgba(245, 208, 138, 0.26);
+  border-radius: 8px;
+  background: rgba(10, 6, 3, 0.34);
+}
+
+.post-game-votes span {
+  color: rgba(255, 226, 172, 0.76);
+  font-size: 0.74rem;
+  font-weight: 800;
+}
+
+.post-game-votes strong {
+  color: #fff4d7;
+  font-size: 0.9rem;
+}
+
+.post-game-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.post-game-actions .board-sdk-button {
+  width: 100% !important;
+  min-width: 0 !important;
+}
+
+@media (max-width: 520px) {
+  .post-game-dialog-backdrop {
+    align-items: end;
+    padding: 10px;
+  }
+
+  .post-game-dialog {
+    width: 100%;
+    padding: 16px;
+    border-radius: 12px 12px 8px 8px;
+  }
+
+  .post-game-actions {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* Latest correction: the room picker is for choosing, not reading rules. */
 .room-section.is-lobby .game-learn-mini,
 .room-section.is-lobby .game-feature-kicker {

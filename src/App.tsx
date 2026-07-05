@@ -55,6 +55,13 @@ type JoinResult = {
   playerId: string;
 };
 
+type PostGameActionResult = {
+  code: string;
+  room?: RoomSnapshot;
+  left?: boolean;
+  deleted?: boolean;
+};
+
 const storageKeys = {
   name: "board-room-name",
   playerId: "board-room-player-id",
@@ -493,6 +500,13 @@ function App() {
     }
   }, [connection, lastRoomCode, room, roomList, roomListLoading]);
 
+  useEffect(() => {
+    const postGameNotice = String(room?.gameState.postGameNotice ?? "").trim();
+    if (postGameNotice) {
+      setNotice(postGameNotice);
+    }
+  }, [room?.gameState.postGameNotice]);
+
   const currentPlayer = useMemo(
     () => room?.players.find((player) => player.id === playerId) ?? null,
     [playerId, room]
@@ -669,6 +683,13 @@ function App() {
     void refreshRoomList(false);
   }
 
+  function leaveAfterPostGame(message = "로비로 이동했습니다.") {
+    setRoom(null);
+    setLastRoomCode("");
+    setNotice(message);
+    void refreshRoomList(false);
+  }
+
   async function resetLocalIdentity() {
     const leavingRoom = room;
     if (leavingRoom) {
@@ -713,6 +734,7 @@ function App() {
             onReturnLobby={returnLobby}
             onLeaveLocalRoom={leaveLocalRoom}
             onDeleteLocalRoom={deleteLocalRoom}
+            onPostGameLeave={leaveAfterPostGame}
           />
         ) : (
           <HomeView
@@ -1160,7 +1182,8 @@ function RoomView({
   onStartGame,
   onReturnLobby,
   onLeaveLocalRoom,
-  onDeleteLocalRoom
+  onDeleteLocalRoom,
+  onPostGameLeave
 }: {
   room: RoomSnapshot;
   currentPlayer: PlayerSnapshot | null;
@@ -1172,6 +1195,7 @@ function RoomView({
   onReturnLobby: () => void;
   onLeaveLocalRoom: () => void;
   onDeleteLocalRoom: () => void;
+  onPostGameLeave: (message?: string) => void;
 }) {
   const playerCount = room.players.filter((player) => player.connected).length;
   const activePlayer = room.players.find((player) => player.id === room.gameState.activePlayerId) ?? null;
@@ -1228,6 +1252,7 @@ function RoomView({
             activePlayer={activePlayer}
             isHost={isHost}
             onReturnLobby={onReturnLobby}
+            onPostGameLeave={onPostGameLeave}
           />
         )}
 
@@ -1381,7 +1406,8 @@ function PlayPanel({
   selectedGame,
   activePlayer,
   isHost,
-  onReturnLobby
+  onReturnLobby,
+  onPostGameLeave
 }: {
   room: RoomSnapshot;
   currentPlayer: PlayerSnapshot | null;
@@ -1389,6 +1415,7 @@ function PlayPanel({
   activePlayer: PlayerSnapshot | null;
   isHost: boolean;
   onReturnLobby: () => void;
+  onPostGameLeave: (message?: string) => void;
 }) {
   const [action, setAction] = useState("");
   const [now, setNow] = useState(() => Date.now());
@@ -1427,6 +1454,15 @@ function PlayPanel({
   const hangmanOpenPhase = selectedGame?.id === "hangman-board-game" && (phase === "setup" || phase === "round-complete");
   const setupOpenPhase = selectedGame?.id === "ghosts" && phase === "setup";
   const moduleDisabled = paused || (!isMyTurn && !hangmanOpenPhase && !setupOpenPhase);
+  const postGameChoices = stateRecord(room.gameState.postGameChoices);
+  const currentPostGameChoice = currentPlayer ? String(postGameChoices?.[currentPlayer.id] ?? "") : "";
+  const rematchRequesters = room.players.filter((player) => postGameChoices?.[player.id] === "rematch");
+  const resultLabel =
+    winnerNames.length > 0
+      ? `${winnerNames.join(", ")} 승리`
+      : winnerId
+        ? `${room.players.find((player) => player.id === winnerId)?.name ?? "플레이어"} 승리`
+        : "무승부";
 
   useEffect(() => {
     if (!usesTurnTimer || isFinished || paused || !room.gameState.turnDeadlineAt) {
@@ -1468,6 +1504,17 @@ function PlayPanel({
     const response = await emitWithAck<RoomSnapshot>("game:action", { code: room.code, action: gameAction });
     if (!response.ok) {
       setAction(response.error ?? "게임 행동을 처리할 수 없습니다.");
+    }
+  }
+
+  async function choosePostGame(choice: "rematch" | "game-select" | "leave-room") {
+    const response = await emitWithAck<PostGameActionResult>("room:post-game-action", { code: room.code, choice });
+    if (!response.ok) {
+      setAction(response.error ?? "게임 종료 후 선택을 처리할 수 없습니다.");
+      return;
+    }
+    if (response.data?.left) {
+      onPostGameLeave(response.data.deleted ? "모두 로비로 이동해 방이 닫혔습니다." : "로비로 이동했습니다.");
     }
   }
 
@@ -1564,6 +1611,50 @@ function PlayPanel({
         </BoardButton>
         {action ? <span className="play-error-line">{action}</span> : null}
       </div>
+
+      {isFinished ? (
+        <div className="post-game-dialog-backdrop" role="presentation">
+          <section className="post-game-dialog" role="dialog" aria-modal="true" aria-labelledby="post-game-title">
+            <div className="post-game-emblem" aria-hidden="true">
+              <Trophy size={28} />
+            </div>
+            <div className="post-game-copy">
+              <span>{selectedGame?.title ?? "게임"} 종료</span>
+              <h3 id="post-game-title">{winnerNames.length > 0 || winnerId ? "승부가 났습니다." : "무승부입니다."}</h3>
+              <strong>{resultLabel}</strong>
+              <p>{runtimeMessage(room) || "결과를 확인한 뒤 다음 행동을 선택하세요."}</p>
+            </div>
+
+            {rematchRequesters.length > 0 ? (
+              <div className="post-game-votes" aria-label="재대결 요청자">
+                <span>재대결 요청</span>
+                <strong>{rematchRequesters.map((player) => player.name).join(", ")}</strong>
+              </div>
+            ) : null}
+
+            {currentPostGameChoice === "rematch" ? (
+              <p className="post-game-waiting">재대결 요청을 보냈습니다. 모두가 동의하면 바로 새 판이 시작됩니다.</p>
+            ) : null}
+
+            <div className="post-game-actions">
+              <BoardButton
+                tone="primary"
+                type="button"
+                onClick={() => choosePostGame("rematch")}
+                disabled={currentPostGameChoice === "rematch"}
+              >
+                재대결
+              </BoardButton>
+              <BoardButton type="button" onClick={() => choosePostGame("game-select")}>
+                게임 선택
+              </BoardButton>
+              <BoardButton tone="secondary" type="button" onClick={() => choosePostGame("leave-room")}>
+                로비 이동
+              </BoardButton>
+            </div>
+          </section>
+        </div>
+      ) : null}
     </section>
   );
 }

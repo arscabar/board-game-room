@@ -61,6 +61,8 @@ export interface MoveEntry {
   action: string;
 }
 
+export type PostGameChoice = "rematch" | "game-select" | "leave-room";
+
 export interface GameRuntimeState {
   activePlayerId: string | null;
   turnNumber: number;
@@ -81,6 +83,8 @@ export interface GameRuntimeState {
   publicState?: unknown;
   winnerId?: string | null;
   winnerIds?: string[];
+  postGameChoices?: Record<string, PostGameChoice>;
+  postGameNotice?: string | null;
 }
 
 export type RoomStatus = "lobby" | "playing";
