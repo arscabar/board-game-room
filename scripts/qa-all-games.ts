@@ -224,6 +224,18 @@ async function stopServer(child: ChildProcessWithoutNullStreams | null) {
   if (!child || child.killed) {
     return;
   }
+  if (process.platform === "win32" && child.pid) {
+    await new Promise<void>((resolve) => {
+      const killer = spawn("taskkill", ["/pid", String(child.pid), "/T", "/F"], {
+        stdio: "ignore",
+        windowsHide: true
+      });
+      killer.once("exit", () => resolve());
+      killer.once("error", () => resolve());
+    });
+    await delay(250);
+    return;
+  }
   child.kill();
   await delay(250);
 }
@@ -567,8 +579,12 @@ async function playQuoridor(baseUrl: string, options: PlayOptions = {}): Promise
 async function playQawale(baseUrl: string, _options: PlayOptions = {}): Promise<QaResult> {
   const table = await createStartedRoom(baseUrl, "qawale", 2);
   let actions = 0;
+  const firstClient = activeClient(table);
+  const secondClient = table.clients.find((client) => client.playerId !== firstClient.playerId);
+  assert(secondClient, "Qawale second player is missing.");
+  const turnOrder = [firstClient, secondClient];
   for (const step of qawaleScript) {
-    const client = table.clients[step.playerIndex];
+    const client = turnOrder[step.playerIndex];
     assert(table.clients[0].room?.gameState.activePlayerId === client.playerId, "Qawale scripted player is not active.");
     await gameAction(table, client, step.action);
     actions += 1;

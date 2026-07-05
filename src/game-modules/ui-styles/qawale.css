@@ -1,165 +1,406 @@
-.qaw-board {
-  gap: 14px !important;
-  border-width: 10px !important;
-  border-color: #9f7040 !important;
-  border-radius: 10px !important;
-  padding: 18px !important;
-  background:
-    radial-gradient(circle at 22% 18%, rgba(255, 244, 210, 0.28), transparent 24%),
-    linear-gradient(135deg, #d9b06e, #a97236 58%, #6e421f) !important;
-  box-shadow:
-    inset 0 0 0 3px rgba(255, 245, 217, 0.24),
-    inset 0 0 24px rgba(80, 45, 18, 0.22),
-    0 18px 28px rgba(83, 55, 34, 0.2) !important;
+.qaw-shell {
+  --qaw-ink: #f8ebcf;
+  --qaw-ink-soft: rgba(248, 235, 207, 0.74);
+  --qaw-gold: #d7a545;
+  --qaw-gold-bright: #f0ca72;
+  --qaw-panel: rgba(32, 18, 10, 0.88);
+  --qaw-panel-line: rgba(227, 178, 96, 0.24);
+  --qaw-shadow: rgba(0, 0, 0, 0.42);
+  width: min(100%, 1100px) !important;
+  margin: 0 auto !important;
+  color: var(--qaw-ink) !important;
 }
 
-.qaw-cell {
-  border-radius: 999px !important;
-  border: 2px solid rgba(82, 47, 19, 0.22) !important;
-  background:
-    radial-gradient(circle at 42% 36%, rgba(255, 242, 207, 0.34), transparent 42%),
-    linear-gradient(180deg, #9a6630, #5f371a) !important;
-  box-shadow:
-    inset 0 9px 12px rgba(60, 34, 15, 0.34),
-    inset 0 -2px 0 rgba(255, 235, 181, 0.2) !important;
-}
-
-.qaw-layer.top {
-  width: 66% !important;
-  border-width: 1px !important;
-  border-color: rgba(55, 38, 25, 0.24) !important;
-  box-shadow:
-    inset 0 10px 12px rgba(255, 255, 255, 0.34),
-    inset 0 -9px 12px rgba(0, 0, 0, 0.22),
-    0 7px 9px rgba(64, 38, 21, 0.34) !important;
-}
-
-.qaw-height {
-  right: 50% !important;
-  bottom: 4px !important;
-  transform: translateX(50%);
-  color: #fff8dd !important;
-  text-shadow: 0 1px 2px rgba(50, 28, 13, 0.8);
-}
-
-.qaw-board {
-  gap: 14px !important;
-  border-color: #9f7040 !important;
-  border-radius: 10px !important;
-  padding: 18px !important;
-  background:
-    radial-gradient(circle at 22% 18%, rgba(255, 244, 210, 0.28), transparent 24%),
-    linear-gradient(135deg, #d9b06e, #a97236 58%, #6e421f) !important;
-}
-
-.qaw-cell {
-  border-radius: 999px !important;
-  border: 2px solid rgba(82, 47, 19, 0.22) !important;
-  background:
-    radial-gradient(circle at 42% 36%, rgba(255, 242, 207, 0.34), transparent 42%),
-    linear-gradient(180deg, #9a6630, #5f371a) !important;
-}
-
-.qaw-layer.top {
-  width: 66% !important;
-  border-width: 1px !important;
-}
-
-.qaw-board {
+.qaw-status {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  flex-wrap: wrap !important;
   gap: 12px !important;
-  border-width: 7px !important;
-  border-color: #101112 !important;
-  border-radius: 10px !important;
-  padding: 18px !important;
+  border: 1px solid var(--qaw-panel-line) !important;
+  border-radius: 8px !important;
+  padding: 10px 12px !important;
   background:
-    radial-gradient(circle at 22% 18%, rgba(255, 255, 255, 0.1), transparent 24%),
-    linear-gradient(145deg, #2b2d2d, #08090a) !important;
-  box-shadow:
-    inset 0 0 0 4px rgba(255, 255, 255, 0.06),
-    inset 0 0 30px rgba(0, 0, 0, 0.55),
-    0 18px 28px rgba(0, 0, 0, 0.26) !important;
+    linear-gradient(180deg, rgba(54, 30, 15, 0.9), rgba(24, 13, 8, 0.92)),
+    repeating-linear-gradient(90deg, rgba(255, 226, 170, 0.06) 0 1px, transparent 1px 18px) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 238, 184, 0.1) !important;
 }
 
-.qaw-cell {
+.qaw-status strong {
+  display: block !important;
+  color: var(--qaw-gold-bright) !important;
+  font-size: 0.82rem !important;
+  letter-spacing: 0 !important;
+}
+
+.qaw-status span,
+.qaw-status p {
+  display: block !important;
+  color: var(--qaw-ink-soft) !important;
+}
+
+.qaw-status p {
+  flex: 1 1 260px !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  overflow-wrap: anywhere !important;
+  font-size: 0.86rem !important;
+  line-height: 1.35 !important;
+}
+
+.qaw-layout {
+  display: grid !important;
+  grid-template-columns: minmax(360px, 640px) minmax(240px, 340px) !important;
+  justify-content: center !important;
+  gap: 18px !important;
+  align-items: start !important;
+  width: 100% !important;
+}
+
+.qaw-3d-stage {
+  position: relative !important;
+  width: min(100%, 680px) !important;
+  aspect-ratio: 1 !important;
+  justify-self: center !important;
+  min-width: 0 !important;
+  border: 1px solid rgba(234, 191, 110, 0.28) !important;
+  border-radius: 8px !important;
+  background:
+    radial-gradient(circle at 20% 15%, rgba(239, 200, 116, 0.14), transparent 28%),
+    radial-gradient(circle at 82% 78%, rgba(108, 185, 145, 0.12), transparent 25%),
+    linear-gradient(145deg, #0c0b09, #16120e 54%, #050403) !important;
+  box-shadow:
+    inset 0 0 0 7px rgba(0, 0, 0, 0.26),
+    inset 0 0 42px rgba(0, 0, 0, 0.52),
+    0 18px 38px rgba(0, 0, 0, 0.34) !important;
+  overflow: hidden !important;
+}
+
+.qaw-3d-canvas {
+  position: absolute !important;
+  inset: 0 !important;
+  touch-action: none !important;
+  cursor: grab !important;
+}
+
+.qaw-3d-canvas:active {
+  cursor: grabbing !important;
+}
+
+.qaw-3d-canvas canvas {
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.qaw-camera-controls {
+  position: absolute !important;
+  top: 12px !important;
+  right: 12px !important;
+  z-index: 4 !important;
+  display: flex !important;
+  gap: 6px !important;
+  align-items: center !important;
+}
+
+.qaw-camera-controls button {
+  min-width: 38px !important;
+  min-height: 36px !important;
+  border: 1px solid rgba(234, 191, 110, 0.38) !important;
+  border-radius: 7px !important;
+  padding: 0 10px !important;
+  background: linear-gradient(180deg, rgba(72, 43, 23, 0.94), rgba(22, 12, 7, 0.95)) !important;
+  color: var(--qaw-ink) !important;
+  font-weight: 900 !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.32) !important;
+}
+
+.qaw-camera-controls button:focus-visible {
+  outline: 3px solid rgba(240, 202, 114, 0.48) !important;
+  outline-offset: 2px !important;
+}
+
+.qaw-3d-hint {
+  position: absolute !important;
+  left: 12px !important;
+  bottom: 10px !important;
+  z-index: 4 !important;
+  margin: 0 !important;
+  border: 1px solid rgba(234, 191, 110, 0.2) !important;
   border-radius: 999px !important;
-  border: 1px solid rgba(255, 255, 255, 0.13) !important;
+  padding: 6px 10px !important;
+  background: rgba(8, 5, 3, 0.64) !important;
+  color: rgba(248, 235, 207, 0.76) !important;
+  font-size: 0.76rem !important;
+  font-weight: 800 !important;
+  pointer-events: none !important;
+}
+
+.qaw-panel {
+  display: grid !important;
+  gap: 10px !important;
+  min-width: 0 !important;
+}
+
+.qaw-players {
+  display: grid !important;
+  gap: 8px !important;
+}
+
+.qaw-player,
+.qaw-top-summary,
+.qaw-route {
+  border: 1px solid var(--qaw-panel-line) !important;
+  border-radius: 8px !important;
   background:
-    radial-gradient(circle at 50% 42%, rgba(255, 255, 255, 0.1), transparent 56%),
-    linear-gradient(180deg, #242828, #111313) !important;
+    linear-gradient(180deg, rgba(58, 33, 17, 0.88), rgba(24, 13, 8, 0.9)),
+    repeating-linear-gradient(90deg, rgba(255, 226, 170, 0.035) 0 1px, transparent 1px 16px) !important;
+  color: var(--qaw-ink) !important;
   box-shadow:
-    inset 0 9px 14px rgba(0, 0, 0, 0.56),
-    inset 0 -2px 0 rgba(255, 255, 255, 0.08) !important;
+    inset 0 1px 0 rgba(255, 238, 184, 0.08),
+    0 10px 18px rgba(0, 0, 0, 0.2) !important;
 }
 
-.qaw-cell.path,
-.qaw-cell.next {
-  background:
-    radial-gradient(circle at 50% 42%, rgba(224, 199, 120, 0.24), transparent 60%),
-    linear-gradient(180deg, #2f3433, #121515) !important;
+.qaw-player {
+  display: grid !important;
+  grid-template-columns: 20px minmax(0, 1fr) !important;
+  gap: 9px !important;
+  align-items: center !important;
+  padding: 9px !important;
 }
 
-.qaw-layer.top {
-  width: 68% !important;
-  border-width: 0 !important;
-  border-radius: 47% 53% 50% 45% / 48% 42% 55% 52% !important;
+.qaw-player strong {
+  color: var(--qaw-ink) !important;
+  font-size: 0.88rem !important;
+}
+
+.qaw-player span {
+  color: var(--qaw-ink-soft) !important;
+  font-size: 0.78rem !important;
+}
+
+.qaw-swatch {
+  width: 20px !important;
+  height: 20px !important;
+  border: 1px solid rgba(255, 238, 190, 0.44) !important;
+  box-shadow:
+    inset 0 4px 5px rgba(255, 255, 255, 0.2),
+    inset 0 -5px 7px rgba(0, 0, 0, 0.26) !important;
+}
+
+.qaw-top-summary,
+.qaw-route {
+  display: grid !important;
+  gap: 8px !important;
+  padding: 10px !important;
+}
+
+.qaw-top-summary strong,
+.qaw-route strong {
+  color: var(--qaw-gold-bright) !important;
+  font-size: 0.82rem !important;
+}
+
+.qaw-top-summary > div {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 6px !important;
+}
+
+.qaw-top-summary span,
+.qaw-route-list span {
+  border: 1px solid rgba(234, 191, 110, 0.18) !important;
+  border-radius: 7px !important;
+  background: rgba(0, 0, 0, 0.22) !important;
+  color: var(--qaw-ink) !important;
+}
+
+.qaw-top-summary span {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  justify-content: flex-start !important;
+  min-height: 36px !important;
+  padding: 0 8px !important;
+}
+
+.qaw-top-summary b,
+.qaw-top-summary em {
+  font-style: normal !important;
+  line-height: 1 !important;
+}
+
+.qaw-top-summary b {
+  color: var(--qaw-ink-soft) !important;
+  font-size: 0.72rem !important;
+  font-weight: 900 !important;
+}
+
+.qaw-top-summary em {
+  margin-left: auto !important;
+  color: var(--qaw-gold-bright) !important;
+  font-family: "Cascadia Mono", Consolas, monospace !important;
+  font-size: 0.86rem !important;
+  font-weight: 950 !important;
+}
+
+.qaw-top-summary i,
+.qaw-carry-preview i {
+  display: inline-grid !important;
+  place-items: center !important;
+  width: 22px !important;
+  aspect-ratio: 1 !important;
+  flex: 0 0 auto !important;
+  border-color: rgba(255, 238, 190, 0.36) !important;
+  border-style: solid !important;
+  border-width: 1px !important;
+  border-radius: 999px !important;
   background:
-    radial-gradient(circle at 30% 24%, rgba(255, 255, 255, 0.42), transparent 23%),
+    radial-gradient(circle at 30% 22%, rgba(255, 255, 255, 0.58), transparent 26%),
     var(--stone-color) !important;
-  color: transparent !important;
-  text-shadow: none !important;
+  font-style: normal !important;
+  font-size: 0.72rem !important;
+  font-weight: 950 !important;
+  line-height: 1 !important;
   box-shadow:
-    inset 0 10px 12px rgba(255, 255, 255, 0.22),
-    inset 0 -9px 13px rgba(0, 0, 0, 0.25),
-    0 5px 0 color-mix(in srgb, var(--stone-color) 72%, black),
-    0 10px 0 color-mix(in srgb, var(--stone-color) 58%, black),
-    0 12px 12px rgba(0, 0, 0, 0.34) !important;
+    inset 0 -4px 6px rgba(0, 0, 0, 0.24),
+    0 2px 6px rgba(0, 0, 0, 0.28) !important;
 }
 
-.qaw-layer.top[style*="transparent"] {
-  opacity: 0;
+.qaw-route {
+  display: grid !important;
+  gap: 8px !important;
 }
 
-.qaw-height {
-  right: 6px !important;
-  bottom: 5px !important;
-  opacity: 1 !important;
-  transform: none !important;
-  min-width: 20px;
-  min-height: 20px;
-  display: grid;
-  place-items: center;
-  border-radius: 999px;
-  background:
-    linear-gradient(180deg, rgba(255, 247, 221, 0.92), rgba(215, 184, 116, 0.9));
-  color: #2b1b10 !important;
-  text-shadow: none !important;
-  box-shadow:
-    inset 0 -2px 0 rgba(82, 47, 19, 0.14),
-    0 2px 5px rgba(0, 0, 0, 0.24);
+.qaw-route > span,
+.qaw-carry-preview > span {
+  color: var(--qaw-ink-soft) !important;
+  font-size: 0.78rem !important;
 }
 
-.qaw-layer.top {
-  border-radius: 999px !important;
-  background:
-    radial-gradient(circle at 30% 22%, rgba(255, 255, 255, 0.72), transparent 20%),
-    radial-gradient(circle at 65% 74%, rgba(0, 0, 0, 0.2), transparent 28%),
-    var(--stone-color, #ffffff) !important;
+.qaw-route-hint,
+.qaw-carry-preview {
+  border: 1px solid rgba(234, 191, 110, 0.16) !important;
+  border-radius: 7px !important;
+  background: rgba(0, 0, 0, 0.22) !important;
+  color: var(--qaw-ink) !important;
 }
 
-.qaw-layer.top::after {
-  content: "";
-  position: absolute;
-  inset: 14%;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  box-shadow: inset 0 -5px 8px rgba(0, 0, 0, 0.16);
-  pointer-events: none;
+.qaw-route-hint {
+  padding: 7px 8px !important;
+  font-size: 0.82rem !important;
+  line-height: 1.35 !important;
 }
 
-.qaw-cell.path .qaw-layer.top {
-  transform: translate(calc(-50% - var(--stone-offset-x)), calc(-50% + var(--stone-offset-y) - 7px));
+.qaw-carry-preview {
+  display: grid !important;
+  gap: 7px !important;
+  padding: 8px !important;
+}
+
+.qaw-carry-preview > div {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 8px !important;
+}
+
+.qaw-carry-preview i {
+  width: 28px !important;
+  color: var(--stone-ink, #201208) !important;
+}
+
+.qaw-route-list {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  min-height: 28px !important;
+  gap: 5px !important;
 }
 
 .qaw-route-list span {
-  animation: tabletop-pop var(--motion-pop);
+  display: inline-flex !important;
+  align-items: center !important;
+  min-height: 26px !important;
+  padding: 0 8px !important;
+  font-size: 0.78rem !important;
+  color: var(--qaw-ink) !important;
+}
+
+.qaw-actions {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 8px !important;
+}
+
+.qaw-actions button {
+  min-height: 42px !important;
+  border: 1px solid rgba(234, 191, 110, 0.32) !important;
+  border-radius: 7px !important;
+  background: linear-gradient(180deg, #4e2d17, #1c0f08) !important;
+  color: var(--qaw-ink) !important;
+  font-weight: 900 !important;
+}
+
+.qaw-actions button:last-child {
+  background: linear-gradient(180deg, #e6b95e, #a76822) !important;
+  color: #201208 !important;
+}
+
+.qaw-actions button:disabled {
+  opacity: 0.42 !important;
+}
+
+@media (max-width: 900px) {
+  .qaw-layout {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .qaw-panel {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 520px) {
+  .qaw-shell {
+    gap: 10px !important;
+  }
+
+  .qaw-status {
+    padding: 9px !important;
+  }
+
+  .qaw-layout {
+    gap: 10px !important;
+  }
+
+  .qaw-3d-stage {
+    width: min(100%, 390px) !important;
+  }
+
+  .qaw-camera-controls {
+    top: 8px !important;
+    right: 8px !important;
+  }
+
+  .qaw-camera-controls button {
+    min-width: 34px !important;
+    min-height: 34px !important;
+    padding: 0 8px !important;
+    font-size: 0.78rem !important;
+  }
+
+  .qaw-3d-hint {
+    left: 8px !important;
+    bottom: 8px !important;
+    max-width: calc(100% - 112px) !important;
+    border-radius: 7px !important;
+    font-size: 0.68rem !important;
+    line-height: 1.2 !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .qaw-route-list span {
+    transition: none !important;
+    animation: none !important;
+  }
 }

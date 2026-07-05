@@ -1,5 +1,6 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties } from "react";
+import * as THREE from "three";
 import type { GameAction, GameActionResult, GameComponentProps, GameContext, GameModule } from "../types";
 
 const BOARD_SIZE = 4;
@@ -37,7 +38,7 @@ interface DistributePayload {
   path: Coord[];
 }
 
-const playerColors = ["#315c8c", "#d69b2d"];
+const playerColors = ["#8f2e36", "#d39b32"];
 
 function key(row: number, col: number) {
   return `${row},${col}`;
@@ -107,7 +108,7 @@ function validatePath(source: Coord, path: Coord[], carryLength: number) {
     const current = index === 0 ? source : path[index - 1];
     const target = path[index];
     if (!inBoard(target.row, target.col) || !adjacent(current, target)) {
-      throw new Error("분배 경로는 상하좌우 인접 칸으로 한 칸씩 이어져야 합니다.");
+      throw new Error("놓을 순서는 상하좌우 인접 칸으로 한 칸씩 이어져야 합니다.");
     }
 
     if (index > 0) {
@@ -220,25 +221,25 @@ function createInitialState(context: Pick<GameContext, "players">): QawaleState 
     phase: "playing",
     winnerId: null,
     message: firstPlayer
-      ? `${firstPlayer.name}님이 무작위 선공입니다. 비어 있지 않은 스택을 고르고 자기 돌을 얹은 뒤 스택을 분배하세요.`
-      : "비어 있지 않은 스택을 고르고 자기 돌을 얹은 뒤 스택을 분배하세요.",
+      ? `${firstPlayer.name}님이 무작위 선공입니다. 색 돌이 있는 홈을 고르고 순서대로 놓으세요.`
+      : "색 돌이 있는 홈을 고르고 순서대로 놓으세요.",
     activePlayerId: firstPlayer?.id ?? null
   };
 }
 
 function distribute(state: QawaleState, action: GameAction, context: GameContext): GameActionResult {
   if (!isDistributePayload(action.payload)) {
-    throw new Error("출발 스택과 분배 경로가 필요합니다.");
+    throw new Error("선택한 홈과 놓을 순서가 필요합니다.");
   }
 
   const player = requireActivePlayer(state, context);
   const { source, path } = action.payload;
   if (!inBoard(source.row, source.col)) {
-    throw new Error("출발 칸이 보드 밖입니다.");
+    throw new Error("선택한 홈이 보드 밖입니다.");
   }
   const sourceStack = state.board[source.row][source.col];
   if (sourceStack.length === 0) {
-    throw new Error("비어 있지 않은 스택만 고를 수 있습니다.");
+    throw new Error("색 돌이 있는 홈만 고를 수 있습니다.");
   }
   if ((state.reserves[player.id] ?? 0) <= 0) {
     throw new Error("남은 자기 돌이 없습니다.");
@@ -284,10 +285,10 @@ function distribute(state: QawaleState, action: GameAction, context: GameContext
     };
   }
 
-  next.message = `${player.name}님이 ${source.row + 1}-${source.col + 1} 스택에서 돌 ${carry.length}개를 분배했습니다.`;
+  next.message = `${player.name}님이 ${source.row + 1}-${source.col + 1} 홈에서 돌 ${carry.length}개를 놓았습니다.`;
   return {
     state: next,
-    log: `${player.name} 스택 분배`,
+    log: `${player.name} 돌 배치`,
     message: next.message,
     ...advanceTurn(next, context)
   };
@@ -350,6 +351,451 @@ function canAppendPath(source: Coord | null, path: Coord[], target: Coord) {
   return true;
 }
 
+interface QawaleThreeBoardProps {
+  publicState: QawalePublicState;
+  source: Coord | null;
+  path: Coord[];
+  pathComplete: boolean | null;
+  pathStepsByCell: Map<string, number[]>;
+  nextTargets: Set<string>;
+  canAct: boolean;
+  carryStones: Stone[];
+  onCellSelect: (row: number, col: number) => void;
+}
+
+type CellHitMesh = THREE.Mesh & { userData: { row: number; col: number } };
+
+const cellSpacing = 1.75;
+const boardOffset = ((BOARD_SIZE - 1) * cellSpacing) / 2;
+
+function clamp(value: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, value));
+}
+
+function cellPosition(row: number, col: number) {
+  return new THREE.Vector3(col * cellSpacing - boardOffset, 0, row * cellSpacing - boardOffset);
+}
+
+function disposeSceneObject(object: THREE.Object3D) {
+  object.traverse((child) => {
+    const mesh = child as THREE.Mesh;
+    if (mesh.geometry) {
+      mesh.geometry.dispose();
+    }
+    const material = mesh.material as THREE.Material | THREE.Material[] | undefined;
+    if (Array.isArray(material)) {
+      material.forEach((item) => item.dispose());
+    } else if (material) {
+      material.dispose();
+    }
+  });
+}
+
+function QawaleThreeBoard({
+  publicState,
+  source,
+  path,
+  pathComplete,
+  pathStepsByCell,
+  nextTargets,
+  canAct,
+  carryStones,
+  onCellSelect
+}: QawaleThreeBoardProps) {
+  const mountRef = useRef<HTMLDivElement | null>(null);
+  const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
+  const sceneRef = useRef<THREE.Scene | null>(null);
+  const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
+  const boardGroupRef = useRef<THREE.Group | null>(null);
+  const clickableRef = useRef<CellHitMesh[]>([]);
+  const frameRef = useRef<number | null>(null);
+  const latestSelectRef = useRef(onCellSelect);
+  const controlsRef = useRef({ yaw: -0.58, pitch: 0.72, distance: 15.2 });
+  const pointerRef = useRef({
+    active: false,
+    id: -1,
+    x: 0,
+    y: 0,
+    moved: false,
+    lastTapAt: 0
+  });
+  const pinchRef = useRef(new Map<number, { x: number; y: number }>());
+
+  latestSelectRef.current = onCellSelect;
+
+  const updateCamera = () => {
+    const camera = cameraRef.current;
+    if (!camera) return;
+    const { yaw, pitch, distance } = controlsRef.current;
+    const horizontal = Math.sin(pitch) * distance;
+    camera.position.set(Math.sin(yaw) * horizontal, Math.cos(pitch) * distance, Math.cos(yaw) * horizontal);
+    camera.lookAt(0, 0.08, 0);
+    camera.updateProjectionMatrix();
+  };
+
+  useEffect(() => {
+    const mount = mountRef.current;
+    if (!mount) return undefined;
+
+    const scene = new THREE.Scene();
+    scene.background = null;
+    sceneRef.current = scene;
+
+    const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 80);
+    cameraRef.current = camera;
+    updateCamera();
+
+    const renderer = new THREE.WebGLRenderer({
+      antialias: true,
+      alpha: true,
+      powerPreference: "high-performance",
+      preserveDrawingBuffer: true
+    });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    rendererRef.current = renderer;
+    mount.appendChild(renderer.domElement);
+
+    const ambientLight = new THREE.HemisphereLight(0xfff3d7, 0x16110d, 2.4);
+    scene.add(ambientLight);
+
+    const keyLight = new THREE.DirectionalLight(0xffdf9a, 3.6);
+    keyLight.position.set(-3.8, 6.2, 4.6);
+    keyLight.castShadow = true;
+    keyLight.shadow.mapSize.set(1024, 1024);
+    scene.add(keyLight);
+
+    const fillLight = new THREE.PointLight(0x8bc7ad, 1.2, 9);
+    fillLight.position.set(3.2, 2.6, -4.2);
+    scene.add(fillLight);
+
+    const resize = () => {
+      const rect = mount.getBoundingClientRect();
+      const width = Math.max(1, rect.width);
+      const height = Math.max(1, rect.height);
+      renderer.setSize(width, height, false);
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+    };
+
+    const observer = new ResizeObserver(resize);
+    observer.observe(mount);
+    resize();
+
+    const raycaster = new THREE.Raycaster();
+    const pointer = new THREE.Vector2();
+
+    const pickCell = (clientX: number, clientY: number) => {
+      const rect = renderer.domElement.getBoundingClientRect();
+      pointer.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+      pointer.y = -(((clientY - rect.top) / rect.height) * 2 - 1);
+      raycaster.setFromCamera(pointer, camera);
+      const hit = raycaster.intersectObjects(clickableRef.current, false)[0]?.object as CellHitMesh | undefined;
+      if (hit) {
+        latestSelectRef.current(hit.userData.row, hit.userData.col);
+      }
+    };
+
+    const onPointerDown = (event: PointerEvent) => {
+      pinchRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
+      if (pinchRef.current.size > 1) {
+        pointerRef.current.active = false;
+        return;
+      }
+      pointerRef.current = {
+        active: true,
+        id: event.pointerId,
+        x: event.clientX,
+        y: event.clientY,
+        moved: false,
+        lastTapAt: Date.now()
+      };
+      renderer.domElement.setPointerCapture(event.pointerId);
+    };
+
+    const onPointerMove = (event: PointerEvent) => {
+      if (pinchRef.current.has(event.pointerId)) {
+        pinchRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
+      }
+      if (pinchRef.current.size === 2) {
+        const points = [...pinchRef.current.values()];
+        const distance = Math.hypot(points[0].x - points[1].x, points[0].y - points[1].y);
+        const previous = (pinchRef.current as unknown as { lastDistance?: number }).lastDistance ?? distance;
+        controlsRef.current.distance = clamp(controlsRef.current.distance - (distance - previous) * 0.018, 9.8, 19.5);
+        (pinchRef.current as unknown as { lastDistance?: number }).lastDistance = distance;
+        updateCamera();
+        return;
+      }
+
+      const pointerState = pointerRef.current;
+      if (!pointerState.active || pointerState.id !== event.pointerId) return;
+      const dx = event.clientX - pointerState.x;
+      const dy = event.clientY - pointerState.y;
+      if (Math.abs(dx) + Math.abs(dy) > 4) {
+        pointerState.moved = true;
+      }
+      pointerState.x = event.clientX;
+      pointerState.y = event.clientY;
+      controlsRef.current.yaw -= dx * 0.007;
+      controlsRef.current.pitch = clamp(controlsRef.current.pitch - dy * 0.005, 0.34, 1.22);
+      updateCamera();
+    };
+
+    const onPointerUp = (event: PointerEvent) => {
+      pinchRef.current.delete(event.pointerId);
+      (pinchRef.current as unknown as { lastDistance?: number }).lastDistance = undefined;
+      const pointerState = pointerRef.current;
+      if (pointerState.id === event.pointerId && pointerState.active && !pointerState.moved) {
+        pickCell(event.clientX, event.clientY);
+      }
+      pointerRef.current.active = false;
+      try {
+        renderer.domElement.releasePointerCapture(event.pointerId);
+      } catch {
+        // Pointer capture can already be released by the browser.
+      }
+    };
+
+    const onWheel = (event: WheelEvent) => {
+      event.preventDefault();
+      controlsRef.current.distance = clamp(controlsRef.current.distance + event.deltaY * 0.006, 9.8, 19.5);
+      updateCamera();
+    };
+
+    renderer.domElement.addEventListener("pointerdown", onPointerDown);
+    renderer.domElement.addEventListener("pointermove", onPointerMove);
+    renderer.domElement.addEventListener("pointerup", onPointerUp);
+    renderer.domElement.addEventListener("pointercancel", onPointerUp);
+    renderer.domElement.addEventListener("wheel", onWheel, { passive: false });
+
+    const animate = () => {
+      frameRef.current = requestAnimationFrame(animate);
+      renderer.render(scene, camera);
+    };
+    animate();
+
+    return () => {
+      observer.disconnect();
+      renderer.domElement.removeEventListener("pointerdown", onPointerDown);
+      renderer.domElement.removeEventListener("pointermove", onPointerMove);
+      renderer.domElement.removeEventListener("pointerup", onPointerUp);
+      renderer.domElement.removeEventListener("pointercancel", onPointerUp);
+      renderer.domElement.removeEventListener("wheel", onWheel);
+      if (frameRef.current !== null) {
+        cancelAnimationFrame(frameRef.current);
+      }
+      if (boardGroupRef.current) {
+        scene.remove(boardGroupRef.current);
+        disposeSceneObject(boardGroupRef.current);
+      }
+      renderer.dispose();
+      mount.removeChild(renderer.domElement);
+    };
+  }, []);
+
+  useEffect(() => {
+    const scene = sceneRef.current;
+    if (!scene) return;
+
+    if (boardGroupRef.current) {
+      scene.remove(boardGroupRef.current);
+      disposeSceneObject(boardGroupRef.current);
+    }
+
+    const group = new THREE.Group();
+    group.scale.setScalar(0.84);
+    boardGroupRef.current = group;
+    clickableRef.current = [];
+
+    const boardMaterial = new THREE.MeshStandardMaterial({
+      color: 0x171512,
+      roughness: 0.84,
+      metalness: 0.08
+    });
+    const base = new THREE.Mesh(new THREE.BoxGeometry(8.1, 0.34, 8.1), boardMaterial);
+    base.position.y = -0.24;
+    base.castShadow = true;
+    base.receiveShadow = true;
+    group.add(base);
+
+    const bevelMaterial = new THREE.MeshStandardMaterial({ color: 0x050403, roughness: 0.72, metalness: 0.18 });
+    const bevel = new THREE.Mesh(new THREE.BoxGeometry(8.5, 0.3, 8.5), bevelMaterial);
+    bevel.position.y = -0.42;
+    bevel.castShadow = true;
+    bevel.receiveShadow = true;
+    group.add(bevel);
+
+    const wellMaterial = new THREE.MeshStandardMaterial({
+      color: 0x020202,
+      roughness: 0.9,
+      metalness: 0.05
+    });
+    const rimMaterial = new THREE.MeshStandardMaterial({
+      color: 0x5f5142,
+      roughness: 0.6,
+      metalness: 0.18
+    });
+    const sourceMaterial = new THREE.MeshBasicMaterial({ color: 0xd7a545, transparent: true, opacity: 0.7 });
+    const selectedMaterial = new THREE.MeshBasicMaterial({ color: 0xf2cf72, transparent: true, opacity: 0.9 });
+    const pathMaterial = new THREE.MeshBasicMaterial({ color: 0x9fc9b8, transparent: true, opacity: 0.72 });
+    const nextMaterial = new THREE.MeshBasicMaterial({ color: 0x66d19e, transparent: true, opacity: 0.78 });
+    const heightPinMaterial = new THREE.MeshStandardMaterial({ color: 0xd7a545, roughness: 0.58, metalness: 0.18 });
+    const hitMaterial = new THREE.MeshBasicMaterial({
+      color: 0xffffff,
+      transparent: true,
+      opacity: 0.001,
+      depthWrite: false
+    });
+
+    for (let row = 0; row < BOARD_SIZE; row += 1) {
+      for (let col = 0; col < BOARD_SIZE; col += 1) {
+        const position = cellPosition(row, col);
+        const cellKey = key(row, col);
+        const stack = publicState.board[row][col];
+        const top = stack[stack.length - 1] ?? null;
+        const selected = source?.row === row && source.col === col;
+        const sourceCandidate = canAct && !source && stack.length > 0;
+        const inPath = pathStepsByCell.has(cellKey);
+        const next = nextTargets.has(cellKey);
+
+        const well = new THREE.Mesh(new THREE.CylinderGeometry(0.63, 0.54, 0.14, 48), wellMaterial);
+        well.position.set(position.x, -0.01, position.z);
+        well.receiveShadow = true;
+        group.add(well);
+
+        const activeRimMaterial = selected ? selectedMaterial : next ? nextMaterial : sourceCandidate ? sourceMaterial : rimMaterial;
+        const rim = new THREE.Mesh(new THREE.TorusGeometry(0.62, selected ? 0.05 : next ? 0.04 : 0.028, 12, 64), activeRimMaterial);
+        rim.rotation.x = Math.PI / 2;
+        rim.position.set(position.x, 0.075, position.z);
+        group.add(rim);
+
+        if (inPath) {
+          const pathRing = new THREE.Mesh(new THREE.TorusGeometry(0.7, 0.026, 10, 64), pathMaterial);
+          pathRing.rotation.x = Math.PI / 2;
+          pathRing.position.set(position.x, 0.11, position.z);
+          group.add(pathRing);
+        }
+
+        if (next) {
+          const previewStone = carryStones[path.length] ?? null;
+          const preview = new THREE.Mesh(
+            new THREE.SphereGeometry(0.42, 32, 16),
+            new THREE.MeshPhysicalMaterial({
+              color: new THREE.Color(stoneColor(publicState, previewStone)),
+              roughness: 0.48,
+              clearcoat: 0.36,
+              transparent: true,
+              opacity: 0.5
+            })
+          );
+          preview.scale.y = 0.2;
+          preview.position.set(position.x, 0.28 + stack.length * 0.11, position.z);
+          group.add(preview);
+        }
+
+        stack.forEach((stone, stoneIndex) => {
+          const radius = Math.max(0.34, 0.49 - stoneIndex * 0.025);
+          const stoneMesh = new THREE.Mesh(
+            new THREE.SphereGeometry(radius, 40, 18),
+            new THREE.MeshPhysicalMaterial({
+              color: new THREE.Color(stoneColor(publicState, stone)),
+              roughness: stone === NEUTRAL ? 0.38 : 0.5,
+              metalness: 0,
+              clearcoat: 0.32,
+              clearcoatRoughness: 0.42
+            })
+          );
+          stoneMesh.scale.y = 0.18;
+          stoneMesh.position.set(
+            position.x + (stoneIndex % 2 === 0 ? -0.018 : 0.018) * stoneIndex,
+            0.18 + stoneIndex * 0.115 + (selected ? 0.14 : 0),
+            position.z - stoneIndex * 0.028
+          );
+          stoneMesh.rotation.y = stoneIndex * 0.7;
+          stoneMesh.castShadow = true;
+          stoneMesh.receiveShadow = true;
+          group.add(stoneMesh);
+
+          if (stoneIndex < stack.length - 1) {
+            const sideBand = new THREE.Mesh(
+              new THREE.TorusGeometry(radius * 1.02, 0.018, 8, 36),
+              new THREE.MeshStandardMaterial({
+                color: new THREE.Color(stoneColor(publicState, stone)),
+                roughness: 0.58,
+                metalness: 0.06
+              })
+            );
+            sideBand.rotation.x = Math.PI / 2;
+            sideBand.position.set(stoneMesh.position.x, stoneMesh.position.y + 0.006, stoneMesh.position.z);
+            group.add(sideBand);
+          }
+        });
+
+        if (stack.length > 0) {
+          const topColor = new THREE.Color(stoneColor(publicState, top));
+          const ownerRing = new THREE.Mesh(
+            new THREE.TorusGeometry(0.54, 0.026, 10, 56),
+            new THREE.MeshBasicMaterial({ color: topColor, transparent: true, opacity: 0.9 })
+          );
+          ownerRing.rotation.x = Math.PI / 2;
+          ownerRing.position.set(position.x, 0.22 + stack.length * 0.115, position.z);
+          group.add(ownerRing);
+
+          for (let markerIndex = 0; markerIndex < Math.min(stack.length, 6); markerIndex += 1) {
+            const marker = new THREE.Mesh(new THREE.SphereGeometry(0.065, 16, 8), heightPinMaterial);
+            marker.scale.y = 0.5;
+            marker.position.set(
+              position.x + 0.5 - markerIndex * 0.12,
+              0.16 + stack.length * 0.115,
+              position.z + 0.56
+            );
+            marker.castShadow = true;
+            group.add(marker);
+          }
+        }
+
+        const hit = new THREE.Mesh(new THREE.CylinderGeometry(0.72, 0.72, 0.38, 24), hitMaterial) as unknown as CellHitMesh;
+        hit.position.set(position.x, 0.25, position.z);
+        hit.userData = { row, col };
+        group.add(hit);
+        clickableRef.current.push(hit);
+      }
+    }
+
+    scene.add(group);
+  }, [publicState, source, path, pathComplete, pathStepsByCell, nextTargets, canAct, carryStones]);
+
+  function resetCamera() {
+    controlsRef.current = { yaw: -0.58, pitch: 0.72, distance: 15.2 };
+    updateCamera();
+  }
+
+  function zoom(delta: number) {
+    controlsRef.current.distance = clamp(controlsRef.current.distance + delta, 9.8, 19.5);
+    updateCamera();
+  }
+
+  return (
+    <div className="qaw-3d-stage">
+      <div className="qaw-3d-canvas" ref={mountRef} role="application" aria-label="회전 가능한 3D 카왈레 보드" />
+      <div className="qaw-camera-controls" aria-label="3D 보드 시점 조절">
+        <button type="button" onClick={resetCamera}>
+          시점 초기화
+        </button>
+        <button type="button" onClick={() => zoom(-0.8)} aria-label="확대">
+          +
+        </button>
+        <button type="button" onClick={() => zoom(0.8)} aria-label="축소">
+          -
+        </button>
+      </div>
+      <p className="qaw-3d-hint">드래그 회전 · 휠/핀치 확대 · 홈 클릭</p>
+    </div>
+  );
+}
+
 export function Component(props: GameComponentProps) {
   const { currentPlayer, activePlayer, disabled, onAction } = props;
   const publicState = props.publicState as QawalePublicState;
@@ -384,14 +830,14 @@ export function Component(props: GameComponentProps) {
     );
   }, [source, path, pathComplete]);
   const routeHint = !canAct
-    ? "현재 차례가 아니면 경로를 선택할 수 없습니다."
+    ? "상대 차례"
     : !source
-      ? "높이가 1 이상인 스택을 먼저 고르세요."
+      ? "홈 선택"
       : pathComplete
-        ? "필요한 칸을 모두 골랐습니다. 분배를 눌러 확정하세요."
+        ? "놓기 확정"
         : nextTargets.size > 0
-          ? `밝게 표시된 다음 칸 ${nextTargets.size}곳 중 하나를 고르세요.`
-          : "이어갈 수 있는 칸이 없습니다. 취소하고 다른 경로를 선택하세요.";
+          ? `다음 홈 ${nextTargets.size}곳`
+          : "경로 없음";
 
   function selectCell(row: number, col: number) {
     if (!canAct) return;
@@ -423,7 +869,6 @@ export function Component(props: GameComponentProps) {
 
   return (
     <div className="qaw-shell">
-      <style>{qawaleStyles}</style>
       <div className="qaw-status">
         <div>
           <strong>{publicState.phase === "complete" ? (publicState.winnerId ? "승자" : "무승부") : "차례"}</strong>
@@ -439,91 +884,17 @@ export function Component(props: GameComponentProps) {
       </div>
 
       <div className="qaw-layout">
-        <div className="qaw-board" aria-label="카왈레 보드">
-          {publicState.board.map((row, rowIndex) =>
-            row.map((stack, colIndex) => {
-              const top = stack[stack.length - 1] ?? null;
-              const cellKey = key(rowIndex, colIndex);
-              const selected = source?.row === rowIndex && source.col === colIndex;
-              const pathSteps = pathStepsByCell.get(cellKey) ?? [];
-              const inPath = pathSteps.length > 0;
-              const next = nextTargets.has(cellKey);
-              const sourceCandidate = canAct && !source && stack.length > 0;
-              const invalidTarget = Boolean(source && !pathComplete && !next && !selected && !inPath);
-              return (
-                <button
-                  className={`qaw-cell ${selected ? "selected" : ""} ${sourceCandidate ? "source-candidate" : ""} ${
-                    inPath ? "path" : ""
-                  } ${next ? "next" : ""} ${invalidTarget ? "invalid-target" : ""}`}
-                  disabled={!canAct || (!source && stack.length === 0) || invalidTarget || Boolean(source && pathComplete)}
-                  key={cellKey}
-                  onClick={() => selectCell(rowIndex, colIndex)}
-                  title={
-                    selected
-                      ? "출발 스택"
-                      : inPath
-                        ? "이미 선택한 경로"
-                        : next
-                          ? "다음 분배 후보"
-                          : stack.length > 0
-                            ? `스택 높이 ${stack.length}`
-                            : "빈 칸"
-                  }
-                  type="button"
-                >
-                  <span className="qaw-stack" aria-hidden={stack.length === 0}>
-                    {stack.length === 0 ? (
-                      <span className="qaw-empty-dot" />
-                    ) : (
-                      stack.map((stone, stoneIndex) => {
-                        const depth = stack.length - 1 - stoneIndex;
-                        return (
-                          <span
-                            className={`qaw-layer ${stoneIndex === stack.length - 1 ? "top" : ""}`}
-                            key={`${stone}-${stoneIndex}`}
-                            style={
-                              {
-                                "--stone-color": stoneColor(publicState, stone),
-                                "--stone-offset-x": `${depth * 2}px`,
-                                "--stone-offset-y": `${depth * 5}px`,
-                                color: stone === NEUTRAL ? "#17201d" : "white"
-                              } as CSSProperties
-                            }
-                          >
-                            {stoneIndex === stack.length - 1 ? <span>{stoneLabel(publicState, top)}</span> : ""}
-                          </span>
-                        );
-                      })
-                    )}
-                  </span>
-                  <span className="qaw-height">{stack.length}</span>
-                  <span
-                    className="qaw-top-owner"
-                    style={
-                      {
-                        "--stone-color": stoneColor(publicState, top),
-                        color: top && top !== NEUTRAL ? "white" : "#17201d"
-                      } as CSSProperties
-                    }
-                  >
-                    {top ? stoneLabel(publicState, top) : "-"}
-                  </span>
-                  {sourceCandidate || selected || inPath || next ? (
-                    <span className="qaw-cell-cue">
-                      {selected
-                        ? `출발 +1`
-                        : inPath
-                          ? pathSteps.join("/")
-                          : next
-                            ? `${path.length + 1}`
-                            : "올림"}
-                    </span>
-                  ) : null}
-                </button>
-              );
-            })
-          )}
-        </div>
+        <QawaleThreeBoard
+          publicState={publicState}
+          source={source}
+          path={path}
+          pathComplete={pathComplete}
+          pathStepsByCell={pathStepsByCell}
+          nextTargets={nextTargets}
+          canAct={canAct}
+          carryStones={carryStones}
+          onCellSelect={selectCell}
+        />
 
         <aside className="qaw-panel">
           <div className="qaw-players">
@@ -546,44 +917,46 @@ export function Component(props: GameComponentProps) {
               {publicState.players.map((player) => (
                 <span key={player.id}>
                   <i style={{ "--stone-color": player.color } as CSSProperties} />
-                  {topCounts[player.id] ?? 0}
+                  <b>{player.seat}</b>
+                  <em>{topCounts[player.id] ?? 0}</em>
                 </span>
               ))}
               <span>
                 <i style={{ "--stone-color": stoneColor(publicState, NEUTRAL) } as CSSProperties} />
-                {topCounts[NEUTRAL] ?? 0}
+                <b>중</b>
+                <em>{topCounts[NEUTRAL] ?? 0}</em>
               </span>
             </div>
           </div>
 
           <div className="qaw-route">
-            <strong>분배 경로</strong>
+            <strong>놓을 순서</strong>
             <span>
               {source
-                ? `${source.row + 1}-${source.col + 1}에서 ${path.length}/${carryLength}칸 선택`
-                : "비어 있지 않은 출발 스택을 고르세요"}
+                ? `${source.row + 1}-${source.col + 1} 홈 · ${path.length}/${carryLength}칸`
+                : "색 돌이 있는 홈을 고르세요"}
             </span>
             <p className="qaw-route-hint">{routeHint}</p>
             <div className="qaw-carry-preview">
               <span>
                 {source && currentModulePlayer
                   ? `기존 ${carryLength - 1}개 + 내 돌 1개 = ${carryLength}개`
-                  : "출발 스택을 고르면 분배 순서가 표시됩니다"}
+                  : "홈을 고르면 놓을 순서가 표시됩니다"}
               </span>
               <div>
                 {carryStones.map((stone, index) => (
                   <i
                     key={`${stone}-${index}`}
+                    aria-label={`${index + 1}번째: ${stoneName(publicState, stone)}`}
                     style={
                       {
                         "--stone-color": stoneColor(publicState, stone),
+                        "--stone-ink": stone !== NEUTRAL ? "#fff8e4" : "#17201d",
                         color: stone !== NEUTRAL ? "white" : "#17201d"
                       } as CSSProperties
                     }
                     title={`${index + 1}번째: ${stoneName(publicState, stone)}`}
-                  >
-                    {index + 1}
-                  </i>
+                  />
                 ))}
               </div>
             </div>
@@ -597,7 +970,7 @@ export function Component(props: GameComponentProps) {
                 취소
               </button>
               <button disabled={!canAct || !pathComplete} onClick={submitMove} type="button">
-                분배
+                놓기
               </button>
             </div>
           </div>
@@ -606,346 +979,3 @@ export function Component(props: GameComponentProps) {
     </div>
   );
 }
-
-const qawaleStyles = `
-.qaw-shell {
-  display: grid;
-  gap: 14px;
-  color: #17201d;
-  min-width: 0;
-}
-.qaw-status {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 12px;
-  border: 1px solid rgba(24, 24, 24, 0.18);
-  border-radius: 8px;
-  padding: 12px;
-  background:
-    linear-gradient(180deg, #f7f1e6, #e6d4b5);
-}
-.qaw-status strong,
-.qaw-status span {
-  display: block;
-}
-.qaw-status span,
-.qaw-status p {
-  color: #52625d;
-}
-.qaw-status p {
-  flex: 1 1 220px;
-  margin: 0;
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-.qaw-layout {
-  display: grid;
-  grid-template-columns: minmax(240px, 420px) minmax(180px, 1fr);
-  gap: 16px;
-  align-items: start;
-  min-width: 0;
-}
-.qaw-board {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(44px, 1fr));
-  gap: 10px;
-  width: min(100%, 420px);
-  aspect-ratio: 1;
-  padding: 16px;
-  border: 1px solid rgba(12, 12, 12, 0.52);
-  border-radius: 8px;
-  background:
-    radial-gradient(circle at 25% 20%, rgba(255, 255, 255, 0.12), transparent 24%),
-    linear-gradient(145deg, #2b2b2a, #0f1112);
-  box-shadow:
-    inset 0 0 0 5px rgba(255, 255, 255, 0.08),
-    inset 0 0 20px rgba(0, 0, 0, 0.42),
-    0 14px 24px rgba(12, 12, 12, 0.18);
-}
-.qaw-cell {
-  position: relative;
-  display: grid;
-  place-items: center;
-  min-height: 0;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 8px;
-  background:
-    radial-gradient(circle at 50% 42%, rgba(255, 255, 255, 0.08), transparent 58%),
-    #181b1c;
-  color: #f9f3e6;
-  box-shadow: inset 0 4px 10px rgba(0, 0, 0, 0.42);
-}
-.qaw-cell.selected {
-  outline: 3px solid #e5c55c;
-  outline-offset: 1px;
-}
-.qaw-cell.source-candidate {
-  box-shadow:
-    inset 0 0 0 2px rgba(229, 197, 92, 0.56),
-    inset 0 4px 10px rgba(0, 0, 0, 0.42);
-}
-.qaw-cell.path {
-  background:
-    radial-gradient(circle at 50% 42%, rgba(229, 197, 92, 0.26), transparent 62%),
-    #222425;
-}
-.qaw-cell.next {
-  box-shadow:
-    inset 0 0 0 3px #e5c55c,
-    inset 0 4px 10px rgba(0, 0, 0, 0.42);
-}
-.qaw-cell.invalid-target {
-  opacity: 0.48;
-}
-.qaw-stack {
-  position: relative;
-  display: block;
-  width: 64%;
-  aspect-ratio: 1;
-}
-.qaw-empty-dot {
-  position: absolute;
-  inset: 34%;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.12);
-}
-.qaw-layer {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  display: grid;
-  place-items: center;
-  width: 76%;
-  aspect-ratio: 1;
-  border: 2px solid rgba(15, 15, 15, 0.28);
-  border-radius: 999px;
-  background:
-    radial-gradient(circle at 33% 25%, rgba(255, 255, 255, 0.55), transparent 22%),
-    var(--stone-color);
-  font-weight: 900;
-  transform: translate(calc(-50% - var(--stone-offset-x)), calc(-50% + var(--stone-offset-y)));
-  box-shadow:
-    inset 0 8px 10px rgba(255, 255, 255, 0.24),
-    inset 0 -8px 10px rgba(0, 0, 0, 0.22),
-    0 4px 7px rgba(0, 0, 0, 0.32);
-}
-.qaw-layer > span {
-  display: grid;
-  place-items: center;
-  width: 58%;
-  aspect-ratio: 1;
-  border-radius: 999px;
-  background: rgba(0, 0, 0, 0.14);
-  font-size: 0.8rem;
-  line-height: 1;
-}
-.qaw-layer.top {
-  z-index: 12;
-}
-.qaw-height {
-  position: absolute;
-  right: 7px;
-  bottom: 5px;
-  color: #e8dcc4;
-  font-family: "Cascadia Mono", Consolas, monospace;
-  font-size: 0.8rem;
-  font-weight: 800;
-}
-.qaw-top-owner {
-  position: absolute;
-  left: 6px;
-  top: 5px;
-  z-index: 20;
-  display: grid;
-  place-items: center;
-  min-width: 21px;
-  height: 21px;
-  border: 1px solid rgba(255, 255, 255, 0.54);
-  border-radius: 999px;
-  background:
-    radial-gradient(circle at 30% 24%, rgba(255, 255, 255, 0.58), transparent 28%),
-    var(--stone-color);
-  color: #17201d;
-  font-size: 0.72rem;
-  font-weight: 950;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.32);
-}
-.qaw-cell-cue {
-  position: absolute;
-  left: 50%;
-  bottom: 6px;
-  z-index: 22;
-  display: inline-grid;
-  place-items: center;
-  min-width: 34px;
-  min-height: 22px;
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  border-radius: 999px;
-  padding: 0 7px;
-  background: rgba(229, 197, 92, 0.95);
-  color: #2b1b10;
-  font-size: 0.72rem;
-  font-weight: 950;
-  line-height: 1;
-  transform: translateX(-50%);
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.28);
-}
-.qaw-panel {
-  display: grid;
-  gap: 14px;
-  min-width: 0;
-}
-.qaw-players {
-  display: grid;
-  gap: 8px;
-}
-.qaw-player {
-  display: grid;
-  grid-template-columns: 18px minmax(0, 1fr);
-  gap: 9px;
-  align-items: center;
-  border: 1px solid rgba(23, 32, 29, 0.14);
-  border-radius: 8px;
-  padding: 9px;
-  background: linear-gradient(180deg, #fffaf0, #eadabe);
-}
-.qaw-player strong,
-.qaw-player span {
-  display: block;
-}
-.qaw-player span {
-  color: #52625d;
-  font-size: 0.84rem;
-}
-.qaw-swatch {
-  width: 18px;
-  height: 18px;
-  border-radius: 999px;
-}
-.qaw-top-summary {
-  display: grid;
-  gap: 8px;
-  border: 1px solid rgba(23, 32, 29, 0.14);
-  border-radius: 8px;
-  padding: 10px;
-  background: linear-gradient(180deg, #fffaf0, #eadabe);
-}
-.qaw-top-summary > div {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
-}
-.qaw-top-summary span {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  min-height: 34px;
-  border: 1px solid rgba(23, 32, 29, 0.12);
-  border-radius: 8px;
-  background: rgba(255, 250, 240, 0.78);
-  color: #17201d;
-  font-weight: 950;
-}
-.qaw-top-summary i,
-.qaw-carry-preview i {
-  display: inline-grid;
-  place-items: center;
-  width: 20px;
-  aspect-ratio: 1;
-  border: 1px solid rgba(23, 32, 29, 0.2);
-  border-radius: 999px;
-  background:
-    radial-gradient(circle at 30% 22%, rgba(255, 255, 255, 0.62), transparent 28%),
-    var(--stone-color);
-  color: #17201d;
-  font-style: normal;
-  font-size: 0.68rem;
-  font-weight: 950;
-  box-shadow:
-    inset 0 -3px 5px rgba(0, 0, 0, 0.18),
-    0 2px 4px rgba(0, 0, 0, 0.18);
-}
-.qaw-route {
-  display: grid;
-  gap: 10px;
-  border: 1px solid rgba(23, 32, 29, 0.14);
-  border-radius: 8px;
-  padding: 10px;
-  background: linear-gradient(180deg, #fffaf0, #eadabe);
-}
-.qaw-route > span {
-  color: #52625d;
-}
-.qaw-route-hint {
-  margin: -2px 0 0;
-  border: 1px solid rgba(23, 32, 29, 0.12);
-  border-radius: 8px;
-  padding: 8px;
-  background: rgba(255, 250, 240, 0.72);
-  color: #4f4639;
-  font-size: 0.86rem;
-  line-height: 1.4;
-}
-.qaw-carry-preview {
-  display: grid;
-  gap: 7px;
-  border: 1px solid rgba(23, 32, 29, 0.12);
-  border-radius: 8px;
-  padding: 8px;
-  background: rgba(255, 250, 240, 0.72);
-}
-.qaw-carry-preview > span {
-  color: #52625d;
-  font-size: 0.82rem;
-  font-weight: 800;
-}
-.qaw-carry-preview > div {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  min-height: 22px;
-}
-.qaw-carry-preview i {
-  width: 24px;
-}
-.qaw-route-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  min-height: 30px;
-}
-.qaw-route-list span {
-  display: inline-flex;
-  align-items: center;
-  min-height: 28px;
-  border: 1px solid rgba(23, 32, 29, 0.14);
-  border-radius: 8px;
-  padding: 0 8px;
-  background: #f4e5c6;
-  font-size: 0.84rem;
-  font-weight: 800;
-}
-.qaw-actions {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-}
-.qaw-actions button {
-  border: 1px solid rgba(24, 24, 24, 0.2);
-  border-radius: 8px;
-  background: linear-gradient(180deg, #fff4d6, #d9b574);
-  color: #17201d;
-}
-.qaw-actions button:last-child {
-  color: white;
-  background: linear-gradient(180deg, #333333, #111111);
-}
-@media (max-width: 760px) {
-  .qaw-layout {
-    grid-template-columns: 1fr;
-  }
-}
-`;
