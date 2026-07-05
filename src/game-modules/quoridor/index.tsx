@@ -690,7 +690,7 @@ export function Component(props: GameComponentProps) {
                   if (wallSlotOccupied(publicState, row, col)) {
                     return null;
                   }
-                  const selected = wallPreviewVisible && row === wallRow && col === wallCol;
+                  const selected = compactControls && wallPreviewVisible && row === wallRow && col === wallCol;
                   const blocked = wallBlockedAt(orientation, row, col);
                   return (
                     <button
@@ -703,7 +703,6 @@ export function Component(props: GameComponentProps) {
                       onClick={() => selectWallAt(row, col)}
                       style={wallPieceStyle(row, col)}
                       tabIndex={-1}
-                      title={`${row + 1}-${col + 1} ${blocked ? "불가" : "벽 후보"}`}
                       type="button"
                     />
                   );

@@ -716,8 +716,8 @@ function App() {
           <img src="/brand/brand-mark.svg" alt="" />
         </div>
         <div>
-          <h1>웹에서 즐기는 보드게임</h1>
-          <p>방을 고르고 함께 플레이하세요</p>
+          <h1>Board Game Room</h1>
+          <p>웹에서 즐기는 보드게임</p>
         </div>
       </header>
 
