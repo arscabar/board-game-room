@@ -136,6 +136,11 @@ function hasWall(state: QuoridorState, orientation: Orientation, row: number, co
   return state.walls[orientation].includes(key(row, col));
 }
 
+function wallSlotOccupied(state: QuoridorState, row: number, col: number) {
+  const wallKey = key(row, col);
+  return state.walls.horizontal.includes(wallKey) || state.walls.vertical.includes(wallKey);
+}
+
 function wallBlocksMove(state: QuoridorState, from: Coord, to: Coord) {
   const dr = to.row - from.row;
   const dc = to.col - from.col;
@@ -528,11 +533,13 @@ export function Component(props: GameComponentProps) {
       ? "남은 벽이 없습니다."
       : wallTouchesOuterEdge(wallRow, wallCol)
         ? "가장 바깥 끝선과 맞닿는 위치에는 벽을 놓을 수 없습니다."
-        : wallWouldOverlap(publicState, orientation, wallRow, wallCol)
-          ? "이미 벽이 있거나 교차되는 위치입니다."
-          : !wallPreservesPaths(publicState, orientation, wallRow, wallCol)
-            ? "누군가의 길을 완전히 막는 위치입니다."
-            : "놓을 수 있는 벽 위치입니다.";
+        : wallSlotOccupied(publicState, wallRow, wallCol)
+          ? "이미 벽이 설치된 자리입니다."
+          : wallWouldOverlap(publicState, orientation, wallRow, wallCol)
+            ? "이미 벽이 있거나 교차되는 위치입니다."
+            : !wallPreservesPaths(publicState, orientation, wallRow, wallCol)
+              ? "누군가의 길을 완전히 막는 위치입니다."
+              : "놓을 수 있는 벽 위치입니다.";
 
   function selectMode(nextMode: ActionMode) {
     setMode(nextMode);
@@ -564,7 +571,7 @@ export function Component(props: GameComponentProps) {
   }
 
   function selectWallAt(row: number, col: number) {
-    if (!canAct || mode !== "wall") return;
+    if (!canAct || mode !== "wall" || wallTouchesOuterEdge(row, col) || wallSlotOccupied(publicState, row, col)) return;
     previewWall(row, col);
     setPendingConfirm(null);
   }
@@ -712,7 +719,7 @@ export function Component(props: GameComponentProps) {
               />
             );
           })}
-          {canAct && mode === "wall" && !wallTouchesOuterEdge(wallRow, wallCol) ? (
+          {canAct && mode === "wall" && !wallTouchesOuterEdge(wallRow, wallCol) && !wallSlotOccupied(publicState, wallRow, wallCol) ? (
             <span
               aria-hidden="true"
               className={`qdr-wall-preview ${orientation} ${selectedWallBlocked ? "blocked" : "valid"}`}
@@ -723,6 +730,9 @@ export function Component(props: GameComponentProps) {
             ? Array.from({ length: WALL_GRID }, (_, row) =>
                 Array.from({ length: WALL_GRID }, (_, col) => {
                   if (wallTouchesOuterEdge(row, col)) {
+                    return null;
+                  }
+                  if (wallSlotOccupied(publicState, row, col)) {
                     return null;
                   }
                   const selected = row === wallRow && col === wallCol;
@@ -853,10 +863,11 @@ export function Component(props: GameComponentProps) {
                     Array.from({ length: WALL_GRID }, (_, col) => {
                       const selected = row === wallRow && col === wallCol;
                       const blocked = wallBlockedAt(orientation, row, col);
+                      const occupied = wallSlotOccupied(publicState, row, col);
                       return (
                         <button
-                          className={`${selected ? "selected" : ""} ${blocked ? "blocked" : "valid"}`}
-                          disabled={!canAct}
+                          className={`${selected ? "selected" : ""} ${blocked ? "blocked" : "valid"} ${occupied ? "occupied" : ""}`}
+                          disabled={!canAct || occupied}
                           key={key(row, col)}
                           onClick={() => {
                             selectWallAt(row, col);
@@ -864,9 +875,9 @@ export function Component(props: GameComponentProps) {
                           type="button"
                           aria-pressed={selected}
                           aria-label={`${row + 1}행 ${col + 1}열 ${orientation === "horizontal" ? "가로" : "세로"} 벽 ${
-                            blocked ? "불가" : "가능"
+                            occupied ? "이미 설치됨" : blocked ? "불가" : "가능"
                           }`}
-                          title={`${row + 1}-${col + 1} ${blocked ? "불가" : "가능"}`}
+                          title={`${row + 1}-${col + 1} ${occupied ? "이미 설치됨" : blocked ? "불가" : "가능"}`}
                         >
                           <span className="qdr-wall-grid-mark" aria-hidden="true" />
                         </button>
@@ -1403,6 +1414,15 @@ const quoridorStyles = `
   background:
     repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.24) 0 4px, transparent 4px 8px),
     #9b3d34;
+}
+.qdr-wall-grid button.occupied {
+  cursor: not-allowed;
+  background: #2d211b;
+  opacity: 0.72;
+}
+.qdr-wall-grid button.occupied::before {
+  background:
+    linear-gradient(180deg, #4a2d1a, #1b0e07);
 }
 .qdr-wall-hint {
   color: #155847;

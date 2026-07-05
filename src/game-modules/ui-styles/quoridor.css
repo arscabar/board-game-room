@@ -325,6 +325,17 @@
   font-size: 0.72rem !important;
 }
 
+.qdr-wall-grid button.occupied {
+  cursor: not-allowed !important;
+  background: #2d211b !important;
+  opacity: 0.72 !important;
+}
+
+.qdr-wall-grid button.occupied::before {
+  background:
+    linear-gradient(180deg, #4a2d1a, #1b0e07) !important;
+}
+
 .qdr-segment {
   display: grid !important;
   grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
