@@ -83,7 +83,7 @@ function inWallGrid(row: number, col: number) {
 }
 
 function wallTouchesOuterEdge(row: number, col: number) {
-  return !inWallGrid(row, col) || row === 0 || col === 0 || row === WALL_GRID - 1 || col === WALL_GRID - 1;
+  return !inWallGrid(row, col);
 }
 
 function cloneState(state: QuoridorState): QuoridorState {
@@ -396,7 +396,7 @@ function placeWall(state: QuoridorState, action: GameAction, context: GameContex
     throw new Error("남은 벽이 없습니다.");
   }
   if (wallTouchesOuterEdge(row, col)) {
-    throw new Error("가장 바깥 끝선에는 벽을 설치할 수 없습니다.");
+    throw new Error("보드 밖 위치에는 벽을 설치할 수 없습니다.");
   }
   if (wallWouldOverlap(state, orientation, row, col)) {
     throw new Error("이미 벽이 있거나 교차되는 위치입니다.");
@@ -487,6 +487,7 @@ export function Component(props: GameComponentProps) {
   const [wallSelectionReady, setWallSelectionReady] = useState(false);
   const [selectedMove, setSelectedMove] = useState<Coord | null>(null);
   const [compactControls, setCompactControls] = useState(() => readCompactControls());
+  const wallReserveTotal = wallReserveSize(publicState.players.length);
   const activeModulePlayer = publicState.players.find((player) => player.id === activePlayer?.id) ?? null;
   const currentModulePlayer = publicState.players.find((player) => player.id === currentPlayer?.id) ?? null;
   const canAct = !disabled && !publicState.winnerId && currentPlayer?.id === activePlayer?.id && Boolean(currentModulePlayer);
@@ -508,7 +509,7 @@ export function Component(props: GameComponentProps) {
     : currentModulePlayer.wallsRemaining <= 0
       ? "남은 벽이 없습니다."
       : wallTouchesOuterEdge(wallRow, wallCol)
-        ? "가장 바깥 끝선과 맞닿는 위치에는 벽을 놓을 수 없습니다."
+        ? "보드 밖 위치에는 벽을 놓을 수 없습니다."
         : wallSlotOccupied(publicState, wallRow, wallCol)
           ? "이미 벽이 설치된 자리입니다."
           : wallWouldOverlap(publicState, orientation, wallRow, wallCol)
@@ -757,29 +758,25 @@ export function Component(props: GameComponentProps) {
             </div>
           </div>
 
-          <div className="qdr-guidance" aria-label="쿼리도 행동 안내">
-            <strong>이번 턴 후보</strong>
-            <span>
-              {compactControls
-                ? mode === "move"
-                  ? `말 이동 ${moves.length}곳`
-                  : `선택 벽 ${wallRow + 1}-${wallCol + 1} ${orientationLabel(orientation)}`
-                : mode === "move"
-                ? `말 이동 ${moves.length}곳${selectedMove ? ` · 선택 ${selectedMove.row + 1}-${selectedMove.col + 1}` : ""}`
-                : `선택 벽 ${wallRow + 1}-${wallCol + 1} ${orientationLabel(orientation)}`}
-            </span>
-            <p>
-              {compactControls
-                ? mode === "move"
-                  ? "밝게 표시된 칸을 누르면 바로 이동합니다."
-                  : wallSelectionReady
-                    ? `선택한 위치를 확인한 뒤 벽 설치 확정을 누르세요. ${selectedWallReason}`
-                    : "보드 위 홈을 눌러 벽 위치를 먼저 선택하세요."
-                : mode === "move"
-                  ? "밝게 표시된 칸을 클릭하면 바로 이동합니다."
-                  : `보드 위 홈을 클릭하면 바로 설치됩니다. ${selectedWallReason}`}
-            </p>
-          </div>
+          {currentModulePlayer ? (
+            <div className="qdr-current-walls" aria-label={`내 남은 벽 ${currentModulePlayer.wallsRemaining}개`}>
+              <div>
+                <strong>내 벽</strong>
+                <span>
+                  {currentModulePlayer.wallsRemaining}/{wallReserveTotal}
+                </span>
+              </div>
+              <div
+                className="qdr-wall-rack"
+                style={{ "--wall-reserve-total": wallReserveTotal } as CSSProperties}
+                aria-hidden="true"
+              >
+                {Array.from({ length: wallReserveTotal }, (_, index) => (
+                  <i key={index} className={index < currentModulePlayer.wallsRemaining ? "available" : "spent"} />
+                ))}
+              </div>
+            </div>
+          ) : null}
 
           <div className="qdr-wall-controls">
             {!wallModeActive ? (
@@ -1069,9 +1066,6 @@ const quoridorStyles = `
     transform 140ms ease,
     background 140ms ease;
 }
-.qdr-board:hover .qdr-wall-hit.valid::before {
-  opacity: 0.08;
-}
 .qdr-wall-hit.horizontal {
   left: calc(var(--qdr-padding) + (var(--wall-col) * (var(--qdr-cell) + var(--qdr-gap))) + (var(--qdr-cell) * 0.08));
   top: calc(var(--qdr-padding) + ((var(--wall-row) + 1) * var(--qdr-cell)) + (var(--wall-row) * var(--qdr-gap)) - 7px);
@@ -1125,9 +1119,9 @@ const quoridorStyles = `
   gap: 14px;
   min-width: 0;
 }
-.qdr-guidance {
+.qdr-current-walls {
   display: grid;
-  gap: 5px;
+  gap: 9px;
   border: 1px solid rgba(255, 218, 135, 0.24);
   border-radius: 8px;
   padding: 10px;
@@ -1136,22 +1130,45 @@ const quoridorStyles = `
   color: #211513;
   box-shadow: inset 0 -3px 0 rgba(75, 42, 19, 0.14);
 }
-.qdr-guidance strong,
-.qdr-guidance span,
-.qdr-guidance p {
-  min-width: 0;
-  overflow-wrap: anywhere;
+.qdr-current-walls > div:first-child {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
 }
-.qdr-guidance span {
-  color: #52625d;
-  font-size: 0.84rem;
+.qdr-current-walls span {
+  display: inline-grid;
+  place-items: center;
+  min-width: 56px;
+  border-radius: 999px;
+  padding: 5px 9px;
+  background: #2f2018;
+  color: #fff2cb;
+  font-weight: 900;
+}
+.qdr-wall-rack {
+  display: grid;
+  grid-template-columns: repeat(var(--wall-reserve-total), minmax(0, 1fr));
+  gap: 4px;
+}
+.qdr-wall-rack i {
+  display: block;
+  height: 18px;
+  border: 1px solid rgba(58, 32, 14, 0.36);
+  border-radius: 4px;
+  background:
+    linear-gradient(90deg, rgba(255, 219, 144, 0.16), transparent 22% 78%, rgba(0, 0, 0, 0.22)),
+    linear-gradient(180deg, #5a351d, #1d1008);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 230, 169, 0.2),
+    0 1px 2px rgba(42, 22, 10, 0.18);
+}
+.qdr-wall-rack i.spent {
+  opacity: 0.22;
+  background: rgba(92, 54, 24, 0.34);
+}
+.qdr-current-walls strong {
   font-weight: 800;
-}
-.qdr-guidance p {
-  margin: 0;
-  color: #36251f;
-  font-size: 0.86rem;
-  line-height: 1.35;
 }
 .qdr-action-mode {
   display: grid;
