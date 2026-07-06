@@ -1829,14 +1829,6 @@ function AlkkagiMiniBoard() {
 
   return (
     <div className="alkkagi-mini-board">
-      <span className="arena-mark pond" />
-      <span className="arena-mark ridge" />
-      <span className="arena-mark storm" />
-      <span className="terrain pit" />
-      <span className="terrain mud" />
-      <span className="terrain ice" />
-      <span className="device button" />
-      <span className="device lever" />
       {eggs.map((egg, index) => (
         <i
           key={index}

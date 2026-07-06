@@ -10,7 +10,6 @@ const STEP_MS = 1000 / 60;
 const MAX_STEPS = 360;
 const BASE_ROLLING_DRAG = 0.0028;
 const LOW_SPEED_DRAG = 0.016;
-const ICE_SLIDE_BOOST = 1.004;
 const COLLISION_TRANSFER = 0.18;
 const SPIN_DRIFT = 0.012;
 const SPIN_DECAY = 0.966;
@@ -30,8 +29,6 @@ const defaultArenaId = "classic-ring";
 
 type EggKind = "king" | "normal" | "skill";
 type SkillKind = (typeof skillPool)[number];
-type TerrainKind = "mud" | "ice" | "bumper" | "pit";
-type GimmickKind = "button" | "lever";
 type Phase = "playing" | "complete";
 type AimPhase = "idle" | "direction" | "power";
 type HoldMode = "direction" | "power";
@@ -57,25 +54,10 @@ interface AlkkagiEgg extends Point {
   used?: boolean;
 }
 
-interface Terrain extends Point {
-  id: string;
-  kind: TerrainKind;
-  r: number;
-}
-
-interface ArenaGimmick extends Point {
-  id: string;
-  kind: GimmickKind;
-  r: number;
-  angle?: number;
-}
-
 interface ArenaPreset {
   id: string;
   name: string;
   className: string;
-  terrain: Terrain[];
-  gimmicks: ArenaGimmick[];
 }
 
 interface ShotMotionEggFrame extends Point {
@@ -88,7 +70,6 @@ interface ShotMotionFrame {
   time: number;
   eggs: ShotMotionEggFrame[];
   impactIds: string[];
-  triggeredGimmickIds: string[];
 }
 
 interface LastShotState {
@@ -96,7 +77,6 @@ interface LastShotState {
   eggId: string;
   vector: Point;
   fallenIds: string[];
-  triggeredGimmickIds: string[];
   activatedSkillIds: string[];
   impactIds?: string[];
   motionFrames?: ShotMotionFrame[];
@@ -110,8 +90,6 @@ interface AlkkagiState {
     name: string;
     className: string;
   };
-  terrain: Terrain[];
-  gimmicks: ArenaGimmick[];
   phase: Phase;
   activePlayerId: string | null;
   winnerId: string | null;
@@ -136,71 +114,8 @@ interface AimControlState {
 const arenaPresets: ArenaPreset[] = [
   {
     id: defaultArenaId,
-    name: "고전 원반장",
-    className: "arena-classic",
-    terrain: [
-      { id: "classic-pit", kind: "pit", x: 0, y: 0, r: 38 },
-      { id: "classic-mud", kind: "mud", x: -145, y: 95, r: 66 },
-      { id: "classic-ice", kind: "ice", x: 142, y: -108, r: 70 },
-      { id: "classic-bumper-top", kind: "bumper", x: 0, y: -215, r: 21 },
-      { id: "classic-bumper-left", kind: "bumper", x: -224, y: -54, r: 19 },
-      { id: "classic-bumper-right", kind: "bumper", x: 226, y: 74, r: 19 }
-    ],
-    gimmicks: [
-      { id: "classic-button", kind: "button", x: 118, y: -196, r: 25 },
-      { id: "classic-lever", kind: "lever", x: -168, y: 174, r: 31, angle: -32 }
-    ]
-  },
-  {
-    id: "crescent-pond",
-    name: "초승달 연못장",
-    className: "arena-pond",
-    terrain: [
-      { id: "pond-pit", kind: "pit", x: -74, y: 62, r: 34 },
-      { id: "pond-mud", kind: "mud", x: 126, y: 132, r: 78 },
-      { id: "pond-ice", kind: "ice", x: -128, y: -154, r: 62 },
-      { id: "pond-bumper-left", kind: "bumper", x: -238, y: 32, r: 20 },
-      { id: "pond-bumper-right", kind: "bumper", x: 216, y: -62, r: 21 },
-      { id: "pond-bumper-bottom", kind: "bumper", x: 18, y: 228, r: 18 }
-    ],
-    gimmicks: [
-      { id: "pond-button", kind: "button", x: 170, y: 8, r: 25 },
-      { id: "pond-lever", kind: "lever", x: -204, y: 124, r: 31, angle: 26 }
-    ]
-  },
-  {
-    id: "ridge-hall",
-    name: "능선 목판장",
-    className: "arena-ridge",
-    terrain: [
-      { id: "ridge-pit", kind: "pit", x: 96, y: -86, r: 36 },
-      { id: "ridge-mud", kind: "mud", x: -92, y: -18, r: 72 },
-      { id: "ridge-ice", kind: "ice", x: 82, y: 174, r: 66 },
-      { id: "ridge-bumper-top-left", kind: "bumper", x: -194, y: -194, r: 20 },
-      { id: "ridge-bumper-top-right", kind: "bumper", x: 224, y: -168, r: 19 },
-      { id: "ridge-bumper-bottom-left", kind: "bumper", x: -176, y: 194, r: 21 }
-    ],
-    gimmicks: [
-      { id: "ridge-button", kind: "button", x: -12, y: -226, r: 24 },
-      { id: "ridge-lever", kind: "lever", x: 184, y: 96, r: 31, angle: -55 }
-    ]
-  },
-  {
-    id: "storm-bowl",
-    name: "회오리 사발장",
-    className: "arena-storm",
-    terrain: [
-      { id: "storm-pit", kind: "pit", x: 0, y: -134, r: 32 },
-      { id: "storm-mud", kind: "mud", x: 0, y: 124, r: 82 },
-      { id: "storm-ice", kind: "ice", x: -176, y: -20, r: 58 },
-      { id: "storm-ice-small", kind: "ice", x: 174, y: 32, r: 52 },
-      { id: "storm-bumper-upper", kind: "bumper", x: 116, y: -222, r: 18 },
-      { id: "storm-bumper-lower", kind: "bumper", x: -118, y: 222, r: 18 }
-    ],
-    gimmicks: [
-      { id: "storm-button", kind: "button", x: -132, y: -126, r: 24 },
-      { id: "storm-lever", kind: "lever", x: 146, y: 164, r: 31, angle: 42 }
-    ]
+    name: "원형판",
+    className: "arena-classic"
   }
 ];
 
@@ -292,14 +207,6 @@ function randomSkills(seed: number, playerIndex: number) {
   return skills;
 }
 
-function cloneTerrain(terrain: Terrain[]) {
-  return terrain.map((item) => ({ ...item }));
-}
-
-function cloneGimmicks(gimmicks: ArenaGimmick[]) {
-  return gimmicks.map((item) => ({ ...item }));
-}
-
 function arenaSummary(arena: ArenaPreset) {
   return { id: arena.id, name: arena.name, className: arena.className };
 }
@@ -320,15 +227,7 @@ function selectArena(players: AlkkagiPlayer[], entropy = Date.now()) {
 
 function normalizeState(state: AlkkagiState) {
   const arena = arenaById(state.arena?.id);
-  if (!state.arena) {
-    state.arena = arenaSummary(arena);
-    if (!Array.isArray(state.terrain) || state.terrain.length === 0) {
-      state.terrain = cloneTerrain(arena.terrain);
-    }
-  }
-  if (!Array.isArray(state.gimmicks)) {
-    state.gimmicks = cloneGimmicks(arena.gimmicks);
-  }
+  state.arena = arenaSummary(arena);
   return state;
 }
 
@@ -370,22 +269,6 @@ function rollingDragForEgg(egg: Pick<AlkkagiEgg, "kind" | "skill">, surface: num
   return (BASE_ROLLING_DRAG * surface * roleDrag * skillRelief) / massRelief;
 }
 
-function surfaceFrictionAt(state: AlkkagiState, body: Matter.Body) {
-  let surface = 1;
-  let onIce = false;
-  for (const terrain of state.terrain) {
-    const gap = distance(body.position, terrain);
-    if (terrain.kind === "mud" && gap < terrain.r) {
-      surface = Math.max(surface, 3.4);
-    }
-    if (terrain.kind === "ice" && gap < terrain.r) {
-      surface = Math.min(surface, 0.32);
-      onIce = true;
-    }
-  }
-  return { surface, onIce };
-}
-
 function velocityPoint(body: Matter.Body): Point {
   return { x: body.velocity.x, y: body.velocity.y };
 }
@@ -408,8 +291,6 @@ function cloneState(state: AlkkagiState): AlkkagiState {
     players: normalized.players.map((player) => ({ ...player })),
     eggs: normalized.eggs.map((egg) => ({ ...egg })),
     arena: { ...normalized.arena },
-    terrain: cloneTerrain(normalized.terrain),
-    gimmicks: cloneGimmicks(normalized.gimmicks),
     winnerIds: [...normalized.winnerIds],
     lastShot: normalized.lastShot
       ? {
@@ -417,14 +298,12 @@ function cloneState(state: AlkkagiState): AlkkagiState {
           eggId: normalized.lastShot.eggId,
           vector: { ...normalized.lastShot.vector },
           fallenIds: [...normalized.lastShot.fallenIds],
-          triggeredGimmickIds: [...(normalized.lastShot.triggeredGimmickIds ?? [])],
           activatedSkillIds: [...(normalized.lastShot.activatedSkillIds ?? [])],
           impactIds: [...(normalized.lastShot.impactIds ?? [])],
           motionFrames: (normalized.lastShot.motionFrames ?? []).map((frame) => ({
             time: frame.time,
             eggs: frame.eggs.map((egg) => ({ ...egg })),
-            impactIds: [...frame.impactIds],
-            triggeredGimmickIds: [...frame.triggeredGimmickIds]
+            impactIds: [...frame.impactIds]
           }))
         }
       : null
@@ -529,8 +408,6 @@ function createInitialState({ players }: Pick<GameContext, "players">): AlkkagiS
     players: modulePlayers,
     eggs: initialEggs(modulePlayers),
     arena: arenaSummary(arena),
-    terrain: cloneTerrain(arena.terrain),
-    gimmicks: cloneGimmicks(arena.gimmicks),
     phase: "playing",
     activePlayerId: firstPlayer?.id ?? null,
     winnerId: null,
@@ -545,18 +422,12 @@ function markEggUsed(state: AlkkagiState, eggId: string) {
   if (egg) egg.used = true;
 }
 
-function leverDirection(gimmick: ArenaGimmick) {
-  const angle = ((gimmick.angle ?? 0) * Math.PI) / 180;
-  return { x: Math.cos(angle), y: Math.sin(angle) };
-}
-
 function settleShot(state: AlkkagiState, shotEgg: AlkkagiEgg, vector: Point) {
   const engine = Matter.Engine.create({ enableSleeping: false });
   engine.gravity.x = 0;
   engine.gravity.y = 0;
   const bodies = new Map<string, Matter.Body>();
   const removed = new Set<string>();
-  const triggeredGimmicks = new Set<string>();
   const activatedSkillIds = new Set<string>();
   const impactIds = new Set<string>();
   const frameImpactIds = new Set<string>();
@@ -575,17 +446,6 @@ function settleShot(state: AlkkagiState, shotEgg: AlkkagiEgg, vector: Point) {
     bodies.set(egg.id, body);
     lastKnownPositions.set(egg.id, { x: egg.x, y: egg.y });
     Matter.Composite.add(engine.world, body);
-  }
-
-  for (const terrain of state.terrain.filter((item) => item.kind === "bumper")) {
-    Matter.Composite.add(
-      engine.world,
-      Matter.Bodies.circle(terrain.x, terrain.y, terrain.r, {
-        isStatic: true,
-        label: `terrain-${terrain.id}`,
-        restitution: 1.25
-      })
-    );
   }
 
   function bodyEgg(body: Matter.Body) {
@@ -664,8 +524,7 @@ function settleShot(state: AlkkagiState, shotEgg: AlkkagiEgg, vector: Point) {
     const frame = {
       time: Math.round(step * STEP_MS),
       eggs,
-      impactIds: [...frameImpactIds],
-      triggeredGimmickIds: [...triggeredGimmicks]
+      impactIds: [...frameImpactIds]
     };
     if (motionFrames.length >= MAX_MOTION_FRAMES) {
       motionFrames[motionFrames.length - 1] = frame;
@@ -694,7 +553,7 @@ function settleShot(state: AlkkagiState, shotEgg: AlkkagiEgg, vector: Point) {
 
   const shotBody = bodies.get(shotEgg.id);
   if (!shotBody) {
-    return { fallenIds: [] as string[], triggeredGimmickIds: [] as string[], activatedSkillIds: [] as string[], impactIds: [] as string[], motionFrames: [] as ShotMotionFrame[] };
+    return { fallenIds: [] as string[], activatedSkillIds: [] as string[], impactIds: [] as string[], motionFrames: [] as ShotMotionFrame[] };
   }
 
   const direction = normalize(vector);
@@ -715,32 +574,6 @@ function settleShot(state: AlkkagiState, shotEgg: AlkkagiEgg, vector: Point) {
     Matter.Composite.remove(engine.world, body);
   }
 
-  function triggerGimmick(gimmick: ArenaGimmick, touchedBody: Matter.Body) {
-    if (triggeredGimmicks.has(gimmick.id)) return;
-    triggeredGimmicks.add(gimmick.id);
-
-    if (gimmick.kind === "button") {
-      for (const [id, body] of bodies) {
-        if (removed.has(id)) continue;
-        const gap = distance(body.position, gimmick);
-        if (gap > 178) continue;
-        const direction = normalize({ x: body.position.x - gimmick.x, y: body.position.y - gimmick.y });
-        const strength = 7.2 * (1 - gap / 188);
-        Matter.Body.setVelocity(body, {
-          x: body.velocity.x + direction.x * strength,
-          y: body.velocity.y + direction.y * strength
-        });
-      }
-      return;
-    }
-
-    const direction = leverDirection(gimmick);
-    Matter.Body.setVelocity(touchedBody, {
-      x: touchedBody.velocity.x + direction.x * 8.4,
-      y: touchedBody.velocity.y + direction.y * 8.4
-    });
-  }
-
   let quietFrames = 0;
   const previousPositions = new Map<string, Point>();
   for (const [id, body] of bodies) {
@@ -751,7 +584,7 @@ function settleShot(state: AlkkagiState, shotEgg: AlkkagiEgg, vector: Point) {
     const previous = previousPositions.get(id) ?? { x: body.position.x, y: body.position.y };
     const travelled = distance(previous, body.position);
     previousPositions.set(id, { x: body.position.x, y: body.position.y });
-    const { surface, onIce } = surfaceFrictionAt(state, body);
+    const surface = 1;
     const currentSpeed = length(velocityPoint(body));
     if (currentSpeed > 0.001) {
       const drag = rollingDragForEgg(egg, surface);
@@ -764,13 +597,6 @@ function settleShot(state: AlkkagiState, shotEgg: AlkkagiEgg, vector: Point) {
         const dir = normalize(velocityPoint(body));
         Matter.Body.setVelocity(body, { x: dir.x * nextSpeed, y: dir.y * nextSpeed });
       }
-    }
-
-    const updatedSpeed = length(velocityPoint(body));
-    if (onIce && updatedSpeed > 0.18) {
-      const dir = normalize(velocityPoint(body));
-      const capped = Math.min(updatedSpeed * ICE_SLIDE_BOOST, 23);
-      Matter.Body.setVelocity(body, { x: dir.x * capped, y: dir.y * capped });
     }
 
     const spin = body.angularVelocity;
@@ -798,20 +624,6 @@ function settleShot(state: AlkkagiState, shotEgg: AlkkagiEgg, vector: Point) {
 
       applyRollingPhysics(id, body, egg);
       lastKnownPositions.set(id, { x: body.position.x, y: body.position.y });
-
-      for (const terrain of state.terrain) {
-        const gap = distance(body.position, terrain);
-        if (terrain.kind === "pit" && gap < terrain.r + eggRadius(egg) * 0.34) {
-          removeBody(id);
-        }
-      }
-
-      for (const gimmick of state.gimmicks) {
-        const gap = distance(body.position, gimmick);
-        if (gap < gimmick.r + eggRadius(egg) * 0.58) {
-          triggerGimmick(gimmick, body);
-        }
-      }
 
       const centerDistance = length(body.position);
       const fallLimit = BOARD_RADIUS - eggRadius(egg) * 0.9;
@@ -854,7 +666,6 @@ function settleShot(state: AlkkagiState, shotEgg: AlkkagiEgg, vector: Point) {
 
   return {
     fallenIds: [...removed],
-    triggeredGimmickIds: [...triggeredGimmicks],
     activatedSkillIds: [...activatedSkillIds],
     impactIds: [...impactIds],
     motionFrames
@@ -882,7 +693,6 @@ function flickEgg(state: AlkkagiState, action: GameAction, context: GameContext)
     eggId: shotEgg.id,
     vector: { x: round(payload.vector.x), y: round(payload.vector.y) },
     fallenIds: shotResult.fallenIds,
-    triggeredGimmickIds: shotResult.triggeredGimmickIds,
     activatedSkillIds: shotResult.activatedSkillIds,
     impactIds: shotResult.impactIds,
     motionFrames: shotResult.motionFrames
@@ -1060,95 +870,6 @@ function skillAura(skill?: SkillKind, radius = 21) {
     );
   }
   return null;
-}
-
-function terrainLabel(kind: TerrainKind) {
-  if (kind === "pit") return "중앙 구멍";
-  if (kind === "mud") return "끈적 지형";
-  if (kind === "ice") return "미끄럼 지형";
-  return "범퍼";
-}
-
-function gimmickLabel(kind: GimmickKind) {
-  return kind === "button" ? "압력 버튼" : "킥 레버";
-}
-
-function TerrainInlay({ terrain }: { terrain: Terrain }) {
-  const r = terrain.r;
-  if (terrain.kind === "pit") {
-    return (
-      <>
-        <ellipse className="alk-terrain-ground-shadow" cx={r * 0.03} cy={r * 0.13} rx={r * 0.98} ry={r * 0.78} />
-        <circle className="alk-terrain-pit-lip" cx="0" cy="0" r={r * 0.9} />
-        <ellipse className="alk-terrain-pit-well" cx={r * 0.02} cy={r * 0.05} rx={r * 0.62} ry={r * 0.5} />
-        <circle className="alk-terrain-pit-core" cx={r * 0.06} cy={r * 0.08} r={r * 0.36} />
-        <path className="alk-terrain-pit-highlight" d={`M${-r * 0.44} ${-r * 0.28} Q${-r * 0.02} ${-r * 0.52} ${r * 0.42} ${-r * 0.28}`} />
-      </>
-    );
-  }
-
-  if (terrain.kind === "mud") {
-    return (
-      <>
-        <ellipse className="alk-terrain-ground-shadow" cx={r * 0.04} cy={r * 0.16} rx={r * 1.02} ry={r * 0.7} />
-        <path
-          className="alk-terrain-mud-puddle"
-          d={`M${-r * 0.88} ${-r * 0.1} C${-r * 0.76} ${-r * 0.52} ${-r * 0.2} ${-r * 0.66} ${r * 0.2} ${-r * 0.52} C${r * 0.7} ${-r * 0.36} ${r * 0.92} ${-r * 0.02} ${r * 0.78} ${r * 0.3} C${r * 0.56} ${r * 0.74} ${-r * 0.08} ${r * 0.72} ${-r * 0.54} ${r * 0.5} C${-r * 0.96} ${r * 0.3} ${-r * 1.08} ${r * 0.1} ${-r * 0.88} ${-r * 0.1} Z`}
-        />
-        <ellipse className="alk-terrain-mud-depth" cx={r * 0.18} cy={r * 0.12} rx={r * 0.46} ry={r * 0.22} />
-        <path className="alk-terrain-mud-gloss" d={`M${-r * 0.58} ${-r * 0.18} C${-r * 0.24} ${-r * 0.34} ${r * 0.16} ${-r * 0.32} ${r * 0.5} ${-r * 0.12}`} />
-        <path className="alk-terrain-mud-ridge" d={`M${-r * 0.6} ${r * 0.18} C${-r * 0.22} ${r * 0.34} ${r * 0.28} ${r * 0.32} ${r * 0.58} ${r * 0.14}`} />
-      </>
-    );
-  }
-
-  if (terrain.kind === "ice") {
-    return (
-      <>
-        <ellipse className="alk-terrain-ground-shadow" cx={r * 0.04} cy={r * 0.16} rx={r * 0.92} ry={r * 0.64} />
-        <path className="alk-terrain-ice-slab" d={`M${-r * 0.84} ${-r * 0.36} L${-r * 0.28} ${-r * 0.68} L${r * 0.5} ${-r * 0.58} L${r * 0.86} ${-r * 0.08} L${r * 0.54} ${r * 0.58} L${-r * 0.26} ${r * 0.66} L${-r * 0.88} ${r * 0.24} Z`} />
-        <path className="alk-terrain-ice-edge" d={`M${-r * 0.6} ${-r * 0.24} L${-r * 0.18} ${-r * 0.46} L${r * 0.42} ${-r * 0.38} L${r * 0.64} ${-r * 0.04} L${r * 0.4} ${r * 0.38} L${-r * 0.18} ${r * 0.46} L${-r * 0.62} ${r * 0.16} Z`} />
-        <path className="alk-terrain-ice-crack" d={`M${-r * 0.36} ${-r * 0.08} L${-r * 0.02} ${r * 0.06} L${r * 0.26} ${-r * 0.22}`} />
-        <path className="alk-terrain-ice-crack soft" d={`M${-r * 0.06} ${r * 0.36} L${r * 0.16} ${r * 0.12} L${r * 0.46} ${r * 0.22}`} />
-        <path className="alk-terrain-ice-shine" d={`M${-r * 0.46} ${-r * 0.3} L${r * 0.16} ${-r * 0.24}`} />
-      </>
-    );
-  }
-
-  return (
-    <>
-      <ellipse className="alk-terrain-ground-shadow" cx={r * 0.05} cy={r * 0.16} rx={r * 0.82} ry={r * 0.56} />
-      <circle className="alk-terrain-bumper-base" cx="0" cy="0" r={r * 0.78} />
-      <ellipse className="alk-terrain-bumper-side" cx="0" cy={r * 0.1} rx={r * 0.54} ry={r * 0.42} />
-      <circle className="alk-terrain-bumper-post" cx="0" cy={-r * 0.02} r={r * 0.46} />
-      <ellipse className="alk-terrain-bumper-cap" cx="0" cy={-r * 0.16} rx={r * 0.36} ry={r * 0.18} />
-      <ellipse className="alk-terrain-bumper-glint" cx={-r * 0.12} cy={-r * 0.22} rx={r * 0.14} ry={r * 0.06} />
-    </>
-  );
-}
-
-function GimmickInlay({ gimmick }: { gimmick: ArenaGimmick }) {
-  const r = gimmick.r;
-  if (gimmick.kind === "lever") {
-    return (
-      <>
-        <rect className="alk-gimmick-inlay-base lever" x={-r * 2} y={-r * 0.56} width={r * 4} height={r * 1.12} rx={r * 0.24} />
-        <rect className="alk-gimmick-slot" x={-r * 1.52} y={-r * 0.18} width={r * 2.42} height={r * 0.36} rx={r * 0.12} />
-        <line className="alk-gimmick-lever-bar" x1={-r * 0.86} y1={0} x2={r * 1.14} y2={-r * 0.28} />
-        <circle className="alk-gimmick-hub" cx={-r * 1.1} cy="0" r={r * 0.34} />
-        <circle className="alk-gimmick-knob" cx={r * 1.18} cy={-r * 0.3} r={r * 0.24} />
-      </>
-    );
-  }
-
-  return (
-    <>
-      <circle className="alk-gimmick-inlay-base button" cx="0" cy="0" r={r * 1.08} />
-      <circle className="alk-gimmick-button-ring" cx="0" cy="0" r={r * 0.78} />
-      <circle className="alk-gimmick-button-core" cx="0" cy="0" r={r * 0.45} />
-      <ellipse className="alk-gimmick-button-glint" cx={-r * 0.16} cy={-r * 0.2} rx={r * 0.18} ry={r * 0.09} />
-    </>
-  );
 }
 
 export function Component({
@@ -1450,31 +1171,6 @@ export function Component({
             >
               <path d={`M-112 ${-BOARD_RADIUS + 86} Q0 ${-BOARD_RADIUS + 34} 112 ${-BOARD_RADIUS + 86} L78 ${-BOARD_RADIUS + 138} Q0 ${-BOARD_RADIUS + 112} -78 ${-BOARD_RADIUS + 138} Z`} />
               <circle cx="0" cy={-BOARD_RADIUS + 92} r="5" />
-            </g>
-          );
-        })}
-
-        {state.terrain.map((terrain) => {
-          const angle = hashString(terrain.id) % 180;
-          return (
-            <g className={`alk-terrain ${terrain.kind}`} key={terrain.id} transform={`translate(${terrain.x} ${terrain.y}) rotate(${angle})`} aria-label={terrainLabel(terrain.kind)}>
-              <circle className="alk-terrain-hit-area" cx="0" cy="0" r={terrain.r} />
-              <TerrainInlay terrain={terrain} />
-            </g>
-          );
-        })}
-
-        {state.gimmicks.map((gimmick) => {
-          const triggered = state.lastShot?.triggeredGimmickIds?.includes(gimmick.id);
-          const angle = gimmick.angle ?? 0;
-          return (
-            <g
-              className={`alk-gimmick ${gimmick.kind} ${triggered ? "triggered" : ""}`}
-              key={gimmick.id}
-              transform={`translate(${gimmick.x} ${gimmick.y}) rotate(${angle})`}
-              aria-label={gimmickLabel(gimmick.kind)}
-            >
-              <GimmickInlay gimmick={gimmick} />
             </g>
           );
         })}
