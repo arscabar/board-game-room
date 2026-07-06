@@ -1078,11 +1078,11 @@ function TerrainInlay({ terrain }: { terrain: Terrain }) {
   if (terrain.kind === "pit") {
     return (
       <>
-        <circle className="alk-terrain-inlay-base" cx="0" cy="0" r={r * 1.02} />
-        <circle className="alk-terrain-inlay-rim" cx="0" cy="0" r={r * 0.86} />
-        <circle className="alk-terrain-pit-well" cx="0" cy="0" r={r * 0.58} />
-        <circle className="alk-terrain-pit-depth" cx="0" cy="0" r={r * 0.38} />
-        <circle className="alk-terrain-pit-glint" cx={-r * 0.18} cy={-r * 0.18} r={r * 0.08} />
+        <ellipse className="alk-terrain-ground-shadow" cx={r * 0.03} cy={r * 0.13} rx={r * 0.98} ry={r * 0.78} />
+        <circle className="alk-terrain-pit-lip" cx="0" cy="0" r={r * 0.9} />
+        <ellipse className="alk-terrain-pit-well" cx={r * 0.02} cy={r * 0.05} rx={r * 0.62} ry={r * 0.5} />
+        <circle className="alk-terrain-pit-core" cx={r * 0.06} cy={r * 0.08} r={r * 0.36} />
+        <path className="alk-terrain-pit-highlight" d={`M${-r * 0.44} ${-r * 0.28} Q${-r * 0.02} ${-r * 0.52} ${r * 0.42} ${-r * 0.28}`} />
       </>
     );
   }
@@ -1090,10 +1090,14 @@ function TerrainInlay({ terrain }: { terrain: Terrain }) {
   if (terrain.kind === "mud") {
     return (
       <>
-        <ellipse className="alk-terrain-inlay-base" cx="0" cy="0" rx={r * 1.04} ry={r * 0.7} />
-        <ellipse className="alk-terrain-inlay-rim" cx="0" cy="0" rx={r * 0.84} ry={r * 0.52} />
-        <path className="alk-terrain-mud-line" d={`M${-r * 0.62} ${-r * 0.14} Q${-r * 0.25} ${-r * 0.34} ${r * 0.1} ${-r * 0.12} T${r * 0.62} ${-r * 0.1}`} />
-        <path className="alk-terrain-mud-line soft" d={`M${-r * 0.58} ${r * 0.12} Q${-r * 0.12} ${r * 0.34} ${r * 0.48} ${r * 0.08}`} />
+        <ellipse className="alk-terrain-ground-shadow" cx={r * 0.04} cy={r * 0.16} rx={r * 1.02} ry={r * 0.7} />
+        <path
+          className="alk-terrain-mud-puddle"
+          d={`M${-r * 0.88} ${-r * 0.1} C${-r * 0.76} ${-r * 0.52} ${-r * 0.2} ${-r * 0.66} ${r * 0.2} ${-r * 0.52} C${r * 0.7} ${-r * 0.36} ${r * 0.92} ${-r * 0.02} ${r * 0.78} ${r * 0.3} C${r * 0.56} ${r * 0.74} ${-r * 0.08} ${r * 0.72} ${-r * 0.54} ${r * 0.5} C${-r * 0.96} ${r * 0.3} ${-r * 1.08} ${r * 0.1} ${-r * 0.88} ${-r * 0.1} Z`}
+        />
+        <ellipse className="alk-terrain-mud-depth" cx={r * 0.18} cy={r * 0.12} rx={r * 0.46} ry={r * 0.22} />
+        <path className="alk-terrain-mud-gloss" d={`M${-r * 0.58} ${-r * 0.18} C${-r * 0.24} ${-r * 0.34} ${r * 0.16} ${-r * 0.32} ${r * 0.5} ${-r * 0.12}`} />
+        <path className="alk-terrain-mud-ridge" d={`M${-r * 0.6} ${r * 0.18} C${-r * 0.22} ${r * 0.34} ${r * 0.28} ${r * 0.32} ${r * 0.58} ${r * 0.14}`} />
       </>
     );
   }
@@ -1101,20 +1105,24 @@ function TerrainInlay({ terrain }: { terrain: Terrain }) {
   if (terrain.kind === "ice") {
     return (
       <>
-        <path className="alk-terrain-inlay-base ice" d={`M0 ${-r * 0.94} L${r * 0.62} ${-r * 0.62} L${r * 0.92} 0 L${r * 0.62} ${r * 0.62} L0 ${r * 0.94} L${-r * 0.62} ${r * 0.62} L${-r * 0.92} 0 L${-r * 0.62} ${-r * 0.62} Z`} />
-        <path className="alk-terrain-inlay-rim ice" d={`M0 ${-r * 0.72} L${r * 0.48} ${-r * 0.48} L${r * 0.7} 0 L${r * 0.48} ${r * 0.48} L0 ${r * 0.72} L${-r * 0.48} ${r * 0.48} L${-r * 0.7} 0 L${-r * 0.48} ${-r * 0.48} Z`} />
-        <path className="alk-terrain-ice-cut" d={`M${-r * 0.42} ${-r * 0.08} L${-r * 0.1} ${r * 0.08} L${r * 0.28} ${-r * 0.24}`} />
-        <path className="alk-terrain-ice-cut soft" d={`M${-r * 0.12} ${r * 0.38} L${r * 0.18} ${r * 0.1} L${r * 0.5} ${r * 0.22}`} />
+        <ellipse className="alk-terrain-ground-shadow" cx={r * 0.04} cy={r * 0.16} rx={r * 0.92} ry={r * 0.64} />
+        <path className="alk-terrain-ice-slab" d={`M${-r * 0.84} ${-r * 0.36} L${-r * 0.28} ${-r * 0.68} L${r * 0.5} ${-r * 0.58} L${r * 0.86} ${-r * 0.08} L${r * 0.54} ${r * 0.58} L${-r * 0.26} ${r * 0.66} L${-r * 0.88} ${r * 0.24} Z`} />
+        <path className="alk-terrain-ice-edge" d={`M${-r * 0.6} ${-r * 0.24} L${-r * 0.18} ${-r * 0.46} L${r * 0.42} ${-r * 0.38} L${r * 0.64} ${-r * 0.04} L${r * 0.4} ${r * 0.38} L${-r * 0.18} ${r * 0.46} L${-r * 0.62} ${r * 0.16} Z`} />
+        <path className="alk-terrain-ice-crack" d={`M${-r * 0.36} ${-r * 0.08} L${-r * 0.02} ${r * 0.06} L${r * 0.26} ${-r * 0.22}`} />
+        <path className="alk-terrain-ice-crack soft" d={`M${-r * 0.06} ${r * 0.36} L${r * 0.16} ${r * 0.12} L${r * 0.46} ${r * 0.22}`} />
+        <path className="alk-terrain-ice-shine" d={`M${-r * 0.46} ${-r * 0.3} L${r * 0.16} ${-r * 0.24}`} />
       </>
     );
   }
 
   return (
     <>
-      <circle className="alk-terrain-inlay-base bumper" cx="0" cy="0" r={r * 0.9} />
-      <circle className="alk-terrain-inlay-rim bumper" cx="0" cy="0" r={r * 0.66} />
-      <circle className="alk-terrain-bumper-post" cx="0" cy="0" r={r * 0.42} />
-      <ellipse className="alk-terrain-bumper-glint" cx={-r * 0.12} cy={-r * 0.18} rx={r * 0.18} ry={r * 0.09} />
+      <ellipse className="alk-terrain-ground-shadow" cx={r * 0.05} cy={r * 0.16} rx={r * 0.82} ry={r * 0.56} />
+      <circle className="alk-terrain-bumper-base" cx="0" cy="0" r={r * 0.78} />
+      <ellipse className="alk-terrain-bumper-side" cx="0" cy={r * 0.1} rx={r * 0.54} ry={r * 0.42} />
+      <circle className="alk-terrain-bumper-post" cx="0" cy={-r * 0.02} r={r * 0.46} />
+      <ellipse className="alk-terrain-bumper-cap" cx="0" cy={-r * 0.16} rx={r * 0.36} ry={r * 0.18} />
+      <ellipse className="alk-terrain-bumper-glint" cx={-r * 0.12} cy={-r * 0.22} rx={r * 0.14} ry={r * 0.06} />
     </>
   );
 }

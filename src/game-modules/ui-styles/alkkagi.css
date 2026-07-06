@@ -370,13 +370,137 @@
 }
 
 .alk-terrain-hit-area {
-  fill: rgba(12, 7, 4, 0.12) !important;
-  stroke: rgba(242, 200, 128, 0.12) !important;
-  stroke-width: 1.2 !important;
-  stroke-dasharray: none !important;
+  fill: none !important;
+  stroke: none !important;
 }
 
-.alk-terrain-inlay-base,
+.alk-terrain-ground-shadow {
+  fill: rgba(5, 2, 1, 0.34) !important;
+}
+
+.alk-terrain-pit-lip {
+  fill: rgba(136, 83, 39, 0.9) !important;
+  stroke: rgba(246, 197, 106, 0.66) !important;
+  stroke-width: 3 !important;
+  filter:
+    drop-shadow(0 5px 5px rgba(0, 0, 0, 0.42))
+    drop-shadow(0 -1px 0 rgba(255, 238, 180, 0.16)) !important;
+}
+
+.alk-terrain-pit-well {
+  fill: rgba(16, 9, 5, 0.95) !important;
+  stroke: rgba(255, 220, 152, 0.2) !important;
+  stroke-width: 2.4 !important;
+}
+
+.alk-terrain-pit-core {
+  fill: rgba(2, 1, 0, 0.86) !important;
+  stroke: rgba(0, 0, 0, 0.28) !important;
+  stroke-width: 1.2 !important;
+}
+
+.alk-terrain-pit-highlight {
+  fill: none !important;
+  stroke: rgba(255, 232, 176, 0.34) !important;
+  stroke-width: 3.2 !important;
+  stroke-linecap: round !important;
+}
+
+.alk-terrain-mud-puddle {
+  fill: rgba(93, 54, 26, 0.94) !important;
+  stroke: rgba(36, 19, 9, 0.72) !important;
+  stroke-width: 3 !important;
+  filter:
+    drop-shadow(0 4px 4px rgba(0, 0, 0, 0.34))
+    drop-shadow(0 -1px 0 rgba(255, 215, 150, 0.12)) !important;
+}
+
+.alk-terrain-mud-gloss {
+  fill: none !important;
+  stroke: rgba(198, 139, 72, 0.42) !important;
+  stroke-width: 4.2 !important;
+  stroke-linecap: round !important;
+}
+
+.alk-terrain-mud-depth {
+  fill: rgba(49, 27, 13, 0.54) !important;
+  stroke: rgba(30, 16, 8, 0.28) !important;
+  stroke-width: 1.4 !important;
+}
+
+.alk-terrain-mud-ridge {
+  fill: none !important;
+  stroke: rgba(45, 24, 11, 0.38) !important;
+  stroke-width: 4 !important;
+  stroke-linecap: round !important;
+}
+
+.alk-terrain-ice-slab {
+  fill: rgba(115, 173, 184, 0.68) !important;
+  stroke: rgba(220, 244, 238, 0.72) !important;
+  stroke-width: 3 !important;
+  filter:
+    drop-shadow(0 4px 4px rgba(0, 0, 0, 0.32))
+    drop-shadow(0 -1px 0 rgba(255, 255, 255, 0.16)) !important;
+}
+
+.alk-terrain-ice-edge {
+  fill: none !important;
+  stroke: rgba(240, 255, 250, 0.32) !important;
+  stroke-width: 2 !important;
+  stroke-linejoin: round !important;
+}
+
+.alk-terrain-ice-crack {
+  fill: none !important;
+  stroke: rgba(236, 255, 250, 0.7) !important;
+  stroke-width: 2.8 !important;
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
+}
+
+.alk-terrain-ice-crack.soft {
+  opacity: 0.62 !important;
+  stroke-width: 2.2 !important;
+}
+
+.alk-terrain-ice-shine {
+  fill: none !important;
+  stroke: rgba(255, 255, 255, 0.68) !important;
+  stroke-width: 3.4 !important;
+  stroke-linecap: round !important;
+}
+
+.alk-terrain-bumper-base {
+  fill: rgba(81, 45, 20, 0.9) !important;
+  stroke: rgba(222, 166, 82, 0.62) !important;
+  stroke-width: 3 !important;
+  filter: drop-shadow(0 5px 5px rgba(0, 0, 0, 0.36)) !important;
+}
+
+.alk-terrain-bumper-side {
+  fill: rgba(58, 31, 14, 0.58) !important;
+  stroke: rgba(226, 173, 91, 0.18) !important;
+  stroke-width: 1.4 !important;
+}
+
+.alk-terrain-bumper-post {
+  fill: rgba(151, 91, 39, 0.94) !important;
+  stroke: rgba(249, 207, 126, 0.66) !important;
+  stroke-width: 2.6 !important;
+  filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.34)) !important;
+}
+
+.alk-terrain-bumper-cap {
+  fill: rgba(206, 139, 61, 0.72) !important;
+  stroke: rgba(255, 222, 149, 0.42) !important;
+  stroke-width: 1.8 !important;
+}
+
+.alk-terrain-bumper-glint {
+  fill: rgba(255, 229, 174, 0.3) !important;
+}
+
 .alk-gimmick-inlay-base {
   fill: rgba(39, 23, 12, 0.72) !important;
   stroke: rgba(223, 176, 100, 0.52) !important;
@@ -384,84 +508,6 @@
   filter:
     drop-shadow(0 4px 4px rgba(0, 0, 0, 0.3))
     drop-shadow(0 1px 0 rgba(255, 235, 184, 0.12)) !important;
-}
-
-.alk-terrain-inlay-rim {
-  fill: none !important;
-  stroke: rgba(255, 224, 154, 0.26) !important;
-  stroke-width: 1.8 !important;
-  stroke-dasharray: none !important;
-}
-
-.alk-terrain-inlay-base.ice {
-  fill: rgba(41, 68, 66, 0.58) !important;
-  stroke: rgba(174, 198, 185, 0.48) !important;
-}
-
-.alk-terrain-inlay-rim.ice {
-  stroke: rgba(197, 224, 211, 0.34) !important;
-}
-
-.alk-terrain-pit-well {
-  fill: rgba(18, 11, 7, 0.9) !important;
-  stroke: rgba(235, 188, 113, 0.34) !important;
-  stroke-width: 2.5 !important;
-}
-
-.alk-terrain-pit-depth {
-  fill: rgba(3, 2, 1, 0.72) !important;
-  stroke: rgba(255, 234, 179, 0.12) !important;
-  stroke-width: 1.4 !important;
-}
-
-.alk-terrain-pit-glint {
-  fill: rgba(255, 233, 176, 0.16) !important;
-}
-
-.alk-terrain-mud-line,
-.alk-terrain-ice-cut {
-  fill: none !important;
-  stroke-linecap: round !important;
-  stroke-linejoin: round !important;
-}
-
-.alk-terrain-mud-line {
-  stroke: rgba(185, 123, 62, 0.36) !important;
-  stroke-width: 5 !important;
-}
-
-.alk-terrain-mud-line.soft {
-  opacity: 0.66 !important;
-  stroke-width: 4 !important;
-}
-
-.alk-terrain-ice-cut {
-  stroke: rgba(210, 226, 216, 0.48) !important;
-  stroke-width: 3 !important;
-}
-
-.alk-terrain-ice-cut.soft {
-  opacity: 0.58 !important;
-  stroke-width: 2.4 !important;
-}
-
-.alk-terrain-inlay-base.bumper {
-  fill: rgba(42, 25, 14, 0.74) !important;
-}
-
-.alk-terrain-inlay-rim.bumper {
-  stroke: rgba(224, 177, 99, 0.36) !important;
-}
-
-.alk-terrain-bumper-post {
-  fill: rgba(128, 74, 31, 0.84) !important;
-  stroke: rgba(236, 190, 112, 0.62) !important;
-  stroke-width: 2.4 !important;
-  filter: drop-shadow(0 3px 3px rgba(0, 0, 0, 0.32)) !important;
-}
-
-.alk-terrain-bumper-glint {
-  fill: rgba(255, 231, 177, 0.22) !important;
 }
 
 .alk-gimmick-inlay-base.lever {
