@@ -1073,24 +1073,74 @@ function gimmickLabel(kind: GimmickKind) {
   return kind === "button" ? "압력 버튼" : "킥 레버";
 }
 
-function terrainAsset(kind: TerrainKind) {
-  return `/assets/alkkagi/terrain-${kind}.png`;
+function TerrainInlay({ terrain }: { terrain: Terrain }) {
+  const r = terrain.r;
+  if (terrain.kind === "pit") {
+    return (
+      <>
+        <circle className="alk-terrain-inlay-base" cx="0" cy="0" r={r * 1.02} />
+        <circle className="alk-terrain-inlay-rim" cx="0" cy="0" r={r * 0.86} />
+        <circle className="alk-terrain-pit-well" cx="0" cy="0" r={r * 0.58} />
+        <circle className="alk-terrain-pit-depth" cx="0" cy="0" r={r * 0.38} />
+        <circle className="alk-terrain-pit-glint" cx={-r * 0.18} cy={-r * 0.18} r={r * 0.08} />
+      </>
+    );
+  }
+
+  if (terrain.kind === "mud") {
+    return (
+      <>
+        <ellipse className="alk-terrain-inlay-base" cx="0" cy="0" rx={r * 1.04} ry={r * 0.7} />
+        <ellipse className="alk-terrain-inlay-rim" cx="0" cy="0" rx={r * 0.84} ry={r * 0.52} />
+        <path className="alk-terrain-mud-line" d={`M${-r * 0.62} ${-r * 0.14} Q${-r * 0.25} ${-r * 0.34} ${r * 0.1} ${-r * 0.12} T${r * 0.62} ${-r * 0.1}`} />
+        <path className="alk-terrain-mud-line soft" d={`M${-r * 0.58} ${r * 0.12} Q${-r * 0.12} ${r * 0.34} ${r * 0.48} ${r * 0.08}`} />
+      </>
+    );
+  }
+
+  if (terrain.kind === "ice") {
+    return (
+      <>
+        <path className="alk-terrain-inlay-base ice" d={`M0 ${-r * 0.94} L${r * 0.62} ${-r * 0.62} L${r * 0.92} 0 L${r * 0.62} ${r * 0.62} L0 ${r * 0.94} L${-r * 0.62} ${r * 0.62} L${-r * 0.92} 0 L${-r * 0.62} ${-r * 0.62} Z`} />
+        <path className="alk-terrain-inlay-rim ice" d={`M0 ${-r * 0.72} L${r * 0.48} ${-r * 0.48} L${r * 0.7} 0 L${r * 0.48} ${r * 0.48} L0 ${r * 0.72} L${-r * 0.48} ${r * 0.48} L${-r * 0.7} 0 L${-r * 0.48} ${-r * 0.48} Z`} />
+        <path className="alk-terrain-ice-cut" d={`M${-r * 0.42} ${-r * 0.08} L${-r * 0.1} ${r * 0.08} L${r * 0.28} ${-r * 0.24}`} />
+        <path className="alk-terrain-ice-cut soft" d={`M${-r * 0.12} ${r * 0.38} L${r * 0.18} ${r * 0.1} L${r * 0.5} ${r * 0.22}`} />
+      </>
+    );
+  }
+
+  return (
+    <>
+      <circle className="alk-terrain-inlay-base bumper" cx="0" cy="0" r={r * 0.9} />
+      <circle className="alk-terrain-inlay-rim bumper" cx="0" cy="0" r={r * 0.66} />
+      <circle className="alk-terrain-bumper-post" cx="0" cy="0" r={r * 0.42} />
+      <ellipse className="alk-terrain-bumper-glint" cx={-r * 0.12} cy={-r * 0.18} rx={r * 0.18} ry={r * 0.09} />
+    </>
+  );
 }
 
-function terrainAssetSize(terrain: Terrain) {
-  if (terrain.kind === "mud") return { width: terrain.r * 2.2, height: terrain.r * 1.5 };
-  if (terrain.kind === "ice") return { width: terrain.r * 1.92, height: terrain.r * 1.92 };
-  if (terrain.kind === "bumper") return { width: terrain.r * 1.72, height: terrain.r * 1.72 };
-  return { width: terrain.r * 1.86, height: terrain.r * 1.86 };
-}
+function GimmickInlay({ gimmick }: { gimmick: ArenaGimmick }) {
+  const r = gimmick.r;
+  if (gimmick.kind === "lever") {
+    return (
+      <>
+        <rect className="alk-gimmick-inlay-base lever" x={-r * 2} y={-r * 0.56} width={r * 4} height={r * 1.12} rx={r * 0.24} />
+        <rect className="alk-gimmick-slot" x={-r * 1.52} y={-r * 0.18} width={r * 2.42} height={r * 0.36} rx={r * 0.12} />
+        <line className="alk-gimmick-lever-bar" x1={-r * 0.86} y1={0} x2={r * 1.14} y2={-r * 0.28} />
+        <circle className="alk-gimmick-hub" cx={-r * 1.1} cy="0" r={r * 0.34} />
+        <circle className="alk-gimmick-knob" cx={r * 1.18} cy={-r * 0.3} r={r * 0.24} />
+      </>
+    );
+  }
 
-function gimmickAsset(kind: GimmickKind) {
-  return `/assets/alkkagi/gimmick-${kind}.png`;
-}
-
-function gimmickAssetSize(gimmick: ArenaGimmick) {
-  if (gimmick.kind === "lever") return { width: gimmick.r * 4.4, height: gimmick.r * 2.35 };
-  return { width: gimmick.r * 3.3, height: gimmick.r * 3.3 };
+  return (
+    <>
+      <circle className="alk-gimmick-inlay-base button" cx="0" cy="0" r={r * 1.08} />
+      <circle className="alk-gimmick-button-ring" cx="0" cy="0" r={r * 0.78} />
+      <circle className="alk-gimmick-button-core" cx="0" cy="0" r={r * 0.45} />
+      <ellipse className="alk-gimmick-button-glint" cx={-r * 0.16} cy={-r * 0.2} rx={r * 0.18} ry={r * 0.09} />
+    </>
+  );
 }
 
 export function Component({
@@ -1398,21 +1448,10 @@ export function Component({
 
         {state.terrain.map((terrain) => {
           const angle = hashString(terrain.id) % 180;
-          const assetSize = terrainAssetSize(terrain);
           return (
             <g className={`alk-terrain ${terrain.kind}`} key={terrain.id} transform={`translate(${terrain.x} ${terrain.y}) rotate(${angle})`} aria-label={terrainLabel(terrain.kind)}>
-              <circle className="alk-terrain-plate" cx="0" cy="0" r={terrain.r * 1.1} />
-              <circle className="alk-terrain-rim" cx="0" cy="0" r={terrain.r * 0.94} />
               <circle className="alk-terrain-hit-area" cx="0" cy="0" r={terrain.r} />
-              <image
-                className="alk-terrain-asset"
-                href={terrainAsset(terrain.kind)}
-                x={-assetSize.width / 2}
-                y={-assetSize.height / 2}
-                width={assetSize.width}
-                height={assetSize.height}
-                preserveAspectRatio="xMidYMid meet"
-              />
+              <TerrainInlay terrain={terrain} />
             </g>
           );
         })}
@@ -1420,7 +1459,6 @@ export function Component({
         {state.gimmicks.map((gimmick) => {
           const triggered = state.lastShot?.triggeredGimmickIds?.includes(gimmick.id);
           const angle = gimmick.angle ?? 0;
-          const assetSize = gimmickAssetSize(gimmick);
           return (
             <g
               className={`alk-gimmick ${gimmick.kind} ${triggered ? "triggered" : ""}`}
@@ -1428,17 +1466,7 @@ export function Component({
               transform={`translate(${gimmick.x} ${gimmick.y}) rotate(${angle})`}
               aria-label={gimmickLabel(gimmick.kind)}
             >
-              <ellipse className="alk-gimmick-plate" cx="0" cy={gimmick.kind === "lever" ? gimmick.r * 0.08 : 0} rx={assetSize.width * 0.43} ry={assetSize.height * 0.38} />
-              <ellipse className="alk-gimmick-contact" cx="0" cy={gimmick.kind === "lever" ? gimmick.r * 0.08 : 0} rx={assetSize.width * 0.38} ry={assetSize.height * 0.34} />
-              <image
-                className="alk-gimmick-asset"
-                href={gimmickAsset(gimmick.kind)}
-                x={-assetSize.width / 2}
-                y={-assetSize.height / 2}
-                width={assetSize.width}
-                height={assetSize.height}
-                preserveAspectRatio="xMidYMid meet"
-              />
+              <GimmickInlay gimmick={gimmick} />
             </g>
           );
         })}
