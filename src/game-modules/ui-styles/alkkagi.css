@@ -456,7 +456,8 @@
 }
 
 .alk-egg.skill .alk-egg-body {
-  stroke-dasharray: 4 4 !important;
+  stroke-dasharray: 5 3 !important;
+  stroke-width: 3.2 !important;
 }
 
 .alk-egg.last-shot .alk-egg-body {
@@ -480,18 +481,125 @@
   fill: rgba(255, 245, 212, 0.88) !important;
   stroke: rgba(35, 19, 10, 0.62) !important;
   stroke-width: 2 !important;
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
   pointer-events: none !important;
 }
 
+.alk-skill-mark-cut {
+  fill: none !important;
+  stroke: rgba(255, 245, 212, 0.9) !important;
+  stroke-width: 2.6 !important;
+}
+
+.alk-skill-aura {
+  pointer-events: none !important;
+  opacity: 0.92 !important;
+}
+
+.alk-skill-aura-ring,
+.alk-speed-streak,
+.alk-anchor-weight,
+.alk-burst-ray,
+.alk-guard-shield,
+.alk-guard-glint,
+.alk-rubber-ring {
+  fill: none !important;
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
+  pointer-events: none !important;
+}
+
+.alk-skill-aura-ring {
+  stroke-width: 3 !important;
+  stroke-dasharray: 5 5 !important;
+}
+
+.alk-egg.skill-dash .alk-skill-aura-ring,
+.alk-egg.skill-dash .alk-speed-streak {
+  stroke: rgba(255, 212, 94, 0.9) !important;
+}
+
+.alk-egg.skill-anchor .alk-skill-aura-ring,
+.alk-egg.skill-anchor .alk-anchor-weight {
+  stroke: rgba(96, 58, 32, 0.92) !important;
+}
+
+.alk-egg.skill-burst .alk-skill-aura-ring,
+.alk-egg.skill-burst .alk-burst-ray {
+  stroke: rgba(255, 105, 75, 0.94) !important;
+}
+
+.alk-egg.skill-guard .alk-guard-shield,
+.alk-egg.skill-guard .alk-guard-glint {
+  stroke: rgba(169, 245, 188, 0.94) !important;
+}
+
+.alk-egg.skill-rubber .alk-rubber-ring {
+  stroke: rgba(159, 217, 255, 0.94) !important;
+}
+
+.alk-speed-streak {
+  stroke-width: 4 !important;
+  stroke-dasharray: 8 5 !important;
+}
+
+.alk-speed-streak.streak-b {
+  stroke-width: 3 !important;
+}
+
+.alk-speed-streak.streak-c {
+  stroke-width: 2.4 !important;
+}
+
+.alk-anchor-weight {
+  stroke-width: 4 !important;
+}
+
+.alk-burst-ring {
+  stroke-width: 3.4 !important;
+}
+
+.alk-burst-ray {
+  stroke-width: 3.4 !important;
+}
+
+.alk-burst-ray.diagonal {
+  stroke-width: 2.4 !important;
+  opacity: 0.82 !important;
+}
+
+.alk-guard-shield {
+  fill: rgba(80, 168, 104, 0.12) !important;
+  stroke-width: 3.2 !important;
+}
+
+.alk-guard-glint {
+  stroke-width: 2.2 !important;
+  opacity: 0.8 !important;
+}
+
+.alk-rubber-ring {
+  stroke-width: 3.2 !important;
+}
+
+.alk-rubber-ring.inner {
+  stroke-width: 2.2 !important;
+  opacity: 0.72 !important;
+}
+
 .alk-egg.skill-anchor .alk-egg-body {
-  filter: url("#alk-soft-shadow") brightness(0.78) !important;
+  stroke: rgba(79, 48, 28, 0.95) !important;
+  filter: url("#alk-soft-shadow") brightness(0.76) !important;
 }
 
 .alk-egg.skill-dash .alk-egg-body {
+  stroke: rgba(255, 220, 94, 0.95) !important;
   filter: url("#alk-soft-shadow") saturate(1.25) brightness(1.08) !important;
 }
 
 .alk-egg.skill-burst .alk-egg-body {
+  stroke: rgba(255, 117, 79, 0.96) !important;
   filter: url("#alk-soft-shadow") saturate(1.2) !important;
 }
 
@@ -503,12 +611,117 @@
   stroke: rgba(189, 224, 255, 0.9) !important;
 }
 
+.alk-egg.is-spent .alk-skill-aura {
+  opacity: 0.42 !important;
+}
+
+.alk-egg.is-spent .alk-skill-mark {
+  opacity: 0.62 !important;
+}
+
+.alk-egg.skill-activated.skill-dash .alk-speed-streak {
+  animation: alk-dash-flash 760ms ease-out;
+}
+
+.alk-egg.skill-activated.skill-anchor .alk-anchor-weight,
+.alk-egg.skill-activated.skill-anchor .alk-skill-aura-ring {
+  animation: alk-anchor-thud 720ms ease-out;
+}
+
+.alk-egg.skill-activated.skill-burst .alk-burst-ring,
+.alk-egg.skill-activated.skill-burst .alk-burst-ray {
+  animation: alk-burst-pop 820ms ease-out;
+}
+
+.alk-egg.skill-activated.skill-guard .alk-guard-shield {
+  animation: alk-guard-pulse 820ms ease-out;
+}
+
+.alk-egg.skill-activated.skill-rubber .alk-rubber-ring {
+  animation: alk-rubber-boing 840ms ease-out;
+}
+
 @keyframes alk-last-shot {
   from {
     transform: scale(1.08);
   }
   62% {
     transform: scale(0.96);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+@keyframes alk-dash-flash {
+  from {
+    opacity: 0.3;
+    transform: translateX(8px);
+  }
+  40% {
+    opacity: 1;
+    transform: translateX(-8px);
+  }
+  to {
+    opacity: 0.82;
+    transform: translateX(0);
+  }
+}
+
+@keyframes alk-anchor-thud {
+  from {
+    transform: scale(1.14);
+    opacity: 0.95;
+  }
+  46% {
+    transform: scale(0.88);
+    opacity: 1;
+  }
+  to {
+    transform: scale(1);
+    opacity: 0.92;
+  }
+}
+
+@keyframes alk-burst-pop {
+  from {
+    transform: scale(0.62);
+    opacity: 0.2;
+  }
+  48% {
+    transform: scale(1.42);
+    opacity: 1;
+  }
+  to {
+    transform: scale(1);
+    opacity: 0.88;
+  }
+}
+
+@keyframes alk-guard-pulse {
+  from {
+    transform: scale(0.8);
+    opacity: 0.38;
+  }
+  42% {
+    transform: scale(1.28);
+    opacity: 1;
+  }
+  to {
+    transform: scale(1);
+    opacity: 0.92;
+  }
+}
+
+@keyframes alk-rubber-boing {
+  from {
+    transform: scaleX(1.32) scaleY(0.76);
+  }
+  42% {
+    transform: scaleX(0.82) scaleY(1.24);
+  }
+  70% {
+    transform: scaleX(1.08) scaleY(0.94);
   }
   to {
     transform: scale(1);
@@ -565,6 +778,16 @@
 
 @media (prefers-reduced-motion: reduce) {
   .alk-egg.last-shot .alk-egg-body {
+    animation: none !important;
+  }
+
+  .alk-egg.skill-activated.skill-dash .alk-speed-streak,
+  .alk-egg.skill-activated.skill-anchor .alk-anchor-weight,
+  .alk-egg.skill-activated.skill-anchor .alk-skill-aura-ring,
+  .alk-egg.skill-activated.skill-burst .alk-burst-ring,
+  .alk-egg.skill-activated.skill-burst .alk-burst-ray,
+  .alk-egg.skill-activated.skill-guard .alk-guard-shield,
+  .alk-egg.skill-activated.skill-rubber .alk-rubber-ring {
     animation: none !important;
   }
 

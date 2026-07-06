@@ -88,7 +88,7 @@ interface AlkkagiState {
   activePlayerId: string | null;
   winnerId: string | null;
   winnerIds: string[];
-  lastShot: { playerId: string; eggId: string; vector: Point; fallenIds: string[]; triggeredGimmickIds: string[] } | null;
+  lastShot: { playerId: string; eggId: string; vector: Point; fallenIds: string[]; triggeredGimmickIds: string[]; activatedSkillIds: string[] } | null;
   message: string;
 }
 
@@ -389,7 +389,8 @@ function cloneState(state: AlkkagiState): AlkkagiState {
           eggId: normalized.lastShot.eggId,
           vector: { ...normalized.lastShot.vector },
           fallenIds: [...normalized.lastShot.fallenIds],
-          triggeredGimmickIds: [...(normalized.lastShot.triggeredGimmickIds ?? [])]
+          triggeredGimmickIds: [...(normalized.lastShot.triggeredGimmickIds ?? [])],
+          activatedSkillIds: [...(normalized.lastShot.activatedSkillIds ?? [])]
         }
       : null
   };
@@ -521,6 +522,7 @@ function settleShot(state: AlkkagiState, shotEgg: AlkkagiEgg, vector: Point) {
   const bodies = new Map<string, Matter.Body>();
   const removed = new Set<string>();
   const triggeredGimmicks = new Set<string>();
+  const activatedSkillIds = new Set<string>();
   let burstTriggered = false;
 
   for (const egg of state.eggs.filter((candidate) => candidate.alive)) {
@@ -588,6 +590,7 @@ function settleShot(state: AlkkagiState, shotEgg: AlkkagiEgg, vector: Point) {
   function triggerBurst(origin: Matter.Body) {
     if (burstTriggered || shotEgg.skill !== "burst" || shotEgg.used) return;
     burstTriggered = true;
+    activatedSkillIds.add(shotEgg.id);
     markEggUsed(state, shotEgg.id);
     for (const [id, body] of bodies) {
       if (id === shotEgg.id || removed.has(id)) continue;
@@ -615,7 +618,7 @@ function settleShot(state: AlkkagiState, shotEgg: AlkkagiEgg, vector: Point) {
 
   const shotBody = bodies.get(shotEgg.id);
   if (!shotBody) {
-    return { fallenIds: [] as string[], triggeredGimmickIds: [] as string[] };
+    return { fallenIds: [] as string[], triggeredGimmickIds: [] as string[], activatedSkillIds: [] as string[] };
   }
 
   const direction = normalize(vector);
@@ -623,6 +626,9 @@ function settleShot(state: AlkkagiState, shotEgg: AlkkagiEgg, vector: Point) {
   const speed = launchSpeed(shotEgg, vectorLength);
   Matter.Body.setVelocity(shotBody, { x: direction.x * speed, y: direction.y * speed });
   Matter.Body.setAngularVelocity(shotBody, clamp(speed / eggRadius(shotEgg) / 2.2, 0.04, 0.34));
+  if (shotEgg.skill && shotEgg.skill !== "burst" && shotEgg.skill !== "guard") {
+    activatedSkillIds.add(shotEgg.id);
+  }
 
   function removeBody(id: string) {
     const body = bodies.get(id);
@@ -732,6 +738,7 @@ function settleShot(state: AlkkagiState, shotEgg: AlkkagiEgg, vector: Point) {
         if (egg.skill === "guard" && !egg.used) {
           const dir = normalize(body.position);
           markEggUsed(state, id);
+          activatedSkillIds.add(id);
           Matter.Body.setPosition(body, { x: dir.x * (BOARD_RADIUS - eggRadius(egg) - 14), y: dir.y * (BOARD_RADIUS - eggRadius(egg) - 14) });
           Matter.Body.setVelocity(body, { x: -dir.x * 3.4, y: -dir.y * 3.4 });
         } else {
@@ -760,7 +767,7 @@ function settleShot(state: AlkkagiState, shotEgg: AlkkagiEgg, vector: Point) {
     }
   }
 
-  return { fallenIds: [...removed], triggeredGimmickIds: [...triggeredGimmicks] };
+  return { fallenIds: [...removed], triggeredGimmickIds: [...triggeredGimmicks], activatedSkillIds: [...activatedSkillIds] };
 }
 
 function flickEgg(state: AlkkagiState, action: GameAction, context: GameContext): GameActionResult {
@@ -784,7 +791,8 @@ function flickEgg(state: AlkkagiState, action: GameAction, context: GameContext)
     eggId: shotEgg.id,
     vector: { x: round(payload.vector.x), y: round(payload.vector.y) },
     fallenIds: shotResult.fallenIds,
-    triggeredGimmickIds: shotResult.triggeredGimmickIds
+    triggeredGimmickIds: shotResult.triggeredGimmickIds,
+    activatedSkillIds: shotResult.activatedSkillIds
   };
 
   const winner = winnerAfterShot(next, context);
@@ -838,12 +846,96 @@ function skillClass(skill?: SkillKind) {
   return skill ? `skill-${skill}` : "";
 }
 
+function skillLabel(skill?: SkillKind) {
+  if (skill === "dash") return "질주";
+  if (skill === "anchor") return "중량";
+  if (skill === "burst") return "폭발";
+  if (skill === "guard") return "방어";
+  if (skill === "rubber") return "탄성";
+  return "특수";
+}
+
 function skillMark(skill?: SkillKind) {
-  if (skill === "dash") return <path d="M-7 5 L1 -8 L0 -1 L8 -5 L-1 9 L0 1 Z" />;
-  if (skill === "anchor") return <circle cx="0" cy="0" r="7" />;
-  if (skill === "burst") return <path d="M0 -9 L2 -2 L9 0 L2 2 L0 9 L-2 2 L-9 0 L-2 -2 Z" />;
-  if (skill === "guard") return <path d="M0 -9 Q8 -5 7 3 Q4 8 0 10 Q-4 8 -7 3 Q-8 -5 0 -9 Z" />;
-  if (skill === "rubber") return <path d="M-8 0 C-5 -9 5 -9 8 0 C5 9 -5 9 -8 0 Z" />;
+  if (skill === "dash") {
+    return (
+      <>
+        <path d="M-10 7 L-2 -9 L-2 -1 L9 -7 L0 10 L0 2 Z" />
+        <path className="alk-skill-mark-cut" d="M-14 -5 H-7 M-16 2 H-9" />
+      </>
+    );
+  }
+  if (skill === "anchor") {
+    return (
+      <>
+        <circle cx="0" cy="-1" r="5.5" />
+        <path d="M0 4 V12 M-9 7 Q-6 13 0 13 Q6 13 9 7" />
+      </>
+    );
+  }
+  if (skill === "burst") {
+    return <path d="M0 -12 L3 -3 L12 0 L3 3 L0 12 L-3 3 L-12 0 L-3 -3 Z" />;
+  }
+  if (skill === "guard") {
+    return <path d="M0 -12 Q10 -7 9 3 Q5 10 0 13 Q-5 10 -9 3 Q-10 -7 0 -12 Z" />;
+  }
+  if (skill === "rubber") {
+    return (
+      <>
+        <path d="M-11 0 C-8 -11 8 -11 11 0 C8 11 -8 11 -11 0 Z" />
+        <path className="alk-skill-mark-cut" d="M-5 -5 C-1 -8 4 -7 6 -3" />
+      </>
+    );
+  }
+  return null;
+}
+
+function skillAura(skill?: SkillKind, radius = 21) {
+  if (!skill) return null;
+  const outer = radius + 7;
+  if (skill === "dash") {
+    return (
+      <>
+        <circle className="alk-skill-aura-ring" cx="0" cy="0" r={outer} />
+        <path className="alk-speed-streak streak-a" d={`M${-outer - 10} -10 H${-outer + 1}`} />
+        <path className="alk-speed-streak streak-b" d={`M${-outer - 14} 0 H${-outer + 3}`} />
+        <path className="alk-speed-streak streak-c" d={`M${-outer - 9} 10 H${-outer + 2}`} />
+      </>
+    );
+  }
+  if (skill === "anchor") {
+    return (
+      <>
+        <circle className="alk-skill-aura-ring" cx="0" cy="0" r={outer} />
+        <path className="alk-anchor-weight" d={`M${-outer * 0.72} ${outer * 0.72} Q0 ${outer + 5} ${outer * 0.72} ${outer * 0.72}`} />
+        <path className="alk-anchor-weight" d={`M${-outer * 0.68} ${-outer * 0.68} L${outer * 0.68} ${outer * 0.68}`} />
+      </>
+    );
+  }
+  if (skill === "burst") {
+    return (
+      <>
+        <circle className="alk-skill-aura-ring alk-burst-ring" cx="0" cy="0" r={outer} />
+        <path className="alk-burst-ray" d={`M0 ${-outer - 6} V${-outer + 4} M0 ${outer - 4} V${outer + 6} M${-outer - 6} 0 H${-outer + 4} M${outer - 4} 0 H${outer + 6}`} />
+        <path className="alk-burst-ray diagonal" d={`M${-outer * 0.72} ${-outer * 0.72} L${-outer * 0.52} ${-outer * 0.52} M${outer * 0.72} ${-outer * 0.72} L${outer * 0.52} ${-outer * 0.52} M${-outer * 0.72} ${outer * 0.72} L${-outer * 0.52} ${outer * 0.52} M${outer * 0.72} ${outer * 0.72} L${outer * 0.52} ${outer * 0.52}`} />
+      </>
+    );
+  }
+  if (skill === "guard") {
+    return (
+      <>
+        <path className="alk-guard-shield" d={`M0 ${-outer - 3} Q${outer + 7} ${-outer * 0.52} ${outer * 0.78} ${outer * 0.45} Q${outer * 0.35} ${outer + 7} 0 ${outer + 10} Q${-outer * 0.35} ${outer + 7} ${-outer * 0.78} ${outer * 0.45} Q${-outer - 7} ${-outer * 0.52} 0 ${-outer - 3} Z`} />
+        <path className="alk-guard-glint" d={`M${-outer * 0.52} ${-outer * 0.2} Q0 ${-outer * 0.62} ${outer * 0.52} ${-outer * 0.2}`} />
+      </>
+    );
+  }
+  if (skill === "rubber") {
+    return (
+      <>
+        <ellipse className="alk-rubber-ring outer" cx="0" cy="0" rx={outer + 3} ry={outer - 4} />
+        <ellipse className="alk-rubber-ring inner" cx="0" cy="0" rx={outer - 4} ry={outer + 2} />
+      </>
+    );
+  }
   return null;
 }
 
@@ -1111,20 +1203,23 @@ export function Component({
           const owner = state.players.find((player) => player.id === egg.ownerId);
           const isCurrent = egg.ownerId === currentPlayer?.id && canAct;
           const isSelected = egg.id === selectedEgg?.id;
+          const isLastShot = egg.id === state.lastShot?.eggId;
+          const isSkillActivated = state.lastShot?.activatedSkillIds?.includes(egg.id) ?? false;
           const radius = eggRadius(egg);
           return (
             <g
               key={egg.id}
-              className={`alk-egg ${egg.kind} ${skillClass(egg.skill)} ${isCurrent ? "is-current" : ""} ${isSelected ? "is-selected" : ""} ${egg.id === state.lastShot?.eggId ? "last-shot" : ""}`}
+              className={`alk-egg ${egg.kind} ${skillClass(egg.skill)} ${isCurrent ? "is-current" : ""} ${isSelected ? "is-selected" : ""} ${isLastShot ? "last-shot" : ""} ${isSkillActivated ? "skill-activated" : ""} ${egg.used ? "is-spent" : ""}`}
               style={{ "--player-color": owner?.color ?? "#d94f45" } as CSSProperties}
               transform={`translate(${egg.x} ${egg.y})`}
               role="button"
               tabIndex={isCurrent ? 0 : -1}
-              aria-label={`${owner?.name ?? "플레이어"} ${egg.kind === "king" ? "왕알" : egg.skill ? "스킬 알" : "알"}`}
+              aria-label={`${owner?.name ?? "플레이어"} ${egg.kind === "king" ? "왕알" : egg.skill ? `${skillLabel(egg.skill)} 특수 알` : "알"}`}
               onPointerDown={(event) => chooseEggByPointer(event, egg)}
               onKeyDown={(event) => chooseEggByKey(event, egg)}
             >
               <circle className="alk-egg-shadow" cx="0" cy="4" r={radius} />
+              {egg.kind === "skill" ? <g className="alk-skill-aura" aria-hidden="true">{skillAura(egg.skill, radius)}</g> : null}
               <circle className="alk-egg-body" cx="0" cy="0" r={radius} />
               {egg.kind === "king" ? (
                 <g className="alk-king-mark" aria-hidden="true">
