@@ -114,8 +114,23 @@ interface AimControlState {
 const arenaPresets: ArenaPreset[] = [
   {
     id: defaultArenaId,
-    name: "원형판",
+    name: "고전 원형판",
     className: "arena-classic"
+  },
+  {
+    id: "walnut-ring",
+    name: "흑호두 원형판",
+    className: "arena-walnut"
+  },
+  {
+    id: "bamboo-ring",
+    name: "대나무 원형판",
+    className: "arena-bamboo"
+  },
+  {
+    id: "lacquer-ring",
+    name: "먹색 원형판",
+    className: "arena-lacquer"
   }
 ];
 

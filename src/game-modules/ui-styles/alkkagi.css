@@ -18,9 +18,61 @@
   --alk-board-bg-b: rgba(12, 8, 5, 0.94);
   --alk-rim-fill: #180b05;
   --alk-inner-line: rgba(236, 190, 111, 0.24);
+  --alk-table-stroke: rgba(255, 228, 164, 0.6);
+  --alk-playline: rgba(255, 231, 174, 0.2);
+  --alk-dangerline: rgba(255, 218, 145, 0.34);
+  --alk-table-filter: saturate(1) brightness(1);
   width: min(100%, 1060px) !important;
   margin: 0 auto !important;
   color: var(--alk-ink) !important;
+}
+
+.alk-shell.arena-walnut {
+  --alk-wood-deep: #120704;
+  --alk-wood-mid: #3d1d10;
+  --alk-wood-warm: #7a3d1f;
+  --alk-arena-accent: rgba(111, 56, 27, 0.42);
+  --alk-board-bg-a: rgba(28, 15, 9, 0.92);
+  --alk-board-bg-b: rgba(9, 5, 3, 0.98);
+  --alk-rim-fill: #100603;
+  --alk-inner-line: rgba(210, 150, 86, 0.22);
+  --alk-table-stroke: rgba(226, 170, 98, 0.48);
+  --alk-playline: rgba(221, 158, 88, 0.16);
+  --alk-dangerline: rgba(236, 174, 96, 0.28);
+  --alk-table-filter: saturate(0.9) brightness(0.76) contrast(1.12);
+}
+
+.alk-shell.arena-bamboo {
+  --alk-ink: #2a170c;
+  --alk-soft: rgba(75, 42, 18, 0.72);
+  --alk-line: rgba(116, 75, 27, 0.28);
+  --alk-wood-deep: #7f5427;
+  --alk-wood-mid: #bf8540;
+  --alk-wood-warm: #e6b96e;
+  --alk-arena-accent: rgba(207, 157, 77, 0.42);
+  --alk-board-bg-a: rgba(61, 82, 52, 0.54);
+  --alk-board-bg-b: rgba(39, 28, 14, 0.78);
+  --alk-rim-fill: #4a2b13;
+  --alk-inner-line: rgba(112, 72, 25, 0.24);
+  --alk-table-stroke: rgba(100, 65, 22, 0.46);
+  --alk-playline: rgba(91, 59, 22, 0.18);
+  --alk-dangerline: rgba(113, 71, 21, 0.3);
+  --alk-table-filter: saturate(1.14) brightness(1.16) contrast(0.9);
+}
+
+.alk-shell.arena-lacquer {
+  --alk-wood-deep: #070707;
+  --alk-wood-mid: #24211d;
+  --alk-wood-warm: #514234;
+  --alk-arena-accent: rgba(84, 94, 96, 0.42);
+  --alk-board-bg-a: rgba(20, 25, 24, 0.9);
+  --alk-board-bg-b: rgba(4, 4, 4, 0.98);
+  --alk-rim-fill: #060504;
+  --alk-inner-line: rgba(208, 191, 154, 0.18);
+  --alk-table-stroke: rgba(217, 196, 151, 0.42);
+  --alk-playline: rgba(217, 196, 151, 0.14);
+  --alk-dangerline: rgba(226, 204, 160, 0.24);
+  --alk-table-filter: saturate(0.55) brightness(0.68) contrast(1.18);
 }
 
 .alk-status {
@@ -295,8 +347,9 @@
 
 .alk-table {
   fill: url("#alk-board-texture") !important;
-  stroke: rgba(255, 228, 164, 0.6) !important;
+  stroke: var(--alk-table-stroke) !important;
   stroke-width: 7 !important;
+  filter: var(--alk-table-filter) !important;
 }
 
 .alk-grain-top {
@@ -320,14 +373,14 @@
 
 .alk-table-playline {
   fill: none !important;
-  stroke: rgba(255, 231, 174, 0.2) !important;
+  stroke: var(--alk-playline) !important;
   stroke-width: 2 !important;
   stroke-dasharray: 18 12 !important;
 }
 
 .alk-table-dangerline {
   fill: none !important;
-  stroke: rgba(255, 218, 145, 0.34) !important;
+  stroke: var(--alk-dangerline) !important;
   stroke-width: 3 !important;
 }
 
