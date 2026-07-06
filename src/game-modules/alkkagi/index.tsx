@@ -8,6 +8,12 @@ const MAX_VECTOR = 170;
 const MAX_SPEED = 22;
 const STEP_MS = 1000 / 60;
 const MAX_STEPS = 360;
+const BASE_ROLLING_DRAG = 0.0028;
+const LOW_SPEED_DRAG = 0.016;
+const ICE_SLIDE_BOOST = 1.004;
+const COLLISION_TRANSFER = 0.18;
+const SPIN_DRIFT = 0.012;
+const SPIN_DECAY = 0.966;
 const AIM_PHASE_LIMIT_MS = 10_000;
 const DIRECTION_CYCLE_MS = 3_400;
 const POWER_CYCLE_MS = 1_800;
@@ -318,6 +324,55 @@ function eggRestitution(egg: Pick<AlkkagiEgg, "kind" | "skill">) {
   return 0.82;
 }
 
+function launchSpeed(egg: Pick<AlkkagiEgg, "kind" | "skill">, vectorLength: number) {
+  const power = clamp(vectorLength / MAX_VECTOR, 0, 1);
+  const mass = eggMass(egg);
+  let speed = (power * MAX_SPEED) / Math.sqrt(mass);
+  if (egg.kind === "king") speed = Math.min(speed * 0.45, 4.2);
+  if (egg.skill === "dash") speed *= 1.18;
+  if (egg.skill === "anchor") speed *= 0.94;
+  if (egg.skill === "rubber") speed *= 1.06;
+  return Math.min(speed, MAX_SPEED * 1.08);
+}
+
+function rollingDragForEgg(egg: Pick<AlkkagiEgg, "kind" | "skill">, surface: number) {
+  const massRelief = egg.kind === "king" ? 1 : Math.sqrt(Math.min(eggMass(egg), 2.4));
+  const roleDrag = egg.kind === "king" ? 3.2 : egg.skill === "anchor" ? 1.2 : egg.skill === "rubber" ? 1.08 : 1;
+  const skillRelief = egg.skill === "dash" ? 0.9 : 1;
+  return (BASE_ROLLING_DRAG * surface * roleDrag * skillRelief) / massRelief;
+}
+
+function surfaceFrictionAt(state: AlkkagiState, body: Matter.Body) {
+  let surface = 1;
+  let onIce = false;
+  for (const terrain of state.terrain) {
+    const gap = distance(body.position, terrain);
+    if (terrain.kind === "mud" && gap < terrain.r) {
+      surface = Math.max(surface, 3.4);
+    }
+    if (terrain.kind === "ice" && gap < terrain.r) {
+      surface = Math.min(surface, 0.32);
+      onIce = true;
+    }
+  }
+  return { surface, onIce };
+}
+
+function velocityPoint(body: Matter.Body): Point {
+  return { x: body.velocity.x, y: body.velocity.y };
+}
+
+function dot(a: Point, b: Point) {
+  return a.x * b.x + a.y * b.y;
+}
+
+function applyVelocity(body: Matter.Body, delta: Point) {
+  Matter.Body.setVelocity(body, {
+    x: body.velocity.x + delta.x,
+    y: body.velocity.y + delta.y
+  });
+}
+
 function cloneState(state: AlkkagiState): AlkkagiState {
   const normalized = normalizeState(state);
   return {
@@ -471,7 +526,7 @@ function settleShot(state: AlkkagiState, shotEgg: AlkkagiEgg, vector: Point) {
   for (const egg of state.eggs.filter((candidate) => candidate.alive)) {
     const body = Matter.Bodies.circle(egg.x, egg.y, eggRadius(egg), {
       label: egg.id,
-      frictionAir: egg.kind === "king" ? 0.052 : egg.skill === "anchor" ? 0.042 : 0.029,
+      frictionAir: egg.kind === "king" ? 0.016 : egg.skill === "anchor" ? 0.014 : 0.01,
       friction: 0.03,
       restitution: eggRestitution(egg)
     });
@@ -495,6 +550,41 @@ function settleShot(state: AlkkagiState, shotEgg: AlkkagiEgg, vector: Point) {
     return state.eggs.find((egg) => egg.id === body.label) ?? null;
   }
 
+  function applyCollisionTransfer(pair: Matter.Pair) {
+    const eggA = bodyEgg(pair.bodyA);
+    const eggB = bodyEgg(pair.bodyB);
+    if (!eggA || !eggB) return;
+
+    const normal = normalize({
+      x: pair.bodyB.position.x - pair.bodyA.position.x,
+      y: pair.bodyB.position.y - pair.bodyA.position.y
+    });
+    const relative = {
+      x: pair.bodyA.velocity.x - pair.bodyB.velocity.x,
+      y: pair.bodyA.velocity.y - pair.bodyB.velocity.y
+    };
+    const closingSpeed = dot(relative, normal);
+    if (closingSpeed <= 0.32) return;
+
+    const massA = eggMass(eggA);
+    const massB = eggMass(eggB);
+    const totalMass = massA + massB;
+    const restitution = (eggRestitution(eggA) + eggRestitution(eggB)) / 2;
+    const impulse = closingSpeed * COLLISION_TRANSFER * (0.7 + restitution);
+    const aShare = massB / totalMass;
+    const bShare = massA / totalMass;
+
+    applyVelocity(pair.bodyA, { x: -normal.x * impulse * aShare, y: -normal.y * impulse * aShare });
+    applyVelocity(pair.bodyB, { x: normal.x * impulse * bShare, y: normal.y * impulse * bShare });
+
+    const tangent = { x: -normal.y, y: normal.x };
+    const glancingSpeed = dot(relative, tangent);
+    if (Math.abs(glancingSpeed) > 0.2) {
+      Matter.Body.setAngularVelocity(pair.bodyA, clamp(pair.bodyA.angularVelocity - glancingSpeed * 0.006 * bShare, -0.42, 0.42));
+      Matter.Body.setAngularVelocity(pair.bodyB, clamp(pair.bodyB.angularVelocity + glancingSpeed * 0.006 * aShare, -0.42, 0.42));
+    }
+  }
+
   function triggerBurst(origin: Matter.Body) {
     if (burstTriggered || shotEgg.skill !== "burst" || shotEgg.used) return;
     burstTriggered = true;
@@ -516,6 +606,7 @@ function settleShot(state: AlkkagiState, shotEgg: AlkkagiEgg, vector: Point) {
     for (const pair of event.pairs) {
       const a = bodyEgg(pair.bodyA);
       const b = bodyEgg(pair.bodyB);
+      applyCollisionTransfer(pair);
       if (a?.id === shotEgg.id || b?.id === shotEgg.id) {
         triggerBurst((a?.id === shotEgg.id ? pair.bodyA : pair.bodyB) as Matter.Body);
       }
@@ -529,11 +620,9 @@ function settleShot(state: AlkkagiState, shotEgg: AlkkagiEgg, vector: Point) {
 
   const direction = normalize(vector);
   const vectorLength = Math.min(length(vector), MAX_VECTOR);
-  let speed = (vectorLength / MAX_VECTOR) * MAX_SPEED;
-  if (shotEgg.kind === "king") speed = Math.min(speed * 0.44, 8.2);
-  if (shotEgg.skill === "dash") speed *= 1.24;
-  if (shotEgg.skill === "anchor") speed *= 0.88;
+  const speed = launchSpeed(shotEgg, vectorLength);
   Matter.Body.setVelocity(shotBody, { x: direction.x * speed, y: direction.y * speed });
+  Matter.Body.setAngularVelocity(shotBody, clamp(speed / eggRadius(shotEgg) / 2.2, 0.04, 0.34));
 
   function removeBody(id: string) {
     const body = bodies.get(id);
@@ -569,6 +658,50 @@ function settleShot(state: AlkkagiState, shotEgg: AlkkagiEgg, vector: Point) {
   }
 
   let quietFrames = 0;
+  const previousPositions = new Map<string, Point>();
+  for (const [id, body] of bodies) {
+    previousPositions.set(id, { x: body.position.x, y: body.position.y });
+  }
+
+  function applyRollingPhysics(id: string, body: Matter.Body, egg: AlkkagiEgg) {
+    const previous = previousPositions.get(id) ?? { x: body.position.x, y: body.position.y };
+    const travelled = distance(previous, body.position);
+    previousPositions.set(id, { x: body.position.x, y: body.position.y });
+    const { surface, onIce } = surfaceFrictionAt(state, body);
+    const currentSpeed = length(velocityPoint(body));
+    if (currentSpeed > 0.001) {
+      const drag = rollingDragForEgg(egg, surface);
+      const distanceLoss = Math.exp(-drag * travelled);
+      const staticLoss = currentSpeed < 1.15 ? Math.max(0, 1 - LOW_SPEED_DRAG * surface) : 1;
+      const nextSpeed = currentSpeed * distanceLoss * staticLoss;
+      if (nextSpeed < 0.025) {
+        Matter.Body.setVelocity(body, { x: 0, y: 0 });
+      } else {
+        const dir = normalize(velocityPoint(body));
+        Matter.Body.setVelocity(body, { x: dir.x * nextSpeed, y: dir.y * nextSpeed });
+      }
+    }
+
+    const updatedSpeed = length(velocityPoint(body));
+    if (onIce && updatedSpeed > 0.18) {
+      const dir = normalize(velocityPoint(body));
+      const capped = Math.min(updatedSpeed * ICE_SLIDE_BOOST, 23);
+      Matter.Body.setVelocity(body, { x: dir.x * capped, y: dir.y * capped });
+    }
+
+    const spin = body.angularVelocity;
+    if (Math.abs(spin) > 0.0008) {
+      const speedAfterSurface = length(velocityPoint(body));
+      if (speedAfterSurface > 0.04) {
+        const dir = normalize(velocityPoint(body));
+        const side = { x: -dir.y, y: dir.x };
+        const drift = (spin * SPIN_DRIFT) / Math.sqrt(eggMass(egg));
+        applyVelocity(body, { x: side.x * drift, y: side.y * drift });
+      }
+      Matter.Body.setAngularVelocity(body, spin * Math.pow(SPIN_DECAY, surface));
+    }
+  }
+
   for (let step = 0; step < MAX_STEPS; step += 1) {
     Matter.Engine.update(engine, STEP_MS);
 
@@ -577,17 +710,10 @@ function settleShot(state: AlkkagiState, shotEgg: AlkkagiEgg, vector: Point) {
       const egg = state.eggs.find((candidate) => candidate.id === id);
       if (!egg) continue;
 
+      applyRollingPhysics(id, body, egg);
+
       for (const terrain of state.terrain) {
         const gap = distance(body.position, terrain);
-        if (terrain.kind === "mud" && gap < terrain.r) {
-          Matter.Body.setVelocity(body, { x: body.velocity.x * 0.88, y: body.velocity.y * 0.88 });
-        }
-        if (terrain.kind === "ice" && gap < terrain.r) {
-          const current = length(body.velocity);
-          const capped = Math.min(current * 1.015, 23);
-          const dir = normalize(body.velocity);
-          Matter.Body.setVelocity(body, { x: dir.x * capped, y: dir.y * capped });
-        }
         if (terrain.kind === "pit" && gap < terrain.r + eggRadius(egg) * 0.34) {
           removeBody(id);
         }
