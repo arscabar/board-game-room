@@ -1367,6 +1367,7 @@ function PlayPanel({
 }) {
   const [action, setAction] = useState("");
   const [now, setNow] = useState(() => Date.now());
+  const [postGameRevealStage, setPostGameRevealStage] = useState<"idle" | "effect" | "dialog">("idle");
   const isMyTurn = currentPlayer?.id === activePlayer?.id;
   const GameComponent = getGameComponent(selectedGame?.id);
   const phase = runtimePhase(room);
@@ -1411,6 +1412,11 @@ function PlayPanel({
       : winnerId
         ? `${room.players.find((player) => player.id === winnerId)?.name ?? "플레이어"} 승리`
         : "무승부";
+  const postGameRevealKey = isFinished
+    ? `${room.code}-${selectedGame?.id ?? "game"}-${phase}-${winnerIds.join("|") || winnerId || "draw"}-${room.gameState.turnNumber}`
+    : "";
+  const showPostGameEffect = isFinished && postGameRevealStage !== "idle";
+  const showPostGameDialog = isFinished && postGameRevealStage === "dialog";
 
   useEffect(() => {
     if (!usesTurnTimer || isFinished || paused || !room.gameState.turnDeadlineAt) {
@@ -1419,6 +1425,21 @@ function PlayPanel({
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(timer);
   }, [isFinished, paused, room.gameState.turnDeadlineAt, usesTurnTimer]);
+
+  useEffect(() => {
+    if (!isFinished || !postGameRevealKey) {
+      setPostGameRevealStage("idle");
+      return;
+    }
+
+    setPostGameRevealStage("idle");
+    const effectTimer = window.setTimeout(() => setPostGameRevealStage("effect"), 620);
+    const dialogTimer = window.setTimeout(() => setPostGameRevealStage("dialog"), 1850);
+    return () => {
+      window.clearTimeout(effectTimer);
+      window.clearTimeout(dialogTimer);
+    };
+  }, [isFinished, postGameRevealKey]);
 
   async function advanceTurn() {
     const response = await emitWithAck<RoomSnapshot>("room:advance-turn", { code: room.code });
@@ -1560,8 +1581,8 @@ function PlayPanel({
         {action ? <span className="play-error-line">{action}</span> : null}
       </div>
 
-      {isFinished ? (
-        <div className="post-game-dialog-backdrop" role="presentation">
+      {showPostGameEffect ? (
+        <div className={`post-game-dialog-backdrop reveal-${postGameRevealStage}`} role="presentation">
           {selectedGame ? (
             <VictoryEffectOverlay
               key={`${room.code}-${selectedGame.id}-${phase}-${winnerIds.join("-") || "draw"}`}
@@ -1570,45 +1591,47 @@ function PlayPanel({
               isDraw={winnerIds.length === 0 && !winnerId}
             />
           ) : null}
-          <section className="post-game-dialog" role="dialog" aria-modal="true" aria-labelledby="post-game-title">
-            <div className="post-game-emblem" aria-hidden="true">
-              <Trophy size={28} />
-            </div>
-            <div className="post-game-copy">
-              <span>{selectedGame?.title ?? "게임"} 종료</span>
-              <h3 id="post-game-title">{winnerNames.length > 0 || winnerId ? "승부가 났습니다." : "무승부입니다."}</h3>
-              <strong>{resultLabel}</strong>
-              <p>{runtimeMessage(room) || "결과를 확인한 뒤 다음 행동을 선택하세요."}</p>
-            </div>
-
-            {rematchRequesters.length > 0 ? (
-              <div className="post-game-votes" aria-label="재대결 요청자">
-                <span>재대결 요청</span>
-                <strong>{rematchRequesters.map((player) => player.name).join(", ")}</strong>
+          {showPostGameDialog ? (
+            <section className="post-game-dialog" role="dialog" aria-modal="true" aria-labelledby="post-game-title">
+              <div className="post-game-emblem" aria-hidden="true">
+                <Trophy size={28} />
               </div>
-            ) : null}
+              <div className="post-game-copy">
+                <span>{selectedGame?.title ?? "게임"} 종료</span>
+                <h3 id="post-game-title">{winnerNames.length > 0 || winnerId ? "승부가 났습니다." : "무승부입니다."}</h3>
+                <strong>{resultLabel}</strong>
+                <p>{runtimeMessage(room) || "결과를 확인한 뒤 다음 행동을 선택하세요."}</p>
+              </div>
 
-            {currentPostGameChoice === "rematch" ? (
-              <p className="post-game-waiting">재대결 요청을 보냈습니다. 모두가 동의하면 바로 새 판이 시작됩니다.</p>
-            ) : null}
+              {rematchRequesters.length > 0 ? (
+                <div className="post-game-votes" aria-label="재대결 요청자">
+                  <span>재대결 요청</span>
+                  <strong>{rematchRequesters.map((player) => player.name).join(", ")}</strong>
+                </div>
+              ) : null}
 
-            <div className="post-game-actions">
-              <BoardButton
-                tone="primary"
-                type="button"
-                onClick={() => choosePostGame("rematch")}
-                disabled={currentPostGameChoice === "rematch"}
-              >
-                재대결
-              </BoardButton>
-              <BoardButton type="button" onClick={() => choosePostGame("game-select")}>
-                게임 선택
-              </BoardButton>
-              <BoardButton tone="secondary" type="button" onClick={() => choosePostGame("leave-room")}>
-                로비 이동
-              </BoardButton>
-            </div>
-          </section>
+              {currentPostGameChoice === "rematch" ? (
+                <p className="post-game-waiting">재대결 요청을 보냈습니다. 모두가 동의하면 바로 새 판이 시작됩니다.</p>
+              ) : null}
+
+              <div className="post-game-actions">
+                <BoardButton
+                  tone="primary"
+                  type="button"
+                  onClick={() => choosePostGame("rematch")}
+                  disabled={currentPostGameChoice === "rematch"}
+                >
+                  재대결
+                </BoardButton>
+                <BoardButton type="button" onClick={() => choosePostGame("game-select")}>
+                  게임 선택
+                </BoardButton>
+                <BoardButton tone="secondary" type="button" onClick={() => choosePostGame("leave-room")}>
+                  로비 이동
+                </BoardButton>
+              </div>
+            </section>
+          ) : null}
         </div>
       ) : null}
     </section>
