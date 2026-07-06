@@ -599,7 +599,7 @@ function App() {
         </div>
         <div>
           <h1>Board Game Room</h1>
-          <p>웹에서 즐기는 보드게임</p>
+          {!room && <p>웹에서 즐기는 보드게임</p>}
         </div>
       </header>
 

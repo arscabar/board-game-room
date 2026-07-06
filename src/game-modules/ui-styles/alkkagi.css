@@ -164,39 +164,53 @@
 }
 
 .alk-gimmick-pad {
-  fill: rgba(48, 29, 16, 0.88) !important;
-  stroke: rgba(255, 224, 159, 0.72) !important;
-  stroke-width: 3 !important;
+  fill: rgba(69, 46, 27, 0.86) !important;
+  stroke: rgba(244, 205, 132, 0.58) !important;
+  stroke-width: 2.4 !important;
+}
+
+.alk-gimmick-ring {
+  fill: none !important;
+  stroke: rgba(245, 211, 143, 0.82) !important;
+  stroke-width: 4 !important;
 }
 
 .alk-gimmick-core {
-  fill: #c24731 !important;
-  stroke: rgba(77, 26, 17, 0.66) !important;
-  stroke-width: 2 !important;
+  fill: #b98445 !important;
+  stroke: rgba(49, 29, 13, 0.72) !important;
+  stroke-width: 2.4 !important;
 }
 
 .alk-gimmick-lever-slot {
-  fill: rgba(30, 16, 8, 0.9) !important;
-  stroke: rgba(245, 201, 123, 0.64) !important;
-  stroke-width: 2 !important;
+  fill: rgba(29, 18, 10, 0.92) !important;
+  stroke: rgba(241, 202, 131, 0.62) !important;
+  stroke-width: 2.4 !important;
 }
 
 .alk-gimmick-lever-arm {
-  fill: #d5a151 !important;
-  stroke: rgba(53, 28, 13, 0.75) !important;
+  fill: #b9823f !important;
+  stroke: rgba(55, 31, 14, 0.82) !important;
   stroke-width: 2 !important;
 }
 
-.alk-gimmick-knob {
-  fill: #f2c86e !important;
+.alk-gimmick-hinge {
+  fill: #f1c979 !important;
   stroke: rgba(63, 31, 13, 0.72) !important;
   stroke-width: 2 !important;
 }
 
+.alk-gimmick-arrow {
+  fill: rgba(255, 225, 150, 0.9) !important;
+  stroke: rgba(56, 30, 13, 0.75) !important;
+  stroke-width: 2 !important;
+}
+
 .alk-gimmick.triggered .alk-gimmick-pad,
+.alk-gimmick.triggered .alk-gimmick-ring,
 .alk-gimmick.triggered .alk-gimmick-core,
 .alk-gimmick.triggered .alk-gimmick-lever-arm,
-.alk-gimmick.triggered .alk-gimmick-knob {
+.alk-gimmick.triggered .alk-gimmick-hinge,
+.alk-gimmick.triggered .alk-gimmick-arrow {
   animation: alk-gimmick-trigger 620ms ease-out;
 }
 
@@ -328,9 +342,11 @@
   }
 
   .alk-gimmick.triggered .alk-gimmick-pad,
+  .alk-gimmick.triggered .alk-gimmick-ring,
   .alk-gimmick.triggered .alk-gimmick-core,
   .alk-gimmick.triggered .alk-gimmick-lever-arm,
-  .alk-gimmick.triggered .alk-gimmick-knob {
+  .alk-gimmick.triggered .alk-gimmick-hinge,
+  .alk-gimmick.triggered .alk-gimmick-arrow {
     animation: none !important;
   }
 }

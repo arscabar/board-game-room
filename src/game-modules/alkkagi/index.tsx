@@ -809,14 +809,15 @@ export function Component({
               {gimmick.kind === "button" ? (
                 <>
                   <circle className="alk-gimmick-pad" cx="0" cy="0" r={gimmick.r} />
-                  <circle className="alk-gimmick-core" cx="0" cy="0" r={gimmick.r * 0.52} />
+                  <circle className="alk-gimmick-ring" cx="0" cy="0" r={gimmick.r * 0.66} />
+                  <circle className="alk-gimmick-core" cx="0" cy="0" r={gimmick.r * 0.36} />
                 </>
               ) : (
                 <>
-                  <circle className="alk-gimmick-pad" cx="0" cy="0" r={gimmick.r * 0.72} />
-                  <rect className="alk-gimmick-lever-slot" x={-gimmick.r * 1.2} y="-5" width={gimmick.r * 2.4} height="10" rx="5" />
-                  <rect className="alk-gimmick-lever-arm" x={-4} y={-gimmick.r * 1.12} width="8" height={gimmick.r * 2.24} rx="4" />
-                  <circle className="alk-gimmick-knob" cx="0" cy={-gimmick.r * 1.12} r="8" />
+                  <rect className="alk-gimmick-lever-slot" x={-gimmick.r * 1.15} y={-gimmick.r * 0.28} width={gimmick.r * 2.3} height={gimmick.r * 0.56} rx={gimmick.r * 0.28} />
+                  <path className="alk-gimmick-lever-arm" d={`M${-gimmick.r * 0.78} -5 H${gimmick.r * 0.42} L${gimmick.r * 0.74} 0 L${gimmick.r * 0.42} 5 H${-gimmick.r * 0.78} Z`} />
+                  <circle className="alk-gimmick-hinge" cx={-gimmick.r * 0.78} cy="0" r={gimmick.r * 0.24} />
+                  <path className="alk-gimmick-arrow" d={`M${gimmick.r * 0.58} -10 L${gimmick.r * 1.02} 0 L${gimmick.r * 0.58} 10 Z`} />
                 </>
               )}
             </g>

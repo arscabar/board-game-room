@@ -4664,18 +4664,18 @@ textarea::placeholder {
   width: 12%;
   aspect-ratio: 1;
   border-radius: 999px;
-  background: #c24731;
+  background: #b98445;
   box-shadow:
-    0 0 0 3px rgba(48, 29, 16, 0.78),
-    0 0 0 5px rgba(242, 204, 136, 0.34),
+    inset 0 0 0 3px rgba(48, 29, 16, 0.78),
+    0 0 0 3px rgba(242, 204, 136, 0.36),
     0 4px 6px rgba(28, 13, 5, 0.32);
 }
 
 .alkkagi-mini-board .device.lever {
   left: 23%;
   top: 31%;
-  width: 22%;
-  height: 5%;
+  width: 24%;
+  height: 7%;
   border-radius: 999px;
   background: #251407;
   box-shadow:
@@ -4687,14 +4687,28 @@ textarea::placeholder {
 .alkkagi-mini-board .device.lever::after {
   content: "";
   position: absolute;
-  left: 50%;
-  top: -160%;
-  width: 14%;
-  height: 320%;
-  border-radius: 999px;
+  right: -11%;
+  top: 50%;
+  width: 0;
+  height: 0;
+  border-top: 6px solid transparent;
+  border-bottom: 6px solid transparent;
+  border-left: 9px solid #e5bd6d;
   background: #d5a151;
-  transform: translateX(-50%);
-  box-shadow: 0 -2px 0 #f2c86e;
+  transform: translateY(-50%);
+  box-shadow: none;
+}
+
+.alkkagi-mini-board .device.lever::before {
+  content: "";
+  position: absolute;
+  left: 12%;
+  top: 50%;
+  width: 26%;
+  aspect-ratio: 1;
+  border-radius: 999px;
+  background: #f1c979;
+  transform: translateY(-50%);
 }
 
 .alkkagi-mini-board i {
