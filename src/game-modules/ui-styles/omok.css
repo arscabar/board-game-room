@@ -1,0 +1,263 @@
+.omok-shell {
+  --omok-board: #d8a65f;
+  --omok-board-deep: #9c6232;
+  --omok-line: rgba(55, 31, 15, 0.56);
+  --omok-ink: #f8ebcf;
+  --omok-panel: rgba(22, 13, 7, 0.82);
+  width: min(100%, 1120px) !important;
+  margin: 0 auto !important;
+  color: var(--omok-ink) !important;
+}
+
+.omok-status {
+  display: grid !important;
+  grid-template-columns: auto minmax(0, 1fr) auto !important;
+  align-items: center !important;
+  gap: 10px !important;
+  padding: 9px 11px !important;
+  border: 1px solid rgba(229, 183, 109, 0.26) !important;
+  border-radius: 8px !important;
+  background:
+    linear-gradient(180deg, rgba(60, 37, 20, 0.92), rgba(22, 13, 7, 0.92)),
+    repeating-linear-gradient(90deg, rgba(255, 230, 178, 0.05) 0 1px, transparent 1px 20px) !important;
+}
+
+.omok-status div {
+  min-width: 72px !important;
+  display: grid !important;
+  gap: 2px !important;
+}
+
+.omok-status strong {
+  color: #f1c976 !important;
+  font-size: 0.72rem !important;
+  font-weight: 900 !important;
+}
+
+.omok-status span,
+.omok-status p {
+  color: rgba(248, 235, 207, 0.84) !important;
+}
+
+.omok-status p {
+  min-width: 0 !important;
+  margin: 0 !important;
+  overflow-wrap: anywhere !important;
+  font-size: 0.9rem !important;
+  line-height: 1.35 !important;
+  text-align: center !important;
+}
+
+.omok-layout {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) minmax(210px, 0.32fr) !important;
+  gap: 12px !important;
+  align-items: start !important;
+}
+
+.omok-board-wrap {
+  min-width: 0 !important;
+  display: grid !important;
+  place-items: center !important;
+  padding: 14px !important;
+  border: 1px solid rgba(229, 183, 109, 0.24) !important;
+  border-radius: 8px !important;
+  background:
+    radial-gradient(circle at 28% 18%, rgba(252, 218, 138, 0.16), transparent 28%),
+    linear-gradient(180deg, rgba(53, 31, 16, 0.95), rgba(14, 8, 4, 0.96)) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 240, 204, 0.08) !important;
+}
+
+.omok-board {
+  --cell: clamp(18px, min(4.5vw, 4.5vh), 38px);
+  position: relative !important;
+  display: grid !important;
+  grid-template-columns: repeat(var(--omok-size), var(--cell)) !important;
+  grid-template-rows: repeat(var(--omok-size), var(--cell)) !important;
+  padding: calc(var(--cell) * 0.55) !important;
+  border: 10px solid #5b361d !important;
+  border-radius: 8px !important;
+  background:
+    linear-gradient(90deg, transparent calc(var(--cell) / 2 - 1px), var(--omok-line) calc(var(--cell) / 2 - 1px) calc(var(--cell) / 2 + 1px), transparent calc(var(--cell) / 2 + 1px)) 0 0 / var(--cell) var(--cell),
+    linear-gradient(0deg, transparent calc(var(--cell) / 2 - 1px), var(--omok-line) calc(var(--cell) / 2 - 1px) calc(var(--cell) / 2 + 1px), transparent calc(var(--cell) / 2 + 1px)) 0 0 / var(--cell) var(--cell),
+    radial-gradient(circle at 23% 16%, rgba(255, 236, 180, 0.32), transparent 26%),
+    linear-gradient(135deg, var(--omok-board), var(--omok-board-deep)) !important;
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 235, 190, 0.36),
+    inset 0 -10px 22px rgba(81, 42, 18, 0.28),
+    0 18px 34px rgba(0, 0, 0, 0.28) !important;
+}
+
+.omok-board::after {
+  content: "" !important;
+  position: absolute !important;
+  inset: calc(var(--cell) * 0.55) !important;
+  pointer-events: none !important;
+  background:
+    radial-gradient(circle at calc(var(--cell) * 3) calc(var(--cell) * 3), #4a2a14 0 4px, transparent 4px),
+    radial-gradient(circle at calc(var(--cell) * 11) calc(var(--cell) * 3), #4a2a14 0 4px, transparent 4px),
+    radial-gradient(circle at calc(var(--cell) * 7) calc(var(--cell) * 7), #4a2a14 0 4px, transparent 4px),
+    radial-gradient(circle at calc(var(--cell) * 3) calc(var(--cell) * 11), #4a2a14 0 4px, transparent 4px),
+    radial-gradient(circle at calc(var(--cell) * 11) calc(var(--cell) * 11), #4a2a14 0 4px, transparent 4px);
+}
+
+.omok-point {
+  position: relative !important;
+  z-index: 1 !important;
+  min-width: var(--cell) !important;
+  min-height: var(--cell) !important;
+  width: var(--cell) !important;
+  height: var(--cell) !important;
+  border: 0 !important;
+  border-radius: 999px !important;
+  padding: 0 !important;
+  background: transparent !important;
+}
+
+.omok-point:not(:disabled):hover::before,
+.omok-point:not(:disabled):focus-visible::before {
+  content: "" !important;
+  position: absolute !important;
+  inset: 19% !important;
+  border-radius: 50% !important;
+  background: rgba(36, 20, 10, 0.22) !important;
+  box-shadow: 0 0 0 2px rgba(245, 215, 142, 0.36) !important;
+}
+
+.omok-stone {
+  position: absolute !important;
+  inset: 10% !important;
+  border-radius: 50% !important;
+  box-shadow:
+    inset -5px -7px 10px rgba(0, 0, 0, 0.28),
+    inset 4px 4px 8px rgba(255, 255, 255, 0.24),
+    0 5px 7px rgba(36, 20, 10, 0.28) !important;
+}
+
+.omok-stone.black {
+  background:
+    radial-gradient(circle at 34% 26%, rgba(255, 255, 255, 0.18), transparent 20%),
+    linear-gradient(145deg, #33302b, #050505 72%) !important;
+}
+
+.omok-stone.white {
+  background:
+    radial-gradient(circle at 34% 26%, rgba(255, 255, 255, 0.9), transparent 22%),
+    linear-gradient(145deg, #ffffff, #cfc8b6 78%) !important;
+}
+
+.omok-point.last .omok-stone::after {
+  content: "" !important;
+  position: absolute !important;
+  inset: 36% !important;
+  border-radius: 50% !important;
+  background: #d34939 !important;
+}
+
+.omok-point.winning .omok-stone {
+  box-shadow:
+    0 0 0 3px rgba(245, 207, 109, 0.86),
+    inset -5px -7px 10px rgba(0, 0, 0, 0.24),
+    0 8px 12px rgba(36, 20, 10, 0.28) !important;
+}
+
+.omok-side {
+  display: grid !important;
+  gap: 8px !important;
+  min-width: 0 !important;
+}
+
+.omok-player-card,
+.omok-rule-card {
+  min-width: 0 !important;
+  display: grid !important;
+  grid-template-columns: 36px minmax(0, 1fr) !important;
+  gap: 9px !important;
+  align-items: center !important;
+  padding: 10px !important;
+  border: 1px solid rgba(229, 183, 109, 0.22) !important;
+  border-radius: 8px !important;
+  background: var(--omok-panel) !important;
+}
+
+.omok-player-card.active {
+  border-color: rgba(245, 207, 109, 0.7) !important;
+  background:
+    linear-gradient(90deg, rgba(213, 156, 62, 0.2), transparent),
+    var(--omok-panel) !important;
+}
+
+.omok-player-card .sample {
+  position: static !important;
+  width: 32px !important;
+  height: 32px !important;
+  display: block !important;
+}
+
+.omok-player-card strong,
+.omok-rule-card strong {
+  display: block !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+  color: #f8ebcf !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+.omok-player-card small,
+.omok-rule-card span {
+  color: rgba(248, 235, 207, 0.72) !important;
+  font-size: 0.78rem !important;
+  line-height: 1.3 !important;
+}
+
+.omok-rule-card {
+  grid-template-columns: 1fr !important;
+}
+
+@media (max-width: 860px) {
+  .omok-layout {
+    grid-template-columns: 1fr !important;
+  }
+
+  .omok-side {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 520px) {
+  .omok-shell {
+    gap: 8px !important;
+  }
+
+  .omok-status {
+    grid-template-columns: 1fr !important;
+    text-align: left !important;
+  }
+
+  .omok-status p {
+    text-align: left !important;
+  }
+
+  .omok-board-wrap {
+    padding: 7px !important;
+  }
+
+  .omok-board {
+    --cell: min(5.55vw, 24px);
+    border-width: 7px !important;
+  }
+
+  .omok-board::after {
+    background:
+      radial-gradient(circle at calc(var(--cell) * 3) calc(var(--cell) * 3), #4a2a14 0 3px, transparent 3px),
+      radial-gradient(circle at calc(var(--cell) * 11) calc(var(--cell) * 3), #4a2a14 0 3px, transparent 3px),
+      radial-gradient(circle at calc(var(--cell) * 7) calc(var(--cell) * 7), #4a2a14 0 3px, transparent 3px),
+      radial-gradient(circle at calc(var(--cell) * 3) calc(var(--cell) * 11), #4a2a14 0 3px, transparent 3px),
+      radial-gradient(circle at calc(var(--cell) * 11) calc(var(--cell) * 11), #4a2a14 0 3px, transparent 3px);
+  }
+
+  .omok-side {
+    grid-template-columns: 1fr !important;
+  }
+}

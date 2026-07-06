@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="540" viewBox="0 0 960 540" role="img" aria-labelledby="kkuk-title kkuk-desc">
+  <title id="kkuk-title">꾹꾹이 대표 이미지</title>
+  <desc id="kkuk-desc">6x6 쿠션 보드 위에서 크기가 다른 말이 서로를 밀어내는 자체 제작 이미지.</desc>
+  <defs>
+    <linearGradient id="kkuk-table" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#57311b"/>
+      <stop offset=".42" stop-color="#201108"/>
+      <stop offset="1" stop-color="#0b0603"/>
+    </linearGradient>
+    <linearGradient id="kkuk-cushion" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#d4934a"/>
+      <stop offset=".55" stop-color="#9a5729"/>
+      <stop offset="1" stop-color="#653016"/>
+    </linearGradient>
+    <radialGradient id="kkuk-warm" cx="34%" cy="24%" r="70%">
+      <stop offset="0" stop-color="#ffd5ac"/>
+      <stop offset=".48" stop-color="#c46d43"/>
+      <stop offset="1" stop-color="#71311b"/>
+    </radialGradient>
+    <radialGradient id="kkuk-cool" cx="34%" cy="24%" r="70%">
+      <stop offset="0" stop-color="#dce7ff"/>
+      <stop offset=".48" stop-color="#6e88d7"/>
+      <stop offset="1" stop-color="#27366f"/>
+    </radialGradient>
+    <filter id="kkuk-shadow" x="-25%" y="-25%" width="150%" height="150%">
+      <feDropShadow dx="0" dy="16" stdDeviation="16" flood-color="#000" flood-opacity=".38"/>
+    </filter>
+    <filter id="kkuk-piece-shadow" x="-35%" y="-35%" width="170%" height="170%">
+      <feDropShadow dx="0" dy="8" stdDeviation="7" flood-color="#000" flood-opacity=".32"/>
+    </filter>
+    <pattern id="kkuk-grain" width="90" height="44" patternUnits="userSpaceOnUse">
+      <path d="M0 9c24-11 51 11 90 0M0 27c28 9 56-9 90 0M0 41c20-7 52 8 90 0" fill="none" stroke="#ffe0a4" stroke-opacity=".08" stroke-width="2"/>
+    </pattern>
+  </defs>
+  <rect width="960" height="540" rx="34" fill="url(#kkuk-table)"/>
+  <rect width="960" height="540" rx="34" fill="url(#kkuk-grain)"/>
+  <rect x="190" y="54" width="580" height="424" rx="32" fill="#4d2a16" filter="url(#kkuk-shadow)"/>
+  <rect x="218" y="82" width="524" height="368" rx="24" fill="url(#kkuk-cushion)"/>
+  <g opacity=".85">
+    <rect x="248" y="112" width="62" height="48" rx="12" fill="#d9a05a" stroke="#ffe0a4" stroke-opacity=".18"/>
+    <rect x="320" y="112" width="62" height="48" rx="12" fill="#a86632" stroke="#ffe0a4" stroke-opacity=".18"/>
+    <rect x="392" y="112" width="62" height="48" rx="12" fill="#d9a05a" stroke="#ffe0a4" stroke-opacity=".18"/>
+    <rect x="464" y="112" width="62" height="48" rx="12" fill="#a86632" stroke="#ffe0a4" stroke-opacity=".18"/>
+    <rect x="536" y="112" width="62" height="48" rx="12" fill="#d9a05a" stroke="#ffe0a4" stroke-opacity=".18"/>
+    <rect x="608" y="112" width="62" height="48" rx="12" fill="#a86632" stroke="#ffe0a4" stroke-opacity=".18"/>
+    <rect x="248" y="170" width="62" height="48" rx="12" fill="#a86632" stroke="#ffe0a4" stroke-opacity=".18"/>
+    <rect x="320" y="170" width="62" height="48" rx="12" fill="#d9a05a" stroke="#ffe0a4" stroke-opacity=".18"/>
+    <rect x="392" y="170" width="62" height="48" rx="12" fill="#a86632" stroke="#ffe0a4" stroke-opacity=".18"/>
+    <rect x="464" y="170" width="62" height="48" rx="12" fill="#d9a05a" stroke="#ffe0a4" stroke-opacity=".18"/>
+    <rect x="536" y="170" width="62" height="48" rx="12" fill="#a86632" stroke="#ffe0a4" stroke-opacity=".18"/>
+    <rect x="608" y="170" width="62" height="48" rx="12" fill="#d9a05a" stroke="#ffe0a4" stroke-opacity=".18"/>
+    <rect x="248" y="228" width="62" height="48" rx="12" fill="#d9a05a" stroke="#ffe0a4" stroke-opacity=".18"/>
+    <rect x="320" y="228" width="62" height="48" rx="12" fill="#a86632" stroke="#ffe0a4" stroke-opacity=".18"/>
+    <rect x="392" y="228" width="62" height="48" rx="12" fill="#d9a05a" stroke="#ffe0a4" stroke-opacity=".18"/>
+    <rect x="464" y="228" width="62" height="48" rx="12" fill="#a86632" stroke="#ffe0a4" stroke-opacity=".18"/>
+    <rect x="536" y="228" width="62" height="48" rx="12" fill="#d9a05a" stroke="#ffe0a4" stroke-opacity=".18"/>
+    <rect x="608" y="228" width="62" height="48" rx="12" fill="#a86632" stroke="#ffe0a4" stroke-opacity=".18"/>
+    <rect x="248" y="286" width="62" height="48" rx="12" fill="#a86632" stroke="#ffe0a4" stroke-opacity=".18"/>
+    <rect x="320" y="286" width="62" height="48" rx="12" fill="#d9a05a" stroke="#ffe0a4" stroke-opacity=".18"/>
+    <rect x="392" y="286" width="62" height="48" rx="12" fill="#a86632" stroke="#ffe0a4" stroke-opacity=".18"/>
+    <rect x="464" y="286" width="62" height="48" rx="12" fill="#d9a05a" stroke="#ffe0a4" stroke-opacity=".18"/>
+    <rect x="536" y="286" width="62" height="48" rx="12" fill="#a86632" stroke="#ffe0a4" stroke-opacity=".18"/>
+    <rect x="608" y="286" width="62" height="48" rx="12" fill="#d9a05a" stroke="#ffe0a4" stroke-opacity=".18"/>
+    <rect x="248" y="344" width="62" height="48" rx="12" fill="#d9a05a" stroke="#ffe0a4" stroke-opacity=".18"/>
+    <rect x="320" y="344" width="62" height="48" rx="12" fill="#a86632" stroke="#ffe0a4" stroke-opacity=".18"/>
+    <rect x="392" y="344" width="62" height="48" rx="12" fill="#d9a05a" stroke="#ffe0a4" stroke-opacity=".18"/>
+    <rect x="464" y="344" width="62" height="48" rx="12" fill="#a86632" stroke="#ffe0a4" stroke-opacity=".18"/>
+    <rect x="536" y="344" width="62" height="48" rx="12" fill="#d9a05a" stroke="#ffe0a4" stroke-opacity=".18"/>
+    <rect x="608" y="344" width="62" height="48" rx="12" fill="#a86632" stroke="#ffe0a4" stroke-opacity=".18"/>
+  </g>
+  <g filter="url(#kkuk-piece-shadow)">
+    <circle cx="351" cy="194" r="23" fill="url(#kkuk-warm)"/>
+    <circle cx="423" cy="252" r="31" fill="url(#kkuk-warm)"/>
+    <circle cx="495" cy="310" r="23" fill="url(#kkuk-warm)"/>
+    <circle cx="567" cy="194" r="31" fill="url(#kkuk-cool)"/>
+    <circle cx="567" cy="252" r="23" fill="url(#kkuk-cool)"/>
+    <circle cx="639" cy="310" r="31" fill="url(#kkuk-cool)"/>
+  </g>
+  <path d="M421 252h116" fill="none" stroke="#f5d58d" stroke-width="12" stroke-linecap="round" opacity=".62"/>
+  <path d="M532 252l34-58 34 58" fill="none" stroke="#f5d58d" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" opacity=".62"/>
+  <text x="480" y="444" text-anchor="middle" font-family="Malgun Gothic, Pretendard, sans-serif" font-size="42" font-weight="900" fill="#f7e5bf">꾹꾹이</text>
+</svg>

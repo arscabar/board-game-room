@@ -8,6 +8,8 @@ import { module as davinciModule, Component as DavinciComponent } from "./davinc
 import { module as ghostsModule, Component as GhostsComponent } from "./ghosts";
 import { module as guryongtuModule, Component as GuryongtuComponent } from "./guryongtu";
 import { module as hangmanModule, Component as HangmanComponent } from "./hangman-board-game";
+import { module as kkukkkukiModule, Component as KkukkkukiComponent } from "./kkukkkuki";
+import { module as omokModule, Component as OmokComponent } from "./omok";
 import { module as qawaleModule, Component as QawaleComponent } from "./qawale";
 import { module as quoridorModule, Component as QuoridorComponent } from "./quoridor";
 import { module as yachtModule, Component as YachtComponent } from "./yacht-dice";
@@ -46,6 +48,8 @@ export const gameCatalog = [
   registerGame("abalone-classic", abaloneModule, AbaloneComponent),
   registerGame("ghosts", ghostsModule, GhostsComponent),
   registerGame("qawale", qawaleModule, QawaleComponent),
+  registerGame("omok", omokModule, OmokComponent),
+  registerGame("kkukkkuki", kkukkkukiModule, KkukkkukiComponent),
   registerGame("davinci-code-plus", davinciModule, DavinciComponent),
   registerGame("blokus", blokusModule, BlokusComponent),
   registerGame("yacht-dice", yachtModule, YachtComponent),

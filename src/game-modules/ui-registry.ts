@@ -23,6 +23,8 @@ const gameComponents: Record<string, GameComponentLoader> = {
   "abalone-classic": lazyGame(() => import("./abalone-classic"), [() => import("./ui-styles/abalone-classic.css")]),
   ghosts: lazyGame(() => import("./ghosts"), [() => import("./ui-styles/ghosts.css")]),
   qawale: lazyGame(() => import("./qawale"), [() => import("./ui-styles/qawale.css")]),
+  omok: lazyGame(() => import("./omok"), [() => import("./ui-styles/omok.css")]),
+  kkukkkuki: lazyGame(() => import("./kkukkkuki"), [() => import("./ui-styles/kkukkkuki.css")]),
   "davinci-code-plus": lazyGame(() => import("./davinci-code-plus"), [() => import("./ui-styles/davinci-code-plus.css")]),
   blokus: lazyGame(() => import("./blokus"), [() => import("./ui-styles/blokus.css")]),
   "yacht-dice": lazyGame(() => import("./yacht-dice"), [() => import("./ui-styles/yacht-dice.css")]),

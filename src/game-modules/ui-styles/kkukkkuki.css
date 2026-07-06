@@ -1,0 +1,329 @@
+.kkuk-shell {
+  --kkuk-ink: #fff0d2;
+  --kkuk-soft: rgba(255, 240, 210, 0.74);
+  --kkuk-line: rgba(236, 191, 116, 0.25);
+  width: min(100%, 1080px) !important;
+  margin: 0 auto !important;
+  color: var(--kkuk-ink) !important;
+}
+
+.kkuk-status {
+  display: grid !important;
+  grid-template-columns: auto minmax(0, 1fr) auto !important;
+  align-items: center !important;
+  gap: 10px !important;
+  padding: 9px 11px !important;
+  border: 1px solid var(--kkuk-line) !important;
+  border-radius: 8px !important;
+  background:
+    linear-gradient(180deg, rgba(63, 38, 20, 0.93), rgba(20, 11, 6, 0.94)),
+    repeating-linear-gradient(90deg, rgba(255, 225, 170, 0.05) 0 1px, transparent 1px 18px) !important;
+}
+
+.kkuk-status div {
+  min-width: 76px !important;
+  display: grid !important;
+  gap: 2px !important;
+}
+
+.kkuk-status strong {
+  color: #f0c976 !important;
+  font-size: 0.72rem !important;
+  font-weight: 900 !important;
+}
+
+.kkuk-status p {
+  min-width: 0 !important;
+  margin: 0 !important;
+  color: var(--kkuk-soft) !important;
+  overflow-wrap: anywhere !important;
+  text-align: center !important;
+  line-height: 1.35 !important;
+}
+
+.kkuk-status span {
+  color: var(--kkuk-soft) !important;
+}
+
+.kkuk-layout {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) minmax(230px, 0.38fr) !important;
+  gap: 12px !important;
+  align-items: start !important;
+}
+
+.kkuk-board-wrap {
+  min-width: 0 !important;
+  display: grid !important;
+  place-items: center !important;
+  padding: 14px !important;
+  border: 1px solid var(--kkuk-line) !important;
+  border-radius: 8px !important;
+  background:
+    radial-gradient(circle at 30% 18%, rgba(243, 190, 99, 0.14), transparent 32%),
+    linear-gradient(180deg, rgba(42, 24, 13, 0.94), rgba(11, 7, 4, 0.95)) !important;
+}
+
+.kkuk-board {
+  --cell: clamp(45px, min(10vw, 10vh), 92px);
+  display: grid !important;
+  grid-template-columns: repeat(var(--kkuk-size), var(--cell)) !important;
+  grid-template-rows: repeat(var(--kkuk-size), var(--cell)) !important;
+  gap: 6px !important;
+  padding: 14px !important;
+  border: 12px solid #51301b !important;
+  border-radius: 18px !important;
+  background:
+    linear-gradient(135deg, rgba(255, 240, 201, 0.14), transparent 32%),
+    linear-gradient(180deg, #b77a3e, #6b3a1c) !important;
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 230, 180, 0.22),
+    inset 0 -16px 28px rgba(63, 30, 11, 0.34),
+    0 18px 34px rgba(0, 0, 0, 0.28) !important;
+}
+
+.kkuk-cell {
+  position: relative !important;
+  min-width: var(--cell) !important;
+  min-height: var(--cell) !important;
+  width: var(--cell) !important;
+  height: var(--cell) !important;
+  border: 1px solid rgba(255, 232, 176, 0.18) !important;
+  border-radius: 13px !important;
+  padding: 0 !important;
+  background:
+    radial-gradient(circle at 50% 42%, rgba(91, 43, 20, 0.28), transparent 48%),
+    linear-gradient(145deg, rgba(231, 172, 89, 0.62), rgba(106, 57, 27, 0.72)) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 232, 178, 0.24),
+    inset 0 -8px 14px rgba(70, 31, 13, 0.24) !important;
+}
+
+.kkuk-cell:not(:disabled):hover,
+.kkuk-cell:not(:disabled):focus-visible {
+  border-color: rgba(250, 218, 139, 0.78) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 232, 178, 0.24),
+    inset 0 -8px 14px rgba(70, 31, 13, 0.24),
+    0 0 0 3px rgba(250, 218, 139, 0.22) !important;
+}
+
+.kkuk-cell.pending-line {
+  border-color: rgba(123, 221, 155, 0.78) !important;
+  box-shadow:
+    inset 0 0 0 2px rgba(123, 221, 155, 0.44),
+    0 0 0 3px rgba(123, 221, 155, 0.16) !important;
+}
+
+.kkuk-cell.removable {
+  border-color: rgba(239, 112, 91, 0.78) !important;
+}
+
+.kkuk-piece {
+  position: absolute !important;
+  left: 50% !important;
+  top: 50% !important;
+  border-radius: 999px !important;
+  background:
+    radial-gradient(circle at 34% 22%, rgba(255, 255, 255, 0.46), transparent 22%),
+    linear-gradient(150deg, color-mix(in srgb, var(--piece-color) 78%, #fff 22%), var(--piece-color)) !important;
+  box-shadow:
+    inset -8px -10px 14px rgba(36, 15, 7, 0.24),
+    inset 5px 5px 8px rgba(255, 255, 255, 0.16),
+    0 9px 12px rgba(33, 18, 8, 0.34) !important;
+  transform: translate(-50%, -50%) !important;
+}
+
+.kkuk-piece.small {
+  width: 52% !important;
+  height: 52% !important;
+}
+
+.kkuk-piece.large {
+  width: 72% !important;
+  height: 72% !important;
+}
+
+.kkuk-cell.last .kkuk-piece {
+  animation: kkuk-drop 210ms cubic-bezier(0.2, 0.8, 0.2, 1.18);
+}
+
+.kkuk-side {
+  display: grid !important;
+  gap: 8px !important;
+  min-width: 0 !important;
+}
+
+.kkuk-piece-selector,
+.kkuk-player-stack,
+.kkuk-line-picker,
+.kkuk-motion-note {
+  min-width: 0 !important;
+  padding: 10px !important;
+  border: 1px solid var(--kkuk-line) !important;
+  border-radius: 8px !important;
+  background:
+    linear-gradient(180deg, rgba(255, 235, 190, 0.96), rgba(216, 184, 132, 0.92)) !important;
+  color: #24170f !important;
+}
+
+.kkuk-piece-selector > strong,
+.kkuk-line-picker > strong,
+.kkuk-motion-note > strong {
+  display: block !important;
+  margin-bottom: 7px !important;
+  font-size: 0.86rem !important;
+  font-weight: 900 !important;
+}
+
+.kkuk-selector-row {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 7px !important;
+}
+
+.kkuk-selector-row button,
+.kkuk-line-picker button {
+  min-width: 0 !important;
+  min-height: 42px !important;
+  border: 1px solid rgba(82, 49, 24, 0.24) !important;
+  border-radius: 7px !important;
+  background:
+    linear-gradient(180deg, #fff2c5, #cf9143) !important;
+  color: #26170d !important;
+  font-weight: 900 !important;
+}
+
+.kkuk-selector-row button.selected {
+  border-color: rgba(28, 99, 85, 0.72) !important;
+  background:
+    linear-gradient(180deg, #b6dcc7, #37836a) !important;
+  color: #061a14 !important;
+}
+
+.kkuk-selector-row button span {
+  display: inline-grid !important;
+  place-items: center !important;
+  min-width: 24px !important;
+  margin-left: 4px !important;
+  border-radius: 999px !important;
+  background: rgba(32, 18, 9, 0.16) !important;
+}
+
+.kkuk-selector-row button:disabled,
+.kkuk-line-picker button:disabled {
+  opacity: 0.42 !important;
+}
+
+.kkuk-player-stack {
+  display: grid !important;
+  gap: 7px !important;
+}
+
+.kkuk-player {
+  display: grid !important;
+  grid-template-columns: 26px minmax(0, 1fr) !important;
+  align-items: center !important;
+  gap: 8px !important;
+  padding: 8px !important;
+  border: 1px solid rgba(65, 38, 19, 0.16) !important;
+  border-radius: 7px !important;
+  background: rgba(255, 249, 231, 0.48) !important;
+}
+
+.kkuk-player.active {
+  box-shadow: inset 0 0 0 2px rgba(23, 99, 74, 0.32) !important;
+}
+
+.kkuk-color-dot {
+  width: 24px !important;
+  height: 24px !important;
+  border-radius: 50% !important;
+  background: var(--piece-color) !important;
+  box-shadow:
+    inset 4px 4px 6px rgba(255, 255, 255, 0.22),
+    inset -5px -6px 8px rgba(0, 0, 0, 0.22) !important;
+}
+
+.kkuk-player strong,
+.kkuk-player small {
+  display: block !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+.kkuk-player small,
+.kkuk-motion-note span {
+  color: rgba(36, 23, 15, 0.74) !important;
+  font-size: 0.78rem !important;
+  line-height: 1.35 !important;
+}
+
+.kkuk-line-picker {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 7px !important;
+}
+
+.kkuk-line-picker > strong {
+  grid-column: 1 / -1 !important;
+}
+
+@keyframes kkuk-drop {
+  from {
+    opacity: 0.76;
+    transform: translate(-50%, -72%) scale(0.86);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+@media (max-width: 860px) {
+  .kkuk-layout {
+    grid-template-columns: 1fr !important;
+  }
+
+  .kkuk-side {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 560px) {
+  .kkuk-status {
+    grid-template-columns: 1fr !important;
+  }
+
+  .kkuk-status p {
+    text-align: left !important;
+  }
+
+  .kkuk-board-wrap {
+    padding: 7px !important;
+  }
+
+  .kkuk-board {
+    --cell: min(11.6vw, 50px);
+    gap: 3px !important;
+    padding: 7px !important;
+    border-width: 7px !important;
+    border-radius: 12px !important;
+  }
+
+  .kkuk-cell {
+    border-radius: 9px !important;
+  }
+
+  .kkuk-side {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kkuk-cell.last .kkuk-piece {
+    animation: none !important;
+  }
+}

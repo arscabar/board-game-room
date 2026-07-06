@@ -127,6 +127,68 @@ export const games: GameDefinition[] = [
     }
   },
   {
+    id: "omok",
+    title: "오목",
+    original: "Gomoku / Omok",
+    allowedPlayerCounts: [2],
+    scoreState: "점수제 아님",
+    priority: "높음",
+    genre: "추상전략, 5목 연결",
+    board: "15 x 15",
+    docFile: "12-omok.md",
+    learnUrl: "https://en.wikipedia.org/wiki/Gomoku",
+    accent: "#8b5a2b",
+    summary: "흑백 돌을 교차점에 번갈아 두고 가로, 세로, 대각선으로 5개를 먼저 잇는 2인 추상전략.",
+    components: ["15x15 오목판", "흑돌", "백돌", "마지막 수 표시"],
+    setup: ["2명이 입장", "첫 번째 좌석이 흑", "흑이 먼저 빈 교차점에 착수"],
+    turnFlow: ["자기 차례에 빈 교차점 하나 선택", "5개 이상 연결 여부 확인", "승자가 없으면 상대 차례로 진행"],
+    winCondition: "가로, 세로, 대각선 중 한 방향으로 자기 돌 5개 이상을 먼저 연결하면 승리. 모든 칸이 차면 무승부.",
+    implementation: ["서버 권위 착수 검증", "4방향 연속 돌 스캔", "마지막 수/승리 줄 표시", "복귀 후 보드 상태 유지"],
+    table: {
+      kind: "rings",
+      primaryMetric: "착수",
+      secondaryMetric: "5목",
+      uiHint: "목재 격자 위 흑백 돌 연결 보드"
+    },
+    visual: {
+      iconKind: "rings",
+      thumbnailHint: "흑백 돌 연결",
+      motionHint: "place",
+      texture: "stone"
+    }
+  },
+  {
+    id: "kkukkkuki",
+    title: "꾹꾹이",
+    original: "Kkukkkuki",
+    allowedPlayerCounts: [2],
+    scoreState: "점수제 아님",
+    priority: "중간",
+    genre: "추상전략, 말 밀기, 승급",
+    board: "6 x 6",
+    docFile: "13-kkukkkuki.md",
+    learnUrl: "https://en.boardgamearena.com/gamepanel?game=boop",
+    accent: "#c46d43",
+    summary: "작은 말과 큰 말을 방석판에 놓아 주변 말을 밀고, 3개 줄을 만들어 승급하거나 승리하는 2인 전략 게임.",
+    components: ["6x6 방석 보드", "플레이어별 작은 말 8개", "승급된 큰 말", "보유함"],
+    setup: ["각자 작은 말 8개 보유", "첫 번째 좌석부터 시작", "보드는 비어 있는 상태로 시작"],
+    turnFlow: ["보유한 말 하나를 빈 칸에 배치", "주변의 밀릴 수 있는 말만 한 칸 밀림", "3개 줄은 승급 또는 승리로 처리", "8개가 모두 보드 위라면 말 하나를 회수해 큰 말 획득"],
+    winCondition: "큰 말 3개를 일렬로 만들거나, 큰 말 8개를 모두 보드 위에 올리면 승리.",
+    implementation: ["작은 말은 큰 말을 밀 수 없음", "밀림은 연쇄되지 않음", "여러 승급 줄은 하나 선택", "말 회수/승급 단계 복귀 유지"],
+    table: {
+      kind: "duel",
+      primaryMetric: "보유 말",
+      secondaryMetric: "3개 줄",
+      uiHint: "6x6 쿠션판과 크기가 다른 말"
+    },
+    visual: {
+      iconKind: "duel",
+      thumbnailHint: "말 밀기와 승급",
+      motionHint: "push",
+      texture: "felt"
+    }
+  },
+  {
     id: "davinci-code-plus",
     title: "다빈치 코드 플러스",
     original: "Da Vinci Code Plus",

@@ -6,6 +6,7 @@ import { setTimeout as delay } from "node:timers/promises";
 import { io, type Socket } from "socket.io-client";
 import { module as abaloneModule } from "../src/game-modules/abalone-classic";
 import { module as blokusModule } from "../src/game-modules/blokus";
+import { module as kkukkkukiModule } from "../src/game-modules/kkukkkuki";
 import { module as quoridorModule } from "../src/game-modules/quoridor";
 import { module as yinshModule } from "../src/game-modules/yinsh";
 import { validateGameCatalog } from "../src/game-modules/catalog";
@@ -457,6 +458,160 @@ async function playGuryongtu(baseUrl: string, _options: PlayOptions = {}): Promi
   const completed = publicState<any>(table).phase === "complete" && winner !== "-";
   await closeTable(table);
   return { gameId: "guryongtu", title: "구룡투", players: 2, mode: "playthrough", actions, completed, winner, note: "full duel" };
+}
+
+async function playOmok(baseUrl: string, _options: PlayOptions = {}): Promise<QaResult> {
+  const table = await createStartedRoom(baseUrl, "omok", 2);
+  let actions = 0;
+  const plans = new Map<string, Array<{ row: number; col: number }>>([
+    [table.clients[0].playerId, [3, 4, 5, 6, 7].map((col) => ({ row: 7, col }))],
+    [table.clients[1].playerId, [3, 4, 5, 6].map((col) => ({ row: 8, col }))]
+  ]);
+
+  while (publicState<any>(table).phase === "playing" && actions < 12) {
+    const client = activeClient(table);
+    const plan = plans.get(client.playerId);
+    assert(plan && plan.length > 0, "Omok scripted coordinate not found.");
+    await gameAction(table, client, { type: "omok/place-stone", payload: plan.shift() });
+    actions += 1;
+  }
+
+  const winner = winnerLabel(table);
+  const completed = publicState<any>(table).phase === "complete" && winner !== "-";
+  await closeTable(table);
+  return { gameId: "omok", title: "오목", players: 2, mode: "playthrough", actions, completed, winner, note: "scripted horizontal five" };
+}
+
+function kkukkkukiLegalActions(state: any, playerId: string): GameAction[] {
+  const actions: GameAction[] = [];
+  if (state.phase === "playing") {
+    const reserve = state.reserves[playerId] ?? { small: 0, large: 0 };
+    const sizes = [
+      reserve.small > 0 ? "small" : null,
+      reserve.large > 0 ? "large" : null
+    ].filter((size): size is "small" | "large" => Boolean(size));
+    for (const size of sizes) {
+      for (let row = 0; row < 6; row += 1) {
+        for (let col = 0; col < 6; col += 1) {
+          if (!state.board[row][col]) {
+            actions.push({ type: "kkukkkuki/place-piece", payload: { row, col, size } });
+          }
+        }
+      }
+    }
+  } else if (state.phase === "choose-line") {
+    for (const line of state.pendingLines ?? []) {
+      actions.push({ type: "kkukkkuki/choose-line", payload: { lineKey: line.key } });
+    }
+  } else if (state.phase === "choose-piece") {
+    for (let row = 0; row < 6; row += 1) {
+      for (let col = 0; col < 6; col += 1) {
+        if (state.board[row][col]?.ownerId === playerId) {
+          actions.push({ type: "kkukkkuki/remove-piece", payload: { row, col } });
+        }
+      }
+    }
+  }
+  return actions;
+}
+
+function kkukkkukiLinePotential(state: any, playerId: string) {
+  let score = 0;
+  const directions = [
+    [0, 1],
+    [1, 0],
+    [1, 1],
+    [1, -1]
+  ];
+  for (let row = 0; row < 6; row += 1) {
+    for (let col = 0; col < 6; col += 1) {
+      for (const [dr, dc] of directions) {
+        let own = 0;
+        let large = 0;
+        let empty = 0;
+        let blocked = false;
+        for (let index = 0; index < 3; index += 1) {
+          const nextRow = row + dr * index;
+          const nextCol = col + dc * index;
+          if (nextRow < 0 || nextRow >= 6 || nextCol < 0 || nextCol >= 6) {
+            blocked = true;
+            break;
+          }
+          const piece = state.board[nextRow][nextCol];
+          if (!piece) {
+            empty += 1;
+          } else if (piece.ownerId === playerId) {
+            own += 1;
+            if (piece.size === "large") {
+              large += 1;
+            }
+          } else {
+            own -= 3;
+          }
+        }
+        if (!blocked && own > 0) {
+          score += own * 15 + large * 34 - empty * 2;
+        }
+      }
+    }
+  }
+  return score;
+}
+
+function kkukkkukiActionScore(table: GameTable, client: QaClient, action: GameAction, rng: () => number) {
+  const state = publicState<any>(table, client);
+  const outcome = tryLocal(kkukkkukiModule, table, state, action, client.playerId);
+  const nextState = outcome.state as any;
+  const reserve = nextState.reserves[client.playerId] ?? { small: 0, large: 0 };
+  let score = rng();
+  if (outcome.winnerId === client.playerId || nextState.winnerId === client.playerId) {
+    score += 1_000_000;
+  }
+  if (nextState.phase === "choose-line" && nextState.pendingPlayerId === client.playerId) {
+    score += 50_000;
+  }
+  if (nextState.phase === "choose-piece" && nextState.pendingPlayerId === client.playerId) {
+    score += 20_000;
+  }
+  score += reserve.large * 120 - reserve.small * 3;
+  score += kkukkkukiLinePotential(nextState, client.playerId);
+  if (recordFrom(action.payload)?.size === "large") {
+    score += 50;
+  }
+  return { action, score };
+}
+
+function kkukkkukiActions(table: GameTable, client: QaClient, rng: () => number) {
+  const state = publicState<any>(table, client);
+  return kkukkkukiLegalActions(state, client.playerId)
+    .map((action) => {
+      try {
+        return kkukkkukiActionScore(table, client, action, rng);
+      } catch {
+        return null;
+      }
+    })
+    .filter(Boolean)
+    .sort((a, b) => b!.score - a!.score) as Array<{ action: GameAction; score: number }>;
+}
+
+async function playKkukkkuki(baseUrl: string, options: PlayOptions = {}): Promise<QaResult> {
+  const table = await createStartedRoom(baseUrl, "kkukkkuki", 2);
+  const rng = createRng(options.seed ?? 1);
+  let actions = 0;
+
+  while (publicState<any>(table).phase !== "complete" && actions < 140) {
+    const client = activeClient(table);
+    const legal = kkukkkukiActions(table, client, rng);
+    assert(legal.length > 0, "Kkukkkuki legal action not found.");
+    await gameAction(table, client, legal[0].action);
+    actions += 1;
+  }
+
+  const winner = winnerLabel(table);
+  const completed = publicState<any>(table).phase === "complete" && winner !== "-";
+  await closeTable(table);
+  return { gameId: "kkukkkuki", title: "꾹꾹이", players: 2, mode: "playthrough", actions, completed, winner, note: "generated legal pushes to large-piece win" };
 }
 
 async function playYacht(baseUrl: string, options: PlayOptions = {}): Promise<QaResult> {
@@ -1162,6 +1317,8 @@ const scenarios: Array<{ gameId: string; play: PlayScenario }> = [
   { gameId: "abalone-classic", play: playAbalone },
   { gameId: "ghosts", play: playGhosts },
   { gameId: "qawale", play: playQawale },
+  { gameId: "omok", play: playOmok },
+  { gameId: "kkukkkuki", play: playKkukkkuki },
   { gameId: "davinci-code-plus", play: playDavinci },
   { gameId: "blokus", play: playBlokus },
   { gameId: "yacht-dice", play: playYacht },

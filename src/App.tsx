@@ -164,7 +164,7 @@ function GameKindIcon({ game, size = 17 }: { game: GameDefinition; size?: number
 }
 
 function gameCoverSrc(game: GameDefinition) {
-  return `/board-assets/game-covers/${game.id}.png`;
+  return `/board-assets/game-covers/${game.id}.svg`;
 }
 
 function GameCoverImage({ game, className = "" }: { game: GameDefinition; className?: string }) {
@@ -353,6 +353,8 @@ function blockedReason({
   if (gameId === "hangman-board-game" && phase === "round-complete") return "라운드가 끝났습니다. 다음 라운드를 시작하세요.";
   if (gameId === "guryongtu" && phase === "selecting") return "선공이 먼저 타일을 내고, 후공은 공개된 색상만 보고 응수합니다.";
   if (gameId === "ghosts" && phase === "setup") return "각자 좋은 유령 4개와 나쁜 유령 4개의 위치를 비공개로 제출하세요.";
+  if (gameId === "kkukkkuki" && phase === "choose-line") return "승급할 3개 줄 하나를 선택하세요.";
+  if (gameId === "kkukkkuki" && phase === "choose-piece") return "보드 위 내 말 하나를 회수해 큰 말로 바꾸세요.";
   if (gameId === "davinci-code-plus" && isMyTurn && (phase === "draw" || phase === "guessing")) {
     return "다빈치 코드는 타일 뽑기/추측이 필수입니다. 이 단계에서 직접 턴 종료는 막혀 있습니다.";
   }
@@ -375,6 +377,12 @@ function manualTurnEndRestriction(gameId: string | null | undefined, phase: stri
   }
   if (gameId === "qawale" && phase === "playing") {
     return "카왈레는 스택 분배를 해야 턴이 끝납니다. 시간이 초과되면 차례가 넘어갑니다.";
+  }
+  if (gameId === "omok" && phase === "playing") {
+    return "오목은 빈 교차점에 돌을 놓아야 턴이 끝납니다.";
+  }
+  if (gameId === "kkukkkuki" && (phase === "playing" || phase === "choose-line" || phase === "choose-piece")) {
+    return "꾹꾹이는 말 배치와 승급/회수 단계를 직접 처리해야 턴이 끝납니다.";
   }
   if (gameId === "davinci-code-plus" && (phase === "draw" || phase === "guessing")) {
     return "타일을 뽑고 추측해야 턴을 넘길 수 있습니다. 시간이 초과되면 자동 오답 페널티가 적용됩니다.";
@@ -1715,6 +1723,8 @@ function BoardPreviewStage({ game, cells }: { game: GameDefinition; cells: numbe
   if (game.id === "abalone-classic") return <AbaloneMiniBoard />;
   if (game.id === "ghosts") return <GhostsMiniBoard />;
   if (game.id === "qawale") return <QawaleMiniBoard />;
+  if (game.id === "omok") return <OmokMiniBoard />;
+  if (game.id === "kkukkkuki") return <KkukkkukiMiniBoard />;
   if (game.id === "davinci-code-plus") return <DavinciMiniRack />;
   if (game.id === "blokus") return <BlokusMiniBoard />;
   if (game.id === "yacht-dice") return <YachtMiniBoard />;
@@ -1808,6 +1818,54 @@ function QawaleMiniBoard() {
           {height > 0 ? Array.from({ length: Math.min(height, 4) }, (_, layer) => <i key={layer} />) : null}
         </span>
       ))}
+    </div>
+  );
+}
+
+function OmokMiniBoard() {
+  const stones = new Map([
+    ["4-4", "black"],
+    ["4-5", "white"],
+    ["5-5", "black"],
+    ["5-6", "white"],
+    ["6-6", "black"],
+    ["6-7", "white"],
+    ["7-7", "black"]
+  ]);
+
+  return (
+    <div className="omok-mini-board">
+      {Array.from({ length: 81 }, (_, index) => {
+        const row = Math.floor(index / 9);
+        const col = index % 9;
+        const stone = stones.get(`${row}-${col}`);
+        return <span key={`${row}-${col}`} className={stone ?? ""} />;
+      })}
+    </div>
+  );
+}
+
+function KkukkkukiMiniBoard() {
+  const pieces = new Map([
+    ["1-1", "small warm"],
+    ["1-3", "large cool"],
+    ["2-2", "small warm"],
+    ["3-2", "large warm"],
+    ["3-4", "small cool"],
+    ["4-3", "large cool"]
+  ]);
+
+  return (
+    <div className="kkuk-mini-board">
+      {Array.from({ length: 36 }, (_, index) => {
+        const row = Math.floor(index / 6);
+        const col = index % 6;
+        return (
+          <span key={`${row}-${col}`}>
+            {pieces.has(`${row}-${col}`) ? <i className={pieces.get(`${row}-${col}`)} /> : null}
+          </span>
+        );
+      })}
     </div>
   );
 }

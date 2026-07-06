@@ -4348,6 +4348,8 @@ textarea::placeholder {
 .quoridor-mini-board,
 .ghosts-mini-board,
 .qawale-mini-board,
+.omok-mini-board,
+.kkuk-mini-board,
 .blokus-mini-board {
   width: min(100%, 220px);
   aspect-ratio: 1;
@@ -4537,6 +4539,88 @@ textarea::placeholder {
 .qawale-mini-board i:nth-child(4) {
   transform: translateY(-12px);
   background: radial-gradient(circle at 30% 22%, #2c5f9f, #14355e 68%);
+}
+
+.omok-mini-board {
+  display: grid;
+  grid-template-columns: repeat(9, 1fr);
+  padding: 9px;
+  border: 1px solid rgba(71, 42, 19, 0.42);
+  border-radius: 8px;
+  background:
+    linear-gradient(90deg, transparent calc(50% - 1px), rgba(70, 39, 18, 0.46) calc(50% - 1px) calc(50% + 1px), transparent calc(50% + 1px)) 0 0 / calc(100% / 9) calc(100% / 9),
+    linear-gradient(0deg, transparent calc(50% - 1px), rgba(70, 39, 18, 0.46) calc(50% - 1px) calc(50% + 1px), transparent calc(50% + 1px)) 0 0 / calc(100% / 9) calc(100% / 9),
+    linear-gradient(135deg, #d5a566, #8f572c);
+}
+
+.omok-mini-board span {
+  position: relative;
+}
+
+.omok-mini-board span.black::after,
+.omok-mini-board span.white::after {
+  content: "";
+  position: absolute;
+  inset: 18%;
+  border-radius: 999px;
+  box-shadow:
+    inset -3px -4px 6px rgba(0, 0, 0, 0.24),
+    0 3px 4px rgba(32, 18, 8, 0.24);
+}
+
+.omok-mini-board span.black::after {
+  background: radial-gradient(circle at 34% 24%, #6d6659, #080808 72%);
+}
+
+.omok-mini-board span.white::after {
+  background: radial-gradient(circle at 34% 24%, #ffffff, #d7c7a5 72%);
+}
+
+.kkuk-mini-board {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 5px;
+  padding: 8px;
+  border: 1px solid rgba(71, 42, 19, 0.42);
+  border-radius: 8px;
+  background: linear-gradient(135deg, #b97b3f, #5d3319);
+}
+
+.kkuk-mini-board span {
+  position: relative;
+  border-radius: 6px;
+  background:
+    radial-gradient(circle at 50% 42%, rgba(91, 43, 20, 0.24), transparent 48%),
+    linear-gradient(145deg, rgba(230, 173, 91, 0.66), rgba(96, 51, 24, 0.72));
+}
+
+.kkuk-mini-board i {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  border-radius: 999px;
+  transform: translate(-50%, -50%);
+  box-shadow:
+    inset -4px -5px 7px rgba(36, 15, 7, 0.24),
+    0 4px 5px rgba(33, 18, 8, 0.28);
+}
+
+.kkuk-mini-board i.small {
+  width: 48%;
+  height: 48%;
+}
+
+.kkuk-mini-board i.large {
+  width: 68%;
+  height: 68%;
+}
+
+.kkuk-mini-board i.warm {
+  background: radial-gradient(circle at 34% 22%, #ffd9af, #c46d43 70%);
+}
+
+.kkuk-mini-board i.cool {
+  background: radial-gradient(circle at 34% 22%, #d4e1ff, #6e88d7 70%);
 }
 
 .davinci-mini-rack {
@@ -4885,6 +4969,8 @@ textarea::placeholder {
 .game-row-thumb .quoridor-mini-board,
 .game-row-thumb .ghosts-mini-board,
 .game-row-thumb .qawale-mini-board,
+.game-row-thumb .omok-mini-board,
+.game-row-thumb .kkuk-mini-board,
 .game-row-thumb .blokus-mini-board,
 .game-row-thumb .abalone-mini-board,
 .game-row-thumb .yacht-mini-board,
@@ -4901,6 +4987,8 @@ textarea::placeholder {
 .game-row-thumb .quoridor-mini-board,
 .game-row-thumb .ghosts-mini-board,
 .game-row-thumb .qawale-mini-board,
+.game-row-thumb .omok-mini-board,
+.game-row-thumb .kkuk-mini-board,
 .game-row-thumb .blokus-mini-board,
 .game-row-thumb .yinsh-mini-board {
   aspect-ratio: 1.18;
@@ -4919,6 +5007,8 @@ textarea::placeholder {
 .game-row-thumb .quoridor-mini-board,
 .game-row-thumb .ghosts-mini-board,
 .game-row-thumb .qawale-mini-board,
+.game-row-thumb .omok-mini-board,
+.game-row-thumb .kkuk-mini-board,
 .game-row-thumb .blokus-mini-board {
   gap: 1px;
   padding: 3px;
