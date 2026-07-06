@@ -2,8 +2,16 @@ import { useEffect, useMemo, useState } from "react";
 import type { CSSProperties } from "react";
 import type { GameAction, GameActionResult, GameComponentProps, GameContext, GameModule } from "../types";
 
-const ADULT_CAT_MARKER = "/board-assets/game-markers/kkukkkuki-cat-adult.png";
-const KITTEN_MARKER = "/board-assets/game-markers/kkukkkuki-kitten.png";
+const CAT_MARKERS_BY_PLAYER = [
+  {
+    large: "/board-assets/game-markers/kkukkkuki-cat-adult.png",
+    small: "/board-assets/game-markers/kkukkkuki-kitten.png"
+  },
+  {
+    large: "/board-assets/game-markers/kkukkkuki-cat-adult-player2.png",
+    small: "/board-assets/game-markers/kkukkkuki-kitten-player2.png"
+  }
+] as const;
 const BOARD_SIZE = 6;
 const STARTING_SMALL = 8;
 const LINE_LENGTH = 3;
@@ -165,6 +173,11 @@ function cloneState(state: KkukkkukiState): KkukkkukiState {
 
 function playerName(state: KkukkkukiState, playerId: string | null | undefined) {
   return state.players.find((player) => player.id === playerId)?.name ?? "플레이어";
+}
+
+function markerFor(piece: KkukkkukiPiece, owner?: KkukkkukiPlayer) {
+  const markerSet = CAT_MARKERS_BY_PLAYER[((owner?.seat ?? 1) - 1) % CAT_MARKERS_BY_PLAYER.length] ?? CAT_MARKERS_BY_PLAYER[0];
+  return markerSet[piece.size];
 }
 
 function reserveFor(state: KkukkkukiState, playerId: string) {
@@ -621,7 +634,7 @@ export function Component({
                       >
                         <img
                           className="kkuk-piece-image"
-                          src={piece.size === "small" ? KITTEN_MARKER : ADULT_CAT_MARKER}
+                          src={markerFor(piece, owner)}
                           alt=""
                           draggable={false}
                         />
