@@ -130,10 +130,18 @@
   user-select: none !important;
 }
 
+.alk-board.is-aim-ready {
+  cursor: crosshair !important;
+}
+
+.alk-board.is-charging {
+  cursor: grabbing !important;
+}
+
 .alk-control-dock {
   width: min(100%, 860px) !important;
   display: grid !important;
-  grid-template-columns: minmax(150px, 0.9fr) minmax(160px, 1.1fr) minmax(180px, 1fr) !important;
+  grid-template-columns: minmax(180px, 1fr) minmax(170px, 1fr) minmax(150px, 0.7fr) !important;
   gap: 8px !important;
   align-items: stretch !important;
   margin: 10px auto 0 !important;
@@ -151,43 +159,16 @@
     0 12px 24px rgba(0, 0, 0, 0.24) !important;
 }
 
-.alk-control-steps {
-  min-height: 44px !important;
-  display: grid !important;
-  grid-template-columns: repeat(3, 1fr) !important;
-  gap: 5px !important;
-}
-
-.alk-control-steps span,
 .alk-control-readout,
 .alk-direction-dial,
 .alk-power-meter,
-.alk-hold-control {
+.alk-gesture-pad {
   border: 1px solid rgba(237, 190, 108, 0.28) !important;
   border-radius: 10px !important;
   background:
     linear-gradient(180deg, rgba(40, 24, 13, 0.86), rgba(13, 8, 4, 0.9)),
     var(--texture-club-leather, none) center / cover no-repeat !important;
   box-shadow: inset 0 1px 0 rgba(255, 237, 184, 0.08) !important;
-}
-
-.alk-control-steps span {
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  color: rgba(255, 240, 210, 0.52) !important;
-  font-size: 0.78rem !important;
-  font-weight: 900 !important;
-}
-
-.alk-control-steps span.done {
-  color: rgba(240, 201, 118, 0.72) !important;
-}
-
-.alk-control-steps span.active {
-  color: #160b04 !important;
-  background: linear-gradient(180deg, #f0c976, #b98445) !important;
-  border-color: rgba(255, 232, 178, 0.7) !important;
 }
 
 .alk-control-readout {
@@ -216,6 +197,10 @@
   grid-template-columns: 52px minmax(110px, 1fr) !important;
   gap: 8px !important;
   align-items: stretch !important;
+}
+
+.alk-control-tools.is-disabled {
+  opacity: 0.38 !important;
 }
 
 .alk-direction-dial {
@@ -288,38 +273,30 @@
   transition: transform 80ms linear !important;
 }
 
-.alk-control-buttons {
-  display: grid !important;
-  grid-template-columns: repeat(2, minmax(78px, 1fr)) !important;
-  gap: 8px !important;
-}
-
-.alk-hold-control {
+.alk-gesture-pad {
   min-height: 52px !important;
   display: flex !important;
   flex-direction: column !important;
   align-items: center !important;
   justify-content: center !important;
-  gap: 2px !important;
+  gap: 3px !important;
   color: rgba(255, 240, 210, 0.52) !important;
-  font: inherit !important;
-  font-weight: 900 !important;
-  cursor: not-allowed !important;
   touch-action: none !important;
   user-select: none !important;
 }
 
-.alk-hold-control span {
+.alk-gesture-pad strong {
   font-size: 0.9rem !important;
+  font-weight: 900 !important;
 }
 
-.alk-hold-control small {
+.alk-gesture-pad span {
   color: currentColor !important;
   font-size: 0.68rem !important;
   font-weight: 900 !important;
 }
 
-.alk-hold-control.is-live {
+.alk-gesture-pad.is-ready {
   color: #160b04 !important;
   border-color: rgba(255, 232, 178, 0.74) !important;
   background: linear-gradient(180deg, #f4d58a, #b98445) !important;
@@ -327,10 +304,9 @@
     inset 0 1px 0 rgba(255, 255, 230, 0.3),
     0 7px 0 rgba(76, 42, 17, 0.7),
     0 12px 18px rgba(0, 0, 0, 0.24) !important;
-  cursor: pointer !important;
 }
 
-.alk-hold-control.is-holding {
+.alk-gesture-pad.is-charging {
   transform: translateY(4px) !important;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 230, 0.18),
@@ -818,7 +794,7 @@
 
   .alk-direction-dial,
   .alk-power-meter,
-  .alk-hold-control {
+  .alk-gesture-pad {
     min-height: 48px !important;
   }
 }
