@@ -35,7 +35,7 @@ import { socket } from "./lib/socket";
 import { games, getGameById } from "./shared/games";
 import { canPlayGame, formatAllowedPlayers, gameAvailabilityLabel } from "./shared/eligibility";
 import { gameUsesTurnTimer, turnTimerOptions } from "./shared/timers";
-import type { Ack, GameDefinition, PlayerSnapshot, PublicRoomListItem, RoomSnapshot } from "./shared/types";
+import type { Ack, GameDefinition, GameTableKind, PlayerSnapshot, PublicRoomListItem, RoomSnapshot } from "./shared/types";
 import { getGameComponent } from "./game-modules/ui-registry";
 import type { GameAction } from "./game-modules/types";
 import type { LeaderboardEntry, MatchRecord, PlayerStatsResponse, StatsSummary } from "./shared/stats";
@@ -202,6 +202,72 @@ function runtimeWinnerIds(room: RoomSnapshot) {
     });
   }
   return Array.from(winners);
+}
+
+const victoryPiecesByKind: Record<GameTableKind, string[]> = {
+  duel: ["1", "3", "5", "7", "9", "W", "1", "3", "5", "7", "9", "W"],
+  maze: ["H", "V", "GO", "H", "V", "GO", "H", "V", "GO", "H", "V", "GO"],
+  hex: ["", "", "", "", "", "", "", "", "", "", "", ""],
+  hidden: ["?", "B", "G", "?", "B", "G", "?", "B", "G", "?", "B", "G"],
+  stack: ["", "", "", "", "", "", "", "", "", "", "", ""],
+  deduction: ["0", "2", "4", "6", "8", "J", "1", "3", "5", "7", "9", "J"],
+  polyomino: ["L", "T", "I", "Z", "P", "F", "L", "T", "I", "Z", "P", "F"],
+  dice: ["1", "2", "3", "4", "5", "6", "Y", "1", "2", "3", "4", "5"],
+  rings: ["", "", "", "", "", "", "", "", "", "", "", ""],
+  word: ["A", "B", "C", "D", "E", "W", "I", "N", "A", "B", "C", "D"]
+};
+
+function victoryPiecesFor(game: GameDefinition) {
+  if (game.id === "alkkagi") {
+    return ["K", "S", "B", "I", "P", "W", "K", "S", "B", "I", "P", "W"];
+  }
+  if (game.id === "kkukkkuki") {
+    return ["S", "L", "S", "L", "S", "L", "S", "L", "S", "L", "S", "L"];
+  }
+  return victoryPiecesByKind[game.table.kind];
+}
+
+function VictoryEffectOverlay({
+  game,
+  winnerNames,
+  isDraw
+}: {
+  game: GameDefinition;
+  winnerNames: string[];
+  isDraw: boolean;
+}) {
+  const pieces = victoryPiecesFor(game);
+  const winnerLabel = isDraw ? "무승부" : `${winnerNames.length > 0 ? winnerNames.join(", ") : "플레이어"} 승리`;
+
+  return (
+    <div
+      className={`victory-effect-overlay victory-kind-${game.table.kind} victory-game-${game.id}`}
+      style={{ "--victory-accent": game.accent } as CSSProperties}
+      aria-hidden="true"
+    >
+      <div className="victory-effect-rays">
+        {Array.from({ length: 10 }, (_, index) => (
+          <span key={index} style={{ "--ray-index": index } as CSSProperties} />
+        ))}
+      </div>
+      <div className="victory-piece-field">
+        {pieces.map((piece, index) => (
+          <span
+            key={`${piece}-${index}`}
+            className={`victory-piece piece-${index + 1}`}
+            style={{ "--piece-index": index } as CSSProperties}
+          >
+            {piece ? <b>{piece}</b> : null}
+          </span>
+        ))}
+      </div>
+      <div className="victory-effect-banner">
+        <span>{isDraw ? "경기 종료" : "승리"}</span>
+        <strong>{winnerLabel}</strong>
+        <small>{game.title}</small>
+      </div>
+    </div>
+  );
 }
 
 function playerAccent(player: PlayerSnapshot) {
@@ -1496,6 +1562,14 @@ function PlayPanel({
 
       {isFinished ? (
         <div className="post-game-dialog-backdrop" role="presentation">
+          {selectedGame ? (
+            <VictoryEffectOverlay
+              key={`${room.code}-${selectedGame.id}-${phase}-${winnerIds.join("-") || "draw"}`}
+              game={selectedGame}
+              winnerNames={winnerNames}
+              isDraw={winnerIds.length === 0 && !winnerId}
+            />
+          ) : null}
           <section className="post-game-dialog" role="dialog" aria-modal="true" aria-labelledby="post-game-title">
             <div className="post-game-emblem" aria-hidden="true">
               <Trophy size={28} />

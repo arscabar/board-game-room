@@ -11150,13 +11150,274 @@ textarea:focus-visible {
   display: grid;
   place-items: center;
   padding: 18px;
+  overflow: hidden;
+  isolation: isolate;
   background:
     linear-gradient(180deg, rgba(10, 6, 3, 0.42), rgba(10, 6, 3, 0.72)),
     rgba(0, 0, 0, 0.34);
   backdrop-filter: blur(6px);
 }
 
+.victory-effect-overlay {
+  --victory-accent: #d39a44;
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  color: #fff5d2;
+}
+
+.victory-effect-overlay::before,
+.victory-effect-overlay::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  border-radius: 999px;
+  transform: translate(-50%, -50%);
+}
+
+.victory-effect-overlay::before {
+  width: min(86vw, 760px);
+  aspect-ratio: 1;
+  background:
+    radial-gradient(circle, color-mix(in srgb, var(--victory-accent) 34%, transparent) 0 8%, transparent 58%),
+    radial-gradient(circle, rgba(255, 235, 171, 0.2), transparent 62%);
+  filter: blur(1px);
+  animation: victory-glow 1800ms ease-out both;
+}
+
+.victory-effect-overlay::after {
+  width: min(72vw, 600px);
+  aspect-ratio: 1;
+  border: 1px solid color-mix(in srgb, var(--victory-accent) 64%, rgba(255, 255, 255, 0.2));
+  box-shadow:
+    0 0 0 10px color-mix(in srgb, var(--victory-accent) 10%, transparent),
+    inset 0 0 42px color-mix(in srgb, var(--victory-accent) 22%, transparent);
+  animation: victory-ring 1500ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.victory-effect-rays {
+  position: absolute;
+  inset: 0;
+}
+
+.victory-effect-rays span {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 2px;
+  height: 50vmax;
+  border-radius: 999px;
+  background: linear-gradient(180deg, transparent, rgba(255, 235, 181, 0.62), transparent);
+  transform-origin: 50% 0;
+  animation: victory-ray 1200ms ease-out both;
+  animation-delay: calc(var(--ray-index) * 35ms);
+}
+
+.victory-effect-rays span:nth-child(1) { transform: rotate(0deg) scaleY(0); }
+.victory-effect-rays span:nth-child(2) { transform: rotate(36deg) scaleY(0); }
+.victory-effect-rays span:nth-child(3) { transform: rotate(72deg) scaleY(0); }
+.victory-effect-rays span:nth-child(4) { transform: rotate(108deg) scaleY(0); }
+.victory-effect-rays span:nth-child(5) { transform: rotate(144deg) scaleY(0); }
+.victory-effect-rays span:nth-child(6) { transform: rotate(180deg) scaleY(0); }
+.victory-effect-rays span:nth-child(7) { transform: rotate(216deg) scaleY(0); }
+.victory-effect-rays span:nth-child(8) { transform: rotate(252deg) scaleY(0); }
+.victory-effect-rays span:nth-child(9) { transform: rotate(288deg) scaleY(0); }
+.victory-effect-rays span:nth-child(10) { transform: rotate(324deg) scaleY(0); }
+
+.victory-piece-field {
+  position: absolute;
+  inset: 0;
+}
+
+.victory-piece {
+  --vx: 0vw;
+  --vy: 0vh;
+  --rot: 0deg;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: clamp(36px, 5.8vw, 70px);
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255, 241, 194, 0.58);
+  border-radius: 12px;
+  color: #261409;
+  background:
+    linear-gradient(145deg, rgba(255, 251, 224, 0.98), rgba(202, 133, 48, 0.96)),
+    var(--victory-accent);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.72),
+    inset 0 -6px 12px rgba(73, 31, 8, 0.24),
+    0 16px 26px rgba(0, 0, 0, 0.32);
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.2) rotate(0deg);
+  animation: victory-piece-flight 1800ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: calc(var(--piece-index) * 42ms);
+}
+
+.victory-piece b {
+  font-size: clamp(0.78rem, 2vw, 1.2rem);
+  font-weight: 950;
+  line-height: 1;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.36);
+}
+
+.piece-1 { --vx: -38vw; --vy: -24vh; --rot: -22deg; }
+.piece-2 { --vx: -24vw; --vy: -34vh; --rot: 18deg; }
+.piece-3 { --vx: -8vw; --vy: -30vh; --rot: -14deg; }
+.piece-4 { --vx: 12vw; --vy: -34vh; --rot: 20deg; }
+.piece-5 { --vx: 32vw; --vy: -24vh; --rot: -18deg; }
+.piece-6 { --vx: 42vw; --vy: -6vh; --rot: 24deg; }
+.piece-7 { --vx: 36vw; --vy: 20vh; --rot: -24deg; }
+.piece-8 { --vx: 18vw; --vy: 30vh; --rot: 16deg; }
+.piece-9 { --vx: -4vw; --vy: 34vh; --rot: -20deg; }
+.piece-10 { --vx: -24vw; --vy: 28vh; --rot: 22deg; }
+.piece-11 { --vx: -40vw; --vy: 10vh; --rot: -16deg; }
+.piece-12 { --vx: -46vw; --vy: -8vh; --rot: 26deg; }
+
+.victory-kind-dice .victory-piece {
+  border-radius: 13px;
+  color: #601d1d;
+  background:
+    radial-gradient(circle at 30% 28%, rgba(255, 255, 255, 0.95), transparent 0 19%, transparent 20%),
+    linear-gradient(145deg, #fff8db, #d9b577);
+}
+
+.victory-kind-rings .victory-piece,
+.victory-kind-hex .victory-piece,
+.victory-game-alkkagi .victory-piece {
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 32% 24%, rgba(255, 255, 255, 0.88), transparent 0 18%, transparent 19%),
+    radial-gradient(circle at 52% 58%, color-mix(in srgb, var(--victory-accent) 88%, #111 12%), #2c1710 72%);
+}
+
+.victory-kind-rings .victory-piece::after {
+  content: "";
+  position: absolute;
+  inset: 24%;
+  border: 2px solid rgba(255, 240, 201, 0.68);
+  border-radius: inherit;
+  background: rgba(19, 11, 7, 0.42);
+  box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.42);
+}
+
+.victory-kind-stack .victory-piece,
+.victory-game-kkukkkuki .victory-piece {
+  height: clamp(20px, 3.4vw, 36px);
+  aspect-ratio: 1.85;
+  border-radius: 999px;
+  background:
+    linear-gradient(180deg, rgba(255, 245, 205, 0.96), color-mix(in srgb, var(--victory-accent) 72%, #6d3514)),
+    var(--victory-accent);
+  box-shadow:
+    inset 0 4px 0 rgba(255, 255, 255, 0.36),
+    inset 0 -8px 10px rgba(54, 22, 8, 0.34),
+    0 10px 20px rgba(0, 0, 0, 0.28);
+}
+
+.victory-kind-maze .victory-piece {
+  width: clamp(48px, 7vw, 86px);
+  height: clamp(14px, 2.2vw, 22px);
+  aspect-ratio: auto;
+  border-radius: 7px;
+  color: #3a210d;
+}
+
+.victory-kind-maze .victory-piece:nth-child(even) {
+  transform-origin: center;
+}
+
+.victory-kind-hidden .victory-piece {
+  border-radius: 999px 999px 12px 12px;
+  color: #251729;
+  background:
+    radial-gradient(circle at 36% 36%, #1c1024 0 7%, transparent 8%),
+    radial-gradient(circle at 64% 36%, #1c1024 0 7%, transparent 8%),
+    linear-gradient(180deg, #f4eafa, color-mix(in srgb, var(--victory-accent) 52%, #ceb8ff));
+}
+
+.victory-kind-deduction .victory-piece {
+  border-radius: 8px;
+  color: #f8ead2;
+  background:
+    linear-gradient(145deg, #1e1714, #070605 58%),
+    var(--victory-accent);
+  border-color: rgba(255, 242, 211, 0.4);
+}
+
+.victory-kind-polyomino .victory-piece {
+  border-radius: 6px;
+  color: #fff8dc;
+  background:
+    linear-gradient(145deg, color-mix(in srgb, var(--victory-accent) 82%, #ffffff 18%), color-mix(in srgb, var(--victory-accent) 74%, #111111 26%));
+  box-shadow:
+    inset 8px 0 0 rgba(255, 255, 255, 0.18),
+    inset -8px 0 0 rgba(0, 0, 0, 0.16),
+    0 16px 26px rgba(0, 0, 0, 0.32);
+}
+
+.victory-kind-word .victory-piece {
+  border-radius: 8px;
+  background:
+    linear-gradient(145deg, #fff8df, #cfb073),
+    var(--victory-accent);
+  color: #321d10;
+}
+
+.victory-effect-banner {
+  position: absolute;
+  left: 50%;
+  top: clamp(34px, 9vh, 96px);
+  z-index: 1;
+  min-width: min(84vw, 390px);
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  padding: 14px 18px;
+  border: 1px solid color-mix(in srgb, var(--victory-accent) 55%, rgba(255, 245, 211, 0.38));
+  border-radius: 14px;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--victory-accent) 18%, transparent), transparent 45%),
+    linear-gradient(180deg, rgba(54, 30, 15, 0.88), rgba(18, 10, 6, 0.9));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 250, 228, 0.18),
+    0 18px 48px rgba(0, 0, 0, 0.36);
+  transform: translate(-50%, -16px) scale(0.96);
+  opacity: 0;
+  animation: victory-banner-in 820ms cubic-bezier(0.16, 1, 0.3, 1) 260ms both;
+}
+
+.victory-effect-banner span {
+  color: color-mix(in srgb, var(--victory-accent) 45%, #fff4cf);
+  font-size: 0.75rem;
+  font-weight: 950;
+  letter-spacing: 0;
+}
+
+.victory-effect-banner strong {
+  color: #fff8df;
+  font-size: clamp(1.1rem, 4vw, 1.6rem);
+  font-weight: 950;
+  line-height: 1.12;
+  text-align: center;
+}
+
+.victory-effect-banner small {
+  color: rgba(255, 237, 197, 0.78);
+  font-size: 0.78rem;
+  font-weight: 850;
+}
+
 .post-game-dialog {
+  position: relative;
+  z-index: 2;
   width: min(100%, 430px);
   display: grid;
   gap: 14px;
@@ -11170,6 +11431,78 @@ textarea:focus-visible {
   box-shadow:
     inset 0 1px 0 rgba(255, 248, 220, 0.13),
     0 24px 70px rgba(0, 0, 0, 0.55);
+}
+
+@keyframes victory-glow {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.5);
+  }
+  36% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.72;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+@keyframes victory-ring {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.22);
+  }
+  70% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0.35;
+    transform: translate(-50%, -50%) scale(1.06);
+  }
+}
+
+@keyframes victory-ray {
+  0% {
+    opacity: 0;
+    scale: 1 0;
+  }
+  42% {
+    opacity: 0.8;
+    scale: 1 1;
+  }
+  100% {
+    opacity: 0.16;
+    scale: 1 1;
+  }
+}
+
+@keyframes victory-piece-flight {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.16) rotate(0deg);
+  }
+  16% {
+    opacity: 1;
+  }
+  74% {
+    opacity: 0.92;
+    transform: translate(calc(-50% + var(--vx)), calc(-50% + var(--vy))) scale(1.04) rotate(var(--rot));
+  }
+  100% {
+    opacity: 0.78;
+    transform: translate(calc(-50% + var(--vx)), calc(-50% + var(--vy))) scale(0.92) rotate(var(--rot));
+  }
+}
+
+@keyframes victory-banner-in {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -18px) scale(0.94);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
 }
 
 .post-game-emblem {
@@ -11250,18 +11583,78 @@ textarea:focus-visible {
 
 @media (max-width: 520px) {
   .post-game-dialog-backdrop {
-    align-items: end;
+    align-items: center;
     padding: 10px;
   }
 
+  .victory-effect-banner {
+    top: 22px;
+    min-width: calc(100vw - 32px);
+    padding: 11px 14px;
+  }
+
+  .victory-piece {
+    width: clamp(28px, 10vw, 42px);
+  }
+
+  .piece-1 { --vx: -42vw; --vy: -31vh; }
+  .piece-2 { --vx: -18vw; --vy: -38vh; }
+  .piece-3 { --vx: 8vw; --vy: -36vh; }
+  .piece-4 { --vx: 34vw; --vy: -30vh; }
+  .piece-5 { --vx: 44vw; --vy: -12vh; }
+  .piece-6 { --vx: 42vw; --vy: 8vh; }
+  .piece-7 { --vx: 30vw; --vy: 24vh; }
+  .piece-8 { --vx: 8vw; --vy: 30vh; }
+  .piece-9 { --vx: -14vw; --vy: 28vh; }
+  .piece-10 { --vx: -34vw; --vy: 18vh; }
+  .piece-11 { --vx: -43vw; --vy: 1vh; }
+  .piece-12 { --vx: -40vw; --vy: -18vh; }
+
   .post-game-dialog {
     width: 100%;
+    max-height: calc(100dvh - 244px);
+    overflow: auto;
     padding: 16px;
     border-radius: 12px 12px 8px 8px;
   }
 
   .post-game-actions {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .victory-effect-overlay::before,
+  .victory-effect-overlay::after,
+  .victory-effect-rays span,
+  .victory-piece,
+  .victory-effect-banner {
+    animation: none !important;
+  }
+
+  .victory-effect-overlay::before {
+    opacity: 0.42;
+    transform: translate(-50%, -50%) scale(1);
+  }
+
+  .victory-effect-overlay::after {
+    opacity: 0.28;
+    transform: translate(-50%, -50%) scale(1);
+  }
+
+  .victory-effect-rays span {
+    opacity: 0.08;
+    scale: 1 1;
+  }
+
+  .victory-piece {
+    opacity: 0.46;
+    transform: translate(calc(-50% + var(--vx)), calc(-50% + var(--vy))) scale(0.86) rotate(var(--rot));
+  }
+
+  .victory-effect-banner {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
   }
 }
 
