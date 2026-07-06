@@ -1,0 +1,215 @@
+.alk-shell {
+  --alk-ink: #fff0d2;
+  --alk-soft: rgba(255, 240, 210, 0.72);
+  --alk-line: rgba(237, 190, 108, 0.26);
+  width: min(100%, 980px) !important;
+  margin: 0 auto !important;
+  color: var(--alk-ink) !important;
+}
+
+.alk-status {
+  width: fit-content !important;
+  min-width: min(100%, 260px) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  margin: 0 auto 10px !important;
+  padding: 8px 14px !important;
+  border: 1px solid var(--alk-line) !important;
+  border-radius: 999px !important;
+  background:
+    linear-gradient(180deg, rgba(62, 37, 20, 0.94), rgba(18, 10, 5, 0.96)),
+    repeating-linear-gradient(90deg, rgba(255, 222, 160, 0.05) 0 1px, transparent 1px 15px) !important;
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.24) !important;
+}
+
+.alk-status strong {
+  color: #f0c976 !important;
+  font-size: 0.76rem !important;
+  font-weight: 900 !important;
+}
+
+.alk-status span {
+  color: var(--alk-soft) !important;
+  font-weight: 900 !important;
+}
+
+.alk-board {
+  width: min(100%, 780px) !important;
+  aspect-ratio: 1 !important;
+  display: block !important;
+  margin: 0 auto !important;
+  border: 1px solid rgba(236, 191, 116, 0.18) !important;
+  border-radius: 18px !important;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(15, 9, 5, 0.2), rgba(7, 4, 2, 0.82) 68%),
+    linear-gradient(135deg, rgba(25, 47, 32, 0.88), rgba(14, 9, 5, 0.94)) !important;
+  touch-action: none !important;
+  user-select: none !important;
+}
+
+.alk-table-rim {
+  fill: #1c0e07 !important;
+  stroke: rgba(255, 216, 146, 0.44) !important;
+  stroke-width: 5 !important;
+  filter: url("#alk-soft-shadow") !important;
+}
+
+.alk-table {
+  fill: url("#alk-board-grain") !important;
+  stroke: rgba(255, 232, 178, 0.5) !important;
+  stroke-width: 6 !important;
+}
+
+.alk-table-inner {
+  fill: none !important;
+  stroke: rgba(58, 29, 11, 0.5) !important;
+  stroke-width: 4 !important;
+  stroke-dasharray: 10 8 !important;
+}
+
+.alk-terrain circle:first-child {
+  stroke-width: 2 !important;
+}
+
+.alk-terrain.mud circle:first-child {
+  fill: rgba(73, 45, 26, 0.72) !important;
+  stroke: rgba(45, 24, 12, 0.7) !important;
+}
+
+.alk-terrain.ice circle:first-child {
+  fill: rgba(136, 204, 221, 0.28) !important;
+  stroke: rgba(196, 239, 247, 0.72) !important;
+}
+
+.alk-terrain.pit circle:first-child {
+  fill: #100804 !important;
+  stroke: rgba(255, 229, 170, 0.42) !important;
+  stroke-width: 5 !important;
+}
+
+.alk-terrain.bumper circle:first-child {
+  fill: #6d3d1c !important;
+  stroke: rgba(255, 221, 155, 0.76) !important;
+  filter: url("#alk-soft-shadow") !important;
+}
+
+.alk-terrain.bumper circle:last-child {
+  fill: #f0c976 !important;
+  stroke: rgba(54, 27, 12, 0.55) !important;
+  stroke-width: 2 !important;
+}
+
+.alk-aim line {
+  stroke: rgba(255, 234, 177, 0.9) !important;
+  stroke-width: 5 !important;
+  stroke-linecap: round !important;
+  stroke-dasharray: 9 9 !important;
+}
+
+.alk-aim circle {
+  fill: rgba(255, 234, 177, 0.18) !important;
+  stroke: rgba(255, 234, 177, 0.92) !important;
+  stroke-width: 3 !important;
+}
+
+.alk-egg {
+  cursor: default !important;
+  outline: none !important;
+}
+
+.alk-egg.is-current {
+  cursor: grab !important;
+}
+
+.alk-egg.is-current:active {
+  cursor: grabbing !important;
+}
+
+.alk-egg-body {
+  fill: var(--player-color) !important;
+  stroke: rgba(255, 244, 214, 0.72) !important;
+  stroke-width: 2.5 !important;
+  filter: url("#alk-soft-shadow") !important;
+}
+
+.alk-egg-shadow {
+  fill: rgba(0, 0, 0, 0.34) !important;
+}
+
+.alk-egg.king .alk-egg-body {
+  stroke-width: 4 !important;
+  filter: url("#alk-soft-shadow") saturate(0.88) !important;
+}
+
+.alk-egg.skill .alk-egg-body {
+  stroke-dasharray: 4 4 !important;
+}
+
+.alk-egg.last-shot .alk-egg-body {
+  animation: alk-last-shot 520ms ease-out;
+}
+
+.alk-king-mark {
+  fill: rgba(255, 229, 146, 0.92) !important;
+  stroke: rgba(45, 24, 12, 0.62) !important;
+  stroke-width: 1.5 !important;
+  pointer-events: none !important;
+}
+
+.alk-skill-mark {
+  fill: rgba(255, 245, 212, 0.88) !important;
+  stroke: rgba(35, 19, 10, 0.62) !important;
+  stroke-width: 2 !important;
+  pointer-events: none !important;
+}
+
+.alk-egg.skill-anchor .alk-egg-body {
+  filter: url("#alk-soft-shadow") brightness(0.78) !important;
+}
+
+.alk-egg.skill-dash .alk-egg-body {
+  filter: url("#alk-soft-shadow") saturate(1.25) brightness(1.08) !important;
+}
+
+.alk-egg.skill-burst .alk-egg-body {
+  filter: url("#alk-soft-shadow") saturate(1.2) !important;
+}
+
+.alk-egg.skill-guard .alk-egg-body {
+  stroke: rgba(192, 245, 209, 0.9) !important;
+}
+
+.alk-egg.skill-rubber .alk-egg-body {
+  stroke: rgba(189, 224, 255, 0.9) !important;
+}
+
+@keyframes alk-last-shot {
+  from {
+    transform: scale(1.08);
+  }
+  62% {
+    transform: scale(0.96);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+@media (max-width: 700px) {
+  .alk-board {
+    border-radius: 10px !important;
+  }
+
+  .alk-status {
+    margin-bottom: 8px !important;
+    padding: 7px 11px !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .alk-egg.last-shot .alk-egg-body {
+    animation: none !important;
+  }
+}

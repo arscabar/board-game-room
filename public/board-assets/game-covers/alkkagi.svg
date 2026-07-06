@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 420" role="img" aria-labelledby="title desc">
+  <title id="title">알까기 대표 이미지</title>
+  <desc id="desc">원형 목재판 위에 색깔 알과 특수지형이 놓인 다인전 알까기 보드</desc>
+  <defs>
+    <radialGradient id="board" cx="42%" cy="32%" r="74%">
+      <stop offset="0" stop-color="#d79b58"/>
+      <stop offset=".58" stop-color="#86512a"/>
+      <stop offset="1" stop-color="#231107"/>
+    </radialGradient>
+    <radialGradient id="red" cx="32%" cy="24%" r="74%">
+      <stop offset="0" stop-color="#ffd7cd"/>
+      <stop offset=".62" stop-color="#d94f45"/>
+      <stop offset="1" stop-color="#5f1716"/>
+    </radialGradient>
+    <radialGradient id="blue" cx="32%" cy="24%" r="74%">
+      <stop offset="0" stop-color="#d8ecff"/>
+      <stop offset=".62" stop-color="#2364aa"/>
+      <stop offset="1" stop-color="#10294e"/>
+    </radialGradient>
+    <radialGradient id="gold" cx="32%" cy="24%" r="74%">
+      <stop offset="0" stop-color="#fff0b8"/>
+      <stop offset=".62" stop-color="#d69b2d"/>
+      <stop offset="1" stop-color="#65410d"/>
+    </radialGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="12" stdDeviation="10" flood-color="#120904" flood-opacity=".46"/>
+    </filter>
+  </defs>
+  <rect width="640" height="420" fill="#100905"/>
+  <rect width="640" height="420" fill="none" stroke="#c99754" stroke-width="8"/>
+  <circle cx="320" cy="190" r="168" fill="#1b0d06" filter="url(#shadow)"/>
+  <circle cx="320" cy="190" r="152" fill="url(#board)" stroke="#f0cf8c" stroke-width="5"/>
+  <circle cx="320" cy="190" r="130" fill="none" stroke="#3c1e0c" stroke-width="4" stroke-dasharray="10 9"/>
+  <circle cx="320" cy="190" r="20" fill="#100704" stroke="#f0cf8c" stroke-opacity=".42" stroke-width="4"/>
+  <circle cx="250" cy="236" r="34" fill="#3c2111" opacity=".62"/>
+  <circle cx="390" cy="132" r="38" fill="#8bd0de" opacity=".28" stroke="#dbf8ff" stroke-opacity=".62"/>
+  <circle cx="320" cy="88" r="15" fill="#70421f" stroke="#f0cf8c" stroke-width="4"/>
+  <circle cx="204" cy="166" r="14" fill="#70421f" stroke="#f0cf8c" stroke-width="4"/>
+  <circle cx="446" cy="222" r="14" fill="#70421f" stroke="#f0cf8c" stroke-width="4"/>
+  <circle cx="246" cy="122" r="24" fill="url(#red)" stroke="#ffe2a2" stroke-width="3"/>
+  <path d="M235 117l5-10 6 8 6-8 5 10-3 10h-16z" fill="#ffe293" stroke="#4f2610" stroke-width="1.3"/>
+  <circle cx="408" cy="266" r="24" fill="url(#blue)" stroke="#ffe2a2" stroke-width="3"/>
+  <path d="M397 261l5-10 6 8 6-8 5 10-3 10h-16z" fill="#ffe293" stroke="#4f2610" stroke-width="1.3"/>
+  <circle cx="283" cy="177" r="17" fill="url(#red)" stroke="#fff2c8" stroke-width="2"/>
+  <circle cx="352" cy="121" r="17" fill="url(#gold)" stroke="#fff2c8" stroke-width="2" stroke-dasharray="4 4"/>
+  <path d="M352 112l3 8 8 1-6 5 2 8-7-4-7 4 2-8-6-5 8-1z" fill="#fff4ce" opacity=".86"/>
+  <circle cx="374" cy="218" r="16" fill="url(#blue)" stroke="#fff2c8" stroke-width="2"/>
+  <circle cx="274" cy="272" r="16" fill="url(#gold)" stroke="#fff2c8" stroke-width="2"/>
+  <path d="M140 348h360" stroke="#c99754" stroke-opacity=".45" stroke-width="2"/>
+  <text x="320" y="375" text-anchor="middle" fill="#f4dfbd" font-family="Arial, sans-serif" font-size="42" font-weight="900">알까기</text>
+</svg>

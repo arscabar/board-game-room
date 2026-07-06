@@ -482,6 +482,44 @@ async function playOmok(baseUrl: string, _options: PlayOptions = {}): Promise<Qa
   return { gameId: "omok", title: "오목", players: 2, mode: "playthrough", actions, completed, winner, note: "scripted horizontal five" };
 }
 
+async function playAlkkagi(baseUrl: string, options: PlayOptions = {}): Promise<QaResult> {
+  const playerCount = options.playerCount ?? 4;
+  const table = await createStartedRoom(baseUrl, "alkkagi", playerCount);
+  let actions = 0;
+
+  while (publicState<any>(table).phase !== "complete" && actions < 120) {
+    const client = activeClient(table);
+    const state = publicState<any>(table, client);
+    const myEggs = state.eggs.filter((egg: any) => egg.ownerId === client.playerId && egg.alive);
+    const targetKings = state.eggs.filter((egg: any) => egg.ownerId !== client.playerId && egg.kind === "king" && egg.alive);
+    assert(myEggs.length > 0, "Alkkagi active player has no eggs.");
+    assert(targetKings.length > 0, "Alkkagi target king not found.");
+
+    const pairs = myEggs.flatMap((shooter: any) =>
+      targetKings.map((target: any) => ({
+        shooter,
+        target,
+        distance: Math.hypot(shooter.x - target.x, shooter.y - target.y)
+      }))
+    );
+    const preferredPairs = pairs.filter((pair: any) => pair.shooter.kind !== "king");
+    const { shooter, target } = (preferredPairs.length > 0 ? preferredPairs : pairs).sort((a: any, b: any) => a.distance - b.distance)[0];
+    const dx = target.x - shooter.x;
+    const dy = target.y - shooter.y;
+    const size = Math.hypot(dx, dy) || 1;
+    await gameAction(table, client, {
+      type: "alkkagi/flick",
+      payload: { eggId: shooter.id, vector: { x: (dx / size) * 170, y: (dy / size) * 170 } }
+    });
+    actions += 1;
+  }
+
+  const winner = winnerLabel(table);
+  const completed = publicState<any>(table).phase === "complete" && winner !== "-";
+  await closeTable(table);
+  return { gameId: "alkkagi", title: "알까기", players: playerCount, mode: "playthrough", actions, completed, winner, note: "physics flick survival" };
+}
+
 function kkukkkukiLegalActions(state: any, playerId: string): GameAction[] {
   const actions: GameAction[] = [];
   if (state.phase === "playing") {
@@ -1318,6 +1356,7 @@ const scenarios: Array<{ gameId: string; play: PlayScenario }> = [
   { gameId: "ghosts", play: playGhosts },
   { gameId: "qawale", play: playQawale },
   { gameId: "omok", play: playOmok },
+  { gameId: "alkkagi", play: playAlkkagi },
   { gameId: "kkukkkuki", play: playKkukkkuki },
   { gameId: "davinci-code-plus", play: playDavinci },
   { gameId: "blokus", play: playBlokus },

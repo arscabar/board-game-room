@@ -158,6 +158,37 @@ export const games: GameDefinition[] = [
     }
   },
   {
+    id: "alkkagi",
+    title: "알까기",
+    original: "Korean Flick Stones",
+    allowedPlayerCounts: [2, 3, 4],
+    scoreState: "점수제 아님",
+    priority: "중간",
+    genre: "손맛 액션, 다인전, 물리 충돌",
+    board: "원형 목재판",
+    docFile: "14-alkkagi.md",
+    learnUrl: "https://ko.wikipedia.org/wiki/%EC%95%8C%EA%B9%8C%EA%B8%B0",
+    accent: "#b97835",
+    summary: "왕알을 지키며 일반알과 무작위 스킬 알을 튕겨 상대 왕알을 판 밖으로 밀어내는 다인전 알까기.",
+    components: ["원형 목재판", "플레이어별 왕알 1개", "일반알 2개", "무작위 스킬 알 3개", "특수지형"],
+    setup: ["2~4명이 각자 색을 받음", "왕알 1개와 알 5개를 자기 시작 구역에 배치", "스킬 알 3개는 플레이어마다 무작위 부여"],
+    turnFlow: ["자기 알 하나를 끌어서 방향과 세기를 정함", "왕알은 무겁고 조금만 움직임", "충돌과 특수지형 효과를 모두 처리", "다음 생존 플레이어로 차례 이동"],
+    winCondition: "왕알이 판 밖이나 구멍으로 빠지면 탈락하고, 마지막까지 왕알이 남은 플레이어가 승리.",
+    implementation: ["Matter.js 충돌 계산", "왕알 저속/고중량 처리", "무작위 스킬 알 3개", "끈적/미끄럼/범퍼/구멍 특수지형", "2~4인 생존 턴 순환"],
+    table: {
+      kind: "rings",
+      primaryMetric: "왕알",
+      secondaryMetric: "생존 알",
+      uiHint: "원형 목재판 위 알을 끌어 튕기는 물리 보드"
+    },
+    visual: {
+      iconKind: "rings",
+      thumbnailHint: "다인전 알 튕기기",
+      motionHint: "flick",
+      texture: "wood"
+    }
+  },
+  {
     id: "kkukkkuki",
     title: "꾹꾹이",
     original: "Kkukkkuki",

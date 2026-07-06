@@ -252,6 +252,9 @@ function manualTurnEndRestriction(gameId: string | null | undefined, phase: stri
   if (gameId === "omok" && phase === "playing") {
     return "오목은 빈 교차점에 돌을 놓아야 턴이 끝납니다.";
   }
+  if (gameId === "alkkagi" && phase === "playing") {
+    return "알까기는 알을 튕겨야 턴이 끝납니다.";
+  }
   if (gameId === "kkukkkuki" && (phase === "playing" || phase === "choose-line" || phase === "choose-piece")) {
     return "꾹꾹이는 말 배치와 승급/회수 단계를 직접 처리해야 턴이 끝납니다.";
   }
@@ -1595,6 +1598,7 @@ function BoardPreviewStage({ game, cells }: { game: GameDefinition; cells: numbe
   if (game.id === "ghosts") return <GhostsMiniBoard />;
   if (game.id === "qawale") return <QawaleMiniBoard />;
   if (game.id === "omok") return <OmokMiniBoard />;
+  if (game.id === "alkkagi") return <AlkkagiMiniBoard />;
   if (game.id === "kkukkkuki") return <KkukkkukiMiniBoard />;
   if (game.id === "davinci-code-plus") return <DavinciMiniRack />;
   if (game.id === "blokus") return <BlokusMiniBoard />;
@@ -1712,6 +1716,32 @@ function OmokMiniBoard() {
         const stone = stones.get(`${row}-${col}`);
         return <span key={`${row}-${col}`} className={stone ?? ""} />;
       })}
+    </div>
+  );
+}
+
+function AlkkagiMiniBoard() {
+  const eggs = [
+    { x: 34, y: 22, color: "red", king: true },
+    { x: 49, y: 34, color: "red" },
+    { x: 62, y: 76, color: "blue", king: true },
+    { x: 48, y: 64, color: "blue" },
+    { x: 35, y: 58, color: "yellow" },
+    { x: 71, y: 43, color: "green" }
+  ];
+
+  return (
+    <div className="alkkagi-mini-board">
+      <span className="terrain pit" />
+      <span className="terrain mud" />
+      <span className="terrain ice" />
+      {eggs.map((egg, index) => (
+        <i
+          key={index}
+          className={`${egg.color} ${egg.king ? "king" : ""}`}
+          style={{ "--x": `${egg.x}%`, "--y": `${egg.y}%` } as CSSProperties}
+        />
+      ))}
     </div>
   );
 }

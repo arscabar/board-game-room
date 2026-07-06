@@ -3,6 +3,7 @@ import { games } from "../shared/games";
 import type { GameDefinition } from "../shared/types";
 import type { GameComponentProps, GameModule } from "./types";
 import { module as abaloneModule, Component as AbaloneComponent } from "./abalone-classic";
+import { module as alkkagiModule, Component as AlkkagiComponent } from "./alkkagi";
 import { module as blokusModule, Component as BlokusComponent } from "./blokus";
 import { module as davinciModule, Component as DavinciComponent } from "./davinci-code-plus";
 import { module as ghostsModule, Component as GhostsComponent } from "./ghosts";
@@ -49,6 +50,7 @@ export const gameCatalog = [
   registerGame("ghosts", ghostsModule, GhostsComponent),
   registerGame("qawale", qawaleModule, QawaleComponent),
   registerGame("omok", omokModule, OmokComponent),
+  registerGame("alkkagi", alkkagiModule, AlkkagiComponent),
   registerGame("kkukkkuki", kkukkkukiModule, KkukkkukiComponent),
   registerGame("davinci-code-plus", davinciModule, DavinciComponent),
   registerGame("blokus", blokusModule, BlokusComponent),
