@@ -1,5 +1,5 @@
 import Matter from "matter-js";
-import { useRef, useState, type CSSProperties, type PointerEvent } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent } from "react";
 import type { GameAction, GameActionResult, GameComponentProps, GameContext, GameModule } from "../types";
 
 const BOARD_RADIUS = 360;
@@ -8,6 +8,11 @@ const MAX_VECTOR = 170;
 const MAX_SPEED = 22;
 const STEP_MS = 1000 / 60;
 const MAX_STEPS = 360;
+const AIM_PHASE_LIMIT_MS = 10_000;
+const DIRECTION_CYCLE_MS = 3_400;
+const POWER_CYCLE_MS = 1_800;
+const MIN_POWER_RATIO = 0.08;
+const DEFAULT_AIM_POWER = 0.58;
 
 const playerColors = ["#d94f45", "#2364aa", "#d69b2d", "#258a5b"];
 const skillPool = ["dash", "anchor", "burst", "guard", "rubber"] as const;
@@ -18,6 +23,8 @@ type SkillKind = (typeof skillPool)[number];
 type TerrainKind = "mud" | "ice" | "bumper" | "pit";
 type GimmickKind = "button" | "lever";
 type Phase = "playing" | "complete";
+type AimPhase = "idle" | "direction" | "power";
+type HoldMode = "direction" | "power";
 
 interface Point {
   x: number;
@@ -82,6 +89,14 @@ interface AlkkagiState {
 interface FlickPayload {
   eggId: string;
   vector: Point;
+}
+
+interface AimControlState {
+  phase: AimPhase;
+  eggId: string | null;
+  angle: number;
+  power: number;
+  deadline: number;
 }
 
 const arenaPresets: ArenaPreset[] = [
@@ -189,6 +204,25 @@ function clamp(value: number, min: number, max: number) {
 function normalize(vector: Point) {
   const size = length(vector);
   return size > 0 ? { x: vector.x / size, y: vector.y / size } : { x: 1, y: 0 };
+}
+
+function normalizeAngle(angle: number) {
+  const fullTurn = Math.PI * 2;
+  return ((angle % fullTurn) + fullTurn) % fullTurn;
+}
+
+function idleAimControl(): AimControlState {
+  return {
+    phase: "idle",
+    eggId: null,
+    angle: 0,
+    power: MIN_POWER_RATIO,
+    deadline: 0
+  };
+}
+
+function nextAimDeadline() {
+  return Date.now() + AIM_PHASE_LIMIT_MS;
 }
 
 function round(value: number) {
@@ -707,54 +741,169 @@ export function Component({
 }: GameComponentProps<AlkkagiState>) {
   const state = assertState(publicState);
   const arena = arenaById(state.arena.id);
-  const svgRef = useRef<SVGSVGElement | null>(null);
-  const [drag, setDrag] = useState<{ eggId: string; start: Point; current: Point } | null>(null);
+  const holdOriginRef = useRef({ angle: 0, power: MIN_POWER_RATIO, start: 0 });
+  const [control, setControl] = useState<AimControlState>(() => idleAimControl());
+  const [hold, setHold] = useState<HoldMode | null>(null);
+  const [now, setNow] = useState(() => Date.now());
   const canAct = !disabled && currentPlayer?.id === state.activePlayerId && state.phase === "playing";
   const activeEggs = state.eggs.filter((egg) => egg.alive);
-  const selectedEgg = drag ? activeEggs.find((egg) => egg.id === drag.eggId) ?? null : null;
-  const aim = selectedEgg && drag ? { x: selectedEgg.x - drag.current.x, y: selectedEgg.y - drag.current.y } : null;
-  const aimSize = aim ? Math.min(length(aim), selectedEgg?.kind === "king" ? 76 : MAX_VECTOR) : 0;
-  const aimDirection = aim ? normalize(aim) : { x: 0, y: 0 };
+  const selectedEgg = control.eggId ? activeEggs.find((egg) => egg.id === control.eggId) ?? null : null;
+  const selectedOwner = selectedEgg ? state.players.find((player) => player.id === selectedEgg.ownerId) : null;
+  const aimCap = selectedEgg?.kind === "king" ? 76 : MAX_VECTOR;
+  const previewPower = control.phase === "power" ? Math.max(control.power, MIN_POWER_RATIO) : DEFAULT_AIM_POWER;
+  const aimSize = selectedEgg && control.phase !== "idle" ? Math.max(8, aimCap * previewPower) : 0;
+  const aimDirection = { x: Math.cos(control.angle), y: Math.sin(control.angle) };
+  const remainingSeconds = control.phase === "idle" ? 0 : Math.max(0, Math.ceil((control.deadline - now) / 1000));
+  const powerPercent = Math.round(Math.max(control.power, MIN_POWER_RATIO) * 100);
+  const controlLabel = control.phase === "idle" ? "알 선택" : control.phase === "direction" ? "방향 선택" : "힘 선택";
 
-  function clientPoint(event: PointerEvent<SVGElement>): Point {
-    const svg = svgRef.current;
-    if (!svg) return { x: 0, y: 0 };
-    const rect = svg.getBoundingClientRect();
-    return {
-      x: ((event.clientX - rect.left) / rect.width) * VIEW_SIZE - VIEW_SIZE / 2,
-      y: ((event.clientY - rect.top) / rect.height) * VIEW_SIZE - VIEW_SIZE / 2
+  useEffect(() => {
+    if (!hold) return;
+
+    let frame = 0;
+    const tick = (timestamp: number) => {
+      const origin = holdOriginRef.current;
+      const elapsed = timestamp - origin.start;
+      setControl((current) => {
+        if (current.phase !== hold) return current;
+        if (hold === "direction") {
+          return {
+            ...current,
+            angle: normalizeAngle(origin.angle + (elapsed / DIRECTION_CYCLE_MS) * Math.PI * 2)
+          };
+        }
+
+        const cycle = (elapsed % POWER_CYCLE_MS) / POWER_CYCLE_MS;
+        const wave = cycle <= 0.5 ? cycle * 2 : (1 - cycle) * 2;
+        return {
+          ...current,
+          power: MIN_POWER_RATIO + wave * (1 - MIN_POWER_RATIO)
+        };
+      });
+      frame = window.requestAnimationFrame(tick);
     };
+
+    frame = window.requestAnimationFrame(tick);
+    return () => window.cancelAnimationFrame(frame);
+  }, [hold]);
+
+  useEffect(() => {
+    if (control.phase === "idle") return;
+
+    const timer = window.setInterval(() => setNow(Date.now()), 100);
+    return () => window.clearInterval(timer);
+  }, [control.deadline, control.phase]);
+
+  useEffect(() => {
+    if (control.phase !== "idle" && now >= control.deadline) {
+      resetControl();
+    }
+  }, [control.deadline, control.phase, now]);
+
+  useEffect(() => {
+    const selectedAlive = !control.eggId || state.eggs.some((egg) => egg.id === control.eggId && egg.alive);
+    if (control.phase !== "idle" && (!canAct || !selectedAlive)) {
+      resetControl();
+    }
+  }, [canAct, control.eggId, control.phase, state.eggs]);
+
+  function resetControl() {
+    setHold(null);
+    setControl(idleAimControl());
   }
 
-  function beginDrag(event: PointerEvent<SVGGElement>, egg: AlkkagiEgg) {
+  function chooseEgg(egg: AlkkagiEgg) {
     if (!canAct || egg.ownerId !== currentPlayer?.id) return;
+    setHold(null);
+    setNow(Date.now());
+    setControl({
+      phase: "direction",
+      eggId: egg.id,
+      angle: normalizeAngle(Math.atan2(-egg.y, -egg.x)),
+      power: MIN_POWER_RATIO,
+      deadline: nextAimDeadline()
+    });
+  }
+
+  function chooseEggByPointer(event: PointerEvent<SVGGElement>, egg: AlkkagiEgg) {
+    event.preventDefault();
+    event.stopPropagation();
+    chooseEgg(egg);
+  }
+
+  function chooseEggByKey(event: KeyboardEvent<SVGGElement>, egg: AlkkagiEgg) {
+    if (event.key !== " " && event.key !== "Enter") return;
+    event.preventDefault();
+    chooseEgg(egg);
+  }
+
+  function startHold(event: PointerEvent<HTMLButtonElement>, mode: HoldMode) {
+    event.preventDefault();
+    if (control.phase !== mode) return;
     event.currentTarget.setPointerCapture(event.pointerId);
-    const point = clientPoint(event);
-    setDrag({ eggId: egg.id, start: point, current: point });
+    holdOriginRef.current = { angle: control.angle, power: control.power, start: performance.now() };
+    setHold(mode);
   }
 
-  function moveDrag(event: PointerEvent<SVGSVGElement>) {
-    if (!drag) return;
-    setDrag((current) => (current ? { ...current, current: clientPoint(event) } : current));
+  function startHoldByKey(event: KeyboardEvent<HTMLButtonElement>, mode: HoldMode) {
+    if ((event.key !== " " && event.key !== "Enter") || event.repeat || control.phase !== mode) return;
+    event.preventDefault();
+    holdOriginRef.current = { angle: control.angle, power: control.power, start: performance.now() };
+    setHold(mode);
   }
 
-  function endDrag() {
-    if (!drag || !selectedEgg || !aim) {
-      setDrag(null);
+  function endHoldByKey(event: KeyboardEvent<HTMLButtonElement>, mode: HoldMode) {
+    if (event.key !== " " && event.key !== "Enter") return;
+    event.preventDefault();
+    finishHold(mode);
+  }
+
+  function finishHold(mode: HoldMode) {
+    if (control.phase !== mode) return;
+    setHold(null);
+    if (mode === "direction") {
+      setNow(Date.now());
+      setControl((current) =>
+        current.phase === "direction"
+          ? {
+              ...current,
+              phase: "power",
+              power: MIN_POWER_RATIO,
+              deadline: nextAimDeadline()
+            }
+          : current
+      );
       return;
     }
-    const capped = Math.min(length(aim), selectedEgg.kind === "king" ? 76 : MAX_VECTOR);
-    if (capped >= 8) {
-      const direction = normalize(aim);
-      onAction({
-        type: "alkkagi/flick",
-        payload: {
-          eggId: selectedEgg.id,
-          vector: { x: direction.x * capped, y: direction.y * capped }
-        }
-      });
+
+    fireSelectedEgg();
+  }
+
+  function fireSelectedEgg() {
+    if (!selectedEgg || control.phase !== "power") {
+      resetControl();
+      return;
     }
-    setDrag(null);
+
+    const cappedPower = Math.max(control.power, MIN_POWER_RATIO);
+    const size = Math.max(8, aimCap * cappedPower);
+    onAction({
+      type: "alkkagi/flick",
+      payload: {
+        eggId: selectedEgg.id,
+        vector: {
+          x: Math.cos(control.angle) * size,
+          y: Math.sin(control.angle) * size
+        }
+      }
+    });
+    resetControl();
+  }
+
+  function cancelHold(mode: HoldMode) {
+    if (hold === mode) {
+      setHold(null);
+    }
   }
 
   return (
@@ -766,14 +915,10 @@ export function Component({
       </section>
 
       <svg
-        ref={svgRef}
         className="alk-board"
         viewBox={`${-VIEW_SIZE / 2} ${-VIEW_SIZE / 2} ${VIEW_SIZE} ${VIEW_SIZE}`}
         role="application"
         aria-label="다인전 알까기 원형판"
-        onPointerMove={moveDrag}
-        onPointerUp={endDrag}
-        onPointerCancel={() => setDrag(null)}
       >
         <defs>
           <radialGradient id="alk-board-grain" cx="38%" cy="28%" r="70%">
@@ -824,7 +969,7 @@ export function Component({
           );
         })}
 
-        {aim && selectedEgg ? (
+        {selectedEgg && control.phase !== "idle" ? (
           <g className="alk-aim" aria-hidden="true">
             <line
               x1={selectedEgg.x}
@@ -839,17 +984,19 @@ export function Component({
         {activeEggs.map((egg) => {
           const owner = state.players.find((player) => player.id === egg.ownerId);
           const isCurrent = egg.ownerId === currentPlayer?.id && canAct;
+          const isSelected = egg.id === selectedEgg?.id;
           const radius = eggRadius(egg);
           return (
             <g
               key={egg.id}
-              className={`alk-egg ${egg.kind} ${skillClass(egg.skill)} ${isCurrent ? "is-current" : ""} ${egg.id === state.lastShot?.eggId ? "last-shot" : ""}`}
+              className={`alk-egg ${egg.kind} ${skillClass(egg.skill)} ${isCurrent ? "is-current" : ""} ${isSelected ? "is-selected" : ""} ${egg.id === state.lastShot?.eggId ? "last-shot" : ""}`}
               style={{ "--player-color": owner?.color ?? "#d94f45" } as CSSProperties}
               transform={`translate(${egg.x} ${egg.y})`}
               role="button"
               tabIndex={isCurrent ? 0 : -1}
               aria-label={`${owner?.name ?? "플레이어"} ${egg.kind === "king" ? "왕알" : egg.skill ? "스킬 알" : "알"}`}
-              onPointerDown={(event) => beginDrag(event, egg)}
+              onPointerDown={(event) => chooseEggByPointer(event, egg)}
+              onKeyDown={(event) => chooseEggByKey(event, egg)}
             >
               <circle className="alk-egg-shadow" cx="0" cy="4" r={radius} />
               <circle className="alk-egg-body" cx="0" cy="0" r={radius} />
@@ -865,6 +1012,61 @@ export function Component({
           );
         })}
       </svg>
+
+      {canAct ? (
+        <section className={`alk-control-dock phase-${control.phase}`} aria-label="알까기 조작판">
+          <div className="alk-control-steps" aria-hidden="true">
+            <span className={control.phase === "idle" ? "active" : "done"}>알</span>
+            <span className={control.phase === "direction" ? "active" : control.phase === "power" ? "done" : ""}>방향</span>
+            <span className={control.phase === "power" ? "active" : ""}>힘</span>
+          </div>
+
+          <div className="alk-control-readout">
+            <strong>{controlLabel}</strong>
+            <span>{selectedEgg ? `${selectedOwner?.name ?? "내 알"} · ${remainingSeconds || 10}초` : "내 알을 선택"}</span>
+          </div>
+
+          <div className="alk-control-tools">
+            <div className="alk-direction-dial" aria-hidden="true">
+              <i style={{ transform: `translate(-50%, -50%) rotate(${control.angle}rad)` }} />
+            </div>
+            <div className="alk-power-meter" aria-hidden="true">
+              <span style={{ transform: `scaleX(${Math.max(control.power, MIN_POWER_RATIO)})` }} />
+            </div>
+          </div>
+
+          <div className="alk-control-buttons">
+            <button
+              type="button"
+              className={`alk-hold-control direction ${control.phase === "direction" ? "is-live" : ""} ${hold === "direction" ? "is-holding" : ""}`}
+              disabled={control.phase !== "direction"}
+              aria-pressed={hold === "direction"}
+              onPointerDown={(event) => startHold(event, "direction")}
+              onPointerUp={() => finishHold("direction")}
+              onPointerCancel={() => cancelHold("direction")}
+              onKeyDown={(event) => startHoldByKey(event, "direction")}
+              onKeyUp={(event) => endHoldByKey(event, "direction")}
+            >
+              <span>방향</span>
+              <small>{hold === "direction" ? "회전" : "길게"}</small>
+            </button>
+            <button
+              type="button"
+              className={`alk-hold-control power ${control.phase === "power" ? "is-live" : ""} ${hold === "power" ? "is-holding" : ""}`}
+              disabled={control.phase !== "power"}
+              aria-pressed={hold === "power"}
+              onPointerDown={(event) => startHold(event, "power")}
+              onPointerUp={() => finishHold("power")}
+              onPointerCancel={() => cancelHold("power")}
+              onKeyDown={(event) => startHoldByKey(event, "power")}
+              onKeyUp={(event) => endHoldByKey(event, "power")}
+            >
+              <span>힘</span>
+              <small>{hold === "power" ? `${powerPercent}%` : "길게"}</small>
+            </button>
+          </div>
+        </section>
+      ) : null}
     </div>
   );
 }
