@@ -545,6 +545,7 @@ export function Component({
   const myTurn = currentPlayer?.id === state.activePlayerId;
   const canAct = !disabled && myTurn && state.phase !== "complete";
   const pendingCoordKeys = useMemo(() => new Set(state.pendingLines.flatMap((line) => line.coords.map(coordKey))), [state.pendingLines]);
+  const boopByPieceId = useMemo(() => new Map(state.boopTrace.map((trace) => [trace.pieceId, trace])), [state.boopTrace]);
 
   useEffect(() => {
     if (selectedSize === "small" && activeReserve?.small === 0 && activeReserve.large > 0) {
@@ -563,6 +564,12 @@ export function Component({
     }
     if (state.phase !== "playing") return;
     onAction({ type: "kkukkkuki/place-piece", payload: { row, col, size: selectedSize } });
+  }
+
+  function boopOffset(delta: number) {
+    if (delta < 0) return "calc(0px - var(--kkuk-step))";
+    if (delta > 0) return "var(--kkuk-step)";
+    return "0px";
   }
 
   return (
@@ -585,9 +592,15 @@ export function Component({
             {state.board.map((row, rowIndex) =>
               row.map((piece, colIndex) => {
                 const owner = state.players.find((player) => player.id === piece?.ownerId);
+                const boop = piece ? boopByPieceId.get(piece.id) : null;
                 const isLast = state.lastPlaced?.row === rowIndex && state.lastPlaced.col === colIndex;
                 const pending = pendingCoordKeys.has(coordKey({ row: rowIndex, col: colIndex }));
                 const removable = state.phase === "choose-piece" && piece?.ownerId === currentPlayer?.id;
+                const pieceStyle = {
+                  "--piece-color": owner?.color ?? "#c46d43",
+                  "--boop-start-x": boop?.to ? boopOffset(boop.from.col - colIndex) : "0px",
+                  "--boop-start-y": boop?.to ? boopOffset(boop.from.row - rowIndex) : "0px"
+                } as CSSProperties;
                 return (
                   <button
                     key={`${rowIndex}-${colIndex}`}
@@ -599,8 +612,9 @@ export function Component({
                   >
                     {piece ? (
                       <span
-                        className={`kkuk-piece ${piece.size}`}
-                        style={{ "--piece-color": owner?.color ?? "#c46d43" } as CSSProperties}
+                        key={`${piece.id}-${state.actionNonce}`}
+                        className={`kkuk-piece ${piece.size} ${boop?.to ? "booped" : ""}`}
+                        style={pieceStyle}
                         aria-hidden="true"
                       />
                     ) : null}
@@ -608,6 +622,31 @@ export function Component({
                 );
               })
             )}
+            <div className="kkuk-effect-layer" aria-hidden="true">
+              {state.lastPlaced ? (
+                <span
+                  className="kkuk-effect place"
+                  style={{ gridColumn: state.lastPlaced.col + 1, gridRow: state.lastPlaced.row + 1 } as CSSProperties}
+                />
+              ) : null}
+              {state.boopTrace.map((trace, index) => {
+                const effectCoord = trace.to ?? trace.from;
+                const effectOwner = state.players.find((player) => player.id === trace.ownerId);
+                return (
+                  <span
+                    key={`${trace.pieceId}-${state.actionNonce}-${index}`}
+                    className={`kkuk-effect ${trace.to ? "push" : "out"}`}
+                    style={
+                      {
+                        gridColumn: effectCoord.col + 1,
+                        gridRow: effectCoord.row + 1,
+                        "--piece-color": effectOwner?.color ?? "#c46d43"
+                      } as CSSProperties
+                    }
+                  />
+                );
+              })}
+            </div>
           </div>
         </div>
 
