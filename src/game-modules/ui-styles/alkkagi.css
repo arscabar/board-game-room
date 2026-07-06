@@ -9,7 +9,7 @@
   --alk-board-bg-b: rgba(14, 9, 5, 0.94);
   --alk-rim-fill: #1c0e07;
   --alk-inner-line: rgba(58, 29, 11, 0.5);
-  width: min(100%, 980px) !important;
+  width: min(100%, 1060px) !important;
   margin: 0 auto !important;
   color: var(--alk-ink) !important;
 }
@@ -81,7 +81,7 @@
 }
 
 .alk-board {
-  width: min(100%, 780px) !important;
+  width: min(100%, 860px) !important;
   aspect-ratio: 1 !important;
   display: block !important;
   margin: 0 auto !important;
@@ -95,7 +95,7 @@
 }
 
 .alk-control-dock {
-  width: min(100%, 780px) !important;
+  width: min(100%, 860px) !important;
   display: grid !important;
   grid-template-columns: minmax(150px, 0.9fr) minmax(160px, 1.1fr) minmax(180px, 1fr) !important;
   gap: 8px !important;
@@ -329,33 +329,138 @@
   stroke-dasharray: 10 8 !important;
 }
 
-.alk-terrain circle:first-child {
+.alk-table-playline {
+  fill: none !important;
+  stroke: rgba(255, 231, 174, 0.18) !important;
   stroke-width: 2 !important;
+  stroke-dasharray: 18 12 !important;
 }
 
-.alk-terrain.mud circle:first-child {
-  fill: rgba(73, 45, 26, 0.72) !important;
-  stroke: rgba(45, 24, 12, 0.7) !important;
+.alk-table-dangerline {
+  fill: none !important;
+  stroke: rgba(255, 218, 145, 0.36) !important;
+  stroke-width: 3 !important;
 }
 
-.alk-terrain.ice circle:first-child {
-  fill: rgba(136, 204, 221, 0.28) !important;
-  stroke: rgba(196, 239, 247, 0.72) !important;
+.alk-home-zone {
+  pointer-events: none !important;
 }
 
-.alk-terrain.pit circle:first-child {
-  fill: #100804 !important;
-  stroke: rgba(255, 229, 170, 0.42) !important;
+.alk-home-zone path {
+  fill: color-mix(in srgb, var(--player-color) 42%, rgba(32, 18, 8, 0.46)) !important;
+  stroke: color-mix(in srgb, var(--player-color) 72%, #ffe1a0 28%) !important;
+  stroke-width: 2.5 !important;
+  opacity: 0.42 !important;
+  filter: drop-shadow(0 5px 8px rgba(0, 0, 0, 0.22)) !important;
+}
+
+.alk-home-zone circle {
+  fill: color-mix(in srgb, var(--player-color) 78%, #fff0bf 22%) !important;
+  stroke: rgba(39, 22, 10, 0.62) !important;
+  stroke-width: 1.8 !important;
+}
+
+.alk-terrain {
+  pointer-events: none !important;
+}
+
+.alk-terrain-hit-area {
+  fill: rgba(255, 226, 166, 0.04) !important;
+  stroke: rgba(255, 226, 166, 0.16) !important;
+  stroke-width: 2 !important;
+  stroke-dasharray: 4 5 !important;
+}
+
+.alk-terrain-asset {
+  filter: drop-shadow(0 8px 9px rgba(0, 0, 0, 0.34)) !important;
+  image-rendering: auto !important;
+}
+
+.alk-terrain.ice .alk-terrain-asset {
+  opacity: 0.92 !important;
+  filter: drop-shadow(0 5px 9px rgba(34, 119, 140, 0.28)) drop-shadow(0 0 8px rgba(217, 251, 255, 0.16)) !important;
+}
+
+.alk-terrain.mud .alk-terrain-asset {
+  filter: drop-shadow(0 7px 7px rgba(0, 0, 0, 0.28)) saturate(1.06) !important;
+}
+
+.alk-terrain.pit .alk-terrain-asset {
+  filter: drop-shadow(0 9px 10px rgba(0, 0, 0, 0.42)) !important;
+}
+
+.alk-terrain.bumper .alk-terrain-asset {
+  filter: drop-shadow(0 10px 9px rgba(0, 0, 0, 0.36)) saturate(1.08) !important;
+}
+
+.alk-pit-lip {
+  fill: rgba(83, 48, 22, 0.82) !important;
+  stroke: rgba(255, 220, 151, 0.58) !important;
+  stroke-width: 4 !important;
+  filter: drop-shadow(0 7px 8px rgba(0, 0, 0, 0.34)) !important;
+}
+
+.alk-pit-hole {
+  fill: #0b0402 !important;
+  stroke: rgba(255, 232, 176, 0.24) !important;
+  stroke-width: 3 !important;
+}
+
+.alk-pit-glow {
+  fill: rgba(255, 220, 146, 0.18) !important;
+}
+
+.alk-mud-patch {
+  fill: rgba(92, 55, 29, 0.76) !important;
+  stroke: rgba(55, 29, 13, 0.8) !important;
+  stroke-width: 3 !important;
+  filter: drop-shadow(0 6px 7px rgba(0, 0, 0, 0.24)) !important;
+}
+
+.alk-mud-spot {
+  fill: rgba(42, 24, 12, 0.42) !important;
+}
+
+.alk-mud-ridge {
+  fill: none !important;
+  stroke: rgba(211, 151, 77, 0.42) !important;
   stroke-width: 5 !important;
+  stroke-linecap: round !important;
 }
 
-.alk-terrain.bumper circle:first-child {
-  fill: #6d3d1c !important;
-  stroke: rgba(255, 221, 155, 0.76) !important;
+.alk-ice-sheet {
+  fill: rgba(147, 215, 231, 0.34) !important;
+  stroke: rgba(222, 250, 255, 0.8) !important;
+  stroke-width: 3 !important;
+  filter: drop-shadow(0 5px 9px rgba(24, 101, 122, 0.26)) !important;
+}
+
+.alk-ice-crack,
+.alk-ice-shine {
+  fill: none !important;
+  stroke: rgba(236, 255, 255, 0.82) !important;
+  stroke-width: 4 !important;
+  stroke-linecap: round !important;
+}
+
+.alk-ice-shine {
+  opacity: 0.74 !important;
+}
+
+.alk-bumper-base {
+  fill: rgba(63, 35, 16, 0.78) !important;
+  stroke: rgba(255, 221, 155, 0.55) !important;
+  stroke-width: 3 !important;
+}
+
+.alk-bumper-post {
+  fill: #875126 !important;
+  stroke: rgba(255, 224, 155, 0.82) !important;
+  stroke-width: 3 !important;
   filter: url("#alk-soft-shadow") !important;
 }
 
-.alk-terrain.bumper circle:last-child {
+.alk-bumper-cap {
   fill: #f0c976 !important;
   stroke: rgba(54, 27, 12, 0.55) !important;
   stroke-width: 2 !important;
@@ -364,6 +469,23 @@
 .alk-gimmick {
   pointer-events: none !important;
   filter: url("#alk-soft-shadow") !important;
+}
+
+.alk-gimmick-contact {
+  fill: rgba(10, 6, 3, 0.34) !important;
+}
+
+.alk-gimmick-asset {
+  image-rendering: auto !important;
+  filter: drop-shadow(0 9px 8px rgba(0, 0, 0, 0.35)) !important;
+}
+
+.alk-gimmick.button .alk-gimmick-asset {
+  filter: drop-shadow(0 8px 8px rgba(0, 0, 0, 0.34)) saturate(1.08) !important;
+}
+
+.alk-gimmick.lever .alk-gimmick-asset {
+  filter: drop-shadow(0 7px 7px rgba(0, 0, 0, 0.32)) saturate(1.08) !important;
 }
 
 .alk-gimmick-pad {
@@ -413,7 +535,9 @@
 .alk-gimmick.triggered .alk-gimmick-core,
 .alk-gimmick.triggered .alk-gimmick-lever-arm,
 .alk-gimmick.triggered .alk-gimmick-hinge,
-.alk-gimmick.triggered .alk-gimmick-arrow {
+.alk-gimmick.triggered .alk-gimmick-arrow,
+.alk-gimmick.triggered .alk-gimmick-asset,
+.alk-gimmick.triggered .alk-gimmick-contact {
   animation: alk-gimmick-trigger 620ms ease-out;
 }
 
@@ -462,6 +586,30 @@
 
 .alk-egg.last-shot .alk-egg-body {
   animation: alk-last-shot 520ms ease-out;
+}
+
+.alk-egg.is-moving .alk-egg-body {
+  filter: url("#alk-soft-shadow") drop-shadow(0 0 9px rgba(255, 219, 137, 0.42)) !important;
+}
+
+.alk-egg.is-moving .alk-egg-shadow {
+  opacity: 0.24 !important;
+  transform: scaleX(1.22) !important;
+}
+
+.alk-egg.is-impact .alk-egg-body {
+  animation: alk-impact-pop 300ms ease-out;
+}
+
+.alk-egg.is-falling {
+  opacity: 0.54 !important;
+}
+
+.alk-egg.is-falling .alk-egg-body,
+.alk-egg.is-falling .alk-skill-aura,
+.alk-egg.is-falling .alk-skill-mark,
+.alk-egg.is-falling .alk-king-mark {
+  animation: alk-fall-out 520ms ease-in both;
 }
 
 .alk-egg.is-selected .alk-egg-body {
@@ -653,6 +801,29 @@
   }
 }
 
+@keyframes alk-impact-pop {
+  from {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.18);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+@keyframes alk-fall-out {
+  from {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+  to {
+    opacity: 0.18;
+    transform: scale(0.62) rotate(18deg);
+  }
+}
+
 @keyframes alk-dash-flash {
   from {
     opacity: 0.3;
@@ -777,7 +948,12 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .alk-egg.last-shot .alk-egg-body {
+  .alk-egg.last-shot .alk-egg-body,
+  .alk-egg.is-impact .alk-egg-body,
+  .alk-egg.is-falling .alk-egg-body,
+  .alk-egg.is-falling .alk-skill-aura,
+  .alk-egg.is-falling .alk-skill-mark,
+  .alk-egg.is-falling .alk-king-mark {
     animation: none !important;
   }
 
@@ -800,7 +976,9 @@
   .alk-gimmick.triggered .alk-gimmick-core,
   .alk-gimmick.triggered .alk-gimmick-lever-arm,
   .alk-gimmick.triggered .alk-gimmick-hinge,
-  .alk-gimmick.triggered .alk-gimmick-arrow {
+  .alk-gimmick.triggered .alk-gimmick-arrow,
+  .alk-gimmick.triggered .alk-gimmick-asset,
+  .alk-gimmick.triggered .alk-gimmick-contact {
     animation: none !important;
   }
 }

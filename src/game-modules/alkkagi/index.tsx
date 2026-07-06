@@ -2,8 +2,8 @@ import Matter from "matter-js";
 import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent } from "react";
 import type { GameAction, GameActionResult, GameComponentProps, GameContext, GameModule } from "../types";
 
-const BOARD_RADIUS = 360;
-const VIEW_SIZE = 820;
+const BOARD_RADIUS = 392;
+const VIEW_SIZE = 900;
 const MAX_VECTOR = 170;
 const MAX_SPEED = 22;
 const STEP_MS = 1000 / 60;
@@ -19,6 +19,10 @@ const DIRECTION_CYCLE_MS = 3_400;
 const POWER_CYCLE_MS = 1_800;
 const MIN_POWER_RATIO = 0.08;
 const DEFAULT_AIM_POWER = 0.58;
+const MOTION_FRAME_INTERVAL = 2;
+const MAX_MOTION_FRAMES = 96;
+const SHOT_REPLAY_MIN_MS = 900;
+const SHOT_REPLAY_MAX_MS = 2200;
 
 const playerColors = ["#d94f45", "#2364aa", "#d69b2d", "#258a5b"];
 const skillPool = ["dash", "anchor", "burst", "guard", "rubber"] as const;
@@ -74,6 +78,30 @@ interface ArenaPreset {
   gimmicks: ArenaGimmick[];
 }
 
+interface ShotMotionEggFrame extends Point {
+  id: string;
+  alive: boolean;
+  speed: number;
+}
+
+interface ShotMotionFrame {
+  time: number;
+  eggs: ShotMotionEggFrame[];
+  impactIds: string[];
+  triggeredGimmickIds: string[];
+}
+
+interface LastShotState {
+  playerId: string;
+  eggId: string;
+  vector: Point;
+  fallenIds: string[];
+  triggeredGimmickIds: string[];
+  activatedSkillIds: string[];
+  impactIds?: string[];
+  motionFrames?: ShotMotionFrame[];
+}
+
 interface AlkkagiState {
   players: AlkkagiPlayer[];
   eggs: AlkkagiEgg[];
@@ -88,7 +116,7 @@ interface AlkkagiState {
   activePlayerId: string | null;
   winnerId: string | null;
   winnerIds: string[];
-  lastShot: { playerId: string; eggId: string; vector: Point; fallenIds: string[]; triggeredGimmickIds: string[]; activatedSkillIds: string[] } | null;
+  lastShot: LastShotState | null;
   message: string;
 }
 
@@ -217,13 +245,13 @@ function normalizeAngle(angle: number) {
   return ((angle % fullTurn) + fullTurn) % fullTurn;
 }
 
-function idleAimControl(): AimControlState {
+function idleAimControl(deadline = 0): AimControlState {
   return {
     phase: "idle",
     eggId: null,
     angle: 0,
     power: MIN_POWER_RATIO,
-    deadline: 0
+    deadline
   };
 }
 
@@ -390,7 +418,14 @@ function cloneState(state: AlkkagiState): AlkkagiState {
           vector: { ...normalized.lastShot.vector },
           fallenIds: [...normalized.lastShot.fallenIds],
           triggeredGimmickIds: [...(normalized.lastShot.triggeredGimmickIds ?? [])],
-          activatedSkillIds: [...(normalized.lastShot.activatedSkillIds ?? [])]
+          activatedSkillIds: [...(normalized.lastShot.activatedSkillIds ?? [])],
+          impactIds: [...(normalized.lastShot.impactIds ?? [])],
+          motionFrames: (normalized.lastShot.motionFrames ?? []).map((frame) => ({
+            time: frame.time,
+            eggs: frame.eggs.map((egg) => ({ ...egg })),
+            impactIds: [...frame.impactIds],
+            triggeredGimmickIds: [...frame.triggeredGimmickIds]
+          }))
         }
       : null
   };
@@ -444,11 +479,11 @@ function initialEggs(players: AlkkagiPlayer[]) {
   const eggs: AlkkagiEgg[] = [];
   const offsets: Array<{ x: number; y: number; kind: EggKind; skillIndex?: number }> = [
     { x: 0, y: 0, kind: "king" },
-    { x: -35, y: 43, kind: "normal" },
-    { x: 35, y: 43, kind: "normal" },
-    { x: -52, y: -18, kind: "skill", skillIndex: 0 },
-    { x: 0, y: -52, kind: "skill", skillIndex: 1 },
-    { x: 52, y: -18, kind: "skill", skillIndex: 2 }
+    { x: -58, y: 56, kind: "normal" },
+    { x: 58, y: 56, kind: "normal" },
+    { x: -82, y: -16, kind: "skill", skillIndex: 0 },
+    { x: 0, y: -70, kind: "skill", skillIndex: 1 },
+    { x: 82, y: -16, kind: "skill", skillIndex: 2 }
   ];
 
   players.forEach((player, playerIndex) => {
@@ -456,7 +491,7 @@ function initialEggs(players: AlkkagiPlayer[]) {
     const outward = { x: Math.cos(angle), y: Math.sin(angle) };
     const inward = { x: -outward.x, y: -outward.y };
     const tangent = { x: -Math.sin(angle), y: Math.cos(angle) };
-    const base = { x: outward.x * 255, y: outward.y * 255 };
+    const base = { x: outward.x * 286, y: outward.y * 286 };
     const skills = randomSkills(seed, playerIndex);
 
     offsets.forEach((offset, index) => {
@@ -523,6 +558,10 @@ function settleShot(state: AlkkagiState, shotEgg: AlkkagiEgg, vector: Point) {
   const removed = new Set<string>();
   const triggeredGimmicks = new Set<string>();
   const activatedSkillIds = new Set<string>();
+  const impactIds = new Set<string>();
+  const frameImpactIds = new Set<string>();
+  const lastKnownPositions = new Map<string, Point>();
+  const motionFrames: ShotMotionFrame[] = [];
   let burstTriggered = false;
 
   for (const egg of state.eggs.filter((candidate) => candidate.alive)) {
@@ -534,6 +573,7 @@ function settleShot(state: AlkkagiState, shotEgg: AlkkagiEgg, vector: Point) {
     });
     Matter.Body.setMass(body, eggMass(egg));
     bodies.set(egg.id, body);
+    lastKnownPositions.set(egg.id, { x: egg.x, y: egg.y });
     Matter.Composite.add(engine.world, body);
   }
 
@@ -605,11 +645,47 @@ function settleShot(state: AlkkagiState, shotEgg: AlkkagiEgg, vector: Point) {
     }
   }
 
+  function captureMotionFrame(step: number, force = false) {
+    if (motionFrames.length >= MAX_MOTION_FRAMES && !force) return;
+    const eggs = state.eggs
+      .filter((egg) => egg.alive || removed.has(egg.id))
+      .map((egg) => {
+        const body = bodies.get(egg.id);
+        const position = body ? body.position : lastKnownPositions.get(egg.id) ?? egg;
+        return {
+          id: egg.id,
+          x: round(position.x),
+          y: round(position.y),
+          alive: !removed.has(egg.id),
+          speed: round(body && !removed.has(egg.id) ? length(velocityPoint(body)) : 0)
+        };
+      });
+
+    const frame = {
+      time: Math.round(step * STEP_MS),
+      eggs,
+      impactIds: [...frameImpactIds],
+      triggeredGimmickIds: [...triggeredGimmicks]
+    };
+    if (motionFrames.length >= MAX_MOTION_FRAMES) {
+      motionFrames[motionFrames.length - 1] = frame;
+    } else {
+      motionFrames.push(frame);
+    }
+    frameImpactIds.clear();
+  }
+
   Matter.Events.on(engine, "collisionStart", (event) => {
     for (const pair of event.pairs) {
       const a = bodyEgg(pair.bodyA);
       const b = bodyEgg(pair.bodyB);
       applyCollisionTransfer(pair);
+      if (a && b) {
+        impactIds.add(a.id);
+        impactIds.add(b.id);
+        frameImpactIds.add(a.id);
+        frameImpactIds.add(b.id);
+      }
       if (a?.id === shotEgg.id || b?.id === shotEgg.id) {
         triggerBurst((a?.id === shotEgg.id ? pair.bodyA : pair.bodyB) as Matter.Body);
       }
@@ -618,7 +694,7 @@ function settleShot(state: AlkkagiState, shotEgg: AlkkagiEgg, vector: Point) {
 
   const shotBody = bodies.get(shotEgg.id);
   if (!shotBody) {
-    return { fallenIds: [] as string[], triggeredGimmickIds: [] as string[], activatedSkillIds: [] as string[] };
+    return { fallenIds: [] as string[], triggeredGimmickIds: [] as string[], activatedSkillIds: [] as string[], impactIds: [] as string[], motionFrames: [] as ShotMotionFrame[] };
   }
 
   const direction = normalize(vector);
@@ -629,10 +705,12 @@ function settleShot(state: AlkkagiState, shotEgg: AlkkagiEgg, vector: Point) {
   if (shotEgg.skill && shotEgg.skill !== "burst" && shotEgg.skill !== "guard") {
     activatedSkillIds.add(shotEgg.id);
   }
+  captureMotionFrame(0);
 
   function removeBody(id: string) {
     const body = bodies.get(id);
     if (!body || removed.has(id)) return;
+    lastKnownPositions.set(id, { x: body.position.x, y: body.position.y });
     removed.add(id);
     Matter.Composite.remove(engine.world, body);
   }
@@ -708,7 +786,9 @@ function settleShot(state: AlkkagiState, shotEgg: AlkkagiEgg, vector: Point) {
     }
   }
 
+  let finalStep = 0;
   for (let step = 0; step < MAX_STEPS; step += 1) {
+    finalStep = step + 1;
     Matter.Engine.update(engine, STEP_MS);
 
     for (const [id, body] of bodies) {
@@ -717,6 +797,7 @@ function settleShot(state: AlkkagiState, shotEgg: AlkkagiEgg, vector: Point) {
       if (!egg) continue;
 
       applyRollingPhysics(id, body, egg);
+      lastKnownPositions.set(id, { x: body.position.x, y: body.position.y });
 
       for (const terrain of state.terrain) {
         const gap = distance(body.position, terrain);
@@ -751,8 +832,12 @@ function settleShot(state: AlkkagiState, shotEgg: AlkkagiEgg, vector: Point) {
       .filter(([id]) => !removed.has(id))
       .some(([, body]) => length(body.velocity) > 0.08);
     quietFrames = moving ? 0 : quietFrames + 1;
+    if (step % MOTION_FRAME_INTERVAL === 0 || frameImpactIds.size > 0) {
+      captureMotionFrame(finalStep);
+    }
     if (quietFrames > 28) break;
   }
+  captureMotionFrame(finalStep, true);
 
   for (const egg of state.eggs) {
     if (!egg.alive) continue;
@@ -767,7 +852,13 @@ function settleShot(state: AlkkagiState, shotEgg: AlkkagiEgg, vector: Point) {
     }
   }
 
-  return { fallenIds: [...removed], triggeredGimmickIds: [...triggeredGimmicks], activatedSkillIds: [...activatedSkillIds] };
+  return {
+    fallenIds: [...removed],
+    triggeredGimmickIds: [...triggeredGimmicks],
+    activatedSkillIds: [...activatedSkillIds],
+    impactIds: [...impactIds],
+    motionFrames
+  };
 }
 
 function flickEgg(state: AlkkagiState, action: GameAction, context: GameContext): GameActionResult {
@@ -792,7 +883,9 @@ function flickEgg(state: AlkkagiState, action: GameAction, context: GameContext)
     vector: { x: round(payload.vector.x), y: round(payload.vector.y) },
     fallenIds: shotResult.fallenIds,
     triggeredGimmickIds: shotResult.triggeredGimmickIds,
-    activatedSkillIds: shotResult.activatedSkillIds
+    activatedSkillIds: shotResult.activatedSkillIds,
+    impactIds: shotResult.impactIds,
+    motionFrames: shotResult.motionFrames
   };
 
   const winner = winnerAfterShot(next, context);
@@ -829,16 +922,46 @@ function flickEgg(state: AlkkagiState, action: GameAction, context: GameContext)
   };
 }
 
+function timeoutTurn(state: AlkkagiState, context: GameContext): GameActionResult {
+  const player = requireActivePlayer(state, context);
+  const next = cloneState(state);
+  const turn = nextTurn(next, context);
+  const nextPlayerName = next.players.find((candidate) => candidate.id === turn.activePlayerId)?.name ?? "다음 플레이어";
+  next.activePlayerId = turn.activePlayerId;
+  next.message = `${player.name}님 시간 초과. ${nextPlayerName}님 차례입니다.`;
+  next.lastShot = null;
+
+  return {
+    state: next,
+    log: `${player.name} 시간 초과`,
+    activePlayerId: turn.activePlayerId,
+    turnNumber: turn.turnNumber,
+    roundNumber: turn.roundNumber,
+    phase: "playing",
+    message: next.message
+  };
+}
+
 export const module: GameModule = {
   id: "alkkagi",
   createInitialState,
   getPublicState: (state) => assertState(state),
   applyAction: (state, action, context) => {
     const currentState = assertState(state);
-    if (action.type !== "alkkagi/flick") {
-      throw new Error("지원하지 않는 알까기 행동입니다.");
+    if (action.type === "alkkagi/flick") {
+      return flickEgg(currentState, action, context);
     }
-    return flickEgg(currentState, action, context);
+    if (action.type === "alkkagi/timeout" || action.type === "system/timeout") {
+      return timeoutTurn(currentState, context);
+    }
+    throw new Error("지원하지 않는 알까기 행동입니다.");
+  },
+  applySystemAction: (state, action, context) => {
+    const currentState = assertState(state);
+    if (action.type === "system/timeout") {
+      return timeoutTurn(currentState, context);
+    }
+    throw new Error("지원하지 않는 알까기 시스템 행동입니다.");
   }
 };
 
@@ -950,6 +1073,26 @@ function gimmickLabel(kind: GimmickKind) {
   return kind === "button" ? "압력 버튼" : "킥 레버";
 }
 
+function terrainAsset(kind: TerrainKind) {
+  return `/assets/alkkagi/terrain-${kind}.png`;
+}
+
+function terrainAssetSize(terrain: Terrain) {
+  if (terrain.kind === "mud") return { width: terrain.r * 3.1, height: terrain.r * 2.1 };
+  if (terrain.kind === "ice") return { width: terrain.r * 2.75, height: terrain.r * 2.75 };
+  if (terrain.kind === "bumper") return { width: terrain.r * 3.05, height: terrain.r * 3.05 };
+  return { width: terrain.r * 2.9, height: terrain.r * 2.9 };
+}
+
+function gimmickAsset(kind: GimmickKind) {
+  return `/assets/alkkagi/gimmick-${kind}.png`;
+}
+
+function gimmickAssetSize(gimmick: ArenaGimmick) {
+  if (gimmick.kind === "lever") return { width: gimmick.r * 4.4, height: gimmick.r * 2.35 };
+  return { width: gimmick.r * 3.3, height: gimmick.r * 3.3 };
+}
+
 export function Component({
   currentPlayer,
   activePlayer,
@@ -960,20 +1103,84 @@ export function Component({
   const state = assertState(publicState);
   const arena = arenaById(state.arena.id);
   const holdOriginRef = useRef({ angle: 0, power: MIN_POWER_RATIO, start: 0 });
+  const turnKeyRef = useRef<string | null>(null);
+  const timeoutSentTurnRef = useRef<string | null>(null);
   const [control, setControl] = useState<AimControlState>(() => idleAimControl());
   const [hold, setHold] = useState<HoldMode | null>(null);
   const [now, setNow] = useState(() => Date.now());
-  const canAct = !disabled && currentPlayer?.id === state.activePlayerId && state.phase === "playing";
+  const lastShot = state.lastShot;
+  const motionFrames = lastShot?.motionFrames ?? [];
+  const motionKey = lastShot ? `${lastShot.playerId}:${lastShot.eggId}:${lastShot.vector.x}:${lastShot.vector.y}:${lastShot.fallenIds.join("|")}:${motionFrames.length}` : "none";
+  const [motionFrameIndex, setMotionFrameIndex] = useState<number | null>(null);
+  const currentMotionFrame = motionFrameIndex !== null ? motionFrames[motionFrameIndex] : null;
+  const isReplayingShot = motionFrameIndex !== null && motionFrames.length > 1;
+  const canOwnTurn = !disabled && currentPlayer?.id === state.activePlayerId && state.phase === "playing";
+  const canAct = canOwnTurn && !isReplayingShot;
   const activeEggs = state.eggs.filter((egg) => egg.alive);
+  const motionEggMap = new Map<string, ShotMotionEggFrame>((currentMotionFrame?.eggs ?? []).map((egg) => [egg.id, egg]));
+  const visibleEggs = currentMotionFrame ? state.eggs.filter((egg) => egg.alive || motionEggMap.has(egg.id)) : activeEggs;
   const selectedEgg = control.eggId ? activeEggs.find((egg) => egg.id === control.eggId) ?? null : null;
   const selectedOwner = selectedEgg ? state.players.find((player) => player.id === selectedEgg.ownerId) : null;
   const aimCap = selectedEgg?.kind === "king" ? 76 : MAX_VECTOR;
   const previewPower = control.phase === "power" ? Math.max(control.power, MIN_POWER_RATIO) : DEFAULT_AIM_POWER;
   const aimSize = selectedEgg && control.phase !== "idle" ? Math.max(8, aimCap * previewPower) : 0;
   const aimDirection = { x: Math.cos(control.angle), y: Math.sin(control.angle) };
-  const remainingSeconds = control.phase === "idle" ? 0 : Math.max(0, Math.ceil((control.deadline - now) / 1000));
+  const remainingSeconds = control.deadline > 0 ? Math.max(0, Math.ceil((control.deadline - now) / 1000)) : 0;
+  const turnTimeLabel = control.deadline > 0 ? `${remainingSeconds}초` : "10초";
   const powerPercent = Math.round(Math.max(control.power, MIN_POWER_RATIO) * 100);
   const controlLabel = control.phase === "idle" ? "알 선택" : control.phase === "direction" ? "방향 선택" : "힘 선택";
+  const currentTurnKey = `${state.activePlayerId ?? "none"}:${motionKey}:${state.message}`;
+
+  useEffect(() => {
+    const frames = state.lastShot?.motionFrames ?? [];
+    if (frames.length < 2) {
+      setMotionFrameIndex(null);
+      return;
+    }
+
+    let frame = 0;
+    let releaseTimer = 0;
+    const startedAt = performance.now();
+    const finalTime = frames[frames.length - 1]?.time ?? frames.length * STEP_MS;
+    const duration = clamp(finalTime * 1.35, SHOT_REPLAY_MIN_MS, SHOT_REPLAY_MAX_MS);
+    setMotionFrameIndex(0);
+
+    const tick = (timestamp: number) => {
+      const progress = clamp((timestamp - startedAt) / duration, 0, 1);
+      const nextFrame = Math.min(frames.length - 1, Math.floor(progress * (frames.length - 1)));
+      setMotionFrameIndex(nextFrame);
+      if (progress < 1) {
+        frame = window.requestAnimationFrame(tick);
+      } else {
+        releaseTimer = window.setTimeout(() => setMotionFrameIndex(null), 120);
+      }
+    };
+
+    frame = window.requestAnimationFrame(tick);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.clearTimeout(releaseTimer);
+    };
+  }, [motionKey]);
+
+  useEffect(() => {
+    if (canOwnTurn) return;
+    turnKeyRef.current = null;
+    timeoutSentTurnRef.current = null;
+    setHold(null);
+    setControl(idleAimControl());
+  }, [canOwnTurn, state.activePlayerId]);
+
+  useEffect(() => {
+    if (!canAct) return;
+    if (turnKeyRef.current === currentTurnKey) return;
+    const deadline = nextAimDeadline();
+    turnKeyRef.current = currentTurnKey;
+    timeoutSentTurnRef.current = null;
+    setNow(Date.now());
+    setHold(null);
+    setControl(idleAimControl(deadline));
+  }, [canAct, currentTurnKey]);
 
   useEffect(() => {
     if (!hold) return;
@@ -1006,28 +1213,32 @@ export function Component({
   }, [hold]);
 
   useEffect(() => {
-    if (control.phase === "idle") return;
+    if (!canAct || control.deadline <= 0) return;
 
     const timer = window.setInterval(() => setNow(Date.now()), 100);
     return () => window.clearInterval(timer);
-  }, [control.deadline, control.phase]);
+  }, [canAct, control.deadline]);
 
   useEffect(() => {
-    if (control.phase !== "idle" && now >= control.deadline) {
-      resetControl();
-    }
-  }, [control.deadline, control.phase, now]);
+    if (!canAct || control.deadline <= 0 || now < control.deadline) return;
+    if (timeoutSentTurnRef.current === currentTurnKey) return;
+    timeoutSentTurnRef.current = currentTurnKey;
+    setHold(null);
+    setControl(idleAimControl());
+    onAction({ type: "alkkagi/timeout" });
+  }, [canAct, control.deadline, currentTurnKey, now, onAction]);
 
   useEffect(() => {
     const selectedAlive = !control.eggId || state.eggs.some((egg) => egg.id === control.eggId && egg.alive);
-    if (control.phase !== "idle" && (!canAct || !selectedAlive)) {
-      resetControl();
+    if (canAct && control.eggId && !selectedAlive) {
+      setHold(null);
+      setControl(idleAimControl(control.deadline));
     }
-  }, [canAct, control.eggId, control.phase, state.eggs]);
+  }, [canAct, control.deadline, control.eggId, state.eggs]);
 
-  function resetControl() {
+  function resetControl(deadline = 0) {
     setHold(null);
-    setControl(idleAimControl());
+    setControl(idleAimControl(deadline));
   }
 
   function chooseEgg(egg: AlkkagiEgg) {
@@ -1039,7 +1250,7 @@ export function Component({
       eggId: egg.id,
       angle: normalizeAngle(Math.atan2(-egg.y, -egg.x)),
       power: MIN_POWER_RATIO,
-      deadline: nextAimDeadline()
+      deadline: control.deadline || nextAimDeadline()
     });
   }
 
@@ -1086,8 +1297,7 @@ export function Component({
           ? {
               ...current,
               phase: "power",
-              power: MIN_POWER_RATIO,
-              deadline: nextAimDeadline()
+              power: MIN_POWER_RATIO
             }
           : current
       );
@@ -1151,17 +1361,47 @@ export function Component({
         <circle className="alk-table-rim" cx="0" cy="0" r={BOARD_RADIUS + 24} />
         <circle className="alk-table" cx="0" cy="0" r={BOARD_RADIUS} />
         <circle className="alk-table-inner" cx="0" cy="0" r={BOARD_RADIUS - 18} />
+        <circle className="alk-table-playline" cx="0" cy="0" r={BOARD_RADIUS - 60} />
+        <circle className="alk-table-dangerline" cx="0" cy="0" r={BOARD_RADIUS - 14} />
 
-        {state.terrain.map((terrain) => (
-          <g className={`alk-terrain ${terrain.kind}`} key={terrain.id} aria-label={terrainLabel(terrain.kind)}>
-            <circle cx={terrain.x} cy={terrain.y} r={terrain.r} />
-            {terrain.kind === "bumper" ? <circle cx={terrain.x} cy={terrain.y} r={terrain.r * 0.45} /> : null}
-          </g>
-        ))}
+        {state.players.map((player, playerIndex) => {
+          const angle = -90 + (360 * playerIndex) / Math.max(1, state.players.length);
+          return (
+            <g
+              className="alk-home-zone"
+              key={player.id}
+              style={{ "--player-color": player.color } as CSSProperties}
+              transform={`rotate(${angle})`}
+            >
+              <path d={`M-112 ${-BOARD_RADIUS + 86} Q0 ${-BOARD_RADIUS + 34} 112 ${-BOARD_RADIUS + 86} L78 ${-BOARD_RADIUS + 138} Q0 ${-BOARD_RADIUS + 112} -78 ${-BOARD_RADIUS + 138} Z`} />
+              <circle cx="0" cy={-BOARD_RADIUS + 92} r="5" />
+            </g>
+          );
+        })}
+
+        {state.terrain.map((terrain) => {
+          const angle = hashString(terrain.id) % 180;
+          const assetSize = terrainAssetSize(terrain);
+          return (
+            <g className={`alk-terrain ${terrain.kind}`} key={terrain.id} transform={`translate(${terrain.x} ${terrain.y}) rotate(${angle})`} aria-label={terrainLabel(terrain.kind)}>
+              <circle className="alk-terrain-hit-area" cx="0" cy="0" r={terrain.r} />
+              <image
+                className="alk-terrain-asset"
+                href={terrainAsset(terrain.kind)}
+                x={-assetSize.width / 2}
+                y={-assetSize.height / 2}
+                width={assetSize.width}
+                height={assetSize.height}
+                preserveAspectRatio="xMidYMid meet"
+              />
+            </g>
+          );
+        })}
 
         {state.gimmicks.map((gimmick) => {
           const triggered = state.lastShot?.triggeredGimmickIds?.includes(gimmick.id);
           const angle = gimmick.angle ?? 0;
+          const assetSize = gimmickAssetSize(gimmick);
           return (
             <g
               className={`alk-gimmick ${gimmick.kind} ${triggered ? "triggered" : ""}`}
@@ -1169,20 +1409,16 @@ export function Component({
               transform={`translate(${gimmick.x} ${gimmick.y}) rotate(${angle})`}
               aria-label={gimmickLabel(gimmick.kind)}
             >
-              {gimmick.kind === "button" ? (
-                <>
-                  <circle className="alk-gimmick-pad" cx="0" cy="0" r={gimmick.r} />
-                  <circle className="alk-gimmick-ring" cx="0" cy="0" r={gimmick.r * 0.66} />
-                  <circle className="alk-gimmick-core" cx="0" cy="0" r={gimmick.r * 0.36} />
-                </>
-              ) : (
-                <>
-                  <rect className="alk-gimmick-lever-slot" x={-gimmick.r * 1.15} y={-gimmick.r * 0.28} width={gimmick.r * 2.3} height={gimmick.r * 0.56} rx={gimmick.r * 0.28} />
-                  <path className="alk-gimmick-lever-arm" d={`M${-gimmick.r * 0.78} -5 H${gimmick.r * 0.42} L${gimmick.r * 0.74} 0 L${gimmick.r * 0.42} 5 H${-gimmick.r * 0.78} Z`} />
-                  <circle className="alk-gimmick-hinge" cx={-gimmick.r * 0.78} cy="0" r={gimmick.r * 0.24} />
-                  <path className="alk-gimmick-arrow" d={`M${gimmick.r * 0.58} -10 L${gimmick.r * 1.02} 0 L${gimmick.r * 0.58} 10 Z`} />
-                </>
-              )}
+              <ellipse className="alk-gimmick-contact" cx="0" cy={gimmick.kind === "lever" ? gimmick.r * 0.08 : 0} rx={assetSize.width * 0.38} ry={assetSize.height * 0.34} />
+              <image
+                className="alk-gimmick-asset"
+                href={gimmickAsset(gimmick.kind)}
+                x={-assetSize.width / 2}
+                y={-assetSize.height / 2}
+                width={assetSize.width}
+                height={assetSize.height}
+                preserveAspectRatio="xMidYMid meet"
+              />
             </g>
           );
         })}
@@ -1199,19 +1435,25 @@ export function Component({
           </g>
         ) : null}
 
-        {activeEggs.map((egg) => {
+        {visibleEggs.map((egg) => {
           const owner = state.players.find((player) => player.id === egg.ownerId);
+          const motionEgg = motionEggMap.get(egg.id);
           const isCurrent = egg.ownerId === currentPlayer?.id && canAct;
           const isSelected = egg.id === selectedEgg?.id;
           const isLastShot = egg.id === state.lastShot?.eggId;
           const isSkillActivated = state.lastShot?.activatedSkillIds?.includes(egg.id) ?? false;
+          const isImpacting = currentMotionFrame?.impactIds.includes(egg.id) ?? false;
+          const isMoving = (motionEgg?.speed ?? 0) > 0.16;
+          const isFalling = motionEgg ? !motionEgg.alive : false;
           const radius = eggRadius(egg);
+          const x = motionEgg?.x ?? egg.x;
+          const y = motionEgg?.y ?? egg.y;
           return (
             <g
               key={egg.id}
-              className={`alk-egg ${egg.kind} ${skillClass(egg.skill)} ${isCurrent ? "is-current" : ""} ${isSelected ? "is-selected" : ""} ${isLastShot ? "last-shot" : ""} ${isSkillActivated ? "skill-activated" : ""} ${egg.used ? "is-spent" : ""}`}
+              className={`alk-egg ${egg.kind} ${skillClass(egg.skill)} ${isCurrent ? "is-current" : ""} ${isSelected ? "is-selected" : ""} ${isLastShot ? "last-shot" : ""} ${isSkillActivated ? "skill-activated" : ""} ${isMoving ? "is-moving" : ""} ${isImpacting ? "is-impact" : ""} ${isFalling ? "is-falling" : ""} ${egg.used ? "is-spent" : ""}`}
               style={{ "--player-color": owner?.color ?? "#d94f45" } as CSSProperties}
-              transform={`translate(${egg.x} ${egg.y})`}
+              transform={`translate(${x} ${y})`}
               role="button"
               tabIndex={isCurrent ? 0 : -1}
               aria-label={`${owner?.name ?? "플레이어"} ${egg.kind === "king" ? "왕알" : egg.skill ? `${skillLabel(egg.skill)} 특수 알` : "알"}`}
@@ -1244,7 +1486,7 @@ export function Component({
 
           <div className="alk-control-readout">
             <strong>{controlLabel}</strong>
-            <span>{selectedEgg ? `${selectedOwner?.name ?? "내 알"} · ${remainingSeconds || 10}초` : "내 알을 선택"}</span>
+            <span>{selectedEgg ? `${selectedOwner?.name ?? "내 알"} · ${turnTimeLabel}` : `${turnTimeLabel} 안에 알 선택`}</span>
           </div>
 
           <div className="alk-control-tools">
