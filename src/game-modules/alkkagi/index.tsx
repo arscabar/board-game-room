@@ -11,6 +11,7 @@ const MAX_STEPS = 360;
 
 const playerColors = ["#d94f45", "#2364aa", "#d69b2d", "#258a5b"];
 const skillPool = ["dash", "anchor", "burst", "guard", "rubber"] as const;
+const defaultArenaId = "classic-ring";
 
 type EggKind = "king" | "normal" | "skill";
 type SkillKind = (typeof skillPool)[number];
@@ -44,9 +45,21 @@ interface Terrain extends Point {
   r: number;
 }
 
+interface ArenaPreset {
+  id: string;
+  name: string;
+  className: string;
+  terrain: Terrain[];
+}
+
 interface AlkkagiState {
   players: AlkkagiPlayer[];
   eggs: AlkkagiEgg[];
+  arena: {
+    id: string;
+    name: string;
+    className: string;
+  };
   terrain: Terrain[];
   phase: Phase;
   activePlayerId: string | null;
@@ -61,20 +74,66 @@ interface FlickPayload {
   vector: Point;
 }
 
-const terrainLayout: Terrain[] = [
-  { id: "pit-center", kind: "pit", x: 0, y: 0, r: 38 },
-  { id: "mud-left", kind: "mud", x: -145, y: 95, r: 66 },
-  { id: "ice-right", kind: "ice", x: 142, y: -108, r: 70 },
-  { id: "bumper-top", kind: "bumper", x: 0, y: -215, r: 21 },
-  { id: "bumper-left", kind: "bumper", x: -224, y: -54, r: 19 },
-  { id: "bumper-right", kind: "bumper", x: 226, y: 74, r: 19 }
+const arenaPresets: ArenaPreset[] = [
+  {
+    id: defaultArenaId,
+    name: "고전 원반장",
+    className: "arena-classic",
+    terrain: [
+      { id: "classic-pit", kind: "pit", x: 0, y: 0, r: 38 },
+      { id: "classic-mud", kind: "mud", x: -145, y: 95, r: 66 },
+      { id: "classic-ice", kind: "ice", x: 142, y: -108, r: 70 },
+      { id: "classic-bumper-top", kind: "bumper", x: 0, y: -215, r: 21 },
+      { id: "classic-bumper-left", kind: "bumper", x: -224, y: -54, r: 19 },
+      { id: "classic-bumper-right", kind: "bumper", x: 226, y: 74, r: 19 }
+    ]
+  },
+  {
+    id: "crescent-pond",
+    name: "초승달 연못장",
+    className: "arena-pond",
+    terrain: [
+      { id: "pond-pit", kind: "pit", x: -74, y: 62, r: 34 },
+      { id: "pond-mud", kind: "mud", x: 126, y: 132, r: 78 },
+      { id: "pond-ice", kind: "ice", x: -128, y: -154, r: 62 },
+      { id: "pond-bumper-left", kind: "bumper", x: -238, y: 32, r: 20 },
+      { id: "pond-bumper-right", kind: "bumper", x: 216, y: -62, r: 21 },
+      { id: "pond-bumper-bottom", kind: "bumper", x: 18, y: 228, r: 18 }
+    ]
+  },
+  {
+    id: "ridge-hall",
+    name: "능선 목판장",
+    className: "arena-ridge",
+    terrain: [
+      { id: "ridge-pit", kind: "pit", x: 96, y: -86, r: 36 },
+      { id: "ridge-mud", kind: "mud", x: -92, y: -18, r: 72 },
+      { id: "ridge-ice", kind: "ice", x: 82, y: 174, r: 66 },
+      { id: "ridge-bumper-top-left", kind: "bumper", x: -194, y: -194, r: 20 },
+      { id: "ridge-bumper-top-right", kind: "bumper", x: 224, y: -168, r: 19 },
+      { id: "ridge-bumper-bottom-left", kind: "bumper", x: -176, y: 194, r: 21 }
+    ]
+  },
+  {
+    id: "storm-bowl",
+    name: "회오리 사발장",
+    className: "arena-storm",
+    terrain: [
+      { id: "storm-pit", kind: "pit", x: 0, y: -134, r: 32 },
+      { id: "storm-mud", kind: "mud", x: 0, y: 124, r: 82 },
+      { id: "storm-ice", kind: "ice", x: -176, y: -20, r: 58 },
+      { id: "storm-ice-small", kind: "ice", x: 174, y: 32, r: 52 },
+      { id: "storm-bumper-upper", kind: "bumper", x: 116, y: -222, r: 18 },
+      { id: "storm-bumper-lower", kind: "bumper", x: -118, y: 222, r: 18 }
+    ]
+  }
 ];
 
 function assertState(state: unknown): AlkkagiState {
   if (!state || typeof state !== "object") {
     throw new Error("알까기 상태가 올바르지 않습니다.");
   }
-  return state as AlkkagiState;
+  return normalizeState(state as AlkkagiState);
 }
 
 function isPoint(value: unknown): value is Point {
@@ -139,6 +198,39 @@ function randomSkills(seed: number, playerIndex: number) {
   return skills;
 }
 
+function cloneTerrain(terrain: Terrain[]) {
+  return terrain.map((item) => ({ ...item }));
+}
+
+function arenaSummary(arena: ArenaPreset) {
+  return { id: arena.id, name: arena.name, className: arena.className };
+}
+
+function fallbackArena() {
+  return arenaPresets.find((arena) => arena.id === defaultArenaId) ?? arenaPresets[0];
+}
+
+function arenaById(id: string | null | undefined) {
+  return arenaPresets.find((arena) => arena.id === id) ?? fallbackArena();
+}
+
+function selectArena(players: AlkkagiPlayer[], entropy = Date.now()) {
+  const seed = hashString(players.map((player) => `${player.id}:${player.seat}`).join("|"));
+  const index = Math.abs(seed ^ Math.floor(entropy) ^ Math.floor(Math.random() * 65535)) % arenaPresets.length;
+  return arenaPresets[index] ?? fallbackArena();
+}
+
+function normalizeState(state: AlkkagiState) {
+  if (!state.arena) {
+    const arena = fallbackArena();
+    state.arena = arenaSummary(arena);
+    if (!Array.isArray(state.terrain) || state.terrain.length === 0) {
+      state.terrain = cloneTerrain(arena.terrain);
+    }
+  }
+  return state;
+}
+
 function eggRadius(egg: Pick<AlkkagiEgg, "kind" | "skill">) {
   if (egg.kind === "king") return 29;
   if (egg.skill === "anchor") return 23;
@@ -160,18 +252,20 @@ function eggRestitution(egg: Pick<AlkkagiEgg, "kind" | "skill">) {
 }
 
 function cloneState(state: AlkkagiState): AlkkagiState {
+  const normalized = normalizeState(state);
   return {
-    ...state,
-    players: state.players.map((player) => ({ ...player })),
-    eggs: state.eggs.map((egg) => ({ ...egg })),
-    terrain: state.terrain.map((terrain) => ({ ...terrain })),
-    winnerIds: [...state.winnerIds],
-    lastShot: state.lastShot
+    ...normalized,
+    players: normalized.players.map((player) => ({ ...player })),
+    eggs: normalized.eggs.map((egg) => ({ ...egg })),
+    arena: { ...normalized.arena },
+    terrain: cloneTerrain(normalized.terrain),
+    winnerIds: [...normalized.winnerIds],
+    lastShot: normalized.lastShot
       ? {
-          playerId: state.lastShot.playerId,
-          eggId: state.lastShot.eggId,
-          vector: { ...state.lastShot.vector },
-          fallenIds: [...state.lastShot.fallenIds]
+          playerId: normalized.lastShot.playerId,
+          eggId: normalized.lastShot.eggId,
+          vector: { ...normalized.lastShot.vector },
+          fallenIds: [...normalized.lastShot.fallenIds]
         }
       : null
   };
@@ -269,11 +363,13 @@ function createInitialState({ players }: Pick<GameContext, "players">): AlkkagiS
     color: playerColors[index] ?? "#a855f7"
   }));
   const firstPlayer = modulePlayers[0] ?? null;
+  const arena = selectArena(modulePlayers);
 
   return {
     players: modulePlayers,
     eggs: initialEggs(modulePlayers),
-    terrain: terrainLayout.map((terrain) => ({ ...terrain })),
+    arena: arenaSummary(arena),
+    terrain: cloneTerrain(arena.terrain),
     phase: "playing",
     activePlayerId: firstPlayer?.id ?? null,
     winnerId: null,
@@ -358,7 +454,7 @@ function settleShot(state: AlkkagiState, shotEgg: AlkkagiEgg, vector: Point) {
   const direction = normalize(vector);
   const vectorLength = Math.min(length(vector), MAX_VECTOR);
   let speed = (vectorLength / MAX_VECTOR) * MAX_SPEED;
-  if (shotEgg.kind === "king") speed = Math.min(speed * 0.42, 7.4);
+  if (shotEgg.kind === "king") speed = Math.min(speed * 0.44, 8.2);
   if (shotEgg.skill === "dash") speed *= 1.24;
   if (shotEgg.skill === "anchor") speed *= 0.88;
   Matter.Body.setVelocity(shotBody, { x: direction.x * speed, y: direction.y * speed });
@@ -390,13 +486,13 @@ function settleShot(state: AlkkagiState, shotEgg: AlkkagiEgg, vector: Point) {
           const dir = normalize(body.velocity);
           Matter.Body.setVelocity(body, { x: dir.x * capped, y: dir.y * capped });
         }
-        if (terrain.kind === "pit" && gap < terrain.r + eggRadius(egg) * 0.16) {
+        if (terrain.kind === "pit" && gap < terrain.r + eggRadius(egg) * 0.34) {
           removeBody(id);
         }
       }
 
       const centerDistance = length(body.position);
-      const fallLimit = BOARD_RADIUS - eggRadius(egg) * 0.32;
+      const fallLimit = BOARD_RADIUS - eggRadius(egg) * 0.9;
       if (centerDistance > fallLimit) {
         if (egg.skill === "guard" && !egg.used) {
           const dir = normalize(body.position);
@@ -530,6 +626,7 @@ export function Component({
   onAction
 }: GameComponentProps<AlkkagiState>) {
   const state = assertState(publicState);
+  const arena = arenaById(state.arena.id);
   const svgRef = useRef<SVGSVGElement | null>(null);
   const [drag, setDrag] = useState<{ eggId: string; start: Point; current: Point } | null>(null);
   const canAct = !disabled && currentPlayer?.id === state.activePlayerId && state.phase === "playing";
@@ -581,10 +678,11 @@ export function Component({
   }
 
   return (
-    <div className="game-module alk-shell">
+    <div className={`game-module alk-shell ${arena.className}`}>
       <section className="alk-status" aria-label="알까기 진행 상태">
         <strong>차례</strong>
         <span>{activePlayer?.name ?? "종료"}</span>
+        <em>{arena.name}</em>
       </section>
 
       <svg
@@ -599,9 +697,9 @@ export function Component({
       >
         <defs>
           <radialGradient id="alk-board-grain" cx="38%" cy="28%" r="70%">
-            <stop offset="0%" stopColor="#c98742" />
-            <stop offset="58%" stopColor="#80502a" />
-            <stop offset="100%" stopColor="#2c180d" />
+            <stop className="alk-grain-top" offset="0%" stopColor="var(--alk-grain-top)" />
+            <stop className="alk-grain-mid" offset="58%" stopColor="var(--alk-grain-mid)" />
+            <stop className="alk-grain-end" offset="100%" stopColor="var(--alk-grain-end)" />
           </radialGradient>
           <filter id="alk-soft-shadow" x="-40%" y="-40%" width="180%" height="180%">
             <feDropShadow dx="0" dy="8" stdDeviation="7" floodColor="#160b04" floodOpacity="0.42" />

@@ -2,9 +2,46 @@
   --alk-ink: #fff0d2;
   --alk-soft: rgba(255, 240, 210, 0.72);
   --alk-line: rgba(237, 190, 108, 0.26);
+  --alk-grain-top: #c98742;
+  --alk-grain-mid: #80502a;
+  --alk-grain-end: #2c180d;
+  --alk-board-bg-a: rgba(25, 47, 32, 0.88);
+  --alk-board-bg-b: rgba(14, 9, 5, 0.94);
+  --alk-rim-fill: #1c0e07;
+  --alk-inner-line: rgba(58, 29, 11, 0.5);
   width: min(100%, 980px) !important;
   margin: 0 auto !important;
   color: var(--alk-ink) !important;
+}
+
+.alk-shell.arena-pond {
+  --alk-grain-top: #b78a4f;
+  --alk-grain-mid: #6f5737;
+  --alk-grain-end: #16312d;
+  --alk-board-bg-a: rgba(14, 54, 51, 0.9);
+  --alk-board-bg-b: rgba(10, 14, 10, 0.96);
+  --alk-rim-fill: #102521;
+  --alk-inner-line: rgba(175, 219, 196, 0.24);
+}
+
+.alk-shell.arena-ridge {
+  --alk-grain-top: #d19a54;
+  --alk-grain-mid: #8a5427;
+  --alk-grain-end: #32180c;
+  --alk-board-bg-a: rgba(65, 36, 18, 0.92);
+  --alk-board-bg-b: rgba(9, 6, 4, 0.96);
+  --alk-rim-fill: #271206;
+  --alk-inner-line: rgba(255, 207, 135, 0.22);
+}
+
+.alk-shell.arena-storm {
+  --alk-grain-top: #a47144;
+  --alk-grain-mid: #51463c;
+  --alk-grain-end: #171a1c;
+  --alk-board-bg-a: rgba(38, 42, 45, 0.94);
+  --alk-board-bg-b: rgba(8, 6, 5, 0.97);
+  --alk-rim-fill: #121416;
+  --alk-inner-line: rgba(220, 214, 186, 0.23);
 }
 
 .alk-status {
@@ -35,6 +72,14 @@
   font-weight: 900 !important;
 }
 
+.alk-status em {
+  color: rgba(255, 226, 169, 0.58) !important;
+  font-size: 0.72rem !important;
+  font-style: normal !important;
+  font-weight: 900 !important;
+  letter-spacing: 0 !important;
+}
+
 .alk-board {
   width: min(100%, 780px) !important;
   aspect-ratio: 1 !important;
@@ -44,13 +89,13 @@
   border-radius: 18px !important;
   background:
     radial-gradient(circle at 50% 50%, rgba(15, 9, 5, 0.2), rgba(7, 4, 2, 0.82) 68%),
-    linear-gradient(135deg, rgba(25, 47, 32, 0.88), rgba(14, 9, 5, 0.94)) !important;
+    linear-gradient(135deg, var(--alk-board-bg-a), var(--alk-board-bg-b)) !important;
   touch-action: none !important;
   user-select: none !important;
 }
 
 .alk-table-rim {
-  fill: #1c0e07 !important;
+  fill: var(--alk-rim-fill) !important;
   stroke: rgba(255, 216, 146, 0.44) !important;
   stroke-width: 5 !important;
   filter: url("#alk-soft-shadow") !important;
@@ -62,9 +107,21 @@
   stroke-width: 6 !important;
 }
 
+.alk-grain-top {
+  stop-color: var(--alk-grain-top) !important;
+}
+
+.alk-grain-mid {
+  stop-color: var(--alk-grain-mid) !important;
+}
+
+.alk-grain-end {
+  stop-color: var(--alk-grain-end) !important;
+}
+
 .alk-table-inner {
   fill: none !important;
-  stroke: rgba(58, 29, 11, 0.5) !important;
+  stroke: var(--alk-inner-line) !important;
   stroke-width: 4 !important;
   stroke-dasharray: 10 8 !important;
 }

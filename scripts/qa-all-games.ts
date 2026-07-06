@@ -516,8 +516,9 @@ async function playAlkkagi(baseUrl: string, options: PlayOptions = {}): Promise<
 
   const winner = winnerLabel(table);
   const completed = publicState<any>(table).phase === "complete" && winner !== "-";
+  const arenaName = String(publicState<any>(table)?.arena?.name ?? "경기장 미확인");
   await closeTable(table);
-  return { gameId: "alkkagi", title: "알까기", players: playerCount, mode: "playthrough", actions, completed, winner, note: "physics flick survival" };
+  return { gameId: "alkkagi", title: "알까기", players: playerCount, mode: "playthrough", actions, completed, winner, note: `physics flick survival / ${arenaName}` };
 }
 
 function kkukkkukiLegalActions(state: any, playerId: string): GameAction[] {
