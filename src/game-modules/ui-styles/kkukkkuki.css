@@ -164,6 +164,7 @@
 }
 
 .kkuk-piece-image {
+  --marker-lift: -9%;
   position: relative !important;
   z-index: 1 !important;
   display: block !important;
@@ -172,17 +173,22 @@
   object-fit: contain !important;
   user-select: none !important;
   pointer-events: none !important;
-  transform: translateY(-9%) !important;
+  transform: translateY(var(--marker-lift)) !important;
+  transform-origin: 50% 88% !important;
 }
 
 .kkuk-piece.large .kkuk-piece-image {
+  --marker-lift: -10%;
   width: 138% !important;
   height: 138% !important;
-  transform: translateY(-10%) !important;
 }
 
 .kkuk-cell.last .kkuk-piece {
   animation: kkuk-cat-place 420ms cubic-bezier(0.2, 0.8, 0.2, 1.18);
+}
+
+.kkuk-cell.last .kkuk-piece-image {
+  animation: kkuk-marker-land 460ms cubic-bezier(0.2, 0.84, 0.2, 1.12);
 }
 
 .kkuk-cell.last::after {
@@ -197,6 +203,10 @@
 
 .kkuk-piece.booped {
   animation: kkuk-booped 430ms cubic-bezier(0.18, 0.86, 0.24, 1.1);
+}
+
+.kkuk-piece.booped .kkuk-piece-image {
+  animation: kkuk-marker-bumped 430ms cubic-bezier(0.18, 0.86, 0.24, 1.1);
 }
 
 .kkuk-effect-layer {
@@ -373,14 +383,14 @@
 @keyframes kkuk-cat-place {
   from {
     opacity: 0.42;
-    transform: translate(-50%, -92%) scale(0.72) rotate(-4deg);
+    transform: translate(-50%, -92%) scale(0.72) rotate(-5deg);
   }
   54% {
     opacity: 1;
-    transform: translate(-50%, -42%) scale(1.08) rotate(2deg);
+    transform: translate(-50%, -42%) scale(1.08) rotate(3deg);
   }
   74% {
-    transform: translate(-50%, -56%) scale(0.96) rotate(-1deg);
+    transform: translate(-50%, -56%) scale(0.96) rotate(-2deg);
   }
   to {
     opacity: 1;
@@ -388,18 +398,48 @@
   }
 }
 
+@keyframes kkuk-marker-land {
+  from {
+    transform: translateY(calc(var(--marker-lift) - 7%)) scale(0.94) rotate(-3deg);
+  }
+  54% {
+    transform: translateY(calc(var(--marker-lift) + 1%)) scale(1.08, 0.92) rotate(2deg);
+  }
+  76% {
+    transform: translateY(var(--marker-lift)) scale(0.98, 1.04) rotate(-1deg);
+  }
+  to {
+    transform: translateY(var(--marker-lift)) scale(1) rotate(0deg);
+  }
+}
+
 @keyframes kkuk-booped {
   from {
     filter: brightness(1.2);
-    transform: translate(calc(-50% + var(--boop-start-x)), calc(-50% + var(--boop-start-y))) scale(0.94);
+    transform: translate(calc(-50% + var(--boop-start-x)), calc(-50% + var(--boop-start-y))) scale(0.94) rotate(var(--boop-tilt));
   }
   76% {
     filter: brightness(1.08);
-    transform: translate(-50%, -50%) scale(1.08);
+    transform: translate(-50%, -50%) scale(1.08) rotate(var(--boop-counter-tilt));
   }
   to {
     filter: brightness(1);
-    transform: translate(-50%, -50%) scale(1);
+    transform: translate(-50%, -50%) scale(1) rotate(0deg);
+  }
+}
+
+@keyframes kkuk-marker-bumped {
+  from {
+    transform: translateY(var(--marker-lift)) scale(0.97) rotate(var(--boop-tilt));
+  }
+  48% {
+    transform: translateY(calc(var(--marker-lift) - 4%)) scale(1.08) rotate(var(--boop-counter-tilt));
+  }
+  76% {
+    transform: translateY(calc(var(--marker-lift) + 1%)) scale(0.97, 1.04) rotate(var(--boop-settle-tilt));
+  }
+  to {
+    transform: translateY(var(--marker-lift)) scale(1) rotate(0deg);
   }
 }
 
@@ -489,7 +529,9 @@
 
 @media (prefers-reduced-motion: reduce) {
   .kkuk-cell.last .kkuk-piece,
+  .kkuk-cell.last .kkuk-piece-image,
   .kkuk-piece.booped,
+  .kkuk-piece.booped .kkuk-piece-image,
   .kkuk-cell.last::after,
   .kkuk-effect {
     animation: none !important;

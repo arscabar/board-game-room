@@ -180,6 +180,15 @@ function markerFor(piece: KkukkkukiPiece, owner?: KkukkkukiPlayer) {
   return markerSet[piece.size];
 }
 
+function boopTilt(rowDelta: number, colDelta: number, multiplier = 1) {
+  let tilt = 0;
+  if (colDelta < 0) tilt = 9;
+  else if (colDelta > 0) tilt = -9;
+  else if (rowDelta < 0) tilt = -5;
+  else if (rowDelta > 0) tilt = 5;
+  return `${tilt * multiplier}deg`;
+}
+
 function reserveFor(state: KkukkkukiState, playerId: string) {
   const reserve = state.reserves[playerId];
   if (!reserve) {
@@ -614,7 +623,10 @@ export function Component({
                 const pieceStyle = {
                   "--piece-color": owner?.color ?? "#c46d43",
                   "--boop-start-x": boop?.to ? boopOffset(boop.from.col - colIndex) : "0px",
-                  "--boop-start-y": boop?.to ? boopOffset(boop.from.row - rowIndex) : "0px"
+                  "--boop-start-y": boop?.to ? boopOffset(boop.from.row - rowIndex) : "0px",
+                  "--boop-tilt": boop?.to ? boopTilt(boop.from.row - rowIndex, boop.from.col - colIndex) : "0deg",
+                  "--boop-counter-tilt": boop?.to ? boopTilt(boop.from.row - rowIndex, boop.from.col - colIndex, -0.55) : "0deg",
+                  "--boop-settle-tilt": boop?.to ? boopTilt(boop.from.row - rowIndex, boop.from.col - colIndex, 0.34) : "0deg"
                 } as CSSProperties;
                 return (
                   <button
