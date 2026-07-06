@@ -16,6 +16,7 @@ const defaultArenaId = "classic-ring";
 type EggKind = "king" | "normal" | "skill";
 type SkillKind = (typeof skillPool)[number];
 type TerrainKind = "mud" | "ice" | "bumper" | "pit";
+type GimmickKind = "button" | "lever";
 type Phase = "playing" | "complete";
 
 interface Point {
@@ -45,11 +46,19 @@ interface Terrain extends Point {
   r: number;
 }
 
+interface ArenaGimmick extends Point {
+  id: string;
+  kind: GimmickKind;
+  r: number;
+  angle?: number;
+}
+
 interface ArenaPreset {
   id: string;
   name: string;
   className: string;
   terrain: Terrain[];
+  gimmicks: ArenaGimmick[];
 }
 
 interface AlkkagiState {
@@ -61,11 +70,12 @@ interface AlkkagiState {
     className: string;
   };
   terrain: Terrain[];
+  gimmicks: ArenaGimmick[];
   phase: Phase;
   activePlayerId: string | null;
   winnerId: string | null;
   winnerIds: string[];
-  lastShot: { playerId: string; eggId: string; vector: Point; fallenIds: string[] } | null;
+  lastShot: { playerId: string; eggId: string; vector: Point; fallenIds: string[]; triggeredGimmickIds: string[] } | null;
   message: string;
 }
 
@@ -86,6 +96,10 @@ const arenaPresets: ArenaPreset[] = [
       { id: "classic-bumper-top", kind: "bumper", x: 0, y: -215, r: 21 },
       { id: "classic-bumper-left", kind: "bumper", x: -224, y: -54, r: 19 },
       { id: "classic-bumper-right", kind: "bumper", x: 226, y: 74, r: 19 }
+    ],
+    gimmicks: [
+      { id: "classic-button", kind: "button", x: 118, y: -196, r: 25 },
+      { id: "classic-lever", kind: "lever", x: -168, y: 174, r: 31, angle: -32 }
     ]
   },
   {
@@ -99,6 +113,10 @@ const arenaPresets: ArenaPreset[] = [
       { id: "pond-bumper-left", kind: "bumper", x: -238, y: 32, r: 20 },
       { id: "pond-bumper-right", kind: "bumper", x: 216, y: -62, r: 21 },
       { id: "pond-bumper-bottom", kind: "bumper", x: 18, y: 228, r: 18 }
+    ],
+    gimmicks: [
+      { id: "pond-button", kind: "button", x: 170, y: 8, r: 25 },
+      { id: "pond-lever", kind: "lever", x: -204, y: 124, r: 31, angle: 26 }
     ]
   },
   {
@@ -112,6 +130,10 @@ const arenaPresets: ArenaPreset[] = [
       { id: "ridge-bumper-top-left", kind: "bumper", x: -194, y: -194, r: 20 },
       { id: "ridge-bumper-top-right", kind: "bumper", x: 224, y: -168, r: 19 },
       { id: "ridge-bumper-bottom-left", kind: "bumper", x: -176, y: 194, r: 21 }
+    ],
+    gimmicks: [
+      { id: "ridge-button", kind: "button", x: -12, y: -226, r: 24 },
+      { id: "ridge-lever", kind: "lever", x: 184, y: 96, r: 31, angle: -55 }
     ]
   },
   {
@@ -125,6 +147,10 @@ const arenaPresets: ArenaPreset[] = [
       { id: "storm-ice-small", kind: "ice", x: 174, y: 32, r: 52 },
       { id: "storm-bumper-upper", kind: "bumper", x: 116, y: -222, r: 18 },
       { id: "storm-bumper-lower", kind: "bumper", x: -118, y: 222, r: 18 }
+    ],
+    gimmicks: [
+      { id: "storm-button", kind: "button", x: -132, y: -126, r: 24 },
+      { id: "storm-lever", kind: "lever", x: 146, y: 164, r: 31, angle: 42 }
     ]
   }
 ];
@@ -202,6 +228,10 @@ function cloneTerrain(terrain: Terrain[]) {
   return terrain.map((item) => ({ ...item }));
 }
 
+function cloneGimmicks(gimmicks: ArenaGimmick[]) {
+  return gimmicks.map((item) => ({ ...item }));
+}
+
 function arenaSummary(arena: ArenaPreset) {
   return { id: arena.id, name: arena.name, className: arena.className };
 }
@@ -221,12 +251,15 @@ function selectArena(players: AlkkagiPlayer[], entropy = Date.now()) {
 }
 
 function normalizeState(state: AlkkagiState) {
+  const arena = arenaById(state.arena?.id);
   if (!state.arena) {
-    const arena = fallbackArena();
     state.arena = arenaSummary(arena);
     if (!Array.isArray(state.terrain) || state.terrain.length === 0) {
       state.terrain = cloneTerrain(arena.terrain);
     }
+  }
+  if (!Array.isArray(state.gimmicks)) {
+    state.gimmicks = cloneGimmicks(arena.gimmicks);
   }
   return state;
 }
@@ -259,13 +292,15 @@ function cloneState(state: AlkkagiState): AlkkagiState {
     eggs: normalized.eggs.map((egg) => ({ ...egg })),
     arena: { ...normalized.arena },
     terrain: cloneTerrain(normalized.terrain),
+    gimmicks: cloneGimmicks(normalized.gimmicks),
     winnerIds: [...normalized.winnerIds],
     lastShot: normalized.lastShot
       ? {
           playerId: normalized.lastShot.playerId,
           eggId: normalized.lastShot.eggId,
           vector: { ...normalized.lastShot.vector },
-          fallenIds: [...normalized.lastShot.fallenIds]
+          fallenIds: [...normalized.lastShot.fallenIds],
+          triggeredGimmickIds: [...(normalized.lastShot.triggeredGimmickIds ?? [])]
         }
       : null
   };
@@ -370,6 +405,7 @@ function createInitialState({ players }: Pick<GameContext, "players">): AlkkagiS
     eggs: initialEggs(modulePlayers),
     arena: arenaSummary(arena),
     terrain: cloneTerrain(arena.terrain),
+    gimmicks: cloneGimmicks(arena.gimmicks),
     phase: "playing",
     activePlayerId: firstPlayer?.id ?? null,
     winnerId: null,
@@ -384,12 +420,18 @@ function markEggUsed(state: AlkkagiState, eggId: string) {
   if (egg) egg.used = true;
 }
 
+function leverDirection(gimmick: ArenaGimmick) {
+  const angle = ((gimmick.angle ?? 0) * Math.PI) / 180;
+  return { x: Math.cos(angle), y: Math.sin(angle) };
+}
+
 function settleShot(state: AlkkagiState, shotEgg: AlkkagiEgg, vector: Point) {
   const engine = Matter.Engine.create({ enableSleeping: false });
   engine.gravity.x = 0;
   engine.gravity.y = 0;
   const bodies = new Map<string, Matter.Body>();
   const removed = new Set<string>();
+  const triggeredGimmicks = new Set<string>();
   let burstTriggered = false;
 
   for (const egg of state.eggs.filter((candidate) => candidate.alive)) {
@@ -448,7 +490,7 @@ function settleShot(state: AlkkagiState, shotEgg: AlkkagiEgg, vector: Point) {
 
   const shotBody = bodies.get(shotEgg.id);
   if (!shotBody) {
-    return [] as string[];
+    return { fallenIds: [] as string[], triggeredGimmickIds: [] as string[] };
   }
 
   const direction = normalize(vector);
@@ -464,6 +506,32 @@ function settleShot(state: AlkkagiState, shotEgg: AlkkagiEgg, vector: Point) {
     if (!body || removed.has(id)) return;
     removed.add(id);
     Matter.Composite.remove(engine.world, body);
+  }
+
+  function triggerGimmick(gimmick: ArenaGimmick, touchedBody: Matter.Body) {
+    if (triggeredGimmicks.has(gimmick.id)) return;
+    triggeredGimmicks.add(gimmick.id);
+
+    if (gimmick.kind === "button") {
+      for (const [id, body] of bodies) {
+        if (removed.has(id)) continue;
+        const gap = distance(body.position, gimmick);
+        if (gap > 178) continue;
+        const direction = normalize({ x: body.position.x - gimmick.x, y: body.position.y - gimmick.y });
+        const strength = 7.2 * (1 - gap / 188);
+        Matter.Body.setVelocity(body, {
+          x: body.velocity.x + direction.x * strength,
+          y: body.velocity.y + direction.y * strength
+        });
+      }
+      return;
+    }
+
+    const direction = leverDirection(gimmick);
+    Matter.Body.setVelocity(touchedBody, {
+      x: touchedBody.velocity.x + direction.x * 8.4,
+      y: touchedBody.velocity.y + direction.y * 8.4
+    });
   }
 
   let quietFrames = 0;
@@ -488,6 +556,13 @@ function settleShot(state: AlkkagiState, shotEgg: AlkkagiEgg, vector: Point) {
         }
         if (terrain.kind === "pit" && gap < terrain.r + eggRadius(egg) * 0.34) {
           removeBody(id);
+        }
+      }
+
+      for (const gimmick of state.gimmicks) {
+        const gap = distance(body.position, gimmick);
+        if (gap < gimmick.r + eggRadius(egg) * 0.58) {
+          triggerGimmick(gimmick, body);
         }
       }
 
@@ -525,7 +600,7 @@ function settleShot(state: AlkkagiState, shotEgg: AlkkagiEgg, vector: Point) {
     }
   }
 
-  return [...removed];
+  return { fallenIds: [...removed], triggeredGimmickIds: [...triggeredGimmicks] };
 }
 
 function flickEgg(state: AlkkagiState, action: GameAction, context: GameContext): GameActionResult {
@@ -543,12 +618,13 @@ function flickEgg(state: AlkkagiState, action: GameAction, context: GameContext)
     throw new Error("조금 더 끌어서 튕겨주세요.");
   }
 
-  const fallenIds = settleShot(next, shotEgg, payload.vector);
+  const shotResult = settleShot(next, shotEgg, payload.vector);
   next.lastShot = {
     playerId: player.id,
     eggId: shotEgg.id,
     vector: { x: round(payload.vector.x), y: round(payload.vector.y) },
-    fallenIds
+    fallenIds: shotResult.fallenIds,
+    triggeredGimmickIds: shotResult.triggeredGimmickIds
   };
 
   const winner = winnerAfterShot(next, context);
@@ -616,6 +692,10 @@ function terrainLabel(kind: TerrainKind) {
   if (kind === "mud") return "끈적 지형";
   if (kind === "ice") return "미끄럼 지형";
   return "범퍼";
+}
+
+function gimmickLabel(kind: GimmickKind) {
+  return kind === "button" ? "압력 버튼" : "킥 레버";
 }
 
 export function Component({
@@ -715,6 +795,33 @@ export function Component({
             {terrain.kind === "bumper" ? <circle cx={terrain.x} cy={terrain.y} r={terrain.r * 0.45} /> : null}
           </g>
         ))}
+
+        {state.gimmicks.map((gimmick) => {
+          const triggered = state.lastShot?.triggeredGimmickIds?.includes(gimmick.id);
+          const angle = gimmick.angle ?? 0;
+          return (
+            <g
+              className={`alk-gimmick ${gimmick.kind} ${triggered ? "triggered" : ""}`}
+              key={gimmick.id}
+              transform={`translate(${gimmick.x} ${gimmick.y}) rotate(${angle})`}
+              aria-label={gimmickLabel(gimmick.kind)}
+            >
+              {gimmick.kind === "button" ? (
+                <>
+                  <circle className="alk-gimmick-pad" cx="0" cy="0" r={gimmick.r} />
+                  <circle className="alk-gimmick-core" cx="0" cy="0" r={gimmick.r * 0.52} />
+                </>
+              ) : (
+                <>
+                  <circle className="alk-gimmick-pad" cx="0" cy="0" r={gimmick.r * 0.72} />
+                  <rect className="alk-gimmick-lever-slot" x={-gimmick.r * 1.2} y="-5" width={gimmick.r * 2.4} height="10" rx="5" />
+                  <rect className="alk-gimmick-lever-arm" x={-4} y={-gimmick.r * 1.12} width="8" height={gimmick.r * 2.24} rx="4" />
+                  <circle className="alk-gimmick-knob" cx="0" cy={-gimmick.r * 1.12} r="8" />
+                </>
+              )}
+            </g>
+          );
+        })}
 
         {aim && selectedEgg ? (
           <g className="alk-aim" aria-hidden="true">

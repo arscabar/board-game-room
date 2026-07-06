@@ -158,6 +158,48 @@
   stroke-width: 2 !important;
 }
 
+.alk-gimmick {
+  pointer-events: none !important;
+  filter: url("#alk-soft-shadow") !important;
+}
+
+.alk-gimmick-pad {
+  fill: rgba(48, 29, 16, 0.88) !important;
+  stroke: rgba(255, 224, 159, 0.72) !important;
+  stroke-width: 3 !important;
+}
+
+.alk-gimmick-core {
+  fill: #c24731 !important;
+  stroke: rgba(77, 26, 17, 0.66) !important;
+  stroke-width: 2 !important;
+}
+
+.alk-gimmick-lever-slot {
+  fill: rgba(30, 16, 8, 0.9) !important;
+  stroke: rgba(245, 201, 123, 0.64) !important;
+  stroke-width: 2 !important;
+}
+
+.alk-gimmick-lever-arm {
+  fill: #d5a151 !important;
+  stroke: rgba(53, 28, 13, 0.75) !important;
+  stroke-width: 2 !important;
+}
+
+.alk-gimmick-knob {
+  fill: #f2c86e !important;
+  stroke: rgba(63, 31, 13, 0.72) !important;
+  stroke-width: 2 !important;
+}
+
+.alk-gimmick.triggered .alk-gimmick-pad,
+.alk-gimmick.triggered .alk-gimmick-core,
+.alk-gimmick.triggered .alk-gimmick-lever-arm,
+.alk-gimmick.triggered .alk-gimmick-knob {
+  animation: alk-gimmick-trigger 620ms ease-out;
+}
+
 .alk-aim line {
   stroke: rgba(255, 234, 177, 0.9) !important;
   stroke-width: 5 !important;
@@ -254,6 +296,21 @@
   }
 }
 
+@keyframes alk-gimmick-trigger {
+  from {
+    transform: scale(1);
+    opacity: 1;
+  }
+  42% {
+    transform: scale(1.22);
+    opacity: 0.74;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
 @media (max-width: 700px) {
   .alk-board {
     border-radius: 10px !important;
@@ -267,6 +324,13 @@
 
 @media (prefers-reduced-motion: reduce) {
   .alk-egg.last-shot .alk-egg-body {
+    animation: none !important;
+  }
+
+  .alk-gimmick.triggered .alk-gimmick-pad,
+  .alk-gimmick.triggered .alk-gimmick-core,
+  .alk-gimmick.triggered .alk-gimmick-lever-arm,
+  .alk-gimmick.triggered .alk-gimmick-knob {
     animation: none !important;
   }
 }
