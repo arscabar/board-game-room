@@ -233,6 +233,75 @@
   box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.14);
 }
 
+.blokus-cell.preview {
+  background:
+    radial-gradient(circle at 30% 18%, rgba(255, 255, 255, 0.46), transparent 24%),
+    linear-gradient(180deg, color-mix(in srgb, var(--preview-color) 74%, white), var(--preview-color)) !important;
+  box-shadow:
+    inset 0 0 0 2px rgba(32, 126, 75, 0.56),
+    inset 0 -4px 0 rgba(17, 85, 46, 0.18) !important;
+}
+
+.blokus-cell.preview.invalid {
+  background:
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.28) 0 4px, transparent 4px 8px),
+    linear-gradient(180deg, #f79a8e, #b82828) !important;
+  box-shadow:
+    inset 0 0 0 2px rgba(124, 16, 16, 0.72),
+    inset 0 -4px 0 rgba(77, 0, 0, 0.24) !important;
+}
+
+.blokus-cell.preview::before {
+  border-color: rgba(32, 126, 75, 0.72) !important;
+  background: rgba(40, 168, 91, 0.18);
+  box-shadow:
+    inset 0 -3px 0 rgba(0, 0, 0, 0.14),
+    0 0 0 1px rgba(255, 255, 255, 0.35);
+}
+
+.blokus-cell.preview.invalid::before {
+  border-color: rgba(124, 16, 16, 0.78) !important;
+  background: rgba(210, 35, 35, 0.24);
+}
+
+.blokus-palette button[draggable="true"],
+.blokus-drag-handle {
+  cursor: grab;
+  touch-action: none;
+}
+
+.blokus-palette button[draggable="true"]:active,
+.blokus-drag-handle:active {
+  cursor: grabbing;
+}
+
+.blokus-drag-handle {
+  display: inline-grid;
+  place-items: center;
+}
+
+.blokus-module.is-dragging-piece .blokus-board {
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 255, 255, 0.66),
+    0 0 0 3px rgba(226, 184, 109, 0.28),
+    0 16px 28px rgba(0, 0, 0, 0.28) !important;
+}
+
+.blokus-palette button:focus-visible,
+.blokus-controls button:focus-visible,
+.blokus-cell:focus-visible {
+  outline: 3px solid rgba(22, 132, 84, 0.78) !important;
+  outline-offset: 2px !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .blokus-cell.preview,
+  .blokus-palette button.selected .blokus-piece-mini {
+    animation: none !important;
+    transform: none !important;
+  }
+}
+
 @media (max-width: 980px) {
   .blokus-layout {
     grid-template-columns: 1fr !important;

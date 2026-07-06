@@ -1,5 +1,5 @@
 import { FlipHorizontal, RotateCw, SkipForward } from "lucide-react";
-import { type CSSProperties, useEffect, useMemo, useState } from "react";
+import { type CSSProperties, type DragEvent, useEffect, useMemo, useState } from "react";
 import type { GameActionResult, GameComponentProps, GameContext, GameModule } from "../types";
 
 type Point = {
@@ -1074,6 +1074,7 @@ export function Component({
     rotation: number;
     flipped: boolean;
   } | null>(null);
+  const [draggingPieceId, setDraggingPieceId] = useState<string | null>(null);
   const state = isBlokusPublicState(publicState) ? publicState : null;
   const activeBlokusPlayer = state?.players.find((player) => player.id === state.activeColorId) ?? null;
   const ownedBlokusPlayers = state?.players.filter((player) => player.ownerId === currentPlayer?.id) ?? [];
@@ -1090,41 +1091,50 @@ export function Component({
     state?.pieceCatalog.find((piece) => piece.id === selectedPieceId && currentBlokusPlayer?.remainingPieceIds.includes(piece.id)) ??
     state?.pieceCatalog.find((piece) => currentBlokusPlayer?.remainingPieceIds.includes(piece.id)) ??
     null;
+  const draggingPiece =
+    state?.pieceCatalog.find((piece) => piece.id === draggingPieceId && currentBlokusPlayer?.remainingPieceIds.includes(piece.id)) ?? null;
+  const placementPiece = draggingPiece ?? selectedPiece;
   const previewPoint = pendingPlacement?.point ?? hoveredCell;
   const preview = useMemo(() => {
-    if (!state || !previewPoint || !selectedPiece || !currentBlokusPlayer) {
+    if (!state || !previewPoint || !placementPiece || !currentBlokusPlayer) {
       return { cells: new Set<string>(), valid: false };
     }
-    const cells = translateCells(transformCells(selectedPiece.cells, rotation, flipped), previewPoint.x, previewPoint.y);
+    const cells = translateCells(transformCells(placementPiece.cells, rotation, flipped), previewPoint.x, previewPoint.y);
     const valid =
       cells.every(inBounds) &&
-      placementCellsAreLegal(state, currentBlokusPlayer, selectedPiece.id, cells);
+      placementCellsAreLegal(state, currentBlokusPlayer, placementPiece.id, cells);
     return {
       cells: new Set(cells.map((cell) => `${cell.x},${cell.y}`)),
       valid
     };
-  }, [currentBlokusPlayer, flipped, previewPoint, state, rotation, selectedPiece]);
+  }, [currentBlokusPlayer, flipped, placementPiece, previewPoint, state, rotation]);
   const legalAnchors = useMemo(() => {
     const anchors = new Set<string>();
-    if (!state || !selectedPiece || !currentBlokusPlayer || !canInteract) {
+    if (!state || !placementPiece || !currentBlokusPlayer || !canInteract) {
       return anchors;
     }
     for (let y = 0; y < BOARD_SIZE; y += 1) {
       for (let x = 0; x < BOARD_SIZE; x += 1) {
-        const cells = translateCells(transformCells(selectedPiece.cells, rotation, flipped), x, y);
-        if (cells.every(inBounds) && placementCellsAreLegal(state, currentBlokusPlayer, selectedPiece.id, cells)) {
+        const cells = translateCells(transformCells(placementPiece.cells, rotation, flipped), x, y);
+        if (cells.every(inBounds) && placementCellsAreLegal(state, currentBlokusPlayer, placementPiece.id, cells)) {
           anchors.add(`${x},${y}`);
         }
       }
     }
     return anchors;
-  }, [canInteract, currentBlokusPlayer, flipped, rotation, selectedPiece, state]);
+  }, [canInteract, currentBlokusPlayer, flipped, placementPiece, rotation, state]);
   const orientedPieceCells = selectedPiece ? transformCells(selectedPiece.cells, rotation, flipped) : [];
   const orientationLabel = `${rotation * 90}도 ${flipped ? "뒤집힘" : "기본면"}`;
 
   useEffect(() => {
     setPendingPlacement(null);
   }, [currentBlokusPlayer?.id, flipped, rotation, selectedPieceId]);
+
+  useEffect(() => {
+    if (!canInteract) {
+      setDraggingPieceId(null);
+    }
+  }, [canInteract]);
 
   if (!state) {
     return (
@@ -1133,6 +1143,31 @@ export function Component({
         <div className="blokus-empty">블로커스 상태를 불러오는 중입니다.</div>
       </div>
     );
+  }
+
+  function commitPieceAt(point: Point, piece: BlokusPiece) {
+    if (!canInteract || !currentBlokusPlayer) {
+      return;
+    }
+    const error = currentBlokusPlayer
+      ? getPlacementError(state, currentBlokusPlayer, piece.id, point.x, point.y, rotation, flipped)
+      : "블로커스 플레이어를 찾을 수 없습니다.";
+    if (error) {
+      setPendingPlacement(null);
+      setHoveredCell(point);
+      return;
+    }
+    setPendingPlacement(null);
+    onAction({
+      type: "place-piece",
+      payload: {
+        pieceId: piece.id,
+        x: point.x,
+        y: point.y,
+        rotation,
+        flipped
+      }
+    });
   }
 
   function placeAt(point: Point) {
@@ -1158,17 +1193,7 @@ export function Component({
       setHoveredCell(point);
       return;
     }
-    setPendingPlacement(null);
-    onAction({
-      type: "place-piece",
-      payload: {
-        pieceId: selectedPiece.id,
-        x: point.x,
-        y: point.y,
-        rotation,
-        flipped
-      }
-    });
+    commitPieceAt(point, selectedPiece);
   }
 
   function confirmPlacement() {
@@ -1176,8 +1201,49 @@ export function Component({
     placeAt(pendingPlacement.point);
   }
 
+  function startPieceDrag(event: DragEvent<HTMLElement>, piece: BlokusPiece) {
+    if (!canInteract) {
+      event.preventDefault();
+      return;
+    }
+    setSelectedPieceId(piece.id);
+    setDraggingPieceId(piece.id);
+    setPendingPlacement(null);
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData("text/plain", piece.id);
+  }
+
+  function handleCellDragOver(event: DragEvent<HTMLButtonElement>, point: Point) {
+    if (!state || !currentBlokusPlayer || !canInteract || !placementPiece) {
+      return;
+    }
+    event.preventDefault();
+    setHoveredCell(point);
+    const cells = translateCells(transformCells(placementPiece.cells, rotation, flipped), point.x, point.y);
+    event.dataTransfer.dropEffect =
+      cells.every(inBounds) && placementCellsAreLegal(state, currentBlokusPlayer!, placementPiece.id, cells) ? "move" : "none";
+  }
+
+  function handleCellDrop(event: DragEvent<HTMLButtonElement>, point: Point) {
+    if (!state) {
+      return;
+    }
+    event.preventDefault();
+    const pieceId = event.dataTransfer.getData("text/plain") || draggingPieceId || selectedPiece?.id;
+    const piece =
+      state.pieceCatalog.find((candidate) => candidate.id === pieceId && currentBlokusPlayer?.remainingPieceIds.includes(candidate.id)) ??
+      selectedPiece;
+    setDraggingPieceId(null);
+    setHoveredCell(point);
+    if (!piece) {
+      return;
+    }
+    setSelectedPieceId(piece.id);
+    commitPieceAt(point, piece);
+  }
+
   return (
-    <div className="blokus-module">
+    <div className={`blokus-module ${draggingPieceId ? "is-dragging-piece" : ""}`}>
       <BlokusStyles />
       <div className="blokus-status">
         <div>
@@ -1193,7 +1259,14 @@ export function Component({
       <div className="blokus-coach-card" style={{ "--player-color": currentBlokusPlayer?.color ?? "#64748b" } as CSSProperties}>
         <div className="blokus-piece-preview">
           {selectedPiece ? (
-            <PieceMini piece={selectedPiece} color={currentBlokusPlayer?.color ?? "#64748b"} cells={orientedPieceCells} large />
+            <span
+              className="blokus-drag-handle"
+              draggable={canInteract}
+              onDragEnd={() => setDraggingPieceId(null)}
+              onDragStart={(event) => startPieceDrag(event, selectedPiece)}
+            >
+              <PieceMini piece={selectedPiece} color={currentBlokusPlayer?.color ?? "#64748b"} cells={orientedPieceCells} large />
+            </span>
           ) : null}
         </div>
         <div>
@@ -1231,6 +1304,9 @@ export function Component({
                   type="button"
                   disabled={!canInteract}
                   onClick={() => placeAt({ x, y })}
+                  onDragEnter={(event) => handleCellDragOver(event, { x, y })}
+                  onDragOver={(event) => handleCellDragOver(event, { x, y })}
+                  onDrop={(event) => handleCellDrop(event, { x, y })}
                   onFocus={() => setHoveredCell({ x, y })}
                   onMouseEnter={() => setHoveredCell({ x, y })}
                   style={{
@@ -1295,6 +1371,9 @@ export function Component({
                     type="button"
                     disabled={!available}
                     onClick={() => setSelectedPieceId(piece.id)}
+                    draggable={available && canInteract}
+                    onDragEnd={() => setDraggingPieceId(null)}
+                    onDragStart={(event) => startPieceDrag(event, piece)}
                     aria-label={pieceDisplayName(piece)}
                     title={pieceDisplayName(piece)}
                   >
