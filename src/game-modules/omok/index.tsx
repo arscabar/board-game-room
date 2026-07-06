@@ -264,7 +264,6 @@ export function Component({
   const state = assertOmokState(publicState);
   const occupiedCount = state.board.reduce((total, row) => total + row.filter(Boolean).length, 0);
   const winningKeys = new Set(state.winningLine.map(key));
-  const myPlayer = state.players.find((player) => player.id === currentPlayer?.id) ?? null;
   const isMyTurn = currentPlayer?.id === state.activePlayerId;
   const canPlace = !disabled && isMyTurn && state.phase === "playing";
 
@@ -321,10 +320,6 @@ export function Component({
               </div>
             );
           })}
-          <div className="omok-rule-card">
-            <strong>{myPlayer ? `${myPlayer.stone === "black" ? "흑" : "백"} 담당` : "관전"}</strong>
-            <span>빈 교차점을 누르면 바로 착수됩니다.</span>
-          </div>
         </aside>
       </section>
     </div>

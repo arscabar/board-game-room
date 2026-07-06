@@ -740,10 +740,6 @@ export function Component({
             </div>
           ) : null}
 
-          <div className="kkuk-motion-note">
-            <strong>꾹</strong>
-            <span>놓은 말 주변의 밀릴 수 있는 말만 한 칸 움직입니다.</span>
-          </div>
         </aside>
       </section>
     </div>

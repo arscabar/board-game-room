@@ -3,24 +3,16 @@ import {
   BookOpen,
   Brain,
   CheckCircle2,
-  ChevronDown,
   CircleDot,
   Clock3,
   Crown,
   Dice5,
   DoorOpen,
-  Eye,
-  EyeOff,
-  ExternalLink,
-  FastForward,
-  Flag,
   Gamepad2,
   Gauge,
-  Grid2X2,
   History,
   Hexagon,
   Layers3,
-  ListChecks,
   Medal,
   Puzzle,
   Radio,
@@ -28,7 +20,6 @@ import {
   Route,
   Send,
   ShieldQuestion,
-  Sparkles,
   Star,
   Target,
   TimerOff,
@@ -171,30 +162,6 @@ function GameCoverImage({ game, className = "" }: { game: GameDefinition; classN
   return <img className={`game-cover-image ${className}`} src={gameCoverSrc(game)} alt={`${game.title} 대표 이미지`} draggable={false} />;
 }
 
-function foldIconFor(title: string) {
-  const icons: Record<string, LucideIcon> = {
-    세팅: Layers3,
-    "턴 진행": FastForward,
-    "구현 판정": CheckCircle2
-  };
-  return icons[title] ?? ListChecks;
-}
-
-const hiddenInformationGameIds = new Set(["guryongtu", "ghosts", "davinci-code-plus", "hangman-board-game"]);
-
-const visualCueByKind: Record<GameDefinition["table"]["kind"], { label: string; motion: string; Icon: LucideIcon }> = {
-  duel: { label: "비공개 타일 공개", motion: "flip", Icon: ShieldQuestion },
-  maze: { label: "말과 벽 배치", motion: "snap", Icon: Route },
-  hex: { label: "육각 구슬 밀기", motion: "slide", Icon: Hexagon },
-  hidden: { label: "정체 숨김", motion: "peek", Icon: EyeOff },
-  stack: { label: "스택 분배", motion: "drop", Icon: Layers3 },
-  deduction: { label: "타일 랙 추리", motion: "reveal", Icon: Brain },
-  polyomino: { label: "블록 배치", motion: "snap", Icon: Puzzle },
-  dice: { label: "주사위 굴림", motion: "tumble", Icon: Dice5 },
-  rings: { label: "링과 마커", motion: "glide", Icon: CircleDot },
-  word: { label: "글자 공개", motion: "press", Icon: BookOpen }
-};
-
 function stateRecord(value: unknown) {
   return value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : null;
 }
@@ -259,107 +226,11 @@ function phaseName(phase: string) {
   return labels[phase] ?? "진행";
 }
 
-function actionHintFor(gameId: string | null | undefined, phase: string) {
-  if (gameId === "guryongtu") {
-    return "숫자 타일 1개를 고르세요. 이미 쓴 숫자는 다시 쓸 수 없습니다.";
-  }
-  if (gameId === "quoridor") {
-    return "말 이동 후보를 누르거나, 벽 방향과 위치를 고른 뒤 가능 표시를 확인하고 놓으세요.";
-  }
-  if (gameId === "abalone-classic") {
-    return "자기 구슬 1~3개를 한 줄로 선택하세요. 한 줄이 아니면 이동 버튼이 켜지지 않습니다.";
-  }
-  if (gameId === "ghosts") {
-    return "자기 유령을 누르면 이동 가능한 칸과 탈출구가 표시됩니다.";
-  }
-  if (gameId === "qawale") {
-    return "스택을 고르고 밝은 다음 칸을 순서대로 누르세요. 바로 이전 칸으로 되돌아갈 수 없습니다.";
-  }
-  if (gameId === "davinci-code-plus") {
-    if (phase === "draw") return "먼저 타일을 뽑으세요. 그냥 턴을 끝낼 수 없습니다.";
-    if (phase === "decide") return "맞혔습니다. 계속 추측하거나, 여기서 턴을 끝내세요.";
-    return "상대의 숨은 타일을 고르고 숫자 또는 조커를 추측하세요. 시간 초과 시 자동 오답 처리됩니다.";
-  }
-  if (gameId === "blokus") {
-    return "블록을 고른 뒤 보드 위에 올려보세요. 미리보기 색으로 놓을 수 있는지 확인합니다.";
-  }
-  if (gameId === "yacht-dice") {
-    return "주사위를 굴리고, 보류할 주사위를 누른 뒤 점수칸을 선택하세요.";
-  }
-  if (gameId === "yinsh") {
-    if (phase === "ring-placement") return "빈 교차점에 링을 5개까지 번갈아 배치하세요.";
-    if (phase === "remove-row") return "완성된 5목 줄과 제거할 자기 링 하나를 고르세요.";
-    return "자기 링을 선택한 뒤 초록색 이동 후보점으로 옮기세요.";
-  }
-  if (gameId === "hangman-board-game") {
-    if (phase === "setup") return "서로 비밀 단어를 입력하면 추측 라운드가 시작됩니다.";
-    if (phase === "round-complete") return "라운드가 끝났습니다. 다음 라운드를 시작할 수 있습니다.";
-    return "알파벳 하나를 누르거나 전체 단어를 추측하세요.";
-  }
-  return "현재 차례의 행동을 선택하세요.";
-}
-
-function objectiveFor(gameId: string | null | undefined, phase: string, isFinished: boolean) {
-  if (isFinished) return "결과를 확인하고 로비에서 다음 게임을 고르세요.";
-  if (gameId === "guryongtu") return "상대보다 높은 숫자를 숨겨 내고 라운드 승수를 쌓으세요.";
-  if (gameId === "quoridor") return "내 말을 목표 줄까지 먼저 보내되, 상대 길은 완전히 막지 않게 좁히세요.";
-  if (gameId === "abalone-classic") return "자기 구슬 줄을 밀어 상대 구슬을 보드 밖으로 내보내세요.";
-  if (gameId === "ghosts") return "좋은 유령은 탈출시키고, 나쁜 유령은 상대가 잡게 유도하세요.";
-  if (gameId === "qawale") return "스택을 분배해 내 색 돌 4개가 한 줄이 되게 만드세요.";
-  if (gameId === "davinci-code-plus") return "상대 타일의 색 단서를 보고 숨은 숫자를 먼저 밝혀내세요.";
-  if (gameId === "blokus") return "모서리만 맞닿게 넓게 펼쳐 남은 칸을 가장 적게 만드세요.";
-  if (gameId === "yacht-dice") return "굴림 3번 안에 가장 높은 점수 조합을 기록하세요.";
-  if (gameId === "yinsh") {
-    if (phase === "ring-placement") return "링 5개를 좋은 출발점에 배치하세요.";
-    if (phase === "remove-row") return "완성한 5목 줄을 제거하고 자기 링 하나를 가져오세요.";
-    return "링 이동으로 마커를 뒤집어 5목 줄을 만드세요.";
-  }
-  if (gameId === "hangman-board-game") {
-    if (phase === "setup") return "상대가 바로 맞히기 어렵지만 규칙에 맞는 비밀 단어를 준비하세요.";
-    if (phase === "round-complete") return "라운드 결과를 확인하고 다음 비밀 단어 준비로 넘어가세요.";
-    return "오답 6번 전에 상대 단어를 글자 또는 전체 단어로 맞히세요.";
-  }
-  return "현재 게임의 승리 조건을 향해 이번 턴 행동을 고르세요.";
-}
-
 function formatTimer(ms: number) {
   const totalSeconds = Math.max(0, Math.ceil(ms / 1000));
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = totalSeconds % 60;
   return `${minutes}:${String(seconds).padStart(2, "0")}`;
-}
-
-function blockedReason({
-  currentPlayer,
-  activePlayer,
-  isMyTurn,
-  winnerLabel,
-  phase,
-  gameId,
-  paused
-}: {
-  currentPlayer: PlayerSnapshot | null;
-  activePlayer: PlayerSnapshot | null;
-  isMyTurn: boolean;
-  winnerLabel: string | null;
-  phase: string;
-  gameId: string | null | undefined;
-  paused?: boolean;
-}) {
-  if (!currentPlayer) return "이 방의 플레이어 정보가 없습니다. 다시 입장해 주세요.";
-  if (winnerLabel) return `게임이 끝났습니다. 결과: ${winnerLabel}`;
-  if (paused) return "게임이 잠시 멈춰 있습니다. 방장이 재개하면 이어서 진행됩니다.";
-  if (gameId === "hangman-board-game" && phase === "setup") return "준비 단계입니다. 각자 비밀 단어를 입력하세요.";
-  if (gameId === "hangman-board-game" && phase === "round-complete") return "라운드가 끝났습니다. 다음 라운드를 시작하세요.";
-  if (gameId === "guryongtu" && phase === "selecting") return "선공이 먼저 타일을 내고, 후공은 공개된 색상만 보고 응수합니다.";
-  if (gameId === "ghosts" && phase === "setup") return "각자 좋은 유령 4개와 나쁜 유령 4개의 위치를 비공개로 제출하세요.";
-  if (gameId === "kkukkkuki" && phase === "choose-line") return "승급할 3개 줄 하나를 선택하세요.";
-  if (gameId === "kkukkkuki" && phase === "choose-piece") return "보드 위 내 말 하나를 회수해 큰 말로 바꾸세요.";
-  if (gameId === "davinci-code-plus" && isMyTurn && (phase === "draw" || phase === "guessing")) {
-    return "다빈치 코드는 타일 뽑기/추측이 필수입니다. 이 단계에서 직접 턴 종료는 막혀 있습니다.";
-  }
-  if (!isMyTurn) return `${activePlayer?.name ?? "다음 플레이어"}님의 차례입니다. 내 차례가 되면 버튼이 켜집니다.`;
-  return "내 차례입니다. 밝게 표시된 곳부터 누르면 됩니다.";
 }
 
 function manualTurnEndRestriction(gameId: string | null | undefined, phase: string) {
@@ -2017,146 +1888,6 @@ function RingBoard() {
         <span key={index} className={index % 5 === 0 ? "ring" : index % 2 === 0 ? "black-marker" : "white-marker"} />
       ))}
     </div>
-  );
-}
-
-function GameDetailPanel({ game, playerCount }: { game: GameDefinition | null; playerCount: number }) {
-  if (!game) {
-    return (
-      <aside className="detail-panel" aria-label="게임 정보">
-        <div className="panel-header">
-          <div>
-            <h2>테이블 준비</h2>
-            <p>{playerCount}명 입장</p>
-          </div>
-        </div>
-        <div className="detail-empty-state">
-          <strong>게임을 고르면 이곳에 미리보기와 규칙이 고정됩니다.</strong>
-          <p>현재 인원수로 가능한 행만 선택할 수 있고, 시작 전 턴 제한도 여기 흐름에 맞춰 설정됩니다.</p>
-          <div className="table-flow-list" aria-label="테이블 진행 흐름">
-            <span>
-              <Users size={14} aria-hidden="true" />
-              인원 확인
-            </span>
-            <span>
-              <ListChecks size={14} aria-hidden="true" />
-              게임 선택
-            </span>
-            <span>
-              <CheckCircle2 size={14} aria-hidden="true" />
-              시작
-            </span>
-          </div>
-        </div>
-      </aside>
-    );
-  }
-
-  const visualCue = visualCueByKind[game.visual?.iconKind ?? game.table.kind];
-  const VisualCueIcon = visualCue.Icon;
-  const hasHiddenInfo = hiddenInformationGameIds.has(game.id);
-  const PrivacyCueIcon = hasHiddenInfo ? EyeOff : Eye;
-
-  return (
-    <aside className="detail-panel detail-fold-panel" aria-label="게임 정보">
-      <div className="panel-header">
-        <div>
-          <h2>{game.title}</h2>
-          <p>{game.original}</p>
-        </div>
-        <span className={canPlayGame(game, playerCount) ? "status-pill ok" : "status-pill muted"}>
-          {formatAllowedPlayers(game)}
-        </span>
-      </div>
-      <div className="fold-stack" style={{ "--game-accent": game.accent } as CSSProperties}>
-        <details className="fold-card detail-summary-card" open>
-          <summary>
-            <span>
-              <BookOpen size={15} aria-hidden="true" />
-              게임 정보
-            </span>
-            <ChevronDown className="fold-chevron" size={16} aria-hidden="true" />
-          </summary>
-          <div className="fold-content">
-            <div className="detail-board-preview detail-cover-preview">
-              <GameCoverImage game={game} className="detail-cover-image" />
-            </div>
-            <div className="detail-visual-cues" aria-label="시각적 조작 힌트">
-              <span>
-                <VisualCueIcon size={14} aria-hidden="true" />
-                <strong>{game.visual?.thumbnailHint ?? visualCue.label}</strong>
-                <small>{game.visual?.motionHint ?? visualCue.motion}</small>
-              </span>
-              <span>
-                <PrivacyCueIcon size={14} aria-hidden="true" />
-                <strong>{hasHiddenInfo ? "비공개 정보" : "공개 정보"}</strong>
-                <small>{hasHiddenInfo ? "viewer 분리" : "공유 상태"}</small>
-              </span>
-            </div>
-            <p className="summary">{game.summary}</p>
-            <div className="detail-meta-grid" aria-label="게임 요약">
-              <span>
-                <Sparkles size={14} aria-hidden="true" />
-                <strong>장르</strong>
-                {game.genre}
-              </span>
-              <span>
-                <Grid2X2 size={14} aria-hidden="true" />
-                <strong>보드</strong>
-                {game.board}
-              </span>
-              <span>
-                <Trophy size={14} aria-hidden="true" />
-                <strong>기록</strong>
-                {game.scoreState}
-              </span>
-            </div>
-            <a className="detail-learn-link" href={game.learnUrl} target="_blank" rel="noreferrer">
-              <ExternalLink size={16} aria-hidden="true" />
-              설명
-            </a>
-          </div>
-        </details>
-        <FoldList title="세팅" items={game.setup} defaultOpen />
-        <FoldList title="턴 진행" items={game.turnFlow} />
-        <FoldList title="구현 판정" items={game.implementation} />
-        <details className="fold-card win-condition">
-          <summary>
-            <span>
-              <Flag size={15} aria-hidden="true" />
-              승리조건
-            </span>
-            <ChevronDown className="fold-chevron" size={16} aria-hidden="true" />
-          </summary>
-          <div className="fold-content">
-            <p>{game.winCondition}</p>
-          </div>
-        </details>
-      </div>
-    </aside>
-  );
-}
-
-function FoldList({ title, items, defaultOpen = false }: { title: string; items: string[]; defaultOpen?: boolean }) {
-  const Icon = foldIconFor(title);
-
-  return (
-    <details className="fold-card info-list" open={defaultOpen}>
-      <summary>
-        <span>
-          <Icon size={15} aria-hidden="true" />
-          {title}
-        </span>
-        <ChevronDown className="fold-chevron" size={16} aria-hidden="true" />
-      </summary>
-      <div className="fold-content">
-        <ul>
-          {items.map((item) => (
-            <li key={item}>{item}</li>
-          ))}
-        </ul>
-      </div>
-    </details>
   );
 }
 

@@ -779,7 +779,6 @@ function QawaleThreeBoard({
           -
         </button>
       </div>
-      <p className="qaw-3d-hint">드래그 회전 · 휠/핀치 확대 · 홈 클릭</p>
     </div>
   );
 }

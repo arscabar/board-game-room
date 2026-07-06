@@ -121,22 +121,6 @@
   outline-offset: 2px !important;
 }
 
-.qaw-3d-hint {
-  position: absolute !important;
-  left: 12px !important;
-  bottom: 10px !important;
-  z-index: 4 !important;
-  margin: 0 !important;
-  border: 1px solid rgba(234, 191, 110, 0.2) !important;
-  border-radius: 999px !important;
-  padding: 6px 10px !important;
-  background: rgba(8, 5, 3, 0.64) !important;
-  color: rgba(248, 235, 207, 0.76) !important;
-  font-size: 0.76rem !important;
-  font-weight: 800 !important;
-  pointer-events: none !important;
-}
-
 .qaw-board-actions {
   display: grid !important;
   grid-template-columns: 1fr 1fr !important;
@@ -191,12 +175,4 @@
     font-size: 0.78rem !important;
   }
 
-  .qaw-3d-hint {
-    left: 8px !important;
-    bottom: 8px !important;
-    max-width: calc(100% - 112px) !important;
-    border-radius: 7px !important;
-    font-size: 0.68rem !important;
-    line-height: 1.2 !important;
-  }
 }

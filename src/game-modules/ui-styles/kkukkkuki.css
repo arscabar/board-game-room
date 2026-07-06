@@ -265,8 +265,7 @@
 
 .kkuk-piece-selector,
 .kkuk-player-stack,
-.kkuk-line-picker,
-.kkuk-motion-note {
+.kkuk-line-picker {
   min-width: 0 !important;
   padding: 10px !important;
   border: 1px solid var(--kkuk-line) !important;
@@ -277,8 +276,7 @@
 }
 
 .kkuk-piece-selector > strong,
-.kkuk-line-picker > strong,
-.kkuk-motion-note > strong {
+.kkuk-line-picker > strong {
   display: block !important;
   margin-bottom: 7px !important;
   font-size: 0.86rem !important;
@@ -363,8 +361,7 @@
   white-space: nowrap !important;
 }
 
-.kkuk-player small,
-.kkuk-motion-note span {
+.kkuk-player small {
   color: rgba(36, 23, 15, 0.74) !important;
   font-size: 0.78rem !important;
   line-height: 1.35 !important;
