@@ -616,7 +616,17 @@ export function Component({
                         className={`kkuk-piece ${piece.size} ${boop?.to ? "booped" : ""}`}
                         style={pieceStyle}
                         aria-hidden="true"
-                      />
+                      >
+                        <span className="kkuk-cat-tail" />
+                        <span className="kkuk-cat-face">
+                          <span className="kkuk-cat-eye left" />
+                          <span className="kkuk-cat-eye right" />
+                          <span className="kkuk-cat-nose" />
+                          <span className="kkuk-cat-mouth" />
+                          <span className="kkuk-cat-whiskers left" />
+                          <span className="kkuk-cat-whiskers right" />
+                        </span>
+                      </span>
                     ) : null}
                   </button>
                 );

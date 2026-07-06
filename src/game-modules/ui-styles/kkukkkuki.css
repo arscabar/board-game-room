@@ -152,16 +152,17 @@
   box-shadow:
     inset -2px -3px 4px rgba(36, 15, 7, 0.22),
     0 2px 3px rgba(33, 18, 8, 0.18) !important;
+  z-index: 3 !important;
 }
 
 .kkuk-piece::before {
-  left: 20% !important;
-  transform: rotate(45deg) !important;
+  left: 17% !important;
+  transform: rotate(38deg) skew(-7deg, -4deg) !important;
 }
 
 .kkuk-piece::after {
-  right: 20% !important;
-  transform: rotate(45deg) !important;
+  right: 17% !important;
+  transform: rotate(52deg) skew(7deg, 4deg) !important;
 }
 
 .kkuk-piece.small {
@@ -172,6 +173,188 @@
 .kkuk-piece.large {
   width: 72% !important;
   height: 72% !important;
+}
+
+.kkuk-cat-tail,
+.kkuk-cat-face,
+.kkuk-cat-eye,
+.kkuk-cat-nose,
+.kkuk-cat-mouth,
+.kkuk-cat-whiskers {
+  position: absolute !important;
+  pointer-events: none !important;
+  box-sizing: border-box !important;
+}
+
+.kkuk-cat-tail {
+  left: -11% !important;
+  bottom: 11% !important;
+  width: 34% !important;
+  height: 34% !important;
+  border: clamp(2px, 0.45vw, 4px) solid color-mix(in srgb, var(--piece-color) 86%, #fff 14%) !important;
+  border-top-color: transparent !important;
+  border-right-color: transparent !important;
+  border-radius: 999px !important;
+  transform: rotate(25deg) !important;
+  box-shadow: 0 2px 3px rgba(33, 18, 8, 0.16) !important;
+  opacity: 0.9 !important;
+  z-index: 1 !important;
+}
+
+.kkuk-cat-face {
+  inset: 18% 16% 17% !important;
+  z-index: 4 !important;
+}
+
+.kkuk-cat-face::before,
+.kkuk-cat-face::after {
+  content: "" !important;
+  position: absolute !important;
+  top: 58% !important;
+  width: 18% !important;
+  height: 10% !important;
+  border-radius: 999px !important;
+  background: rgba(255, 196, 181, 0.44) !important;
+  box-shadow: 0 0 6px rgba(255, 190, 171, 0.2) !important;
+}
+
+.kkuk-cat-face::before {
+  left: 14% !important;
+  transform: rotate(7deg) !important;
+}
+
+.kkuk-cat-face::after {
+  right: 14% !important;
+  transform: rotate(-7deg) !important;
+}
+
+.kkuk-cat-eye {
+  top: 26% !important;
+  width: 14% !important;
+  height: 20% !important;
+  border-radius: 999px !important;
+  background:
+    radial-gradient(circle at 38% 28%, rgba(255, 255, 255, 0.92) 0 16%, transparent 18%),
+    #241407 !important;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.18) !important;
+}
+
+.kkuk-cat-eye.left {
+  left: 26% !important;
+}
+
+.kkuk-cat-eye.right {
+  right: 26% !important;
+}
+
+.kkuk-cat-nose {
+  left: 50% !important;
+  top: 48% !important;
+  width: 15% !important;
+  height: 12% !important;
+  border-radius: 60% 60% 70% 70% !important;
+  background: #5e2a26 !important;
+  transform: translateX(-50%) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 207, 197, 0.34) !important;
+}
+
+.kkuk-cat-mouth {
+  left: 50% !important;
+  top: 59% !important;
+  width: 28% !important;
+  height: 16% !important;
+  transform: translateX(-50%) !important;
+}
+
+.kkuk-cat-mouth::before,
+.kkuk-cat-mouth::after {
+  content: "" !important;
+  position: absolute !important;
+  top: 0 !important;
+  width: 52% !important;
+  height: 80% !important;
+  border-bottom: clamp(1px, 0.22vw, 2px) solid rgba(57, 26, 15, 0.82) !important;
+  border-radius: 0 0 999px 999px !important;
+}
+
+.kkuk-cat-mouth::before {
+  right: 48% !important;
+}
+
+.kkuk-cat-mouth::after {
+  left: 48% !important;
+}
+
+.kkuk-cat-whiskers {
+  top: 49% !important;
+  width: 24% !important;
+  height: 25% !important;
+}
+
+.kkuk-cat-whiskers::before,
+.kkuk-cat-whiskers::after {
+  content: "" !important;
+  position: absolute !important;
+  left: 0 !important;
+  right: 0 !important;
+  height: clamp(1px, 0.16vw, 2px) !important;
+  border-radius: 999px !important;
+  background: rgba(68, 32, 16, 0.62) !important;
+}
+
+.kkuk-cat-whiskers.left {
+  left: 3% !important;
+}
+
+.kkuk-cat-whiskers.left::before {
+  top: 16% !important;
+  transform: rotate(9deg) !important;
+}
+
+.kkuk-cat-whiskers.left::after {
+  top: 54% !important;
+  transform: rotate(-9deg) !important;
+}
+
+.kkuk-cat-whiskers.right {
+  right: 3% !important;
+}
+
+.kkuk-cat-whiskers.right::before {
+  top: 16% !important;
+  transform: rotate(-9deg) !important;
+}
+
+.kkuk-cat-whiskers.right::after {
+  top: 54% !important;
+  transform: rotate(9deg) !important;
+}
+
+.kkuk-piece.small .kkuk-cat-face {
+  inset: 16% 13% 14% !important;
+}
+
+.kkuk-piece.small .kkuk-cat-eye {
+  width: 16% !important;
+  height: 23% !important;
+}
+
+.kkuk-piece.small .kkuk-cat-whiskers {
+  display: none !important;
+}
+
+.kkuk-piece.small .kkuk-cat-face::before,
+.kkuk-piece.small .kkuk-cat-face::after {
+  width: 15% !important;
+  height: 8% !important;
+  opacity: 0.86 !important;
+}
+
+.kkuk-piece.small .kkuk-cat-tail {
+  left: -8% !important;
+  bottom: 10% !important;
+  width: 30% !important;
+  height: 30% !important;
 }
 
 .kkuk-cell.last .kkuk-piece {
