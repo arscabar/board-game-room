@@ -1078,10 +1078,10 @@ function terrainAsset(kind: TerrainKind) {
 }
 
 function terrainAssetSize(terrain: Terrain) {
-  if (terrain.kind === "mud") return { width: terrain.r * 3.1, height: terrain.r * 2.1 };
-  if (terrain.kind === "ice") return { width: terrain.r * 2.75, height: terrain.r * 2.75 };
-  if (terrain.kind === "bumper") return { width: terrain.r * 3.05, height: terrain.r * 3.05 };
-  return { width: terrain.r * 2.9, height: terrain.r * 2.9 };
+  if (terrain.kind === "mud") return { width: terrain.r * 2.2, height: terrain.r * 1.5 };
+  if (terrain.kind === "ice") return { width: terrain.r * 1.92, height: terrain.r * 1.92 };
+  if (terrain.kind === "bumper") return { width: terrain.r * 1.72, height: terrain.r * 1.72 };
+  return { width: terrain.r * 1.86, height: terrain.r * 1.86 };
 }
 
 function gimmickAsset(kind: GimmickKind) {
@@ -1359,8 +1359,8 @@ export function Component({
           >
             <image
               href="/board-assets/textures/alkkagi-board-wood.webp"
-              x={-BOARD_RADIUS}
-              y={-BOARD_RADIUS}
+              x={0}
+              y={0}
               width={BOARD_RADIUS * 2}
               height={BOARD_RADIUS * 2}
               preserveAspectRatio="xMidYMid slice"
@@ -1401,6 +1401,8 @@ export function Component({
           const assetSize = terrainAssetSize(terrain);
           return (
             <g className={`alk-terrain ${terrain.kind}`} key={terrain.id} transform={`translate(${terrain.x} ${terrain.y}) rotate(${angle})`} aria-label={terrainLabel(terrain.kind)}>
+              <circle className="alk-terrain-plate" cx="0" cy="0" r={terrain.r * 1.1} />
+              <circle className="alk-terrain-rim" cx="0" cy="0" r={terrain.r * 0.94} />
               <circle className="alk-terrain-hit-area" cx="0" cy="0" r={terrain.r} />
               <image
                 className="alk-terrain-asset"
@@ -1426,6 +1428,7 @@ export function Component({
               transform={`translate(${gimmick.x} ${gimmick.y}) rotate(${angle})`}
               aria-label={gimmickLabel(gimmick.kind)}
             >
+              <ellipse className="alk-gimmick-plate" cx="0" cy={gimmick.kind === "lever" ? gimmick.r * 0.08 : 0} rx={assetSize.width * 0.43} ry={assetSize.height * 0.38} />
               <ellipse className="alk-gimmick-contact" cx="0" cy={gimmick.kind === "lever" ? gimmick.r * 0.08 : 0} rx={assetSize.width * 0.38} ry={assetSize.height * 0.34} />
               <image
                 className="alk-gimmick-asset"
@@ -1480,6 +1483,8 @@ export function Component({
               <circle className="alk-egg-shadow" cx="0" cy="4" r={radius} />
               {egg.kind === "skill" ? <g className="alk-skill-aura" aria-hidden="true">{skillAura(egg.skill, radius)}</g> : null}
               <circle className="alk-egg-body" cx="0" cy="0" r={radius} />
+              <circle className="alk-egg-bevel" cx="0" cy="0" r={Math.max(4, radius - 4)} />
+              <ellipse className="alk-egg-glint" cx={-radius * 0.28} cy={-radius * 0.34} rx={radius * 0.3} ry={radius * 0.16} />
               {egg.kind === "king" ? (
                 <g className="alk-king-mark" aria-hidden="true">
                   <path d="M-11 -3 L-6 -13 L0 -5 L6 -13 L11 -3 L8 8 L-8 8 Z" />
