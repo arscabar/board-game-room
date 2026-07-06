@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import type { CSSProperties } from "react";
 import type { GameAction, GameActionResult, GameComponentProps, GameContext, GameModule } from "../types";
 
+const ADULT_CAT_MARKER = "/board-assets/game-markers/kkukkkuki-cat-adult.png";
+const KITTEN_MARKER = "/board-assets/game-markers/kkukkkuki-kitten.png";
 const BOARD_SIZE = 6;
 const STARTING_SMALL = 8;
 const LINE_LENGTH = 3;
@@ -617,15 +619,12 @@ export function Component({
                         style={pieceStyle}
                         aria-hidden="true"
                       >
-                        <span className="kkuk-cat-tail" />
-                        <span className="kkuk-cat-face">
-                          <span className="kkuk-cat-eye left" />
-                          <span className="kkuk-cat-eye right" />
-                          <span className="kkuk-cat-nose" />
-                          <span className="kkuk-cat-mouth" />
-                          <span className="kkuk-cat-whiskers left" />
-                          <span className="kkuk-cat-whiskers right" />
-                        </span>
+                        <img
+                          className="kkuk-piece-image"
+                          src={piece.size === "small" ? KITTEN_MARKER : ADULT_CAT_MARKER}
+                          alt=""
+                          draggable={false}
+                        />
                       </span>
                     ) : null}
                   </button>
