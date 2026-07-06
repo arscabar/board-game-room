@@ -556,7 +556,6 @@ export const module: GameModule = {
 };
 
 export function Component({
-  players,
   currentPlayer,
   activePlayer,
   publicState,
@@ -566,6 +565,7 @@ export function Component({
   const state = assertKkukkkukiState(publicState);
   const [selectedSize, setSelectedSize] = useState<PieceSize>("small");
   const activeReserve = currentPlayer ? state.reserves[currentPlayer.id] : null;
+  const currentModulePlayer = state.players.find((player) => player.id === currentPlayer?.id) ?? null;
   const myTurn = currentPlayer?.id === state.activePlayerId;
   const canAct = !disabled && myTurn && state.phase !== "complete";
   const pendingCoordKeys = useMemo(() => new Set(state.pendingLines.flatMap((line) => line.coords.map(coordKey))), [state.pendingLines]);
@@ -602,11 +602,6 @@ export function Component({
         <div>
           <strong>차례</strong>
           <span>{activePlayer?.name ?? "종료"}</span>
-        </div>
-        <p>{state.message}</p>
-        <div>
-          <strong>단계</strong>
-          <span>{phaseLabel(state.phase)}</span>
         </div>
       </section>
 
@@ -686,42 +681,34 @@ export function Component({
 
         <aside className="kkuk-side" aria-label="꾹꾹이 조작">
           <div className="kkuk-piece-selector">
-            <strong>놓을 말</strong>
             <div className="kkuk-selector-row">
               <button
                 type="button"
                 className={selectedSize === "small" ? "selected" : ""}
                 disabled={!activeReserve || activeReserve.small <= 0 || state.phase !== "playing"}
                 onClick={() => setSelectedSize("small")}
+                aria-label="작은 말 선택"
               >
-                작은 말 <span>{activeReserve?.small ?? 0}</span>
+                <img
+                  src={markerFor({ id: "selector-small", ownerId: currentModulePlayer?.id ?? "", size: "small" }, currentModulePlayer ?? undefined)}
+                  alt=""
+                  draggable={false}
+                />
               </button>
               <button
                 type="button"
                 className={selectedSize === "large" ? "selected" : ""}
                 disabled={!activeReserve || activeReserve.large <= 0 || state.phase !== "playing"}
                 onClick={() => setSelectedSize("large")}
+                aria-label="큰 말 선택"
               >
-                큰 말 <span>{activeReserve?.large ?? 0}</span>
+                <img
+                  src={markerFor({ id: "selector-large", ownerId: currentModulePlayer?.id ?? "", size: "large" }, currentModulePlayer ?? undefined)}
+                  alt=""
+                  draggable={false}
+                />
               </button>
             </div>
-          </div>
-
-          <div className="kkuk-player-stack">
-            {state.players.map((player) => {
-              const reserve = state.reserves[player.id] ?? { small: 0, large: 0 };
-              const boardCount = pieceCountOnBoard(state, player.id);
-              const snapshot = players.find((candidate) => candidate.id === player.id);
-              return (
-                <div className={`kkuk-player ${player.id === state.activePlayerId ? "active" : ""}`} key={player.id}>
-                  <span className="kkuk-color-dot" style={{ "--piece-color": player.color } as CSSProperties} aria-hidden="true" />
-                  <div>
-                    <strong>{snapshot?.name ?? player.name}</strong>
-                    <small>판 {boardCount} · 작 {reserve.small} · 큰 {reserve.large}</small>
-                  </div>
-                </div>
-              );
-            })}
           </div>
 
           {state.phase === "choose-line" ? (
@@ -744,11 +731,4 @@ export function Component({
       </section>
     </div>
   );
-}
-
-function phaseLabel(phase: Phase) {
-  if (phase === "choose-line") return "승급 선택";
-  if (phase === "choose-piece") return "말 회수";
-  if (phase === "complete") return "종료";
-  return "배치";
 }
