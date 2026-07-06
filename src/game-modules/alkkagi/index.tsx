@@ -1349,6 +1349,23 @@ export function Component({
         aria-label="다인전 알까기 원형판"
       >
         <defs>
+          <pattern
+            id="alk-board-texture"
+            patternUnits="userSpaceOnUse"
+            x={-BOARD_RADIUS}
+            y={-BOARD_RADIUS}
+            width={BOARD_RADIUS * 2}
+            height={BOARD_RADIUS * 2}
+          >
+            <image
+              href="/board-assets/textures/alkkagi-board-wood.webp"
+              x={-BOARD_RADIUS}
+              y={-BOARD_RADIUS}
+              width={BOARD_RADIUS * 2}
+              height={BOARD_RADIUS * 2}
+              preserveAspectRatio="xMidYMid slice"
+            />
+          </pattern>
           <radialGradient id="alk-board-grain" cx="38%" cy="28%" r="70%">
             <stop className="alk-grain-top" offset="0%" stopColor="var(--alk-grain-top)" />
             <stop className="alk-grain-mid" offset="58%" stopColor="var(--alk-grain-mid)" />

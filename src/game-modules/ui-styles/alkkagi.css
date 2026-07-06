@@ -88,8 +88,11 @@
   border: 1px solid rgba(236, 191, 116, 0.18) !important;
   border-radius: 18px !important;
   background:
+    radial-gradient(circle at 50% 50%, rgba(255, 210, 132, 0.08), transparent 46%),
     radial-gradient(circle at 50% 50%, rgba(15, 9, 5, 0.2), rgba(7, 4, 2, 0.82) 68%),
+    var(--texture-club-felt, none),
     linear-gradient(135deg, var(--alk-board-bg-a), var(--alk-board-bg-b)) !important;
+  background-size: auto, auto, cover, auto !important;
   touch-action: none !important;
   user-select: none !important;
 }
@@ -106,7 +109,9 @@
   border-radius: 14px !important;
   background:
     linear-gradient(180deg, rgba(62, 37, 20, 0.92), rgba(18, 10, 5, 0.96)),
+    var(--texture-club-leather, none),
     repeating-linear-gradient(90deg, rgba(255, 222, 160, 0.04) 0 1px, transparent 1px 13px) !important;
+  background-size: auto, cover, auto !important;
   box-shadow:
     inset 0 1px 0 rgba(255, 229, 170, 0.12),
     0 12px 24px rgba(0, 0, 0, 0.24) !important;
@@ -305,7 +310,7 @@
 }
 
 .alk-table {
-  fill: url("#alk-board-grain") !important;
+  fill: url("#alk-board-texture") !important;
   stroke: rgba(255, 232, 178, 0.5) !important;
   stroke-width: 6 !important;
 }

@@ -11994,3 +11994,125 @@ textarea:focus-visible {
     max-height: none !important;
   }
 }
+
+/* Generated material pass: dark club table, felt play area, leather controls, wood boards. */
+:root {
+  --texture-club-walnut: url("/board-assets/textures/club-walnut.webp");
+  --texture-club-felt: url("/board-assets/textures/club-felt.webp");
+  --texture-club-parchment: url("/board-assets/textures/club-parchment.webp");
+  --texture-club-leather: url("/board-assets/textures/club-leather.webp");
+  --texture-alk-board: url("/board-assets/textures/alkkagi-board-wood.webp");
+}
+
+body {
+  background:
+    linear-gradient(180deg, rgba(8, 5, 3, 0.7), rgba(8, 5, 3, 0.88)),
+    var(--texture-club-walnut) center / cover fixed no-repeat,
+    #120d09 !important;
+}
+
+body .app-shell {
+  background:
+    linear-gradient(90deg, rgba(236, 187, 108, 0.035) 0 1px, transparent 1px 132px),
+    linear-gradient(0deg, rgba(236, 187, 108, 0.018) 0 1px, transparent 1px 96px),
+    linear-gradient(145deg, rgba(12, 50, 38, 0.74), rgba(12, 8, 5, 0.92)),
+    var(--texture-club-felt) center / cover no-repeat,
+    #120d09 !important;
+}
+
+body .topbar,
+body .home-console,
+body .home-toolbar,
+body .room-browser-heading,
+body .home-player-panel,
+body .home-tables-panel,
+body .room-list-panel,
+body .entry-panel,
+body .seat-panel,
+body .work-panel,
+body .detail-panel,
+body .stats-block,
+body .game-module-shell {
+  background:
+    linear-gradient(180deg, rgba(49, 31, 18, 0.9), rgba(18, 12, 7, 0.96)),
+    var(--texture-club-walnut) center / cover no-repeat,
+    #1b120c !important;
+}
+
+body .room-card,
+body .saved-room-button,
+body .detail-summary-card,
+body .detail-panel .fold-card,
+body .win-condition,
+body .seat-row,
+body .game-row,
+body .status-pill,
+body .metric-chip,
+body .room-owner-chip,
+body .room-count-chip,
+body .room-state-chip,
+body .player-turn-chip {
+  background:
+    linear-gradient(180deg, rgba(34, 22, 14, 0.9), rgba(13, 9, 6, 0.96)),
+    var(--texture-club-leather) center / cover no-repeat,
+    #1a110b !important;
+}
+
+body .play-panel .turn-guide,
+body .play-panel .table-control-panel,
+body .play-panel .action-form,
+body .play-panel .turn-actions,
+body .play-panel .move-log,
+body .compact-empty-room {
+  background:
+    linear-gradient(180deg, rgba(40, 25, 15, 0.86), rgba(15, 10, 6, 0.95)),
+    var(--texture-club-leather) center / cover no-repeat,
+    #1b110b !important;
+}
+
+body .game-module {
+  background:
+    linear-gradient(180deg, rgba(16, 10, 6, 0.76), rgba(8, 6, 4, 0.9)),
+    var(--texture-club-walnut) center / cover no-repeat,
+    #100b07 !important;
+}
+
+body .primary-button,
+body .board-sdk-button.primary-button,
+body .icon-button.strong,
+body .board-sdk-icon-button.strong,
+body .turn-actions .primary-button,
+body .detail-learn-link {
+  background:
+    linear-gradient(180deg, rgba(31, 122, 80, 0.92), rgba(16, 87, 60, 0.98)),
+    var(--texture-club-felt) center / cover no-repeat,
+    #155b3f !important;
+}
+
+body .secondary-button,
+body .icon-button,
+body .board-sdk-button.rt-Button,
+body .board-sdk-icon-button.rt-IconButton {
+  background:
+    linear-gradient(180deg, rgba(58, 38, 24, 0.88), rgba(25, 16, 10, 0.96)),
+    var(--texture-club-leather) center / cover no-repeat,
+    #2d1d12 !important;
+}
+
+body input,
+body select,
+body textarea {
+  background:
+    linear-gradient(180deg, rgba(11, 8, 5, 0.96), rgba(6, 4, 3, 0.98)),
+    var(--texture-club-leather) center / cover no-repeat,
+    #080604 !important;
+}
+
+body .notice,
+body .game-message-strip,
+body .turn-guide-coach span {
+  background:
+    linear-gradient(180deg, rgba(44, 29, 17, 0.88), rgba(17, 11, 7, 0.94)),
+    var(--texture-club-parchment) center / cover no-repeat,
+    #22160d !important;
+}
