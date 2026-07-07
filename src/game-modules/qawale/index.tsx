@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import type { GameAction, GameActionResult, GameComponentProps, GameContext, GameModule } from "../types";
+import { useInteractionGate } from "../useInteractionGate";
 
 const BOARD_SIZE = 4;
 const STARTING_RESERVE = 8;
@@ -340,6 +341,10 @@ type CellHitMesh = THREE.Mesh & { userData: { row: number; col: number } };
 
 const cellSpacing = 1.75;
 const boardOffset = ((BOARD_SIZE - 1) * cellSpacing) / 2;
+const qawCameraDefault = { yaw: -0.56, pitch: 0.82, distance: 16.4 };
+const qawCameraMinDistance = 11.2;
+const qawCameraMaxDistance = 21.5;
+const qawCameraTarget = new THREE.Vector3(0, -0.04, 0);
 
 function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value));
@@ -350,7 +355,7 @@ function stoneLayerRadius(index: number) {
 }
 
 function stoneLayerY(index: number) {
-  return 0.17 + index * 0.17;
+  return 0.18 + index * 0.19;
 }
 
 function cellPosition(row: number, col: number) {
@@ -391,7 +396,7 @@ function QawaleThreeBoard({
   const clickableRef = useRef<CellHitMesh[]>([]);
   const frameRef = useRef<number | null>(null);
   const latestSelectRef = useRef(onCellSelect);
-  const controlsRef = useRef({ yaw: -0.58, pitch: 0.72, distance: 15.2 });
+  const controlsRef = useRef({ ...qawCameraDefault });
   const pointerRef = useRef({
     active: false,
     id: -1,
@@ -410,7 +415,7 @@ function QawaleThreeBoard({
     const { yaw, pitch, distance } = controlsRef.current;
     const horizontal = Math.sin(pitch) * distance;
     camera.position.set(Math.sin(yaw) * horizontal, Math.cos(pitch) * distance, Math.cos(yaw) * horizontal);
-    camera.lookAt(0, 0.08, 0);
+    camera.lookAt(qawCameraTarget);
     camera.updateProjectionMatrix();
   };
 
@@ -422,7 +427,7 @@ function QawaleThreeBoard({
     scene.background = null;
     sceneRef.current = scene;
 
-    const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 80);
+    const camera = new THREE.PerspectiveCamera(34, 1, 0.1, 80);
     cameraRef.current = camera;
     updateCamera();
 
@@ -435,7 +440,7 @@ function QawaleThreeBoard({
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.shadowMap.type = THREE.PCFShadowMap;
     rendererRef.current = renderer;
     mount.appendChild(renderer.domElement);
 
@@ -504,7 +509,11 @@ function QawaleThreeBoard({
         const points = [...pinchRef.current.values()];
         const distance = Math.hypot(points[0].x - points[1].x, points[0].y - points[1].y);
         const previous = (pinchRef.current as unknown as { lastDistance?: number }).lastDistance ?? distance;
-        controlsRef.current.distance = clamp(controlsRef.current.distance - (distance - previous) * 0.018, 9.8, 19.5);
+        controlsRef.current.distance = clamp(
+          controlsRef.current.distance - (distance - previous) * 0.018,
+          qawCameraMinDistance,
+          qawCameraMaxDistance
+        );
         (pinchRef.current as unknown as { lastDistance?: number }).lastDistance = distance;
         updateCamera();
         return;
@@ -520,7 +529,7 @@ function QawaleThreeBoard({
       pointerState.x = event.clientX;
       pointerState.y = event.clientY;
       controlsRef.current.yaw -= dx * 0.007;
-      controlsRef.current.pitch = clamp(controlsRef.current.pitch - dy * 0.005, 0.34, 1.22);
+      controlsRef.current.pitch = clamp(controlsRef.current.pitch - dy * 0.005, 0.44, 1.25);
       updateCamera();
     };
 
@@ -541,7 +550,11 @@ function QawaleThreeBoard({
 
     const onWheel = (event: WheelEvent) => {
       event.preventDefault();
-      controlsRef.current.distance = clamp(controlsRef.current.distance + event.deltaY * 0.006, 9.8, 19.5);
+      controlsRef.current.distance = clamp(
+        controlsRef.current.distance + event.deltaY * 0.006,
+        qawCameraMinDistance,
+        qawCameraMaxDistance
+      );
       updateCamera();
     };
 
@@ -586,7 +599,7 @@ function QawaleThreeBoard({
     }
 
     const group = new THREE.Group();
-    group.scale.setScalar(0.84);
+    group.scale.setScalar(0.8);
     boardGroupRef.current = group;
     clickableRef.current = [];
 
@@ -657,6 +670,25 @@ function QawaleThreeBoard({
           pathRing.rotation.x = Math.PI / 2;
           pathRing.position.set(position.x, 0.11, position.z);
           group.add(pathRing);
+
+          const stepNumbers = pathStepsByCell.get(cellKey) ?? [];
+          stepNumbers.forEach((step, markerIndex) => {
+            const spreadAngle = -Math.PI / 2 + markerIndex * 0.62;
+            const stepMarker = new THREE.Mesh(
+              new THREE.CylinderGeometry(0.18, 0.16, 0.07, 28),
+              new THREE.MeshBasicMaterial({
+                color: step === path.length ? 0xf2cf72 : 0xb9d9c9,
+                transparent: true,
+                opacity: 0.96
+              })
+            );
+            stepMarker.position.set(
+              position.x + Math.cos(spreadAngle) * 0.24,
+              0.2 + markerIndex * 0.025,
+              position.z + Math.sin(spreadAngle) * 0.24
+            );
+            group.add(stepMarker);
+          });
         }
 
         if (next) {
@@ -756,12 +788,16 @@ function QawaleThreeBoard({
   }, [publicState, source, path, pathComplete, pathStepsByCell, nextTargets, canAct, carryStones]);
 
   function resetCamera() {
-    controlsRef.current = { yaw: -0.58, pitch: 0.72, distance: 15.2 };
+    controlsRef.current = { ...qawCameraDefault };
     updateCamera();
   }
 
   function zoom(delta: number) {
-    controlsRef.current.distance = clamp(controlsRef.current.distance + delta, 9.8, 19.5);
+    controlsRef.current.distance = clamp(
+      controlsRef.current.distance + delta,
+      qawCameraMinDistance,
+      qawCameraMaxDistance
+    );
     updateCamera();
   }
 
@@ -796,6 +832,11 @@ export function Component(props: GameComponentProps) {
     !publicState.winnerId &&
     currentPlayer?.id === activePlayer?.id &&
     Boolean(currentModulePlayer);
+  const { isSubmitting, submitAction } = useInteractionGate(
+    onAction,
+    [activePlayer?.id, publicState.phase, publicState.message, publicState.winnerId],
+    { cooldownMs: 700 }
+  );
   const carryLength = source ? publicState.board[source.row][source.col].length + 1 : 0;
   const carryStones = source && currentModulePlayer ? [...publicState.board[source.row][source.col], currentModulePlayer.id] : [];
   const pathComplete = source && path.length === carryLength;
@@ -839,13 +880,13 @@ export function Component(props: GameComponentProps) {
   }
 
   function submitMove() {
-    if (!canAct || !source || !pathComplete) return;
-    onAction({ type: "distribute", payload: { source, path } });
+    if (!canAct || isSubmitting || !source || !pathComplete) return;
+    if (!submitAction({ type: "distribute", payload: { source, path } })) return;
     resetPath();
   }
 
   return (
-    <div className="qaw-shell">
+    <div className={`qaw-shell ${isSubmitting ? "is-submitting" : ""}`}>
       <div className="qaw-status">
         <div>
           <strong>{publicState.phase === "complete" ? (publicState.winnerId ? "승자" : "무승부") : "차례"}</strong>
@@ -879,7 +920,7 @@ export function Component(props: GameComponentProps) {
               <button disabled={!source} onClick={resetPath} type="button">
                 취소
               </button>
-              <button disabled={!pathComplete} onClick={submitMove} type="button">
+              <button disabled={!pathComplete || isSubmitting} onClick={submitMove} type="button">
                 놓기
               </button>
             </div>

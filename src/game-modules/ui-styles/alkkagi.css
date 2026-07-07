@@ -296,6 +296,34 @@
   font-weight: 900 !important;
 }
 
+.alk-gesture-steps {
+  display: flex !important;
+  gap: 4px !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.alk-gesture-steps span {
+  width: 19px !important;
+  height: 19px !important;
+  display: grid !important;
+  place-items: center !important;
+  border: 1px solid currentColor !important;
+  border-radius: 999px !important;
+  font-size: 0.66rem !important;
+  font-weight: 900 !important;
+  opacity: 0.5 !important;
+}
+
+.alk-gesture-steps span.active,
+.alk-gesture-steps span.done {
+  opacity: 1 !important;
+}
+
+.alk-gesture-steps span.done {
+  background: rgba(255, 240, 210, 0.18) !important;
+}
+
 .alk-gesture-pad.is-ready {
   color: #160b04 !important;
   border-color: rgba(255, 232, 178, 0.74) !important;
@@ -378,16 +406,13 @@
   stroke-width: 1.8 !important;
 }
 
-.alk-aim line {
-  stroke: rgba(255, 234, 177, 0.9) !important;
-  stroke-width: 5 !important;
-  stroke-linecap: round !important;
-  stroke-dasharray: 9 9 !important;
+.alk-aim-zone {
+  pointer-events: none !important;
 }
 
-.alk-aim circle {
-  fill: rgba(255, 234, 177, 0.18) !important;
-  stroke: rgba(255, 234, 177, 0.92) !important;
+.alk-aim-zone-origin {
+  fill: rgba(255, 232, 176, 0.12) !important;
+  stroke: rgba(255, 232, 176, 0.58) !important;
   stroke-width: 3 !important;
 }
 
@@ -398,6 +423,21 @@
 
 .alk-egg.is-current {
   cursor: pointer !important;
+}
+
+.alk-egg.is-current:not(.is-selected) .alk-egg-body {
+  stroke-width: 3.8 !important;
+  stroke: rgba(255, 232, 176, 0.86) !important;
+  filter:
+    url("#alk-soft-shadow")
+    saturate(0.96)
+    brightness(0.96)
+    drop-shadow(0 0 7px rgba(240, 201, 118, 0.34)) !important;
+}
+
+.alk-egg.is-current:focus-visible .alk-egg-body {
+  stroke: rgba(255, 248, 210, 0.96) !important;
+  stroke-width: 5 !important;
 }
 
 .alk-egg-body {
@@ -796,6 +836,10 @@
   .alk-power-meter,
   .alk-gesture-pad {
     min-height: 48px !important;
+  }
+
+  .alk-gesture-pad {
+    gap: 2px !important;
   }
 }
 

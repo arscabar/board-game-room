@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { CSSProperties } from "react";
 import type { GameAction, GameActionResult, GameComponentProps, GameContext, GameModule } from "../types";
+import { useInteractionGate } from "../useInteractionGate";
 
 const CAT_MARKERS_BY_PLAYER = [
   {
@@ -564,12 +565,39 @@ export function Component({
 }: GameComponentProps<KkukkkukiState>) {
   const state = assertKkukkkukiState(publicState);
   const [selectedSize, setSelectedSize] = useState<PieceSize>("small");
+  const { isSubmitting, submitAction } = useInteractionGate(onAction, [state.actionNonce, state.activePlayerId, state.phase], {
+    cooldownMs: 600
+  });
   const activeReserve = currentPlayer ? state.reserves[currentPlayer.id] : null;
   const currentModulePlayer = state.players.find((player) => player.id === currentPlayer?.id) ?? null;
   const myTurn = currentPlayer?.id === state.activePlayerId;
   const canAct = !disabled && myTurn && state.phase !== "complete";
   const pendingCoordKeys = useMemo(() => new Set(state.pendingLines.flatMap((line) => line.coords.map(coordKey))), [state.pendingLines]);
   const boopByPieceId = useMemo(() => new Map(state.boopTrace.map((trace) => [trace.pieceId, trace])), [state.boopTrace]);
+  const activeModulePlayer = state.players.find((player) => player.id === state.activePlayerId) ?? null;
+  const statusAccentPlayer =
+    state.phase === "complete" ? state.players.find((player) => player.id === state.winnerId) ?? activeModulePlayer : activeModulePlayer;
+  const statusPlayerName =
+    state.phase === "complete" ? (state.winnerId ? playerName(state, state.winnerId) : "종료") : activePlayer?.name ?? playerName(state, state.activePlayerId);
+  const selectedPieceLabel = selectedSize === "small" ? "아기 고양이" : "어른 고양이";
+  const phaseLabel =
+    state.phase === "choose-line"
+      ? "승급 줄 선택"
+      : state.phase === "choose-piece"
+        ? "말 회수"
+        : state.phase === "complete"
+          ? "종료"
+          : `${selectedPieceLabel} 놓기`;
+  const turnHint =
+    state.phase === "choose-line"
+      ? "초록 줄 중 하나"
+      : state.phase === "choose-piece"
+        ? "내 말 하나 회수"
+        : state.phase === "complete"
+          ? state.message
+          : canAct
+            ? "빈 방석 선택"
+            : `${playerName(state, state.activePlayerId)} 진행 중`;
 
   useEffect(() => {
     if (selectedSize === "small" && activeReserve?.small === 0 && activeReserve.large > 0) {
@@ -580,14 +608,25 @@ export function Component({
     }
   }, [activeReserve?.large, activeReserve?.small, selectedSize]);
 
+  function sendAction(action: GameAction) {
+    submitAction(action);
+  }
+
   function handleCell(row: number, col: number) {
     if (!canAct) return;
+    if (state.phase === "choose-line") {
+      const selectedLine = state.pendingLines.find((line) => line.coords.some((coord) => coord.row === row && coord.col === col));
+      if (selectedLine) {
+        sendAction({ type: "kkukkkuki/choose-line", payload: { lineKey: selectedLine.key } });
+      }
+      return;
+    }
     if (state.phase === "choose-piece") {
-      onAction({ type: "kkukkkuki/remove-piece", payload: { row, col } });
+      sendAction({ type: "kkukkkuki/remove-piece", payload: { row, col } });
       return;
     }
     if (state.phase !== "playing") return;
-    onAction({ type: "kkukkkuki/place-piece", payload: { row, col, size: selectedSize } });
+    sendAction({ type: "kkukkkuki/place-piece", payload: { row, col, size: selectedSize } });
   }
 
   function boopOffset(delta: number) {
@@ -597,14 +636,7 @@ export function Component({
   }
 
   return (
-    <div className="game-module kkuk-shell">
-      <section className="kkuk-status" aria-label="꾹꾹이 진행 상태">
-        <div>
-          <strong>차례</strong>
-          <span>{activePlayer?.name ?? "종료"}</span>
-        </div>
-      </section>
-
+    <div className={`game-module kkuk-shell ${isSubmitting ? "is-submitting" : ""}`}>
       <section className="kkuk-layout">
         <div className="kkuk-board-wrap">
           <div className="kkuk-board" style={{ "--kkuk-size": BOARD_SIZE } as CSSProperties} aria-label="꾹꾹이 6 x 6 방석판">
@@ -615,6 +647,8 @@ export function Component({
                 const isLast = state.lastPlaced?.row === rowIndex && state.lastPlaced.col === colIndex;
                 const pending = pendingCoordKeys.has(coordKey({ row: rowIndex, col: colIndex }));
                 const removable = state.phase === "choose-piece" && piece?.ownerId === currentPlayer?.id;
+                const selectableLine = state.phase === "choose-line" && pending;
+                const actionLabel = selectableLine ? "승급 줄 선택" : removable ? "회수 가능" : piece ? "" : "놓을 수 있는 빈 방석";
                 const pieceStyle = {
                   "--piece-color": owner?.color ?? "#c46d43",
                   "--boop-start-x": boop?.to ? boopOffset(boop.from.col - colIndex) : "0px",
@@ -626,11 +660,21 @@ export function Component({
                 return (
                   <button
                     key={`${rowIndex}-${colIndex}`}
-                    className={`kkuk-cell ${piece ? "occupied" : ""} ${isLast ? "last" : ""} ${pending ? "pending-line" : ""} ${removable ? "removable" : ""}`}
+                    className={`kkuk-cell ${piece ? "occupied" : ""} ${isLast ? "last" : ""} ${pending ? "pending-line" : ""} ${selectableLine ? "selectable-line" : ""} ${removable ? "removable" : ""}`}
                     type="button"
-                    disabled={!canAct || (state.phase === "playing" ? Boolean(piece) : state.phase === "choose-piece" ? !removable : true)}
+                    disabled={
+                      !canAct ||
+                      isSubmitting ||
+                      (state.phase === "playing"
+                        ? Boolean(piece)
+                        : state.phase === "choose-piece"
+                          ? !removable
+                          : state.phase === "choose-line"
+                            ? !selectableLine
+                            : true)
+                    }
                     onClick={() => handleCell(rowIndex, colIndex)}
-                    aria-label={`${rowIndex + 1}행 ${colIndex + 1}열${piece ? ` ${owner?.name ?? "플레이어"} ${piece.size === "small" ? "작은 말" : "큰 말"}` : " 빈 자리"}`}
+                    aria-label={`${rowIndex + 1}행 ${colIndex + 1}열${piece ? ` ${owner?.name ?? "플레이어"} ${piece.size === "small" ? "작은 말" : "큰 말"}` : " 빈 자리"}${actionLabel ? `, ${actionLabel}` : ""}`}
                   >
                     {piece ? (
                       <span
@@ -661,18 +705,33 @@ export function Component({
               {state.boopTrace.map((trace, index) => {
                 const effectCoord = trace.to ?? trace.from;
                 const effectOwner = state.players.find((player) => player.id === trace.ownerId);
+                const outDelta = state.lastPlaced
+                  ? { row: trace.from.row - state.lastPlaced.row, col: trace.from.col - state.lastPlaced.col }
+                  : { row: 0, col: 0 };
                 return (
                   <span
                     key={`${trace.pieceId}-${state.actionNonce}-${index}`}
-                    className={`kkuk-effect ${trace.to ? "push" : "out"}`}
+                    className={`kkuk-effect ${trace.to ? "push" : "out cat-out"}`}
                     style={
                       {
                         gridColumn: effectCoord.col + 1,
                         gridRow: effectCoord.row + 1,
-                        "--piece-color": effectOwner?.color ?? "#c46d43"
+                        "--piece-color": effectOwner?.color ?? "#c46d43",
+                        "--boop-out-x": trace.to ? "0px" : boopOffset(outDelta.col),
+                        "--boop-out-y": trace.to ? "0px" : boopOffset(outDelta.row),
+                        "--boop-out-tilt": trace.to ? "0deg" : boopTilt(outDelta.row, outDelta.col)
                       } as CSSProperties
                     }
-                  />
+                  >
+                    {!trace.to ? (
+                      <img
+                        className="kkuk-effect-cat-image"
+                        src={markerFor({ id: trace.pieceId, ownerId: trace.ownerId, size: trace.size }, effectOwner)}
+                        alt=""
+                        draggable={false}
+                      />
+                    ) : null}
+                  </span>
                 );
               })}
             </div>
@@ -680,33 +739,54 @@ export function Component({
         </div>
 
         <aside className="kkuk-side" aria-label="꾹꾹이 조작">
+          <section className="kkuk-status" aria-label="꾹꾹이 턴 상태" aria-live="polite">
+            <div className="kkuk-turn-focus">
+              <span className="kkuk-turn-dot" style={{ "--piece-color": statusAccentPlayer?.color ?? "#c46d43" } as CSSProperties} />
+              <div>
+                <strong>{statusPlayerName}</strong>
+                <span>{phaseLabel}</span>
+              </div>
+            </div>
+            <p>{turnHint}</p>
+          </section>
+
           <div className="kkuk-piece-selector">
+            <div className="kkuk-selector-head">
+              <strong>말 선택</strong>
+              <span>{myTurn ? "이번 차례" : "대기"}</span>
+            </div>
             <div className="kkuk-selector-row">
               <button
                 type="button"
                 className={selectedSize === "small" ? "selected" : ""}
-                disabled={!activeReserve || activeReserve.small <= 0 || state.phase !== "playing"}
+                disabled={!canAct || isSubmitting || !activeReserve || activeReserve.small <= 0 || state.phase !== "playing"}
                 onClick={() => setSelectedSize("small")}
-                aria-label="작은 말 선택"
+                aria-pressed={selectedSize === "small"}
+                aria-label={`아기 고양이 말 ${activeReserve?.small ?? 0}개 남음`}
+                title={`아기 고양이 말 ${activeReserve?.small ?? 0}개`}
               >
                 <img
                   src={markerFor({ id: "selector-small", ownerId: currentModulePlayer?.id ?? "", size: "small" }, currentModulePlayer ?? undefined)}
                   alt=""
                   draggable={false}
                 />
+                <span className="kkuk-reserve-count" data-count={activeReserve?.small ?? 0} aria-hidden="true" />
               </button>
               <button
                 type="button"
                 className={selectedSize === "large" ? "selected" : ""}
-                disabled={!activeReserve || activeReserve.large <= 0 || state.phase !== "playing"}
+                disabled={!canAct || isSubmitting || !activeReserve || activeReserve.large <= 0 || state.phase !== "playing"}
                 onClick={() => setSelectedSize("large")}
-                aria-label="큰 말 선택"
+                aria-pressed={selectedSize === "large"}
+                aria-label={`어른 고양이 말 ${activeReserve?.large ?? 0}개 남음`}
+                title={`어른 고양이 말 ${activeReserve?.large ?? 0}개`}
               >
                 <img
                   src={markerFor({ id: "selector-large", ownerId: currentModulePlayer?.id ?? "", size: "large" }, currentModulePlayer ?? undefined)}
                   alt=""
                   draggable={false}
                 />
+                <span className="kkuk-reserve-count" data-count={activeReserve?.large ?? 0} aria-hidden="true" />
               </button>
             </div>
           </div>
@@ -718,8 +798,8 @@ export function Component({
                 <button
                   key={line.key}
                   type="button"
-                  disabled={!canAct}
-                  onClick={() => onAction({ type: "kkukkkuki/choose-line", payload: { lineKey: line.key } })}
+                  disabled={!canAct || isSubmitting}
+                  onClick={() => sendAction({ type: "kkukkkuki/choose-line", payload: { lineKey: line.key } })}
                 >
                   {index + 1}번 줄
                 </button>

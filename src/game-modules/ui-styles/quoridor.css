@@ -156,6 +156,55 @@
   animation: wall-snap var(--motion-shift);
 }
 
+.qdr-wall-preview {
+  z-index: 6 !important;
+}
+
+.qdr-wall-hit,
+.qdr-wall-hit:hover,
+.qdr-wall-hit:active,
+.qdr-wall-hit.selected,
+.qdr-wall-hit.valid {
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: transparent !important;
+  opacity: 1 !important;
+}
+
+.qdr-wall-hit.blocked {
+  cursor: not-allowed !important;
+}
+
+.qdr-wall-hit.blocked::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  border-radius: 999px;
+  opacity: 0.68;
+  background:
+    repeating-linear-gradient(135deg, rgba(132, 45, 33, 0.82) 0 4px, rgba(255, 226, 179, 0.82) 4px 8px);
+  box-shadow: 0 0 0 1px rgba(95, 37, 27, 0.22);
+}
+
+.qdr-wall-hit.horizontal.blocked::after {
+  left: 12%;
+  right: 12%;
+  top: calc(50% - 2px);
+  height: 4px;
+}
+
+.qdr-wall-hit.vertical.blocked::after {
+  top: 12%;
+  bottom: 12%;
+  left: calc(50% - 2px);
+  width: 4px;
+}
+
+.qdr-wall-hit.selected.blocked::after {
+  opacity: 0.24;
+}
+
 @media (max-width: 540px) {
   .qdr-shell {
     padding: 8px !important;
@@ -328,6 +377,16 @@
 
   .qdr-panel {
     grid-template-columns: 1fr !important;
+    gap: 8px !important;
+  }
+
+  .qdr-mode-segment button,
+  .qdr-action {
+    min-height: 48px !important;
+  }
+
+  .qdr-wall-controls {
+    gap: 8px !important;
   }
 
 }

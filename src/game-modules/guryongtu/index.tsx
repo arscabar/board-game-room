@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
 import type { GameAction, GameComponentProps, GameContext, GameModule } from "../types";
 import type { PlayerSnapshot } from "../../shared/types";
+import { useInteractionGate } from "../useInteractionGate";
 
 const TILES = [1, 2, 3, 4, 5, 6, 7, 8, 9] as const;
 
@@ -402,10 +403,15 @@ export function Component({
   );
   const myUsedTiles = myId ? state.usedTiles[myId] ?? [] : [];
   const myPendingTile = myId ? state.pendingChoices[myId]?.tile ?? null : null;
-  const actionDisabled = disabled || !canChoose;
+  const { isSubmitting, submitAction } = useInteractionGate(
+    onAction,
+    [state.activePlayerId, state.phase, myPendingTile, state.rounds.length],
+    { cooldownMs: 640 }
+  );
+  const actionDisabled = disabled || !canChoose || isSubmitting;
   const activeName = getPlayerName(players, state.activePlayerId);
   const attackerName = getPlayerName(players, state.attackerId);
-  const moduleClassName = `game-module guryongtu-module ${state.phase === "complete" ? "is-complete" : "is-selecting"}`;
+  const moduleClassName = `game-module guryongtu-module ${state.phase === "complete" ? "is-complete" : "is-selecting"} ${isSubmitting ? "is-submitting" : ""}`;
 
   return (
     <section className={moduleClassName} style={styles.shell} aria-label="Guryongtu board">
@@ -497,7 +503,7 @@ export function Component({
                 key={tile}
                 disabled={actionDisabled || used}
                 aria-pressed={myPendingTile === tile}
-                onClick={() => onAction({ type: "guryongtu/select-tile", payload: { tile } })}
+                onClick={() => submitAction({ type: "guryongtu/select-tile", payload: { tile } })}
               >
                 {tile}
               </button>

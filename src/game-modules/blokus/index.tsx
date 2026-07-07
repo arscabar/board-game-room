@@ -1,6 +1,7 @@
 import { FlipHorizontal, RotateCw, SkipForward } from "lucide-react";
-import { type CSSProperties, type DragEvent, useEffect, useMemo, useState } from "react";
+import { type CSSProperties, type DragEvent, type KeyboardEvent, type PointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import type { GameActionResult, GameComponentProps, GameContext, GameModule } from "../types";
+import { useInteractionGate } from "../useInteractionGate";
 
 type Point = {
   x: number;
@@ -678,6 +679,8 @@ function PieceMini({ piece, color, cells: displayCells, large = false }: { piece
   const cells = normalizeCells(displayCells ?? piece.cells);
   const width = Math.max(...cells.map((cell) => cell.x)) + 1;
   const height = Math.max(...cells.map((cell) => cell.y)) + 1;
+  const maxSpan = Math.max(width, height);
+  const fitCellRem = Math.min(0.68, Math.max(0.42, 2.2 / maxSpan));
   const occupied = new Set(cells.map((cell) => `${cell.x},${cell.y}`));
 
   return (
@@ -687,7 +690,8 @@ function PieceMini({ piece, color, cells: displayCells, large = false }: { piece
       style={{
         "--piece-color": color,
         "--piece-width": width,
-        "--piece-height": height
+        "--piece-height": height,
+        "--piece-fit-cell": `${fitCellRem}rem`
       } as CSSProperties}
       aria-hidden="true"
     >
@@ -1075,17 +1079,24 @@ export function Component({
     flipped: boolean;
   } | null>(null);
   const [draggingPieceId, setDraggingPieceId] = useState<string | null>(null);
+  const orientationHoldTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const orientationHoldFired = useRef(false);
+  const [orientationHoldActive, setOrientationHoldActive] = useState(false);
   const state = isBlokusPublicState(publicState) ? publicState : null;
   const activeBlokusPlayer = state?.players.find((player) => player.id === state.activeColorId) ?? null;
   const ownedBlokusPlayers = state?.players.filter((player) => player.ownerId === currentPlayer?.id) ?? [];
+  const activeOwnedBlokusPlayer = activeBlokusPlayer?.ownerId === currentPlayer?.id ? activeBlokusPlayer : null;
   const currentBlokusPlayer =
-    activeBlokusPlayer?.ownerId === currentPlayer?.id
-      ? activeBlokusPlayer
-      : ownedBlokusPlayers.find((player) => player.remainingPieceIds.length > 0) ?? ownedBlokusPlayers[0] ?? null;
+    activeOwnedBlokusPlayer ??
+    activeBlokusPlayer ??
+    ownedBlokusPlayers.find((player) => player.remainingPieceIds.length > 0) ??
+    ownedBlokusPlayers[0] ??
+    null;
+  const ownedColorLabel = ownedBlokusPlayers.map((player) => player.colorName).join(", ");
   const canInteract =
     !disabled &&
     state?.phase === "playing" &&
-    Boolean(currentBlokusPlayer) &&
+    Boolean(activeOwnedBlokusPlayer) &&
     activeBlokusPlayer?.ownerId === currentPlayer?.id;
   const selectedPiece =
     state?.pieceCatalog.find((piece) => piece.id === selectedPieceId && currentBlokusPlayer?.remainingPieceIds.includes(piece.id)) ??
@@ -1123,8 +1134,64 @@ export function Component({
     }
     return anchors;
   }, [canInteract, currentBlokusPlayer, flipped, placementPiece, rotation, state]);
+  const suggestedPlacementPoint = useMemo(() => {
+    if (pendingPlacement?.point) {
+      return pendingPlacement.point;
+    }
+    if (hoveredCell) {
+      return hoveredCell;
+    }
+    const firstAnchor = legalAnchors.values().next().value as string | undefined;
+    if (!firstAnchor) {
+      return null;
+    }
+    const [x, y] = firstAnchor.split(",").map(Number);
+    return Number.isFinite(x) && Number.isFinite(y) ? { x, y } : null;
+  }, [hoveredCell, legalAnchors, pendingPlacement]);
+  const precisionCells = useMemo(() => {
+    if (!suggestedPlacementPoint) {
+      return [];
+    }
+    const cells: Point[] = [];
+    for (let y = suggestedPlacementPoint.y - 2; y <= suggestedPlacementPoint.y + 2; y += 1) {
+      for (let x = suggestedPlacementPoint.x - 2; x <= suggestedPlacementPoint.x + 2; x += 1) {
+        cells.push({ x, y });
+      }
+    }
+    return cells;
+  }, [suggestedPlacementPoint]);
+  const placementError = useMemo(() => {
+    if (!state || !previewPoint || !placementPiece || !currentBlokusPlayer) {
+      return null;
+    }
+    return getPlacementError(state, currentBlokusPlayer, placementPiece.id, previewPoint.x, previewPoint.y, rotation, flipped);
+  }, [currentBlokusPlayer, flipped, placementPiece, previewPoint, rotation, state]);
+  const { isSubmitting, submitAction } = useInteractionGate(
+    onAction,
+    [currentBlokusPlayer?.id, currentBlokusPlayer?.remainingPieceIds.length, state?.activeColorId, state?.phase],
+    { cooldownMs: 650 }
+  );
   const orientedPieceCells = selectedPiece ? transformCells(selectedPiece.cells, rotation, flipped) : [];
   const orientationLabel = `${rotation * 90}도 ${flipped ? "뒤집힘" : "기본면"}`;
+  const placementStatusText =
+    !canInteract
+      ? state?.phase === "playing" && activeBlokusPlayer
+        ? `${controllerName(activeBlokusPlayer)} 차례 대기`
+        : "게임 종료"
+      : previewPoint
+        ? placementError ?? "배치 가능"
+        : selectedPiece
+          ? "보드에서 위치 선택"
+          : "블록 선택 필요";
+  const placementDockClassName = [
+    "blokus-placement-dock",
+    !canInteract ? "is-waiting" : "",
+    isSubmitting ? "is-submitting" : "",
+    pendingPlacement && preview.valid ? "is-ready" : "",
+    placementError ? "is-invalid" : ""
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   useEffect(() => {
     setPendingPlacement(null);
@@ -1133,8 +1200,18 @@ export function Component({
   useEffect(() => {
     if (!canInteract) {
       setDraggingPieceId(null);
+      setPendingPlacement(null);
+      clearOrientationHold();
     }
   }, [canInteract]);
+
+  useEffect(() => {
+    return () => {
+      if (orientationHoldTimer.current) {
+        clearTimeout(orientationHoldTimer.current);
+      }
+    };
+  }, []);
 
   if (!state) {
     return (
@@ -1146,7 +1223,7 @@ export function Component({
   }
 
   function commitPieceAt(point: Point, piece: BlokusPiece) {
-    if (!canInteract || !currentBlokusPlayer) {
+    if (!canInteract || !currentBlokusPlayer || isSubmitting) {
       return;
     }
     const error = currentBlokusPlayer
@@ -1158,7 +1235,7 @@ export function Component({
       return;
     }
     setPendingPlacement(null);
-    onAction({
+    submitAction({
       type: "place-piece",
       payload: {
         pieceId: piece.id,
@@ -1199,6 +1276,69 @@ export function Component({
   function confirmPlacement() {
     if (!pendingPlacement) return;
     placeAt(pendingPlacement.point);
+  }
+
+  function rotateSelectedPiece() {
+    if (!canInteract) {
+      return;
+    }
+    setPendingPlacement(null);
+    setRotation((value) => (value + 1) % 4);
+  }
+
+  function flipSelectedPiece() {
+    if (!canInteract) {
+      return;
+    }
+    setPendingPlacement(null);
+    setFlipped((value) => !value);
+  }
+
+  function clearOrientationHold() {
+    if (orientationHoldTimer.current) {
+      clearTimeout(orientationHoldTimer.current);
+      orientationHoldTimer.current = null;
+    }
+    setOrientationHoldActive(false);
+  }
+
+  function startOrientationHold(event: PointerEvent<HTMLButtonElement>) {
+    if (!canInteract) {
+      return;
+    }
+    orientationHoldFired.current = false;
+    clearOrientationHold();
+    setOrientationHoldActive(true);
+    try {
+      event.currentTarget.setPointerCapture?.(event.pointerId);
+    } catch {
+      // Pointer capture can fail if the browser has already canceled the pointer.
+    }
+    orientationHoldTimer.current = setTimeout(() => {
+      orientationHoldFired.current = true;
+      flipSelectedPiece();
+      orientationHoldTimer.current = null;
+      setOrientationHoldActive(false);
+    }, 460);
+  }
+
+  function clickOrientationPiece() {
+    if (!canInteract) {
+      return;
+    }
+    if (orientationHoldFired.current) {
+      orientationHoldFired.current = false;
+      return;
+    }
+    rotateSelectedPiece();
+  }
+
+  function handleOrientationKeyDown(event: KeyboardEvent<HTMLButtonElement>) {
+    if (event.key.toLowerCase() !== "f") {
+      return;
+    }
+    event.preventDefault();
+    flipSelectedPiece();
   }
 
   function startPieceDrag(event: DragEvent<HTMLElement>, piece: BlokusPiece) {
@@ -1249,9 +1389,9 @@ export function Component({
         <div>
           <strong>{state.phase === "finished" ? "게임 종료" : `${activeBlokusPlayer ? controllerName(activeBlokusPlayer) : "대기"} 차례`}</strong>
         </div>
-        {currentBlokusPlayer ? (
-          <span style={{ color: currentBlokusPlayer.color }}>
-            {ownedBlokusPlayers.map((player) => player.colorName).join(", ")}
+        {activeBlokusPlayer ? (
+          <span style={{ color: activeBlokusPlayer.color }}>
+            {activeOwnedBlokusPlayer ? ownedColorLabel : activeBlokusPlayer.colorName}
           </span>
         ) : null}
       </div>
@@ -1321,45 +1461,147 @@ export function Component({
           )}
         </div>
 
-        <aside className="blokus-side" aria-label="블로커스 조작">
-          <section className="blokus-controls">
-            <strong>블록 조작</strong>
-            <div className="blokus-controls-row">
-              <button type="button" onClick={() => setRotation((value) => (value + 1) % 4)} disabled={!canInteract}>
-                <RotateCw size={16} />
-                회전
-              </button>
-              <button type="button" onClick={() => setFlipped((value) => !value)} disabled={!canInteract}>
-                <FlipHorizontal size={16} />
-                뒤집기
-              </button>
-              <button
-                type="button"
-                onClick={confirmPlacement}
-                disabled={!canInteract || !pendingPlacement || !preview.valid}
-                title="고정한 미리보기 위치에 블록을 놓습니다."
-              >
-                확정
-              </button>
-              <button
-                type="button"
-                onClick={() => setPendingPlacement(null)}
-                disabled={!pendingPlacement}
-              >
-                취소
-              </button>
-              <button
-                type="button"
-                onClick={() => onAction({ type: "pass" })}
-                disabled={!canInteract || currentBlokusPlayer?.canMove !== false}
-                title="합법적으로 놓을 블록이 없을 때만 패스할 수 있습니다."
-              >
-                <SkipForward size={16} />
-                패스
-              </button>
+        <section
+          className={placementDockClassName}
+          aria-label="블로커스 확대 배치 도우미"
+          aria-describedby="blokus-placement-feedback"
+          aria-live="polite"
+        >
+          <div className="blokus-placement-head">
+            <div>
+              <span>{pendingPlacement ? "확정 대기" : "확대 배치"}</span>
+              <strong>{selectedPiece ? `${selectedPiece.name} 블록 · ${orientationLabel}` : "블록 선택 필요"}</strong>
             </div>
-          </section>
+            <small>
+              {!canInteract
+                ? "대기"
+                : previewPoint
+                ? `${previewPoint.x + 1}열 ${previewPoint.y + 1}행`
+                : legalAnchors.size > 0
+                  ? "위치 선택"
+                  : "놓을 수 있는 위치 없음"}
+            </small>
+          </div>
 
+          <div className="blokus-placement-body">
+            <div className="blokus-precision-board" aria-label="선택 위치 주변 5x5 확대 보드">
+              {precisionCells.length > 0 ? (
+                precisionCells.map((point) => {
+                  const pointInBounds = inBounds(point);
+                  const ownerId = pointInBounds ? state.board[point.y][point.x] : null;
+                  const owner = state.players.find((player) => player.id === ownerId);
+                  const cornerOwner = pointInBounds
+                    ? state.players.find((player) => player.corner.x === point.x && player.corner.y === point.y)
+                    : null;
+                  const pointKey = `${point.x},${point.y}`;
+                  const isPreview = preview.cells.has(pointKey);
+                  const isAnchor = legalAnchors.has(pointKey);
+                  const isCenter = suggestedPlacementPoint?.x === point.x && suggestedPlacementPoint.y === point.y;
+                  return (
+                    <button
+                      key={`precision-${pointKey}`}
+                      className={[
+                        "blokus-precision-cell",
+                        owner ? "occupied" : "",
+                        cornerOwner ? "corner" : "",
+                        isAnchor ? "anchor" : "",
+                        isPreview ? "preview" : "",
+                        isPreview && !preview.valid ? "invalid" : "",
+                        isCenter ? "center" : "",
+                        !pointInBounds ? "out" : ""
+                      ]
+                        .filter(Boolean)
+                        .join(" ")}
+                      type="button"
+                      disabled={!canInteract || !pointInBounds}
+                      onClick={() => placeAt(point)}
+                      onFocus={() => setHoveredCell(point)}
+                      onMouseEnter={() => setHoveredCell(point)}
+                      style={{
+                        "--cell-color": owner?.color ?? "#f8fafc",
+                        "--preview-color": currentBlokusPlayer?.color ?? "#94a3b8"
+                      } as CSSProperties}
+                      aria-label={`${point.x + 1}열 ${point.y + 1}행${owner ? ` ${owner.colorName} 블록` : ""}${isAnchor ? " 배치 가능" : ""}`}
+                    />
+                  );
+                })
+              ) : (
+                <div className="blokus-precision-empty">
+                  {!canInteract ? "상대 차례 대기" : selectedPiece ? "놓을 수 있는 위치 없음" : "배치할 블록을 선택하세요."}
+                </div>
+              )}
+            </div>
+
+            <div className="blokus-placement-tools">
+              <div className="blokus-piece-preview blokus-piece-preview-precision">
+                {selectedPiece ? (
+                  <button
+                    className={`blokus-orient-pad ${orientationHoldActive ? "is-holding" : ""}`}
+                    type="button"
+                    disabled={!canInteract}
+                    onClick={clickOrientationPiece}
+                    onContextMenu={(event) => {
+                      event.preventDefault();
+                      flipSelectedPiece();
+                    }}
+                    onKeyDown={handleOrientationKeyDown}
+                    onPointerCancel={clearOrientationHold}
+                    onPointerDown={startOrientationHold}
+                    onPointerLeave={clearOrientationHold}
+                    onPointerUp={clearOrientationHold}
+                    aria-label={`${selectedPiece.name} 블록 방향 조절. 누르면 회전, 길게 누르면 뒤집기`}
+                    title="누르면 회전 · 길게 누르면 뒤집기"
+                  >
+                    <PieceMini piece={selectedPiece} color={currentBlokusPlayer?.color ?? "#64748b"} cells={orientedPieceCells} large />
+                    <span className="blokus-orient-badges" aria-hidden="true">
+                      <span><RotateCw size={12} /></span>
+                      <span><FlipHorizontal size={12} /></span>
+                    </span>
+                  </button>
+                ) : null}
+              </div>
+              <div className="blokus-controls-row blokus-controls-row-precision">
+                <button
+                  className="blokus-placement-confirm"
+                  type="button"
+                  onClick={confirmPlacement}
+                  disabled={!canInteract || isSubmitting || !pendingPlacement || !preview.valid}
+                >
+                  {!canInteract ? "대기" : pendingPlacement ? "확정" : "위치 선택"}
+                </button>
+                <button
+                  className="blokus-placement-secondary"
+                  type="button"
+                  onClick={() => setPendingPlacement(null)}
+                  disabled={!pendingPlacement}
+                >
+                  취소
+                </button>
+                {currentBlokusPlayer?.canMove === false ? (
+                  <button
+                    className="blokus-placement-secondary"
+                    type="button"
+                    onClick={() => {
+                      submitAction({ type: "pass" });
+                    }}
+                    disabled={!canInteract || isSubmitting}
+                  >
+                    <SkipForward size={16} />
+                    패스
+                  </button>
+                ) : null}
+              </div>
+              <p
+                id="blokus-placement-feedback"
+                className={`blokus-placement-feedback ${placementError ? "invalid" : previewPoint ? "valid" : ""}`}
+              >
+                {placementStatusText}
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <aside className="blokus-side" aria-label="블로커스 블록 선택">
           <section className="blokus-palette" style={{ "--player-color": currentBlokusPlayer?.color ?? "#64748b" } as CSSProperties}>
             <div className="blokus-palette-grid">
               {state.pieceCatalog.map((piece) => {

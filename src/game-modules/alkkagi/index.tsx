@@ -1,6 +1,7 @@
 import Matter from "matter-js";
 import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent } from "react";
 import type { GameAction, GameActionResult, GameComponentProps, GameContext, GameModule } from "../types";
+import { useInteractionGate } from "../useInteractionGate";
 
 const BOARD_RADIUS = 392;
 const VIEW_SIZE = 900;
@@ -908,8 +909,13 @@ export function Component({
   const [motionFrameIndex, setMotionFrameIndex] = useState<number | null>(null);
   const currentMotionFrame = motionFrameIndex !== null ? motionFrames[motionFrameIndex] : null;
   const isReplayingShot = motionFrameIndex !== null && motionFrames.length > 1;
+  const { isSubmitting, submitAction } = useInteractionGate(
+    onAction,
+    [state.activePlayerId, state.phase, state.message, motionKey],
+    { cooldownMs: 700 }
+  );
   const canOwnTurn = !disabled && currentPlayer?.id === state.activePlayerId && state.phase === "playing";
-  const canAct = canOwnTurn && !isReplayingShot;
+  const canAct = canOwnTurn && !isReplayingShot && !isSubmitting;
   const activeEggs = state.eggs.filter((egg) => egg.alive);
   const motionEggMap = new Map<string, ShotMotionEggFrame>((currentMotionFrame?.eggs ?? []).map((egg) => [egg.id, egg]));
   const visibleEggs = currentMotionFrame ? state.eggs.filter((egg) => egg.alive || motionEggMap.has(egg.id)) : activeEggs;
@@ -917,13 +923,10 @@ export function Component({
   const selectedOwner = selectedEgg ? state.players.find((player) => player.id === selectedEgg.ownerId) : null;
   const aimCap = selectedEgg?.kind === "king" ? 76 : MAX_VECTOR;
   const isChargingAim = aimPointerId !== null;
-  const previewPower = selectedEgg ? Math.max(control.power, MIN_POWER_RATIO) : DEFAULT_AIM_POWER;
-  const aimSize = selectedEgg && control.phase === "aiming" ? Math.max(8, aimCap * previewPower) : 0;
-  const aimDirection = { x: Math.cos(control.angle), y: Math.sin(control.angle) };
   const remainingSeconds = control.deadline > 0 ? Math.max(0, Math.ceil((control.deadline - now) / 1000)) : 0;
   const turnTimeLabel = control.deadline > 0 ? `${remainingSeconds}초` : "10초";
   const powerPercent = Math.round(Math.max(control.power, MIN_POWER_RATIO) * 100);
-  const controlLabel = control.phase === "idle" ? "알 선택" : isChargingAim ? "손을 떼면 발사" : "판을 길게 누르기";
+  const controlLabel = control.phase === "idle" ? "내 알 선택" : isChargingAim ? "손을 떼면 발사" : "보드 누르고 끌기";
   const currentTurnKey = `${state.activePlayerId ?? "none"}:${motionKey}:${state.message}`;
 
   useEffect(() => {
@@ -1015,8 +1018,8 @@ export function Component({
     timeoutSentTurnRef.current = currentTurnKey;
     setAimPointerId(null);
     setControl(idleAimControl());
-    onAction({ type: "alkkagi/timeout" });
-  }, [canAct, control.deadline, currentTurnKey, now, onAction]);
+    submitAction({ type: "alkkagi/timeout" });
+  }, [canAct, control.deadline, currentTurnKey, now, submitAction]);
 
   useEffect(() => {
     const selectedAlive = !control.eggId || state.eggs.some((egg) => egg.id === control.eggId && egg.alive);
@@ -1126,7 +1129,7 @@ export function Component({
 
     const cappedPower = Math.max(aim.power, MIN_POWER_RATIO);
     const size = Math.max(8, aimCap * cappedPower);
-    onAction({
+    if (!submitAction({
       type: "alkkagi/flick",
       payload: {
         eggId: selectedEgg.id,
@@ -1135,12 +1138,14 @@ export function Component({
           y: Math.sin(aim.angle) * size
         }
       }
-    });
+    })) {
+      return;
+    }
     resetControl();
   }
 
   return (
-    <div className={`game-module alk-shell ${arena.className}`}>
+    <div className={`game-module alk-shell ${arena.className} ${isSubmitting ? "is-submitting" : ""}`}>
       <section className="alk-status" aria-label="알까기 진행 상태">
         <strong>차례</strong>
         <span>{activePlayer?.name ?? "종료"}</span>
@@ -1149,7 +1154,7 @@ export function Component({
 
       <svg
         ref={boardRef}
-        className={`alk-board ${selectedEgg ? "is-aim-ready" : ""} ${isChargingAim ? "is-charging" : ""}`}
+        className={`alk-board ${canAct ? "is-turn" : ""} ${selectedEgg ? "is-aim-ready" : ""} ${isChargingAim ? "is-charging" : ""}`}
         viewBox={`${-VIEW_SIZE / 2} ${-VIEW_SIZE / 2} ${VIEW_SIZE} ${VIEW_SIZE}`}
         role="application"
         aria-label="다인전 알까기 원형판"
@@ -1206,15 +1211,9 @@ export function Component({
           );
         })}
 
-        {selectedEgg && control.phase !== "idle" ? (
-          <g className="alk-aim" aria-hidden="true">
-            <line
-              x1={selectedEgg.x}
-              y1={selectedEgg.y}
-              x2={selectedEgg.x + aimDirection.x * aimSize}
-              y2={selectedEgg.y + aimDirection.y * aimSize}
-            />
-            <circle cx={selectedEgg.x + aimDirection.x * aimSize} cy={selectedEgg.y + aimDirection.y * aimSize} r={6 + aimSize * 0.045} />
+        {canAct && selectedEgg && control.phase !== "idle" ? (
+          <g className={`alk-aim-zone ${isChargingAim ? "is-charging" : ""}`} aria-hidden="true">
+            <circle className="alk-aim-zone-origin" cx={selectedEgg.x} cy={selectedEgg.y} r={eggRadius(selectedEgg) + 12} />
           </g>
         ) : null}
 
@@ -1269,7 +1268,7 @@ export function Component({
               {selectedEgg
                 ? isChargingAim
                   ? `${powerPercent}% · 손을 떼면 발사`
-                  : `${selectedOwner?.name ?? "내 알"} · 판을 누른 채 방향을 잡으세요`
+                  : `${selectedOwner?.name ?? "내 알"} · 보드에서 드래그 방향을 잡으세요`
                 : `${turnTimeLabel} 안에 내 알 선택`}
             </span>
           </div>
@@ -1284,8 +1283,13 @@ export function Component({
           </div>
 
           <div className={`alk-gesture-pad ${selectedEgg ? "is-ready" : ""} ${isChargingAim ? "is-charging" : ""}`}>
-            <strong>{selectedEgg ? (isChargingAim ? "충전 중" : "판 길게 누름") : "내 알 선택"}</strong>
-            <span>{selectedEgg ? "누른 위치가 방향입니다" : "먼저 움직일 알을 누르세요"}</span>
+            <div className="alk-gesture-steps" aria-hidden="true">
+              <span className={selectedEgg ? "done" : "active"}>1</span>
+              <span className={selectedEgg ? (isChargingAim ? "done" : "active") : ""}>2</span>
+              <span className={isChargingAim ? "active" : ""}>3</span>
+            </div>
+            <strong>{selectedEgg ? (isChargingAim ? "릴리즈" : "누르고 드래그") : "알 선택"}</strong>
+            <span>{selectedEgg ? "손을 떼면 그대로 발사" : "움직일 내 알부터 누르세요"}</span>
           </div>
         </section>
       ) : null}

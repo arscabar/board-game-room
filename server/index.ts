@@ -9,7 +9,7 @@ import { Server, type Socket } from "socket.io";
 import { games, getGameById } from "../src/shared/games";
 import { canPlayGame, ROOM_MAX_PLAYERS } from "../src/shared/eligibility";
 import { gameUsesTurnTimer } from "../src/shared/timers";
-import type { Ack, GameRuntimeState, MoveEntry, PlayerSnapshot, PublicRoomListItem, RoomSnapshot } from "../src/shared/types";
+import type { Ack, GameRuntimeState, MoveEntry, PlayerAvatar, PlayerSnapshot, PublicRoomListItem, RoomSnapshot } from "../src/shared/types";
 import { getGameRegistration } from "../src/game-modules/registry";
 import type { GameAction, GameActionResult, GameContext, GameSystemAction } from "../src/game-modules/types";
 import type { MatchRecord, MatchResult } from "../src/shared/stats";
@@ -210,6 +210,42 @@ function normalizeName(name: unknown) {
   return trimmed.slice(0, 16);
 }
 
+const defaultAvatar: PlayerAvatar = {
+  body: "pawn",
+  face: "smile",
+  accessory: "none",
+  palette: "teal"
+};
+
+const avatarOptions = {
+  body: ["pawn", "round", "bot", "crest"],
+  face: ["smile", "focus", "wink", "calm"],
+  accessory: ["none", "crown", "glasses", "cap", "spark"],
+  palette: ["teal", "amber", "blue", "rose", "violet", "ivory"]
+} as const;
+
+function pickAvatarValue<T extends keyof typeof avatarOptions>(key: T, value: unknown, fallback: PlayerAvatar[T]) {
+  return avatarOptions[key].includes(value as never) ? (value as PlayerAvatar[T]) : fallback;
+}
+
+function normalizeAvatar(avatar: unknown): PlayerAvatar {
+  const record = asRecord(avatar);
+  if (!record) {
+    return { ...defaultAvatar };
+  }
+
+  return {
+    body: pickAvatarValue("body", record.body, defaultAvatar.body),
+    face: pickAvatarValue("face", record.face, defaultAvatar.face),
+    accessory: pickAvatarValue("accessory", record.accessory, defaultAvatar.accessory),
+    palette: pickAvatarValue("palette", record.palette, defaultAvatar.palette)
+  };
+}
+
+function payloadHasAvatar(payload: unknown) {
+  return Boolean(payload && typeof payload === "object" && Object.prototype.hasOwnProperty.call(payload, "avatar"));
+}
+
 function normalizeClientKey(clientKey: unknown) {
   const trimmed = String(clientKey ?? "").trim();
   if (!trimmed || trimmed.length > 128) {
@@ -277,7 +313,8 @@ function snapshotPlayers(room: RoomRecord) {
       seat: player.seat,
       connected: player.connected,
       isHost: player.isHost,
-      joinedAt: player.joinedAt
+      joinedAt: player.joinedAt,
+      avatar: normalizeAvatar(player.avatar)
     }))
     .sort((a, b) => a.seat - b.seat);
 }
@@ -381,6 +418,7 @@ function publicRoomList(): PublicRoomListItem[] {
       selectedGameId: room.selectedGameId,
       selectedGameTitle: selectedGame?.title ?? null,
       hostName: host?.name ?? null,
+      hostAvatar: host ? normalizeAvatar(host.avatar) : null,
       createdAt: room.createdAt,
       canJoin: room.status === "lobby" && connected.length < room.maxPlayers
     });
@@ -463,7 +501,7 @@ function findReturningPlayer(room: RoomRecord, playerId: unknown, clientKey: unk
   return null;
 }
 
-function attachSocketToPlayer(socket: Socket, room: RoomRecord, player: MutablePlayer, name?: string) {
+function attachSocketToPlayer(socket: Socket, room: RoomRecord, player: MutablePlayer, name?: string, avatar?: PlayerAvatar | null) {
   const previousRoomCode = socket.data.roomCode as string | undefined;
   if (previousRoomCode && previousRoomCode !== room.code) {
     const previousPlayerId = socket.data.playerId as string | undefined;
@@ -484,6 +522,11 @@ function attachSocketToPlayer(socket: Socket, room: RoomRecord, player: MutableP
   if (name && room.status === "lobby") {
     player.name = name;
   }
+  if (avatar) {
+    player.avatar = avatar;
+  } else {
+    player.avatar = normalizeAvatar(player.avatar);
+  }
   player.connected = true;
   player.disconnectedAt = undefined;
   socket.data.roomCode = room.code;
@@ -495,6 +538,23 @@ function attachSocketToPlayer(socket: Socket, room: RoomRecord, player: MutableP
 }
 
 function assignHost(room: RoomRecord) {
+  const connectedOwner = room.players.find((player) => {
+    if (!player.connected) {
+      return false;
+    }
+    if (player.id === room.ownerPlayerId) {
+      return true;
+    }
+    return Boolean(room.ownerClientKey && player.clientKey && room.ownerClientKey === player.clientKey);
+  });
+
+  if (connectedOwner) {
+    room.players.forEach((player) => {
+      player.isHost = player.id === connectedOwner.id;
+    });
+    return;
+  }
+
   if (room.players.some((player) => player.isHost && player.connected)) {
     return;
   }
@@ -1137,9 +1197,10 @@ async function recordRoomStatsIfFinished(room: RoomRecord) {
 io.on("connection", (socket) => {
   socket.emit("rooms:list", publicRoomList());
 
-  socket.on("room:create", (payload: { name?: string; clientKey?: string }, ack?: (response: Ack<{ room: RoomSnapshot; playerId: string }>) => void) => {
+  socket.on("room:create", (payload: { name?: string; clientKey?: string; avatar?: PlayerAvatar }, ack?: (response: Ack<{ room: RoomSnapshot; playerId: string }>) => void) => {
     const name = normalizeName(payload?.name);
     const clientKey = normalizeClientKey(payload?.clientKey);
+    const avatar = payloadHasAvatar(payload) ? normalizeAvatar(payload?.avatar) : { ...defaultAvatar };
     if (!name) {
       reply(ack, { ok: false, error: "이름을 입력해야 방을 만들 수 있습니다." });
       return;
@@ -1153,6 +1214,7 @@ io.on("connection", (socket) => {
       connected: true,
       isHost: true,
       joinedAt: Date.now(),
+      avatar,
       clientKey: clientKey || undefined
     };
 
@@ -1172,16 +1234,17 @@ io.on("connection", (socket) => {
     };
 
     rooms.set(code, room);
-    attachSocketToPlayer(socket, room, player);
+    attachSocketToPlayer(socket, room, player, undefined, avatar);
     reply(ack, { ok: true, data: { room: snapshotRoom(room, player.id), playerId: player.id } });
     broadcastRoom(room);
     broadcastRoomList();
   });
 
-  socket.on("room:join", (payload: { code?: string; name?: string; playerId?: string; clientKey?: string }, ack?: (response: Ack<{ room: RoomSnapshot; playerId: string }>) => void) => {
+  socket.on("room:join", (payload: { code?: string; name?: string; playerId?: string; clientKey?: string; avatar?: PlayerAvatar }, ack?: (response: Ack<{ room: RoomSnapshot; playerId: string }>) => void) => {
     const code = String(payload?.code ?? "").trim().toUpperCase();
     const name = normalizeName(payload?.name);
     const clientKey = normalizeClientKey(payload?.clientKey);
+    const avatar = payloadHasAvatar(payload) ? normalizeAvatar(payload?.avatar) : null;
     const room = rooms.get(code);
 
     if (!room) {
@@ -1199,7 +1262,7 @@ io.on("connection", (socket) => {
       if (clientKey && !returningPlayer.clientKey) {
         returningPlayer.clientKey = clientKey;
       }
-      attachSocketToPlayer(socket, room, returningPlayer, name);
+      attachSocketToPlayer(socket, room, returningPlayer, name, avatar);
       reply(ack, { ok: true, data: { room: snapshotRoom(room, returningPlayer.id), playerId: returningPlayer.id } });
       broadcastRoom(room);
       broadcastRoomList();
@@ -1223,20 +1286,22 @@ io.on("connection", (socket) => {
       connected: true,
       isHost: false,
       joinedAt: Date.now(),
+      avatar: avatar ?? { ...defaultAvatar },
       clientKey: clientKey || undefined
     };
 
     room.players.push(player);
-    attachSocketToPlayer(socket, room, player);
+    attachSocketToPlayer(socket, room, player, undefined, avatar);
     reply(ack, { ok: true, data: { room: snapshotRoom(room, player.id), playerId: player.id } });
     broadcastRoom(room);
     broadcastRoomList();
   });
 
-  socket.on("room:resume", (payload: { code?: string; name?: string; playerId?: string; clientKey?: string }, ack?: (response: Ack<{ room: RoomSnapshot; playerId: string }>) => void) => {
+  socket.on("room:resume", (payload: { code?: string; name?: string; playerId?: string; clientKey?: string; avatar?: PlayerAvatar }, ack?: (response: Ack<{ room: RoomSnapshot; playerId: string }>) => void) => {
     const code = String(payload?.code ?? "").trim().toUpperCase();
     const name = normalizeName(payload?.name);
     const clientKey = normalizeClientKey(payload?.clientKey);
+    const avatar = payloadHasAvatar(payload) ? normalizeAvatar(payload?.avatar) : null;
     const room = rooms.get(code);
     if (!room) {
       reply(ack, { ok: false, error: "저장된 방을 찾을 수 없습니다." });
@@ -1252,7 +1317,7 @@ io.on("connection", (socket) => {
     if (clientKey && !player.clientKey) {
       player.clientKey = clientKey;
     }
-    attachSocketToPlayer(socket, room, player, name);
+    attachSocketToPlayer(socket, room, player, name, avatar);
     reply(ack, { ok: true, data: { room: snapshotRoom(room, player.id), playerId: player.id } });
     broadcastRoom(room);
     broadcastRoomList();

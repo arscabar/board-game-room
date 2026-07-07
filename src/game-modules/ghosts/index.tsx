@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import type { GameAction, GameActionResult, GameComponentProps, GameContext, GameModule } from "../types";
+import { useInteractionGate } from "../useInteractionGate";
 
 const BOARD_SIZE = 6;
 
@@ -526,6 +527,11 @@ export function Component(props: GameComponentProps) {
     !publicState.winnerId &&
     Boolean(currentModulePlayer) &&
     currentPlayer?.id === activePlayer?.id;
+  const { isSubmitting, submitAction } = useInteractionGate(
+    onAction,
+    [publicState.phase, activePlayer?.id, publicState.message, publicState.winnerId],
+    { cooldownMs: 650 }
+  );
 
   const legalTargets = useMemo(() => {
     if (!selectedPiece || !currentModulePlayer || selectedPiece.ownerId !== currentModulePlayer.id) return [];
@@ -573,15 +579,15 @@ export function Component(props: GameComponentProps) {
   }
 
   function submitSetup() {
-    if (!currentModulePlayer || mySetupSubmitted || setupGoodCount !== 4 || setupBadCount !== 4) return;
-    onAction({ type: "ghosts/setup", payload: { kinds: setupKinds } });
+    if (isSubmitting || !currentModulePlayer || mySetupSubmitted || setupGoodCount !== 4 || setupBadCount !== 4) return;
+    submitAction({ type: "ghosts/setup", payload: { kinds: setupKinds } });
   }
 
   function selectOrMove(row: number, col: number) {
-    if (!canAct || !currentModulePlayer) return;
+    if (!canAct || isSubmitting || !currentModulePlayer) return;
     const occupant = getPublicPieceAt(publicState, row, col);
     if (selectedPiece && legalTargetKeys.has(targetKey({ row, col }))) {
-      onAction({ type: "moveGhost", payload: { pieceId: selectedPiece.id, to: { row, col } } });
+      submitAction({ type: "moveGhost", payload: { pieceId: selectedPiece.id, to: { row, col } } });
       setSelectedPieceId(null);
       return;
     }
@@ -591,15 +597,15 @@ export function Component(props: GameComponentProps) {
   }
 
   function escapeAt(col: number, side: Side) {
-    if (!canAct || !selectedPiece || !currentModulePlayer || currentModulePlayer.side !== side) return;
+    if (!canAct || isSubmitting || !selectedPiece || !currentModulePlayer || currentModulePlayer.side !== side) return;
     const target = { row: exitRowFor(currentModulePlayer), col };
     if (!legalTargetKeys.has(targetKey(target))) return;
-    onAction({ type: "moveGhost", payload: { pieceId: selectedPiece.id, to: target } });
+    submitAction({ type: "moveGhost", payload: { pieceId: selectedPiece.id, to: target } });
     setSelectedPieceId(null);
   }
 
   return (
-    <div className="gho-shell">
+    <div className={`gho-shell ${isSubmitting ? "is-submitting" : ""}`}>
       <style>{ghostsStyles}</style>
       {publicState.phase === "setup" ? (
         <section className="gho-setup" aria-label="고스트 비공개 배치">
@@ -639,7 +645,7 @@ export function Component(props: GameComponentProps) {
                       return (
                         <button
                           className={`gho-setup-slot ${kind ?? "hidden"}`}
-                          disabled={!isMine || submitted || disabled}
+                          disabled={!isMine || submitted || disabled || isSubmitting}
                           key={piece.id}
                           onClick={() => toggleSetupKind(index)}
                           aria-label={`${index + 1}번 ${publicKindName(kind)} 유령`}
@@ -657,7 +663,7 @@ export function Component(props: GameComponentProps) {
                       <span>
                         좋은 {setupGoodCount}/4 · 나쁜 {setupBadCount}/4
                       </span>
-                      <button disabled={disabled || setupGoodCount !== 4 || setupBadCount !== 4} onClick={submitSetup} type="button">
+                      <button disabled={disabled || isSubmitting || setupGoodCount !== 4 || setupBadCount !== 4} onClick={submitSetup} type="button">
                         배치 제출
                       </button>
                     </div>
@@ -689,7 +695,7 @@ export function Component(props: GameComponentProps) {
               return (
                 <button
                   className={legal ? "legal" : ""}
-                  disabled={!legal}
+                  disabled={!legal || isSubmitting}
                   key={`north-${col}`}
                   onClick={() => escapeAt(col, "south")}
                   style={{ gridColumn: col + 1 } as CSSProperties}
@@ -717,7 +723,7 @@ export function Component(props: GameComponentProps) {
                     className={`gho-cell ${legal ? "legal" : ""} ${selected ? "selected" : ""} ${
                       captureFx ? `captured-${captureFx.kind}` : ""
                     }`}
-                    disabled={!canAct || (!ownPiece && !legal)}
+                    disabled={!canAct || isSubmitting || (!ownPiece && !legal)}
                     key={targetKey({ row, col })}
                     onClick={() => selectOrMove(row, col)}
                     title={`${row + 1}행 ${col + 1}열`}
@@ -757,7 +763,7 @@ export function Component(props: GameComponentProps) {
               return (
                 <button
                   className={legal ? "legal" : ""}
-                  disabled={!legal}
+                  disabled={!legal || isSubmitting}
                   key={`south-${col}`}
                   onClick={() => escapeAt(col, "north")}
                   style={{ gridColumn: col + 1 } as CSSProperties}

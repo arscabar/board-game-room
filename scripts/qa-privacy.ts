@@ -7,6 +7,13 @@ import type { GameContext } from "../src/game-modules/types";
 import { getGameById } from "../src/shared/games";
 import type { PlayerSnapshot } from "../src/shared/types";
 
+const qaAvatar = {
+  body: "pawn",
+  face: "smile",
+  accessory: "none",
+  palette: "teal"
+} as const;
+
 function players(count: number): PlayerSnapshot[] {
   return Array.from({ length: count }, (_, index) => ({
     id: `p${index + 1}`,
@@ -14,7 +21,8 @@ function players(count: number): PlayerSnapshot[] {
     seat: index + 1,
     connected: true,
     isHost: index === 0,
-    joinedAt: index + 1
+    joinedAt: index + 1,
+    avatar: qaAvatar
   }));
 }
 

@@ -32,10 +32,12 @@
 }
 
 .abl-cell {
+  position: relative !important;
   border-radius: 999px !important;
   background:
     radial-gradient(circle at 38% 28%, rgba(255, 255, 255, 0.1), transparent 30%),
     linear-gradient(180deg, #555e64, #252b2f) !important;
+  touch-action: manipulation !important;
 }
 
 .abl-marble {
@@ -75,6 +77,81 @@
 
 .abl-cell.selected .abl-marble {
   transform: translateY(-5px) scale(1.04);
+}
+
+.abl-cell.selected {
+  outline-width: 4px !important;
+  outline-offset: 2px !important;
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 229, 153, 0.72),
+    0 0 0 4px rgba(214, 155, 45, 0.24),
+    0 0 18px rgba(214, 155, 45, 0.38) !important;
+}
+
+.abl-cell.line-start {
+  outline-color: #f8d36d !important;
+}
+
+.abl-cell.line-mid {
+  outline-color: #8dd4cf !important;
+}
+
+.abl-cell.line-end {
+  outline-color: #f59e0b !important;
+}
+
+.abl-selection-step {
+  position: absolute !important;
+  right: -5px !important;
+  top: -6px !important;
+  z-index: 3 !important;
+  display: grid !important;
+  place-items: center !important;
+  min-width: 21px !important;
+  height: 21px !important;
+  border: 2px solid rgba(23, 32, 29, 0.34) !important;
+  border-radius: 999px !important;
+  background: #f8d36d !important;
+  color: #17201d !important;
+  font-size: 0.72rem !important;
+  font-weight: 900 !important;
+  line-height: 1 !important;
+  pointer-events: none !important;
+}
+
+.abl-selection-summary {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 8px !important;
+  border: 1px solid rgba(31, 41, 55, 0.14) !important;
+  border-radius: 8px !important;
+  padding: 8px 9px !important;
+  background: rgba(255, 255, 255, 0.54) !important;
+  color: #374151 !important;
+  font-size: 0.82rem !important;
+  font-weight: 800 !important;
+}
+
+.abl-selection-summary.ready {
+  border-color: rgba(214, 155, 45, 0.38) !important;
+  background: rgba(255, 242, 204, 0.82) !important;
+  color: #3b2a14 !important;
+}
+
+.abl-selection-summary strong {
+  white-space: nowrap !important;
+}
+
+.abl-dir-button.unavailable:disabled {
+  color: #69747c !important;
+  background:
+    repeating-linear-gradient(135deg, rgba(105, 116, 124, 0.08) 0 6px, rgba(255, 255, 255, 0.28) 6px 12px),
+    linear-gradient(180deg, #f8faf7, #d8dee3) !important;
+}
+
+.abl-dir-button.available {
+  color: #123f3f !important;
 }
 
 @media (max-width: 540px) {
@@ -125,12 +202,17 @@
 
   .abl-direction-pad {
     gap: 5px !important;
-    grid-template-rows: repeat(3, 46px) !important;
-    width: min(100%, 220px) !important;
+    grid-template-rows: repeat(3, 52px) !important;
+    width: min(100%, 240px) !important;
   }
 
   .abl-dir-button {
-    min-height: 46px !important;
+    min-height: 52px !important;
+  }
+
+  .abl-selection-summary {
+    padding: 9px 10px !important;
+    font-size: 0.84rem !important;
   }
 
   .abl-players {

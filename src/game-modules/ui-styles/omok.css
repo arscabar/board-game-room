@@ -28,6 +28,11 @@
   gap: 2px !important;
 }
 
+.omok-status-message {
+  min-width: 0 !important;
+  justify-items: center !important;
+}
+
 .omok-status strong {
   color: #f1c976 !important;
   font-size: 0.72rem !important;
@@ -48,6 +53,86 @@
   text-align: center !important;
 }
 
+.omok-status-card {
+  align-content: center !important;
+}
+
+.omok-turn-card.my-turn {
+  border-radius: 7px !important;
+  padding: 5px 7px !important;
+  background: rgba(245, 207, 109, 0.12) !important;
+  box-shadow: inset 0 0 0 1px rgba(245, 207, 109, 0.22) !important;
+}
+
+.omok-turn-line,
+.omok-last-line {
+  min-width: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+}
+
+.omok-turn-line b,
+.omok-last-line b {
+  min-width: 0 !important;
+  overflow: hidden !important;
+  color: #fff4d7 !important;
+  font-size: 0.9rem !important;
+  font-weight: 950 !important;
+  line-height: 1.1 !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+.omok-turn-line em,
+.omok-last-line em {
+  flex: 0 0 auto !important;
+  border: 1px solid rgba(241, 201, 118, 0.28) !important;
+  border-radius: 999px !important;
+  padding: 2px 6px !important;
+  color: #f1c976 !important;
+  background: rgba(10, 6, 3, 0.32) !important;
+  font-size: 0.66rem !important;
+  font-style: normal !important;
+  font-weight: 900 !important;
+  line-height: 1 !important;
+}
+
+.omok-status-stone {
+  flex: 0 0 auto !important;
+  width: 14px !important;
+  height: 14px !important;
+  border-radius: 999px !important;
+  box-shadow:
+    inset -2px -3px 5px rgba(0, 0, 0, 0.26),
+    inset 2px 2px 4px rgba(255, 255, 255, 0.24),
+    0 2px 4px rgba(0, 0, 0, 0.22) !important;
+}
+
+.omok-status-stone.black {
+  background: linear-gradient(145deg, #34302a, #050505 72%) !important;
+}
+
+.omok-status-stone.white {
+  background: linear-gradient(145deg, #ffffff, #cfc8b6 78%) !important;
+}
+
+.omok-rule-chip {
+  display: inline-flex !important;
+  min-height: 24px !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 2px 8px !important;
+  border: 1px solid rgba(241, 201, 118, 0.34) !important;
+  border-radius: 999px !important;
+  color: #f1c976 !important;
+  background: rgba(10, 6, 3, 0.34) !important;
+  font-size: 0.72rem !important;
+  font-weight: 900 !important;
+  line-height: 1.2 !important;
+  text-align: center !important;
+}
+
 .omok-layout {
   display: grid !important;
   grid-template-columns: minmax(0, 1fr) minmax(210px, 0.32fr) !important;
@@ -56,8 +141,12 @@
 }
 
 .omok-board-wrap {
+  box-sizing: border-box !important;
   min-width: 0 !important;
+  max-width: 100% !important;
   display: grid !important;
+  gap: 8px !important;
+  overflow-x: auto !important;
   place-items: center !important;
   padding: 14px !important;
   border: 1px solid rgba(229, 183, 109, 0.24) !important;
@@ -70,6 +159,7 @@
 
 .omok-board {
   --cell: clamp(18px, min(4.5vw, 4.5vh), 38px);
+  box-sizing: border-box !important;
   position: relative !important;
   display: grid !important;
   grid-template-columns: repeat(var(--omok-size), var(--cell)) !important;
@@ -112,16 +202,39 @@
   border-radius: 999px !important;
   padding: 0 !important;
   background: transparent !important;
+  cursor: crosshair !important;
+  touch-action: manipulation !important;
+}
+
+.omok-point:disabled {
+  opacity: 1 !important;
 }
 
 .omok-point:not(:disabled):hover::before,
-.omok-point:not(:disabled):focus-visible::before {
+.omok-point:not(:disabled):focus-visible::before,
+.omok-point:not(:disabled):active::before {
   content: "" !important;
   position: absolute !important;
   inset: 19% !important;
   border-radius: 50% !important;
   background: rgba(36, 20, 10, 0.22) !important;
   box-shadow: 0 0 0 2px rgba(245, 215, 142, 0.36) !important;
+}
+
+.omok-point:focus-visible {
+  outline: 2px solid rgba(255, 244, 216, 0.9) !important;
+  outline-offset: 2px !important;
+}
+
+.omok-point.pending::before {
+  content: "" !important;
+  position: absolute !important;
+  inset: 13% !important;
+  border-radius: 50% !important;
+  background: rgba(246, 204, 112, 0.18) !important;
+  box-shadow:
+    0 0 0 2px rgba(246, 204, 112, 0.72),
+    0 0 0 6px rgba(80, 42, 17, 0.16) !important;
 }
 
 .omok-stone {
@@ -132,6 +245,16 @@
     inset -5px -7px 10px rgba(0, 0, 0, 0.28),
     inset 4px 4px 8px rgba(255, 255, 255, 0.24),
     0 5px 7px rgba(36, 20, 10, 0.28) !important;
+}
+
+.omok-stone.preview {
+  opacity: 0.72 !important;
+  transform: scale(0.88) !important;
+  box-shadow:
+    inset -5px -7px 10px rgba(0, 0, 0, 0.2),
+    inset 4px 4px 8px rgba(255, 255, 255, 0.2),
+    0 0 0 3px rgba(246, 204, 112, 0.84),
+    0 6px 10px rgba(36, 20, 10, 0.22) !important;
 }
 
 .omok-stone.black {
@@ -149,16 +272,173 @@
 .omok-point.last .omok-stone::after {
   content: "" !important;
   position: absolute !important;
-  inset: 36% !important;
+  inset: 27% !important;
   border-radius: 50% !important;
   background: #d34939 !important;
+  border: 2px solid rgba(255, 246, 221, 0.9) !important;
+  box-shadow: 0 0 0 2px rgba(83, 21, 14, 0.5) !important;
+}
+
+.omok-point.last .omok-stone {
+  z-index: 2 !important;
+  transform: scale(1.04) !important;
+  animation: omok-stone-drop 260ms cubic-bezier(0.18, 0.86, 0.24, 1.1) both !important;
+}
+
+.omok-point.last::after {
+  content: "" !important;
+  position: absolute !important;
+  inset: -5% !important;
+  pointer-events: none !important;
+  border: 2px solid rgba(211, 73, 57, 0.84) !important;
+  border-radius: 50% !important;
+  box-shadow: 0 0 0 4px rgba(211, 73, 57, 0.15) !important;
 }
 
 .omok-point.winning .omok-stone {
   box-shadow:
-    0 0 0 3px rgba(245, 207, 109, 0.86),
+    0 0 0 4px rgba(245, 207, 109, 0.94),
+    0 0 18px rgba(245, 207, 109, 0.6),
     inset -5px -7px 10px rgba(0, 0, 0, 0.24),
     0 8px 12px rgba(36, 20, 10, 0.28) !important;
+}
+
+.omok-point.winning .omok-stone::before {
+  content: "" !important;
+  position: absolute !important;
+  inset: -16% !important;
+  border: 2px solid rgba(255, 238, 170, 0.78) !important;
+  border-radius: 50% !important;
+}
+
+.omok-precision-panel {
+  box-sizing: border-box !important;
+  width: min(100%, 520px) !important;
+  display: grid !important;
+  grid-template-columns: auto minmax(0, 1fr) !important;
+  gap: 10px !important;
+  align-items: stretch !important;
+  padding: 10px !important;
+  border: 1px solid rgba(229, 183, 109, 0.26) !important;
+  border-radius: 8px !important;
+  background:
+    linear-gradient(180deg, rgba(60, 37, 20, 0.94), rgba(22, 13, 7, 0.94)) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 240, 204, 0.08) !important;
+}
+
+.omok-zoom-grid {
+  box-sizing: border-box !important;
+  display: grid !important;
+  grid-template-columns: repeat(5, 44px) !important;
+  grid-template-rows: repeat(5, 44px) !important;
+  gap: 4px !important;
+  padding: 7px !important;
+  border: 1px solid rgba(229, 183, 109, 0.24) !important;
+  border-radius: 8px !important;
+  background:
+    linear-gradient(90deg, transparent 21px, rgba(55, 31, 15, 0.42) 21px 23px, transparent 23px) 0 0 / 48px 48px,
+    linear-gradient(0deg, transparent 21px, rgba(55, 31, 15, 0.42) 21px 23px, transparent 23px) 0 0 / 48px 48px,
+    linear-gradient(135deg, var(--omok-board), var(--omok-board-deep)) !important;
+}
+
+.omok-zoom-point {
+  position: relative !important;
+  min-width: 44px !important;
+  min-height: 44px !important;
+  width: 44px !important;
+  height: 44px !important;
+  border: 0 !important;
+  border-radius: 999px !important;
+  padding: 0 !important;
+  background: transparent !important;
+  cursor: crosshair !important;
+  touch-action: manipulation !important;
+}
+
+.omok-zoom-point:disabled {
+  opacity: 1 !important;
+}
+
+.omok-zoom-point:not(:disabled):hover,
+.omok-zoom-point:not(:disabled):focus-visible,
+.omok-zoom-point.pending {
+  box-shadow:
+    inset 0 0 0 2px rgba(246, 204, 112, 0.78),
+    0 0 0 4px rgba(80, 42, 17, 0.18) !important;
+}
+
+.omok-zoom-point.out {
+  opacity: 0.26 !important;
+  background:
+    repeating-linear-gradient(45deg, rgba(55, 31, 15, 0.42) 0 5px, transparent 5px 10px) !important;
+}
+
+.omok-zoom-point .omok-stone {
+  inset: 8% !important;
+}
+
+.omok-zoom-point.last .omok-stone::after {
+  content: "" !important;
+  position: absolute !important;
+  inset: 30% !important;
+  border: 2px solid rgba(255, 246, 221, 0.9) !important;
+  border-radius: 50% !important;
+  background: #d34939 !important;
+}
+
+.omok-zoom-point.last .omok-stone {
+  transform: scale(1.04) !important;
+}
+
+.omok-zoom-point.winning .omok-stone {
+  box-shadow:
+    0 0 0 4px rgba(245, 207, 109, 0.94),
+    0 0 16px rgba(245, 207, 109, 0.58),
+    inset -5px -7px 10px rgba(0, 0, 0, 0.24),
+    0 8px 12px rgba(36, 20, 10, 0.28) !important;
+}
+
+.omok-confirm-strip {
+  min-width: 0 !important;
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto auto !important;
+  gap: 8px !important;
+  align-items: center !important;
+}
+
+.omok-confirm-strip div {
+  min-width: 0 !important;
+  display: grid !important;
+  gap: 3px !important;
+}
+
+.omok-confirm-strip strong {
+  overflow: hidden !important;
+  color: #f8ebcf !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+.omok-confirm-strip span {
+  color: rgba(248, 235, 207, 0.72) !important;
+  font-size: 0.78rem !important;
+  line-height: 1.25 !important;
+}
+
+.omok-confirm-strip button {
+  box-sizing: border-box !important;
+  min-width: 58px !important;
+  min-height: 44px !important;
+  border: 1px solid rgba(229, 183, 109, 0.34) !important;
+  border-radius: 8px !important;
+  background: linear-gradient(180deg, #f4d38b, #a76630) !important;
+  color: #211108 !important;
+  font: inherit !important;
+  font-weight: 900 !important;
+}
+
+.omok-confirm-strip button:disabled {
+  opacity: 0.44 !important;
 }
 
 .omok-side {
@@ -224,8 +504,14 @@
   }
 
   .omok-status {
-    grid-template-columns: 1fr !important;
+    grid-template-columns: 1fr auto !important;
     text-align: left !important;
+  }
+
+  .omok-status-message {
+    grid-column: 1 / -1 !important;
+    grid-row: 2 !important;
+    justify-items: start !important;
   }
 
   .omok-status p {
@@ -237,8 +523,49 @@
   }
 
   .omok-board {
-    --cell: min(5.55vw, 24px);
+    --cell: clamp(17px, 5.15vw, 20px);
+    --omok-line: rgba(55, 31, 15, 0.68);
     border-width: 7px !important;
+  }
+
+  .omok-precision-panel {
+    position: sticky !important;
+    bottom: 6px !important;
+    z-index: 4 !important;
+    grid-template-columns: 1fr !important;
+    width: min(100%, calc(100vw - 72px)) !important;
+    box-shadow:
+      0 -10px 22px rgba(30, 17, 8, 0.22),
+      inset 0 1px 0 rgba(255, 240, 204, 0.08) !important;
+  }
+
+  .omok-zoom-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+    width: min(100%, 280px) !important;
+    justify-self: center !important;
+  }
+
+  .omok-zoom-point {
+    width: 100% !important;
+    min-width: 0 !important;
+    height: auto !important;
+    min-height: 0 !important;
+    aspect-ratio: 1 !important;
+  }
+
+  .omok-confirm-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 6px !important;
+  }
+
+  .omok-confirm-strip div {
+    grid-column: 1 / -1 !important;
+  }
+
+  .omok-confirm-strip button {
+    width: 100% !important;
+    min-width: 0 !important;
+    padding-inline: 8px !important;
   }
 
   .omok-board::after {
@@ -251,6 +578,51 @@
   }
 
   .omok-side {
-    grid-template-columns: 1fr !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 6px !important;
+  }
+
+  .omok-player-card {
+    grid-template-columns: 26px minmax(0, 1fr) !important;
+    gap: 7px !important;
+    min-height: 50px !important;
+    padding: 7px !important;
+    border-radius: 7px !important;
+  }
+
+  .omok-player-card .sample {
+    width: 24px !important;
+    height: 24px !important;
+  }
+
+  .omok-player-card strong {
+    font-size: 0.78rem !important;
+  }
+
+  .omok-player-card small {
+    font-size: 0.68rem !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .omok-point.last .omok-stone,
+  .omok-zoom-point.last .omok-stone {
+    animation: none !important;
+    transform: none !important;
+  }
+}
+
+@keyframes omok-stone-drop {
+  from {
+    opacity: 0.45;
+    transform: translateY(-14px) scale(0.68);
+  }
+  68% {
+    opacity: 1;
+    transform: translateY(2px) scale(1.1);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1.04);
   }
 }

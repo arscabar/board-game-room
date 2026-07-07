@@ -1,4 +1,5 @@
 import type { CSSProperties } from "react";
+import { useInteractionGate } from "../useInteractionGate";
 import type { GameAction, GameActionResult, GameComponentProps, GameContext, GameModule } from "../types";
 
 const BOARD_SIZE = 15;
@@ -262,22 +263,51 @@ export function Component({
   onAction
 }: GameComponentProps<OmokState>) {
   const state = assertOmokState(publicState);
-  const occupiedCount = state.board.reduce((total, row) => total + row.filter(Boolean).length, 0);
+  const { isSubmitting, submitAction } = useInteractionGate(
+    onAction,
+    [state.activePlayerId, state.lastMove?.row, state.lastMove?.col, state.phase],
+    { cooldownMs: 500 }
+  );
   const winningKeys = new Set(state.winningLine.map(key));
   const isMyTurn = currentPlayer?.id === state.activePlayerId;
   const canPlace = !disabled && isMyTurn && state.phase === "playing";
+  const activeModulePlayer = state.players.find((player) => player.id === state.activePlayerId) ?? null;
+  const activeStone = activeModulePlayer?.stone ?? "black";
+  const lastMoveOwner = state.lastMove ? state.players.find((player) => player.id === state.lastMove?.playerId) : null;
+  const lastMoveLabel = state.lastMove
+    ? `${lastMoveOwner?.name ?? "플레이어"} · ${state.lastMove.row + 1}행 ${state.lastMove.col + 1}열`
+    : "아직 없음";
+  const lastMoveShortLabel = state.lastMove ? `${state.lastMove.row + 1}-${state.lastMove.col + 1}` : "-";
+  const turnBadgeLabel =
+    state.phase !== "playing" ? (state.phase === "draw" ? "무승부" : "종료") : isMyTurn ? "내 차례" : "대기";
+
+  function placeAt(row: number, col: number) {
+    if (!canPlace || isSubmitting || !inBoard(row, col) || state.board[row][col]) {
+      return;
+    }
+    submitAction({ type: "omok/place-stone", payload: { row, col } });
+  }
 
   return (
-    <div className="game-module omok-shell">
+    <div className={`game-module omok-shell ${isSubmitting ? "is-submitting" : ""}`}>
       <section className="omok-status" aria-label="오목 진행 상태">
-        <div>
+        <div className={`omok-status-card omok-turn-card ${isMyTurn ? "my-turn" : ""}`}>
           <strong>차례</strong>
-          <span>{activePlayer?.name ?? "종료"}</span>
+          <span className="omok-turn-line">
+            {activeModulePlayer ? <i className={`omok-status-stone ${activeStone}`} aria-hidden="true" /> : null}
+            <b>{activePlayer?.name ?? activeModulePlayer?.name ?? "종료"}</b>
+            <em>{turnBadgeLabel}</em>
+          </span>
         </div>
-        <p>{state.message}</p>
-        <div>
-          <strong>진행</strong>
-          <span>{occupiedCount}/{BOARD_SIZE * BOARD_SIZE}</span>
+        <div className="omok-status-message">
+          <p>{state.message}</p>
+        </div>
+        <div className="omok-status-card omok-last-card" aria-label={`마지막 수 ${lastMoveLabel}`}>
+          <strong>마지막</strong>
+          <span className="omok-last-line" title={lastMoveLabel}>
+            <b>{lastMoveShortLabel}</b>
+            <em>{lastMoveOwner ? (lastMoveOwner.stone === "black" ? "흑" : "백") : "없음"}</em>
+          </span>
         </div>
       </section>
 
@@ -294,9 +324,9 @@ export function Component({
                     key={`${rowIndex}-${colIndex}`}
                     className={`omok-point ${owner?.stone ?? ""} ${isLast ? "last" : ""} ${isWinning ? "winning" : ""}`}
                     type="button"
-                    disabled={!canPlace || Boolean(ownerId)}
-                    aria-label={`${rowIndex + 1}행 ${colIndex + 1}열${owner ? ` ${owner.name} 돌` : " 빈 자리"}`}
-                    onClick={() => onAction({ type: "omok/place-stone", payload: { row: rowIndex, col: colIndex } })}
+                    disabled={!canPlace || isSubmitting || Boolean(ownerId)}
+                    aria-label={`${rowIndex + 1}행 ${colIndex + 1}열${owner ? ` ${owner.name} 돌` : " 빈 자리"}${isLast ? " 마지막 수" : ""}`}
+                    onClick={() => placeAt(rowIndex, colIndex)}
                   >
                     {owner ? <span className={`omok-stone ${owner.stone}`} aria-hidden="true" /> : null}
                   </button>

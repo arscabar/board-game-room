@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { CSSProperties, FormEvent } from "react";
 import type { GameAction, GameComponentProps, GameContext, GameModule } from "../types";
 import type { PlayerSnapshot } from "../../shared/types";
+import { useInteractionGate } from "../useInteractionGate";
 
 const MAX_WORD_LENGTH = 8;
 const MAX_MISSES = 6;
@@ -607,11 +608,17 @@ export function Component({
   const myProgress = myId ? state.progress[myId] : undefined;
   const isMyTurn = Boolean(myId && state.activePlayerId === myId && state.phase === "guessing");
   const canGuess = !disabled && isMyTurn;
+  const { isSubmitting, submitAction } = useInteractionGate(
+    onAction,
+    [state.phase, state.activePlayerId, state.roundNumber, state.roundWinnerId, state.winnerId, state.lastGuess?.kind, state.lastGuess?.guess],
+    { cooldownMs: 520 }
+  );
   const guessedLetters = new Set(myProgress?.guessedLetters ?? []);
   const missedLetters = new Set(myProgress?.missedLetters ?? []);
   const hitLetters = new Set((myProgress?.guessedLetters ?? []).filter((letter) => !missedLetters.has(letter)));
   const roundWinnerName = getPlayerName(players, state.roundWinnerId);
   const targetName = myProgress ? getPlayerName(players, myProgress.targetId) : null;
+  const targetLetters = myProgress ? state.displays[myProgress.targetId] ?? [] : [];
 
   function submitSecret(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -619,7 +626,9 @@ export function Component({
     if (!word) {
       return;
     }
-    onAction({ type: "hangman-board-game/setup-secret", payload: { word } });
+    if (!submitAction({ type: "hangman-board-game/setup-secret", payload: { word } })) {
+      return;
+    }
     setSecretWord("");
     setShowOwnSecret(false);
   }
@@ -630,12 +639,14 @@ export function Component({
     if (!word) {
       return;
     }
-    onAction({ type: "hangman-board-game/guess-word", payload: { word } });
+    if (!submitAction({ type: "hangman-board-game/guess-word", payload: { word } })) {
+      return;
+    }
     setWholeWord("");
   }
 
   return (
-    <section className="game-module hangman-module" style={styles.shell} aria-label="행맨 보드게임">
+    <section className={`game-module hangman-module ${isSubmitting ? "is-submitting" : ""}`} style={styles.shell} aria-label="행맨 보드게임">
       {state.phase === "setup" ? (
         <article className="hangman-setup-panel" style={styles.panel}>
           <h3>비밀 단어 준비</h3>
@@ -647,14 +658,14 @@ export function Component({
                 <p>{state.setup.submitted[playerId] ? "제출 완료" : "입력 대기"}</p>
                 {myId === playerId && state.setup.ownSecret ? (
                   <div className="hangman-secret-lock">
-                    <p>{showOwnSecret ? `내 비밀 단어: ${state.setup.ownSecret}` : "내 비밀 단어는 숨김 처리되었습니다."}</p>
+                    <p>{showOwnSecret ? `내 단어: ${state.setup.ownSecret}` : "내 단어 숨김"}</p>
                     <button type="button" onClick={() => setShowOwnSecret((value) => !value)}>
-                      {showOwnSecret ? "다시 숨기기" : "내 단어 확인"}
+                      {showOwnSecret ? "숨기기" : "확인"}
                     </button>
-                    <small>한 기기로 교대할 때는 숨긴 뒤 다음 사람에게 넘기세요.</small>
+                    <small>교대 전 숨기기</small>
                   </div>
                 ) : null}
-                {myId !== playerId && state.setup.wordLengths[playerId] > 0 ? <p>상대 빈칸: {state.setup.wordLengths[playerId]}</p> : null}
+                {myId !== playerId && state.setup.wordLengths[playerId] > 0 ? <p>빈칸 {state.setup.wordLengths[playerId]}</p> : null}
               </div>
             ))}
           </div>
@@ -670,7 +681,7 @@ export function Component({
                   onChange={(event) => setSecretWord(event.currentTarget.value)}
                 />
               </label>
-              <button type="submit" disabled={disabled || !normalizeWord(secretWord)}>
+              <button type="submit" disabled={disabled || isSubmitting || !normalizeWord(secretWord)}>
                 제출
               </button>
             </form>
@@ -715,6 +726,7 @@ export function Component({
             <div className="hangman-target-card">
               <div>
                 <strong>{targetName ? `${targetName} 단어` : "대기"}</strong>
+                <WordDisplay letters={targetLetters} />
               </div>
               <HangmanMissCounter misses={myProgress?.misses ?? 0} maxMisses={state.maxMisses} />
             </div>
@@ -725,7 +737,7 @@ export function Component({
                 <span>
                   {state.roundNumber}라운드 종료 · 목표 {state.targetWins}승
                 </span>
-                <button type="button" onClick={() => onAction({ type: "hangman-board-game/next-round" })}>
+                <button type="button" disabled={isSubmitting} onClick={() => submitAction({ type: "hangman-board-game/next-round" })}>
                   다음 라운드
                 </button>
               </div>
@@ -758,8 +770,8 @@ export function Component({
                   style={styles.letterButton}
                   type="button"
                   key={letter}
-                  disabled={!canGuess || guessedLetters.has(letter)}
-                  onClick={() => onAction({ type: "hangman-board-game/guess-letter", payload: { letter } })}
+                  disabled={!canGuess || isSubmitting || guessedLetters.has(letter)}
+                  onClick={() => submitAction({ type: "hangman-board-game/guess-letter", payload: { letter } })}
                 >
                   {letter}
                 </button>
@@ -777,7 +789,7 @@ export function Component({
                   onChange={(event) => setWholeWord(event.currentTarget.value)}
                 />
               </label>
-              <button type="submit" disabled={!canGuess || !normalizeWord(wholeWord)}>
+              <button type="submit" disabled={!canGuess || isSubmitting || !normalizeWord(wholeWord)}>
                 단어 추측
               </button>
             </form>

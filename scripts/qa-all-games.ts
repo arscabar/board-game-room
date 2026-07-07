@@ -62,6 +62,13 @@ const CATEGORIES = [
   "yacht"
 ];
 
+const qaAvatar = {
+  body: "pawn",
+  face: "smile",
+  accessory: "none",
+  palette: "teal"
+} as const;
+
 const qawaleScript: Array<{ playerIndex: number; action: GameAction }> = [
   {
     playerIndex: 0,
@@ -1278,8 +1285,8 @@ function createYinshMarkerPoolFixture(markersRemaining: number, ringsRemoved: { 
   const game = getGameById("yinsh");
   assert(game, "Unknown game yinsh");
   const players = [
-    { id: "yinsh-white", name: "YINSH White", seat: 1, connected: true, isHost: true, joinedAt: 1 },
-    { id: "yinsh-black", name: "YINSH Black", seat: 2, connected: true, isHost: false, joinedAt: 2 }
+    { id: "yinsh-white", name: "YINSH White", seat: 1, connected: true, isHost: true, joinedAt: 1, avatar: qaAvatar },
+    { id: "yinsh-black", name: "YINSH Black", seat: 2, connected: true, isHost: false, joinedAt: 2, avatar: qaAvatar }
   ];
   const state = yinshModule.createInitialState({ game, players }) as any;
   state.phase = "move";

@@ -2,6 +2,7 @@ import type { CSSProperties } from "react";
 import { useEffect, useRef, useState } from "react";
 import type { GameAction, GameActionResult, GameComponentProps, GameContext, GameModule, GameSystemAction } from "../types";
 import type { PlayerSnapshot } from "../../shared/types";
+import { useInteractionGate } from "../useInteractionGate";
 
 const DICE_COUNT = 5;
 const MAX_ROLLS = 3;
@@ -38,6 +39,21 @@ const UPPER_BONUS_THRESHOLD = 63;
 const UPPER_BONUS_SCORE = 35;
 
 const scoreSheetLabels: Record<CategoryId, string> = {
+  ones: "1",
+  twos: "2",
+  threes: "3",
+  fours: "4",
+  fives: "5",
+  sixes: "6",
+  choice: "초",
+  fourKind: "포",
+  fullHouse: "풀",
+  smallStraight: "스",
+  largeStraight: "라",
+  yacht: "요"
+};
+
+const scoreChoiceShortLabels: Record<CategoryId, string> = {
   ones: "1",
   twos: "2",
   threes: "3",
@@ -481,6 +497,11 @@ export function Component({
   const rollsLeft = MAX_ROLLS - state.rollsThisTurn;
   const [rolling, setRolling] = useState(false);
   const rollTimerRef = useRef<number | null>(null);
+  const { isSubmitting, submitAction } = useInteractionGate(
+    onAction,
+    [activePlayerId, state.rollsThisTurn, state.lastScored?.playerId, state.lastScored?.category, state.phase],
+    { cooldownMs: 360 }
+  );
 
   useEffect(() => {
     return () => {
@@ -504,7 +525,10 @@ export function Component({
   }
 
   function rollDice() {
-    if (!canAct || state.rollsThisTurn >= MAX_ROLLS || rolling) {
+    if (!canAct || state.rollsThisTurn >= MAX_ROLLS || rolling || isSubmitting) {
+      return;
+    }
+    if (!submitAction({ type: "yacht-dice/roll" })) {
       return;
     }
     if (rollTimerRef.current !== null) {
@@ -515,7 +539,13 @@ export function Component({
       setRolling(false);
       rollTimerRef.current = null;
     }, 760);
-    onAction({ type: "yacht-dice/roll" });
+  }
+
+  function scoreTurn(categoryId: CategoryId) {
+    if (!canAct || rolling || state.rollsThisTurn === 0) {
+      return;
+    }
+    submitAction({ type: "yacht-dice/score-category", payload: { category: categoryId } });
   }
 
   function dieTrayStyle(index: number, held: boolean): CSSProperties {
@@ -569,7 +599,7 @@ export function Component({
                     className="yacht-dock-slot filled"
                     type="button"
                     key={`dock-${docked.index}`}
-                    disabled={!canAct || state.rollsThisTurn === 0 || rolling}
+                    disabled={!canAct || state.rollsThisTurn === 0 || rolling || isSubmitting}
                     aria-pressed="true"
                     aria-label={`${docked.index + 1}번 주사위 ${docked.die || "아직 안 굴림"} 보류 해제`}
                     onClick={() => onAction({ type: "yacht-dice/toggle-hold", payload: { index: docked.index } })}
@@ -587,7 +617,7 @@ export function Component({
                 style={dieTrayStyle(index, false)}
                 type="button"
                 key={`die-${index}`}
-                disabled={!canAct || state.rollsThisTurn === 0 || rolling}
+                disabled={!canAct || state.rollsThisTurn === 0 || rolling || isSubmitting}
                 aria-pressed="false"
                 aria-label={`${index + 1}번 주사위 ${die || "아직 안 굴림"} 보류 전환`}
                 onClick={() => onAction({ type: "yacht-dice/toggle-hold", payload: { index } })}
@@ -601,7 +631,7 @@ export function Component({
             <button
               type="button"
               className={`yacht-roll-button ${rolling ? "rolling" : ""}`}
-              disabled={!canAct || state.rollsThisTurn >= MAX_ROLLS || rolling}
+              disabled={!canAct || state.rollsThisTurn >= MAX_ROLLS || rolling || isSubmitting}
               onClick={rollDice}
             >
               {rolling ? "굴리는 중" : state.rollsThisTurn === 0 ? "주사위 굴리기" : "다시 굴리기"}
@@ -615,7 +645,10 @@ export function Component({
         </article>
 
         <article className="yacht-score-panel" style={styles.panel}>
-          <h3>이번 턴 점수</h3>
+          <div className="yacht-score-panel-head">
+            <h3>점수 선택</h3>
+            <span>{getPlayerName(players, activePlayerId)}</span>
+          </div>
           <div className="yacht-bonus-strip">
             <span>상단 합계 {activeUpperTotal}/{UPPER_BONUS_THRESHOLD}</span>
             <strong>{activeUpperBonus > 0 ? `보너스 +${activeUpperBonus}` : `보너스까지 ${Math.max(0, UPPER_BONUS_THRESHOLD - activeUpperTotal)}`}</strong>
@@ -631,11 +664,14 @@ export function Component({
                   type="button"
                   className={`yacht-score-choice ${locked ? "used" : ""}`}
                   key={category.id}
-                  disabled={locked || !canAct || state.rollsThisTurn === 0}
+                  disabled={locked || !canAct || rolling || isSubmitting || state.rollsThisTurn === 0}
                   aria-label={`${category.label} ${score}점 선택`}
-                  onClick={() => onAction({ type: "yacht-dice/score-category", payload: { category: category.id } })}
+                  onClick={() => scoreTurn(category.id)}
                 >
-                  <span className="yacht-score-choice-label">{category.label}</span>
+                  <span className="yacht-score-choice-label">
+                    <abbr title={category.label}>{scoreChoiceShortLabels[category.id]}</abbr>
+                    <small>{category.label}</small>
+                  </span>
                   <strong className="yacht-score-choice-value">{score}</strong>
                 </button>
               );

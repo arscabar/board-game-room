@@ -44,6 +44,18 @@ export interface GameDefinition {
   };
 }
 
+export type PlayerAvatarBody = "pawn" | "round" | "bot" | "crest";
+export type PlayerAvatarFace = "smile" | "focus" | "wink" | "calm";
+export type PlayerAvatarAccessory = "none" | "crown" | "glasses" | "cap" | "spark";
+export type PlayerAvatarPalette = "teal" | "amber" | "blue" | "rose" | "violet" | "ivory";
+
+export interface PlayerAvatar {
+  body: PlayerAvatarBody;
+  face: PlayerAvatarFace;
+  accessory: PlayerAvatarAccessory;
+  palette: PlayerAvatarPalette;
+}
+
 export interface PlayerSnapshot {
   id: string;
   name: string;
@@ -51,6 +63,7 @@ export interface PlayerSnapshot {
   connected: boolean;
   isHost: boolean;
   joinedAt: number;
+  avatar: PlayerAvatar;
 }
 
 export interface MoveEntry {
@@ -108,6 +121,7 @@ export interface PublicRoomListItem {
   selectedGameId: string | null;
   selectedGameTitle: string | null;
   hostName: string | null;
+  hostAvatar: PlayerAvatar | null;
   createdAt: number;
   canJoin: boolean;
 }

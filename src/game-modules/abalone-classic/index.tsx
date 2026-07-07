@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import type { CSSProperties } from "react";
 import type { GameAction, GameActionResult, GameComponentProps, GameContext, GameModule } from "../types";
+import { useInteractionGate } from "../useInteractionGate";
 
 const RADIUS = 4;
 const WIN_PUSHES = 6;
@@ -460,6 +461,54 @@ function selectionCanEndAt(state: AbalonePublicState, playerId: string | undefin
   return Boolean(selectionFromEndpoints(state, playerId, selection[0], coord));
 }
 
+interface DirectionMoveState {
+  legal: boolean;
+  reason: string;
+}
+
+function coordLabel(coord: Coord) {
+  return `${coord.q},${coord.r}`;
+}
+
+function directionMoveState(
+  state: AbalonePublicState,
+  player: AbalonePlayer | null,
+  canAct: boolean,
+  cells: Coord[],
+  direction: Direction
+): DirectionMoveState {
+  if (!canAct || !player) {
+    return { legal: false, reason: "내 차례가 되면 사용할 수 있습니다." };
+  }
+  if (cells.length === 0) {
+    return { legal: false, reason: "구슬을 먼저 선택하세요." };
+  }
+  if (cells.length > 3 || new Set(cells.map(key)).size !== cells.length) {
+    return { legal: false, reason: "서로 다른 구슬 1~3개를 선택하세요." };
+  }
+  if (cells.some((cell) => !inBoard(cell) || ownerAt(state, cell) !== player.id)) {
+    return { legal: false, reason: "자기 구슬만 선택할 수 있습니다." };
+  }
+  if (!isSelectionLine(cells)) {
+    return { legal: false, reason: "선택한 구슬은 한 줄이어야 합니다." };
+  }
+
+  try {
+    const axis = selectionAxis(cells);
+    if (inlineWith(axis, direction)) {
+      moveInline(state, player, cells, direction);
+    } else {
+      moveBroadside(state, player, cells, direction);
+    }
+    return { legal: true, reason: "이 방향으로 이동할 수 있습니다." };
+  } catch (error) {
+    return {
+      legal: false,
+      reason: error instanceof Error ? error.message : "이 방향으로 이동할 수 없습니다."
+    };
+  }
+}
+
 export function Component(props: GameComponentProps) {
   const { currentPlayer, activePlayer, disabled, onAction } = props;
   const publicState = props.publicState as AbalonePublicState;
@@ -474,6 +523,23 @@ export function Component(props: GameComponentProps) {
     () => directionPadOrder.map((directionId) => directionById(directionId)).filter(Boolean) as Direction[],
     []
   );
+  const directionStates = useMemo(
+    () =>
+      Object.fromEntries(
+        directionPad.map((direction) => [
+          direction.id,
+          directionMoveState(publicState, currentModulePlayer, canAct, selection, direction)
+        ])
+      ) as Record<string, DirectionMoveState>,
+    [canAct, currentModulePlayer, directionPad, publicState, selection]
+  );
+  const availableDirectionCount = directionPad.filter((direction) => directionStates[direction.id]?.legal).length;
+  const selectionSummary =
+    selection.length === 0
+      ? "선택 없음"
+      : selection.length === 1
+        ? `시작 ${coordLabel(selection[0])}`
+        : `시작 ${coordLabel(selection[0])} → 끝 ${coordLabel(selection[selection.length - 1])}`;
   const selectionHint = !canAct
     ? "현재 차례가 되면 자기 구슬을 선택할 수 있습니다."
     : selection.length === 0
@@ -484,7 +550,12 @@ export function Component(props: GameComponentProps) {
           ? "끝 구슬을 고르면 사이 구슬이 자동 선택됩니다. 또는 바로 방향을 눌러 1개를 이동하세요."
           : selection.length === 2
             ? "시작점부터 끝점까지 2개가 선택되었습니다. 상대 구슬 1개까지 밀 수 있습니다."
-            : "시작점부터 끝점까지 3개가 선택되었습니다. 상대 구슬 1~2개까지 밀 수 있습니다.";
+          : "시작점부터 끝점까지 3개가 선택되었습니다. 상대 구슬 1~2개까지 밀 수 있습니다.";
+  const { isSubmitting, submitAction } = useInteractionGate(
+    onAction,
+    [activePlayer?.id, currentPlayer?.id, publicState.message, publicState.winnerId, selection.length],
+    { cooldownMs: 640 }
+  );
 
   function chooseSelectionEndpoint(coord: Coord) {
     if (!canAct) return;
@@ -504,13 +575,13 @@ export function Component(props: GameComponentProps) {
   }
 
   function sendMove(direction: Direction) {
-    if (!canAct || !validSelection) return;
-    onAction({ type: "move", payload: { cells: selection, direction: direction.id } });
+    if (!directionStates[direction.id]?.legal || isSubmitting) return;
+    if (!submitAction({ type: "move", payload: { cells: selection, direction: direction.id } })) return;
     setSelection([]);
   }
 
   return (
-    <div className="abl-shell">
+    <div className={`abl-shell ${isSubmitting ? "is-submitting" : ""}`}>
       <style>{abaloneStyles}</style>
       <div className="abl-status">
         <div>
@@ -533,13 +604,25 @@ export function Component(props: GameComponentProps) {
                 {cells.map((coord) => {
                   const owner = ownerAt(publicState, coord);
                   const selected = selectedKeys.has(key(coord));
+                  const selectedIndex = selection.findIndex((candidate) => sameCoord(candidate, coord));
+                  const lineRole =
+                    selectedIndex === -1
+                      ? ""
+                      : selectedIndex === 0
+                        ? "line-start"
+                        : selectedIndex === selection.length - 1
+                          ? "line-end"
+                          : "line-mid";
                   const ownSelectable = canAct && owner === currentPlayer?.id;
                   const endpoint = canAct && selectionCanEndAt(publicState, currentPlayer?.id, selection, coord);
                   const anchor = selection.length > 0 && sameCoord(selection[0], coord);
                   const color = ownerColor(publicState, owner);
                   return (
                     <button
-                      className={`abl-cell ${selected ? "selected" : ""} ${anchor ? "anchor" : ""} ${
+                      aria-label={`${owner ? `${ownerSeat(publicState, owner)}번 구슬` : "빈 칸"} ${coordLabel(coord)}${
+                        selected ? `, 선택 ${selectedIndex + 1}` : ""
+                      }`}
+                      className={`abl-cell ${selected ? `selected ${lineRole}` : ""} ${anchor ? "anchor" : ""} ${
                         ownSelectable ? "selectable" : ""
                       } ${endpoint ? "endpoint" : ""}`}
                       disabled={!ownSelectable}
@@ -556,6 +639,7 @@ export function Component(props: GameComponentProps) {
                           {ownerSeat(publicState, owner)}
                         </span>
                       ) : null}
+                      {selected ? <span className="abl-selection-step">{selectedIndex + 1}</span> : null}
                     </button>
                   );
                 })}
@@ -571,22 +655,32 @@ export function Component(props: GameComponentProps) {
               <span>{selection.length}/3 선택</span>
             </div>
             <p className={validSelection ? "abl-selection-guide ready" : "abl-selection-guide"}>{selectionHint}</p>
+            <div className={validSelection ? "abl-selection-summary ready" : "abl-selection-summary"} aria-live="polite">
+              <span>{selectionSummary}</span>
+              <strong>{validSelection ? `${availableDirectionCount}/6 가능` : "방향 대기"}</strong>
+            </div>
             <div className="abl-direction-pad" aria-label="이동 또는 밀기 방향">
-              {directionPad.map((direction) => (
-                <button
-                  aria-label={`${direction.id} 방향으로 이동 또는 밀기`}
-                  className={`abl-dir-button dir-${direction.id}`}
-                  disabled={!canAct || !validSelection}
-                  key={direction.id}
-                  onClick={() => sendMove(direction)}
-                  title={`${direction.id} 방향으로 이동 또는 밀기`}
-                  type="button"
-                >
-                  <span aria-hidden="true">{direction.label}</span>
-                </button>
-              ))}
+              {directionPad.map((direction) => {
+                const directionState = directionStates[direction.id] ?? {
+                  legal: false,
+                  reason: "이 방향으로 이동할 수 없습니다."
+                };
+                return (
+                  <button
+                    aria-label={`${direction.id} 방향 ${directionState.reason}`}
+                    className={`abl-dir-button dir-${direction.id} ${directionState.legal ? "available" : "unavailable"}`}
+                    disabled={!directionState.legal || isSubmitting}
+                    key={direction.id}
+                    onClick={() => sendMove(direction)}
+                    title={`${direction.id}: ${directionState.reason}`}
+                    type="button"
+                  >
+                    <span aria-hidden="true">{direction.label}</span>
+                  </button>
+                );
+              })}
               <div className="abl-pad-center" aria-hidden="true">
-                {selection.length === 0 ? "선택" : `${selection.length}`}
+                {selection.length === 0 ? "선택" : `${availableDirectionCount}/6`}
               </div>
             </div>
             <button className="abl-clear" disabled={selection.length === 0} onClick={() => setSelection([])} type="button">
@@ -670,6 +764,7 @@ const abaloneStyles = `
   gap: 5px;
 }
 .abl-cell {
+  position: relative;
   display: grid;
   place-items: center;
   width: var(--abl-cell-size);
@@ -681,6 +776,7 @@ const abaloneStyles = `
     radial-gradient(circle at 45% 38%, #5a646d 0 38%, #303943 71%);
   color: #17201d;
   padding: 0;
+  touch-action: manipulation;
   box-shadow:
     inset 0 4px 9px rgba(0, 0, 0, 0.42),
     inset 0 -2px 4px rgba(255, 255, 255, 0.12);
@@ -696,9 +792,37 @@ const abaloneStyles = `
 .abl-cell.selected {
   outline: 3px solid #d69b2d;
   outline-offset: 1px;
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 229, 153, 0.72),
+    0 0 0 3px rgba(214, 155, 45, 0.24),
+    0 0 16px rgba(214, 155, 45, 0.34);
 }
 .abl-cell.anchor {
   outline-color: #f0b94f;
+}
+.abl-cell.line-mid {
+  outline-color: #8dd4cf;
+}
+.abl-cell.line-end {
+  outline-color: #f59e0b;
+}
+.abl-selection-step {
+  position: absolute;
+  right: -4px;
+  top: -5px;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  border: 2px solid rgba(23, 32, 29, 0.28);
+  border-radius: 999px;
+  background: #f8d36d;
+  color: #17201d;
+  font-size: 0.72rem;
+  font-weight: 900;
+  line-height: 1;
+  pointer-events: none;
 }
 .abl-marble {
   display: grid;
@@ -755,6 +879,27 @@ const abaloneStyles = `
   background: rgba(232, 247, 242, 0.76);
   color: #155252;
 }
+.abl-selection-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border: 1px solid rgba(31, 41, 55, 0.14);
+  border-radius: 8px;
+  padding: 8px 9px;
+  background: rgba(255, 255, 255, 0.54);
+  color: #374151;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+.abl-selection-summary.ready {
+  border-color: rgba(214, 155, 45, 0.38);
+  background: rgba(255, 242, 204, 0.82);
+  color: #3b2a14;
+}
+.abl-selection-summary strong {
+  white-space: nowrap;
+}
 .abl-swatch {
   width: 18px;
   height: 18px;
@@ -808,8 +953,9 @@ const abaloneStyles = `
 }
 .abl-dir-button:disabled {
   opacity: 1 !important;
-  color: #17201d;
+  color: #69747c;
   background:
+    repeating-linear-gradient(135deg, rgba(105, 116, 124, 0.08) 0 6px, rgba(255, 255, 255, 0.28) 6px 12px),
     linear-gradient(180deg, #f8faf7, #d8dee3);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.62),
@@ -827,6 +973,9 @@ const abaloneStyles = `
     inset 0 1px 0 rgba(255, 255, 255, 0.72),
     0 0 0 2px rgba(40, 119, 124, 0.12),
     0 2px 0 rgba(31, 41, 55, 0.12);
+}
+.abl-dir-button.available {
+  color: #123f3f;
 }
 .abl-dir-button.dir-NW {
   grid-column: 1;

@@ -95,3 +95,61 @@
 .blokus-cell.preview.invalid {
   animation: invalid-shake 180ms ease-in-out;
 }
+
+.game-module.is-submitting,
+.abl-shell.is-submitting,
+.qdr-shell.is-submitting,
+.dvc-shell.is-submitting,
+.gho-shell.is-submitting,
+.qaw-shell.is-submitting,
+.yinsh-module.is-submitting,
+.alk-shell.is-submitting {
+  cursor: progress;
+}
+
+.omok-shell.is-submitting .omok-point,
+.kkuk-shell.is-submitting .kkuk-cell,
+.guryongtu-module.is-submitting .guryongtu-tile-button,
+.abl-shell.is-submitting .abl-dir-button,
+.blokus-placement-dock.is-submitting .blokus-placement-confirm,
+.qdr-shell.is-submitting .qdr-cell,
+.qdr-shell.is-submitting .qdr-wall-hit,
+.dvc-shell.is-submitting .dvc-action,
+.dvc-shell.is-submitting .dvc-decision button,
+.hangman-module.is-submitting .hangman-letter-button,
+.gho-shell.is-submitting .gho-cell,
+.qaw-shell.is-submitting .qaw-board-actions button,
+.yinsh-module.is-submitting .yinsh-action-button,
+.alk-shell.is-submitting .alk-board {
+  filter: saturate(0.86) brightness(0.94);
+}
+
+.guryongtu-module.is-submitting .guryongtu-choice-panel,
+.abl-shell.is-submitting .abl-direction-pad,
+.kkuk-shell.is-submitting .kkuk-board,
+.omok-shell.is-submitting .omok-board,
+.blokus-placement-dock.is-submitting,
+.qdr-shell.is-submitting .qdr-board,
+.dvc-shell.is-submitting .dvc-panel,
+.hangman-module.is-submitting .hangman-guess-panel,
+.gho-shell.is-submitting .gho-board,
+.qaw-shell.is-submitting .qaw-board-stack,
+.yinsh-module.is-submitting .yinsh-board-wrap,
+.alk-shell.is-submitting .alk-board {
+  box-shadow:
+    inset 0 0 0 1px rgba(244, 203, 116, 0.2),
+    0 0 0 2px rgba(244, 203, 116, 0.08);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .game-module.is-submitting *,
+  .abl-shell.is-submitting *,
+  .qdr-shell.is-submitting *,
+  .dvc-shell.is-submitting *,
+  .gho-shell.is-submitting *,
+  .qaw-shell.is-submitting *,
+  .yinsh-module.is-submitting *,
+  .alk-shell.is-submitting * {
+    transition-duration: 1ms !important;
+  }
+}

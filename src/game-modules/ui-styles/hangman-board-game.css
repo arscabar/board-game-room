@@ -934,3 +934,154 @@
     grid-template-columns: 1fr !important;
   }
 }
+
+/* Compression pass: make the active guessing area read as one board surface. */
+.hangman-guess-panel {
+  order: 1 !important;
+  grid-template-columns: minmax(0, 1fr) minmax(210px, 0.46fr) !important;
+  grid-template-areas:
+    "meta meta"
+    "target console"
+    "alphabet alphabet"
+    "word history" !important;
+  gap: 8px !important;
+}
+
+.hangman-board-grid {
+  order: 2 !important;
+}
+
+.hangman-turn-meta {
+  min-height: 30px !important;
+  justify-content: space-between !important;
+}
+
+.hangman-turn-meta span {
+  border: 1px solid rgba(72, 43, 21, 0.2) !important;
+  border-radius: 999px !important;
+  padding: 3px 8px !important;
+  color: #5d3c22 !important;
+  background: rgba(255, 248, 226, 0.7) !important;
+  font-size: 0.78rem !important;
+  font-weight: 950 !important;
+}
+
+.hangman-target-card {
+  padding: 8px !important;
+}
+
+.hangman-target-card > div {
+  min-width: 0 !important;
+}
+
+.hangman-target-card .hangman-word-display {
+  margin: 6px 0 0 !important;
+  justify-content: flex-start !important;
+  gap: 4px !important;
+  padding: 6px !important;
+}
+
+.hangman-target-card .hangman-letter-slot {
+  width: clamp(27px, 5vw, 34px) !important;
+  min-height: clamp(32px, 6vw, 40px) !important;
+}
+
+.hangman-miss-counter {
+  min-width: 0 !important;
+  padding: 7px !important;
+}
+
+.hangman-console-top .hangman-toy-board {
+  min-height: 0 !important;
+  padding: 8px !important;
+  border-width: 5px !important;
+}
+
+.hangman-console-top .hangman-gallows {
+  min-height: 120px !important;
+}
+
+.hangman-alphabet {
+  padding: 8px !important;
+  border: 1px solid rgba(72, 43, 21, 0.22) !important;
+  border-radius: 8px !important;
+  background:
+    linear-gradient(180deg, rgba(255, 248, 226, 0.72), rgba(202, 164, 94, 0.32)) !important;
+}
+
+.hangman-letter-button {
+  min-height: 44px !important;
+}
+
+.hangman-word-guess-form {
+  align-items: stretch !important;
+}
+
+.hangman-word-guess-form label {
+  min-width: 0 !important;
+}
+
+.hangman-word-guess-form button {
+  min-height: 44px !important;
+}
+
+.hangman-history-strip {
+  align-content: start !important;
+}
+
+.hangman-history-strip span {
+  width: 100% !important;
+  min-height: 34px !important;
+  border-radius: 8px !important;
+}
+
+.hangman-word-panel {
+  padding: 8px !important;
+}
+
+.hangman-word-panel h3,
+.hangman-word-panel p {
+  margin: 0 !important;
+}
+
+.hangman-word-panel .hangman-word-display {
+  margin: 0 !important;
+  padding: 7px !important;
+}
+
+@media (max-width: 900px) {
+  .hangman-guess-panel {
+    grid-template-columns: 1fr !important;
+    grid-template-areas:
+      "meta"
+      "target"
+      "console"
+      "alphabet"
+      "word"
+      "history" !important;
+  }
+}
+
+@media (max-width: 620px) {
+  .hangman-board-grid {
+    gap: 6px !important;
+  }
+
+  .hangman-target-card .hangman-word-display {
+    justify-content: center !important;
+  }
+
+  .hangman-console-top {
+    display: none !important;
+  }
+
+  .hangman-alphabet {
+    grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
+    gap: 5px !important;
+    padding: 6px !important;
+  }
+
+  .hangman-letter-button {
+    min-height: 44px !important;
+  }
+}

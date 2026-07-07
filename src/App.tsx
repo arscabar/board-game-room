@@ -14,12 +14,16 @@ import {
   Hexagon,
   Layers3,
   Medal,
+  Palette,
+  Pause,
+  Play,
   Puzzle,
   Radio,
   RefreshCw,
   Route,
   Send,
   ShieldQuestion,
+  Shuffle,
   Star,
   Target,
   TimerOff,
@@ -30,12 +34,22 @@ import {
   WifiOff,
   type LucideIcon
 } from "lucide-react";
-import { Suspense, type CSSProperties, type FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import {
+  Suspense,
+  type CSSProperties,
+  type DragEvent,
+  type FormEvent,
+  type PointerEvent as ReactPointerEvent,
+  useEffect,
+  useMemo,
+  useRef,
+  useState
+} from "react";
 import { socket } from "./lib/socket";
 import { games, getGameById } from "./shared/games";
 import { canPlayGame, formatAllowedPlayers, gameAvailabilityLabel } from "./shared/eligibility";
 import { gameUsesTurnTimer, turnTimerOptions } from "./shared/timers";
-import type { Ack, GameDefinition, GameTableKind, PlayerSnapshot, PublicRoomListItem, RoomSnapshot } from "./shared/types";
+import type { Ack, GameDefinition, GameTableKind, PlayerAvatar, PlayerSnapshot, PublicRoomListItem, RoomSnapshot } from "./shared/types";
 import { getGameComponent } from "./game-modules/ui-registry";
 import type { GameAction } from "./game-modules/types";
 import type { LeaderboardEntry, MatchRecord, PlayerStatsResponse, StatsSummary } from "./shared/stats";
@@ -55,6 +69,7 @@ type PostGameActionResult = {
 
 const storageKeys = {
   name: "board-room-name",
+  avatar: "board-room-avatar",
   playerId: "board-room-player-id",
   clientKey: "board-room-client-key",
   roomCode: "board-room-last-room-code"
@@ -80,6 +95,126 @@ function readOrCreateClientKey() {
   const next = createClientKey();
   localStorage.setItem(storageKeys.clientKey, next);
   return next;
+}
+
+const defaultAvatar: PlayerAvatar = {
+  body: "pawn",
+  face: "smile",
+  accessory: "none",
+  palette: "teal"
+};
+
+const avatarBodyOptions = [
+  { id: "pawn", label: "말" },
+  { id: "round", label: "원형" },
+  { id: "bot", label: "기계" },
+  { id: "crest", label: "문장" }
+] as const;
+
+const avatarFaceOptions = [
+  { id: "smile", label: "웃음" },
+  { id: "focus", label: "집중" },
+  { id: "wink", label: "윙크" },
+  { id: "calm", label: "차분" }
+] as const;
+
+const avatarAccessoryOptions = [
+  { id: "none", label: "없음" },
+  { id: "crown", label: "왕관" },
+  { id: "glasses", label: "안경" },
+  { id: "cap", label: "모자" },
+  { id: "spark", label: "별" }
+] as const;
+
+const avatarPaletteOptions = [
+  { id: "teal", label: "청록", base: "#0c8b6c", light: "#72dec1", dark: "#05352e", accent: "#f1d58f" },
+  { id: "amber", label: "황금", base: "#c88b25", light: "#ffe09a", dark: "#4a270b", accent: "#1d7b68" },
+  { id: "blue", label: "청색", base: "#2364aa", light: "#9bc3ff", dark: "#0d2442", accent: "#e5c06a" },
+  { id: "rose", label: "장미", base: "#b33d55", light: "#ff9cad", dark: "#43141f", accent: "#f0d486" },
+  { id: "violet", label: "보라", base: "#7450b8", light: "#c3a8ff", dark: "#28173e", accent: "#e5c06a" },
+  { id: "ivory", label: "상아", base: "#efe0b6", light: "#fff7dc", dark: "#6b5430", accent: "#0a7b64" }
+] as const;
+
+const avatarPresets: Array<{ label: string; avatar: PlayerAvatar }> = [
+  { label: "선봉", avatar: { body: "pawn", face: "focus", accessory: "crown", palette: "amber" } },
+  { label: "전략가", avatar: { body: "crest", face: "calm", accessory: "glasses", palette: "blue" } },
+  { label: "탐험가", avatar: { body: "round", face: "smile", accessory: "cap", palette: "teal" } },
+  { label: "승부사", avatar: { body: "bot", face: "wink", accessory: "spark", palette: "rose" } }
+];
+
+function isAvatarBody(value: unknown): value is PlayerAvatar["body"] {
+  return avatarBodyOptions.some((option) => option.id === value);
+}
+
+function isAvatarFace(value: unknown): value is PlayerAvatar["face"] {
+  return avatarFaceOptions.some((option) => option.id === value);
+}
+
+function isAvatarAccessory(value: unknown): value is PlayerAvatar["accessory"] {
+  return avatarAccessoryOptions.some((option) => option.id === value);
+}
+
+function isAvatarPalette(value: unknown): value is PlayerAvatar["palette"] {
+  return avatarPaletteOptions.some((option) => option.id === value);
+}
+
+function normalizeAvatar(value: unknown): PlayerAvatar {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return { ...defaultAvatar };
+  }
+
+  const record = value as Partial<PlayerAvatar>;
+  return {
+    body: isAvatarBody(record.body) ? record.body : defaultAvatar.body,
+    face: isAvatarFace(record.face) ? record.face : defaultAvatar.face,
+    accessory: isAvatarAccessory(record.accessory) ? record.accessory : defaultAvatar.accessory,
+    palette: isAvatarPalette(record.palette) ? record.palette : defaultAvatar.palette
+  };
+}
+
+function readSavedAvatar() {
+  try {
+    const saved = localStorage.getItem(storageKeys.avatar);
+    return saved ? normalizeAvatar(JSON.parse(saved)) : { ...avatarPresets[0].avatar };
+  } catch {
+    return { ...avatarPresets[0].avatar };
+  }
+}
+
+function randomAvatar(): PlayerAvatar {
+  const pick = <T,>(items: readonly T[]) => items[Math.floor(Math.random() * items.length)];
+  return {
+    body: pick(avatarBodyOptions).id,
+    face: pick(avatarFaceOptions).id,
+    accessory: pick(avatarAccessoryOptions).id,
+    palette: pick(avatarPaletteOptions).id
+  };
+}
+
+function avatarOptionLabel<T extends { id: string; label: string }>(options: readonly T[], id: string) {
+  return options.find((option) => option.id === id)?.label ?? id;
+}
+
+function avatarDescription(avatar: PlayerAvatar) {
+  return [
+    avatarOptionLabel(avatarPaletteOptions, avatar.palette),
+    avatarOptionLabel(avatarBodyOptions, avatar.body),
+    avatarOptionLabel(avatarFaceOptions, avatar.face)
+  ].join(" · ");
+}
+
+function avatarPalette(avatar: PlayerAvatar) {
+  return avatarPaletteOptions.find((option) => option.id === avatar.palette) ?? avatarPaletteOptions[0];
+}
+
+function avatarCssVars(avatar: PlayerAvatar) {
+  const palette = avatarPalette(avatar);
+  return {
+    "--avatar-base": palette.base,
+    "--avatar-light": palette.light,
+    "--avatar-dark": palette.dark,
+    "--avatar-accent": palette.accent
+  } as CSSProperties;
 }
 
 function emitWithAck<T>(event: string, payload: unknown) {
@@ -154,8 +289,21 @@ function GameKindIcon({ game, size = 17 }: { game: GameDefinition; size?: number
   return <Icon size={size} aria-hidden="true" />;
 }
 
+const rasterGameCoverIds = new Set([
+  "abalone-classic",
+  "blokus",
+  "davinci-code-plus",
+  "ghosts",
+  "guryongtu",
+  "hangman-board-game",
+  "qawale",
+  "quoridor",
+  "yacht-dice",
+  "yinsh"
+]);
+
 function gameCoverSrc(game: GameDefinition) {
-  return `/board-assets/game-covers/${game.id}.svg`;
+  return `/board-assets/game-covers/${game.id}.${rasterGameCoverIds.has(game.id) ? "png" : "svg"}`;
 }
 
 function GameCoverImage({ game, className = "" }: { game: GameDefinition; className?: string }) {
@@ -274,6 +422,42 @@ function playerAccent(player: PlayerSnapshot) {
   return seatAccentColors[(Math.max(1, player.seat) - 1) % seatAccentColors.length];
 }
 
+function PlayerAvatarMark({
+  avatar,
+  className = "",
+  label
+}: {
+  avatar?: PlayerAvatar | null;
+  className?: string;
+  label?: string;
+}) {
+  const safeAvatar = normalizeAvatar(avatar);
+  const accessibleProps = label
+    ? { role: "img", "aria-label": label }
+    : { "aria-hidden": true };
+
+  return (
+    <span
+      className={`player-avatar-mark ${className}`}
+      data-body={safeAvatar.body}
+      data-face={safeAvatar.face}
+      data-accessory={safeAvatar.accessory}
+      style={avatarCssVars(safeAvatar)}
+      {...accessibleProps}
+    >
+      <span className="avatar-shadow" />
+      <span className="avatar-body">
+        <span className="avatar-face">
+          <span className="avatar-eye left" />
+          <span className="avatar-eye right" />
+          <span className="avatar-mouth" />
+        </span>
+        <span className="avatar-accessory" />
+      </span>
+    </span>
+  );
+}
+
 function phaseName(phase: string) {
   const labels: Record<string, string> = {
     selecting: "선택",
@@ -341,6 +525,7 @@ function manualTurnEndRestriction(gameId: string | null | undefined, phase: stri
 
 function App() {
   const [name, setName] = useState(() => localStorage.getItem(storageKeys.name) ?? createDefaultName());
+  const [avatar, setAvatar] = useState(() => readSavedAvatar());
   const [room, setRoom] = useState<RoomSnapshot | null>(null);
   const [playerId, setPlayerId] = useState(() => localStorage.getItem(storageKeys.playerId) ?? "");
   const [clientKey, setClientKey] = useState(() => readOrCreateClientKey());
@@ -350,6 +535,7 @@ function App() {
   const [roomListLoading, setRoomListLoading] = useState(true);
   const [notice, setNotice] = useState("");
   const resumeStateRef = useRef({
+    avatar,
     clientKey: "",
     inFlight: false,
     key: "",
@@ -360,6 +546,7 @@ function App() {
 
   useEffect(() => {
     resumeStateRef.current.name = name;
+    resumeStateRef.current.avatar = avatar;
     resumeStateRef.current.playerId = playerId;
     resumeStateRef.current.clientKey = clientKey;
     resumeStateRef.current.roomCode = room?.code ?? lastRoomCode;
@@ -367,7 +554,7 @@ function App() {
       resumeStateRef.current.key = "";
       resumeStateRef.current.inFlight = false;
     }
-  }, [clientKey, lastRoomCode, name, playerId, room?.code]);
+  }, [avatar, clientKey, lastRoomCode, name, playerId, room?.code]);
 
   useEffect(() => {
     socket.connect();
@@ -426,6 +613,10 @@ function App() {
   }, [name]);
 
   useEffect(() => {
+    localStorage.setItem(storageKeys.avatar, JSON.stringify(avatar));
+  }, [avatar]);
+
+  useEffect(() => {
     if (playerId) {
       localStorage.setItem(storageKeys.playerId, playerId);
     }
@@ -478,7 +669,7 @@ function App() {
   async function handleCreateRoom(event: FormEvent) {
     event.preventDefault();
     setNotice("");
-    const response = await emitWithAck<JoinResult>("room:create", { name, clientKey });
+    const response = await emitWithAck<JoinResult>("room:create", { name, clientKey, avatar });
     if (!response.ok || !response.data) {
       setNotice(response.error ?? "방을 만들 수 없습니다.");
       return;
@@ -493,7 +684,7 @@ function App() {
     const normalizedCode = code.trim().toUpperCase();
     if (!normalizedCode) return;
     setNotice("");
-    const response = await emitWithAck<JoinResult>("room:join", { code: normalizedCode, name, playerId, clientKey });
+    const response = await emitWithAck<JoinResult>("room:join", { code: normalizedCode, name, playerId, clientKey, avatar });
     if (!response.ok || !response.data) {
       setNotice(response.error ?? "방에 입장할 수 없습니다.");
       return;
@@ -511,7 +702,8 @@ function App() {
       code: lastRoomCode,
       name,
       playerId,
-      clientKey
+      clientKey,
+      avatar
     });
     if (!response.ok || !response.data) {
       setLastRoomCode("");
@@ -544,7 +736,8 @@ function App() {
       code,
       name: saved.name,
       playerId: savedPlayerId,
-      clientKey: savedClientKey
+      clientKey: savedClientKey,
+      avatar: saved.avatar
     });
     saved.inFlight = false;
 
@@ -567,9 +760,11 @@ function App() {
   async function selectGame(gameId: string) {
     if (!room) return;
     const response = await emitWithAck<RoomSnapshot>("room:select-game", { code: room.code, gameId });
-    if (!response.ok) {
+    if (!response.ok || !response.data) {
       setNotice(response.error ?? "게임을 선택할 수 없습니다.");
+      return;
     }
+    setRoom(response.data);
   }
 
   async function configureTimer(nextTimerMs: number) {
@@ -644,10 +839,13 @@ function App() {
       await emitWithAck<{ code: string; empty: boolean }>("room:leave", { code: leavingRoom.code });
     }
     const nextClientKey = createClientKey();
+    const nextAvatar = randomAvatar();
     localStorage.removeItem(storageKeys.playerId);
     localStorage.removeItem(storageKeys.roomCode);
     localStorage.setItem(storageKeys.clientKey, nextClientKey);
+    localStorage.setItem(storageKeys.avatar, JSON.stringify(nextAvatar));
     setClientKey(nextClientKey);
+    setAvatar(nextAvatar);
     setPlayerId("");
     setLastRoomCode("");
     setRoom(null);
@@ -693,6 +891,8 @@ function App() {
             rooms={roomList}
             roomsLoading={roomListLoading}
             onNameChange={setName}
+            avatar={avatar}
+            onAvatarChange={setAvatar}
             onCreateRoom={handleCreateRoom}
             onJoinListedRoom={joinRoomByCode}
             onRefreshRooms={() => void refreshRoomList()}
@@ -707,12 +907,14 @@ function App() {
 
 function HomeView({
   name,
+  avatar,
   notice,
   connection,
   lastRoomCode,
   rooms,
   roomsLoading,
   onNameChange,
+  onAvatarChange,
   onCreateRoom,
   onJoinListedRoom,
   onRefreshRooms,
@@ -720,12 +922,14 @@ function HomeView({
   onResetLocalIdentity
 }: {
   name: string;
+  avatar: PlayerAvatar;
   notice: string;
   connection: "connecting" | "connected" | "offline";
   lastRoomCode: string;
   rooms: PublicRoomListItem[];
   roomsLoading: boolean;
   onNameChange: (value: string) => void;
+  onAvatarChange: (value: PlayerAvatar) => void;
   onCreateRoom: (event: FormEvent) => void;
   onJoinListedRoom: (code: string) => void;
   onRefreshRooms: () => void;
@@ -735,16 +939,79 @@ function HomeView({
   const disabled = connection !== "connected";
   const hasRooms = rooms.length > 0;
   const savedRoom = lastRoomCode ? rooms.find((openRoom) => openRoom.code === lastRoomCode) ?? null : null;
+  const [focusedRoomCode, setFocusedRoomCode] = useState("");
+  const [tablePointer, setTablePointer] = useState({ x: 50, y: 50 });
+  const focusedRoom = rooms.find((openRoom) => openRoom.code === focusedRoomCode) ?? savedRoom ?? rooms[0] ?? null;
+  const tablePieceCount = hasRooms ? Math.min(10, Math.max(5, rooms.length + 3)) : 7;
+  const focusedRoomOwner = focusedRoom?.hostName ? `${focusedRoom.hostName}의 방` : "열린 방 없음";
+  const focusedRoomCanUse = focusedRoom ? focusedRoom.canJoin || focusedRoom.code === lastRoomCode : false;
+
+  useEffect(() => {
+    if (focusedRoomCode && !rooms.some((openRoom) => openRoom.code === focusedRoomCode)) {
+      setFocusedRoomCode("");
+    }
+  }, [focusedRoomCode, rooms]);
+
+  function moveHomeTablePointer(event: ReactPointerEvent<HTMLElement>) {
+    const rect = event.currentTarget.getBoundingClientRect();
+    setTablePointer({
+      x: Math.max(0, Math.min(100, ((event.clientX - rect.left) / rect.width) * 100)),
+      y: Math.max(0, Math.min(100, ((event.clientY - rect.top) / rect.height) * 100))
+    });
+  }
 
   return (
-    <section className="home-console home-lounge home-gallery" aria-labelledby="home-title">
+    <section className="home-console home-lounge home-gallery interactive-home" aria-labelledby="home-title">
       <div className="home-stage">
         <div className="home-room-board">
+          <div className="table-micro-pieces" aria-hidden="true">
+            {Array.from({ length: tablePieceCount }, (_, index) => (
+              <span key={index} style={{ "--piece-index": index } as CSSProperties} />
+            ))}
+          </div>
+
+          <div
+            className={`home-tabletop-preview ${focusedRoom ? "has-room" : "is-empty"}`}
+            style={{ "--pointer-x": `${tablePointer.x}%`, "--pointer-y": `${tablePointer.y}%` } as CSSProperties}
+            onPointerMove={moveHomeTablePointer}
+            aria-live="polite"
+          >
+            <div className="home-tabletop-rail" aria-hidden="true">
+              {Array.from({ length: focusedRoom?.maxPlayers ?? 4 }, (_, index) => (
+                <span
+                  key={index}
+                  className={focusedRoom && index < focusedRoom.playerCount ? "filled" : ""}
+                  style={{ "--seat-index": index } as CSSProperties}
+                />
+              ))}
+            </div>
+            <div className="home-tabletop-card">
+              <span className="eyebrow">LIVE TABLE</span>
+              <strong>{focusedRoomOwner}</strong>
+              <small>
+                {focusedRoom
+                  ? `${focusedRoom.playerCount}/${focusedRoom.maxPlayers}명 · ${focusedRoom.selectedGameTitle ?? "게임 선택 전"}`
+                  : "방을 만들면 이 테이블에 바로 올라옵니다"}
+              </small>
+            </div>
+            {focusedRoom ? (
+              <BoardButton
+                className="home-tabletop-join"
+                tone={focusedRoomCanUse ? "primary" : "secondary"}
+                type="button"
+                disabled={disabled || !name.trim() || !focusedRoomCanUse}
+                onClick={focusedRoom.code === lastRoomCode ? onResumeSavedRoom : () => onJoinListedRoom(focusedRoom.code)}
+              >
+                {focusedRoom.code === lastRoomCode ? "복귀" : focusedRoom.canJoin ? "입장" : "대기"}
+              </BoardButton>
+            ) : null}
+          </div>
+
           <div className="room-browser-heading">
             <div className="room-browser-title">
               <span className="eyebrow">로비</span>
               <h2 id="home-title">방 목록</h2>
-              <span>입장 후 게임 선택</span>
+              <span>테이블을 고르고 바로 앉기</span>
             </div>
             <div className="room-browser-meta" aria-label="열린 방 수">
               <Users size={15} aria-hidden="true" />
@@ -767,14 +1034,28 @@ function HomeView({
                 <span />
               </div>
               <div className="room-list">
-                {rooms.map((openRoom) => {
+                {rooms.map((openRoom, index) => {
                   const canResume = lastRoomCode === openRoom.code;
                   const canUseRoom = openRoom.canJoin || canResume;
                   const roomOwnerLabel = openRoom.hostName ? `${openRoom.hostName}의 방` : "이름 없는 방";
                   return (
-                    <article className={`room-card ${openRoom.canJoin ? "" : "is-locked"}`} key={openRoom.code}>
+                    <article
+                      className={`room-card ${openRoom.canJoin ? "" : "is-locked"} ${focusedRoom?.code === openRoom.code ? "is-focused" : ""}`}
+                      key={openRoom.code}
+                      style={{ "--room-index": index } as CSSProperties}
+                      onMouseEnter={() => setFocusedRoomCode(openRoom.code)}
+                      onFocus={() => setFocusedRoomCode(openRoom.code)}
+                      aria-current={focusedRoom?.code === openRoom.code ? "true" : undefined}
+                    >
                       <div className="room-card-main">
                         <div className="room-card-title">
+                          {openRoom.hostAvatar ? (
+                            <PlayerAvatarMark
+                              avatar={openRoom.hostAvatar}
+                              className="room-host-avatar"
+                              label={`${openRoom.hostName ?? "방장"} 아이콘`}
+                            />
+                          ) : null}
                           <span className="room-owner-chip">
                             {roomOwnerLabel}
                           </span>
@@ -786,7 +1067,12 @@ function HomeView({
                         </div>
                       </div>
                       <span className="room-count-chip">
-                        {openRoom.playerCount}/{openRoom.maxPlayers}
+                        <span className="room-count-text">{openRoom.playerCount}/{openRoom.maxPlayers}</span>
+                        <span className="room-seat-dots" aria-hidden="true">
+                          {Array.from({ length: openRoom.maxPlayers }, (_, seatIndex) => (
+                            <i key={seatIndex} className={seatIndex < openRoom.playerCount ? "filled" : ""} />
+                          ))}
+                        </span>
                       </span>
                       <p className="room-card-game">
                         {openRoom.selectedGameTitle ?? "선택 전"}
@@ -834,6 +1120,7 @@ function HomeView({
               onChange={(event) => onNameChange(event.target.value)}
             />
           </label>
+          <AvatarCustomizer avatar={avatar} onChange={onAvatarChange} />
 
           <div className="home-command-actions">
             <BoardButton
@@ -848,7 +1135,14 @@ function HomeView({
               <span className="button-label">갱신</span>
             </BoardButton>
             {savedRoom ? (
-              <BoardButton className="saved-room-button utility-button" type="button" onClick={onResumeSavedRoom} disabled={disabled}>
+              <BoardButton
+                className="saved-room-button utility-button"
+                type="button"
+                onClick={onResumeSavedRoom}
+                disabled={disabled}
+                aria-label="최근 방 복귀"
+                title="최근 방 복귀"
+              >
                 <DoorOpen size={15} aria-hidden="true" />
                 <span className="button-label">복귀</span>
               </BoardButton>
@@ -873,6 +1167,138 @@ function HomeView({
 
       {notice ? <p className="notice" role="alert">{notice}</p> : null}
     </section>
+  );
+}
+
+function AvatarCustomizer({ avatar, onChange }: { avatar: PlayerAvatar; onChange: (value: PlayerAvatar) => void }) {
+  const [open, setOpen] = useState(false);
+
+  function updateAvatar(next: Partial<PlayerAvatar>) {
+    onChange(normalizeAvatar({ ...avatar, ...next }));
+  }
+
+  return (
+    <div className={`avatar-customizer ${open ? "is-open" : ""}`}>
+      <button
+        className="avatar-customizer-toggle"
+        type="button"
+        onClick={() => setOpen((current) => !current)}
+        aria-expanded={open}
+      >
+        <PlayerAvatarMark avatar={avatar} label={`내 말 아이콘, ${avatarDescription(avatar)}`} />
+        <span>
+          <strong>내 말</strong>
+          <small>{avatarDescription(avatar)}</small>
+        </span>
+        <Palette size={16} aria-hidden="true" />
+      </button>
+
+      {open ? (
+        <div className="avatar-customizer-panel">
+          <div className="avatar-preset-strip" aria-label="아이콘 프리셋">
+            {avatarPresets.map((preset) => {
+              const selected =
+                preset.avatar.body === avatar.body &&
+                preset.avatar.face === avatar.face &&
+                preset.avatar.accessory === avatar.accessory &&
+                preset.avatar.palette === avatar.palette;
+              return (
+                <button
+                  className={`avatar-preset ${selected ? "selected" : ""}`}
+                  key={preset.label}
+                  type="button"
+                  onClick={() => onChange(preset.avatar)}
+                  aria-pressed={selected}
+                >
+                  <PlayerAvatarMark avatar={preset.avatar} />
+                  <span>{preset.label}</span>
+                </button>
+              );
+            })}
+            <button className="avatar-preset avatar-random" type="button" onClick={() => onChange(randomAvatar())}>
+              <Shuffle size={16} aria-hidden="true" />
+              <span>랜덤</span>
+            </button>
+          </div>
+
+          <AvatarOptionGroup
+            label="몸"
+            options={avatarBodyOptions}
+            value={avatar.body}
+            onChange={(body) => updateAvatar({ body })}
+          />
+          <AvatarOptionGroup
+            label="표정"
+            options={avatarFaceOptions}
+            value={avatar.face}
+            onChange={(face) => updateAvatar({ face })}
+          />
+          <AvatarOptionGroup
+            label="장식"
+            options={avatarAccessoryOptions}
+            value={avatar.accessory}
+            onChange={(accessory) => updateAvatar({ accessory })}
+          />
+          <div className="avatar-option-group avatar-color-group">
+            <span>색</span>
+            <div>
+              {avatarPaletteOptions.map((palette) => (
+                <button
+                  className={`avatar-color-swatch ${avatar.palette === palette.id ? "selected" : ""}`}
+                  key={palette.id}
+                  type="button"
+                  onClick={() => updateAvatar({ palette: palette.id })}
+                  aria-label={palette.label}
+                  aria-pressed={avatar.palette === palette.id}
+                  style={
+                    {
+                      "--avatar-base": palette.base,
+                      "--avatar-light": palette.light,
+                      "--avatar-dark": palette.dark,
+                      "--avatar-accent": palette.accent
+                    } as CSSProperties
+                  }
+                >
+                  <span aria-hidden="true" />
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function AvatarOptionGroup<T extends string>({
+  label,
+  options,
+  value,
+  onChange
+}: {
+  label: string;
+  options: readonly { id: T; label: string }[];
+  value: T;
+  onChange: (value: T) => void;
+}) {
+  return (
+    <div className="avatar-option-group">
+      <span>{label}</span>
+      <div>
+        {options.map((option) => (
+          <button
+            className={value === option.id ? "selected" : ""}
+            key={option.id}
+            type="button"
+            onClick={() => onChange(option.id)}
+            aria-pressed={value === option.id}
+          >
+            {option.id === "spark" ? <Star size={13} aria-hidden="true" /> : null}
+            {option.label}
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -1147,7 +1573,8 @@ function RoomView({
 }) {
   const playerCount = room.players.filter((player) => player.connected).length;
   const activePlayer = room.players.find((player) => player.id === room.gameState.activePlayerId) ?? null;
-  const isHost = Boolean(currentPlayer?.isHost);
+  const currentRoomPlayer = currentPlayer ? room.players.find((player) => player.id === currentPlayer.id) ?? currentPlayer : null;
+  const isHost = Boolean(currentRoomPlayer?.isHost);
   const canStart = Boolean(selectedGame && canPlayGame(selectedGame, playerCount) && isHost);
 
   return (
@@ -1175,7 +1602,7 @@ function RoomView({
             {Array.from({ length: room.maxPlayers }, (_, index) => {
               const seat = index + 1;
               const player = room.players.find((item) => item.seat === seat);
-              return <SeatRow key={seat} seat={seat} player={player} currentPlayerId={currentPlayer?.id ?? ""} />;
+              return <SeatRow key={seat} seat={seat} player={player} currentPlayerId={currentRoomPlayer?.id ?? ""} />;
             })}
           </div>
           {notice ? <p className="notice" role="status">{notice}</p> : null}
@@ -1195,11 +1622,12 @@ function RoomView({
         ) : (
           <PlayPanel
             room={room}
-            currentPlayer={currentPlayer}
+            currentPlayer={currentRoomPlayer}
             selectedGame={selectedGame}
             activePlayer={activePlayer}
             isHost={isHost}
             onReturnLobby={onReturnLobby}
+            onLeaveLocalRoom={onLeaveLocalRoom}
             onPostGameLeave={onPostGameLeave}
           />
         )}
@@ -1227,6 +1655,7 @@ function SeatRow({
   return (
     <div className={`seat-row ${player ? "filled" : ""} ${isCurrent ? "current" : ""} ${player && !player.connected ? "offline" : ""}`}>
       <span className="seat-number">{seat}</span>
+      {player ? <PlayerAvatarMark avatar={player.avatar} className="seat-avatar" label={`${player.name} 아이콘`} /> : null}
       <div>
         <strong>{player?.name ?? "빈 좌석"}</strong>
         <span>
@@ -1261,12 +1690,91 @@ function LobbyPanel({
   const eligibleGames = games.filter((game) => canPlayGame(game, playerCount));
   const usesTurnTimer = gameUsesTurnTimer(selectedGame?.id);
   const turnTimerMs = room.gameState.turnTimerMs ?? 120_000;
+  const defaultPreviewGame = selectedGame ?? eligibleGames[0] ?? games[0] ?? null;
+  const [previewGameId, setPreviewGameId] = useState(() => defaultPreviewGame?.id ?? "");
+  const [dragGameId, setDragGameId] = useState<string | null>(null);
+  const [placedGameId, setPlacedGameId] = useState(() => selectedGame?.id ?? defaultPreviewGame?.id ?? "");
+  const [tablePointer, setTablePointer] = useState({ x: 50, y: 48 });
+  const [lastPickerGesture, setLastPickerGesture] = useState<"browse" | "tap" | "drag" | "drop">("browse");
+  const selectionRequestRef = useRef<string | null>(null);
+  const previewGame = getGameById(previewGameId) ?? defaultPreviewGame;
+  const placedGame = getGameById(placedGameId) ?? previewGame;
+  const previewAvailable = previewGame ? canPlayGame(previewGame, playerCount) : false;
+  const placedAvailable = placedGame ? canPlayGame(placedGame, playerCount) : false;
+  const previewPieces = placedGame ? victoryPiecesFor(placedGame).slice(0, 12) : [];
 
-  function selectGame(game: GameDefinition) {
-    const available = canPlayGame(game, playerCount);
-    if (isHost && available) {
-      onSelectGame(game.id);
+  useEffect(() => {
+    if (selectedGame?.id) {
+      setPreviewGameId(selectedGame.id);
+      setPlacedGameId(selectedGame.id);
+      return;
     }
+    if (defaultPreviewGame?.id && !getGameById(previewGameId)) {
+      setPreviewGameId(defaultPreviewGame.id);
+      setPlacedGameId(defaultPreviewGame.id);
+    }
+  }, [defaultPreviewGame?.id, previewGameId, selectedGame?.id]);
+
+  useEffect(() => {
+    if (selectionRequestRef.current === selectedGame?.id) {
+      selectionRequestRef.current = null;
+    }
+  }, [selectedGame?.id]);
+
+  async function selectGame(game: GameDefinition) {
+    const available = canPlayGame(game, playerCount);
+    if (!isHost || !available || room.selectedGameId === game.id || selectionRequestRef.current === game.id) {
+      return;
+    }
+    selectionRequestRef.current = game.id;
+    try {
+      await onSelectGame(game.id);
+    } finally {
+      if (selectionRequestRef.current === game.id) {
+        selectionRequestRef.current = null;
+      }
+    }
+  }
+
+  function chooseGame(game: GameDefinition) {
+    setPreviewGameId(game.id);
+    setPlacedGameId(game.id);
+    setLastPickerGesture("tap");
+    void selectGame(game);
+  }
+
+  function previewOnly(game: GameDefinition) {
+    setPreviewGameId(game.id);
+    if (!selectedGame) {
+      setPlacedGameId(game.id);
+    }
+    setLastPickerGesture("browse");
+  }
+
+  function moveGameTablePointer(event: ReactPointerEvent<HTMLElement>) {
+    const rect = event.currentTarget.getBoundingClientRect();
+    setTablePointer({
+      x: Math.max(0, Math.min(100, ((event.clientX - rect.left) / rect.width) * 100)),
+      y: Math.max(0, Math.min(100, ((event.clientY - rect.top) / rect.height) * 100))
+    });
+  }
+
+  function allowTableDrop(event: DragEvent<HTMLDivElement>) {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = isHost && placedAvailable ? "copy" : "none";
+  }
+
+  function dropGameOnTable(event: DragEvent<HTMLDivElement>) {
+    event.preventDefault();
+    const nextGameId = event.dataTransfer.getData("text/plain") || dragGameId || placedGame?.id || previewGame?.id || "";
+    const nextGame = getGameById(nextGameId);
+    if (nextGame) {
+      setPreviewGameId(nextGame.id);
+      setPlacedGameId(nextGame.id);
+      setLastPickerGesture("drop");
+      void selectGame(nextGame);
+    }
+    setDragGameId(null);
   }
 
   return (
@@ -1274,7 +1782,7 @@ function LobbyPanel({
       <div className="panel-header lobby-panel-header">
         <div>
           <h2 id="lobby-title">게임 선택</h2>
-          <p>{playerCount}명 · 선택 가능 {eligibleGames.length}개</p>
+          <p className="lobby-context">{playerCount}명</p>
         </div>
         <div className="lobby-panel-actions">
           {usesTurnTimer ? (
@@ -1299,17 +1807,94 @@ function LobbyPanel({
         </div>
       </div>
 
-      <div className="game-card-grid" aria-label="게임 선택 카드">
+      {placedGame ? (
+        <div
+          className={`game-table-preview gesture-${lastPickerGesture} ${dragGameId ? "is-dragging" : ""} ${selectedGame?.id === placedGame.id ? "is-selected is-unfolded" : "is-previewing"}`}
+          style={{
+            "--game-accent": placedGame.accent,
+            "--pointer-x": `${tablePointer.x}%`,
+            "--pointer-y": `${tablePointer.y}%`
+          } as CSSProperties}
+          onPointerMove={moveGameTablePointer}
+          onDragOver={allowTableDrop}
+          onDrop={dropGameOnTable}
+          aria-live="polite"
+        >
+          <div className="table-preview-cover">
+            <GameCoverImage game={placedGame} />
+          </div>
+          <div className="table-preview-board" key={`${placedGame.id}-${selectedGame?.id === placedGame.id ? "selected" : "preview"}`}>
+            <div className="table-preview-topline">
+              <span>
+                <GameKindIcon game={placedGame} size={16} />
+                {placedGame.title}
+              </span>
+              <strong>{formatAllowedPlayers(placedGame)}</strong>
+            </div>
+            <div className={`table-preview-playmat spread-${placedGame.table.kind} spread-${placedGame.id}`}>
+              <BoardPreview game={placedGame} activePlayer={null} showHeader={false} />
+              <div className="table-piece-rack" aria-hidden="true">
+                {previewPieces.map((piece, index) => (
+                  <span
+                    key={`${placedGame.id}-${piece}-${index}`}
+                    data-piece={piece}
+                    style={{ "--piece-index": index } as CSSProperties}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+          <div className="table-drop-cue" aria-hidden="true">
+            {selectedGame?.id === placedGame.id ? "펼쳐짐" : isHost && placedAvailable ? "카드를 놓으면 펼쳐짐" : "미리보기"}
+          </div>
+        </div>
+      ) : null}
+
+      <div className="game-selection-actions">
+        <div className="game-selection-current" aria-live="polite">
+          <span>선택</span>
+          <strong>{selectedGame ? selectedGame.title : "선택 없음"}</strong>
+        </div>
+        <BoardButton tone="primary" type="button" onClick={onStartGame} disabled={!canStart}>
+          {selectedGame ? "시작" : "선택 필요"}
+        </BoardButton>
+      </div>
+
+      <div className="game-card-grid game-box-rack" aria-label="게임 선택 카드">
         {games.map((game) => {
           const available = canPlayGame(game, playerCount);
           const selected = room.selectedGameId === game.id;
+          const previewed = previewGame?.id === game.id;
+          const dragging = dragGameId === game.id;
           return (
             <button
-              className={`game-card-tile ${selected ? "selected" : ""} ${available ? "" : "is-unavailable"}`}
+              className={`game-card-tile ${selected ? "selected" : ""} ${previewed ? "previewed" : ""} ${dragging ? "dragging" : ""} ${!isHost ? "is-view-only" : ""} ${available ? "" : "is-unavailable"}`}
               key={game.id}
               type="button"
-              onClick={() => selectGame(game)}
-              disabled={!isHost || !available}
+              onClick={() => {
+                chooseGame(game);
+              }}
+              onPointerDown={(event) => {
+                if (event.pointerType === "mouse" && event.button !== 0) {
+                  return;
+                }
+                setPreviewGameId(game.id);
+                setPlacedGameId(game.id);
+                setLastPickerGesture("tap");
+              }}
+              disabled={!available}
+              draggable={isHost && available}
+              onPointerEnter={() => previewOnly(game)}
+              onFocus={() => previewOnly(game)}
+              onDragStart={(event) => {
+                event.dataTransfer.effectAllowed = "copy";
+                event.dataTransfer.setData("text/plain", game.id);
+                setPreviewGameId(game.id);
+                setPlacedGameId(game.id);
+                setDragGameId(game.id);
+                setLastPickerGesture("drag");
+              }}
+              onDragEnd={() => setDragGameId(null)}
               aria-pressed={selected}
               aria-current={selected ? "true" : undefined}
               aria-label={`${game.title}, ${formatAllowedPlayers(game)}, ${gameAvailabilityLabel(game, playerCount)}`}
@@ -1322,26 +1907,21 @@ function LobbyPanel({
                 <strong>{game.title}</strong>
                 <small>{formatAllowedPlayers(game)}</small>
               </span>
-              <span className="game-card-state">
-                {selected ? (
+              {selected || !available ? (
+                <span className="game-card-state">
+                  {selected ? (
                   <>
                     <CheckCircle2 size={14} aria-hidden="true" />
-                    선택됨
+                    선택
                   </>
-                ) : available ? (
-                  "선택 가능"
-                ) : (
-                  gameAvailabilityLabel(game, playerCount)
-                )}
-              </span>
+                  ) : (
+                    gameAvailabilityLabel(game, playerCount)
+                  )}
+                </span>
+              ) : null}
             </button>
           );
         })}
-      </div>
-      <div className="game-selection-actions">
-        <BoardButton tone="primary" type="button" onClick={onStartGame} disabled={!canStart}>
-          {selectedGame ? "게임 시작" : "게임을 선택하세요"}
-        </BoardButton>
       </div>
       {!isHost ? <p className="helper-text">게임 선택과 시작은 방장이 진행합니다.</p> : null}
     </section>
@@ -1355,6 +1935,7 @@ function PlayPanel({
   activePlayer,
   isHost,
   onReturnLobby,
+  onLeaveLocalRoom,
   onPostGameLeave
 }: {
   room: RoomSnapshot;
@@ -1363,6 +1944,7 @@ function PlayPanel({
   activePlayer: PlayerSnapshot | null;
   isHost: boolean;
   onReturnLobby: () => void;
+  onLeaveLocalRoom: () => void;
   onPostGameLeave: (message?: string) => void;
 }) {
   const [action, setAction] = useState("");
@@ -1497,8 +2079,9 @@ function PlayPanel({
       <div className="panel-header play-panel-header">
         <div>
           <h2 id="play-title">{selectedGame?.title ?? "게임 진행"}</h2>
-          <p>
-            {room.gameState.roundNumber}라운드 · {room.gameState.turnNumber}턴 · {phaseName(phase)} · 현재 차례 {activePlayer?.name ?? "없음"}
+          <p className="play-compact-status">
+            <span>{phaseName(phase)}</span>
+            <span>{activePlayer?.name ?? "없음"} 차례</span>
           </p>
         </div>
         <div className="play-header-actions">
@@ -1510,12 +2093,14 @@ function PlayPanel({
           ) : null}
           {isHost ? (
             paused ? (
-              <BoardButton type="button" onClick={resumeGame} disabled={isFinished}>
-                재개
+              <BoardButton className="play-mini-action" type="button" onClick={resumeGame} disabled={isFinished} title="재개">
+                <Play size={15} aria-hidden="true" />
+                <span className="play-action-label">재개</span>
               </BoardButton>
             ) : (
-              <BoardButton type="button" onClick={pauseGame} disabled={isFinished}>
-                일시정지
+              <BoardButton className="play-mini-action" type="button" onClick={pauseGame} disabled={isFinished} title="일시정지">
+                <Pause size={15} aria-hidden="true" />
+                <span className="play-action-label">일시정지</span>
               </BoardButton>
             )
           ) : null}
@@ -1525,10 +2110,15 @@ function PlayPanel({
             </BoardButton>
           ) : null}
           {isHost ? (
-            <BoardButton type="button" onClick={onReturnLobby}>
-              로비
+            <BoardButton className="play-mini-action" type="button" onClick={onReturnLobby} title="로비">
+              <Route size={15} aria-hidden="true" />
+              <span className="play-action-label">로비</span>
             </BoardButton>
           ) : null}
+          <BoardButton className="play-mini-action" tone="secondary" type="button" onClick={onLeaveLocalRoom} title="나가기">
+            <DoorOpen size={15} aria-hidden="true" />
+            <span className="play-action-label">나가기</span>
+          </BoardButton>
         </div>
       </div>
 
@@ -1545,7 +2135,7 @@ function PlayPanel({
               className={`player-turn-chip ${active ? "active" : ""} ${current ? "current" : ""} ${won ? "winner" : ""}`}
               style={{ "--seat-accent": playerAccent(player) } as CSSProperties}
             >
-              <span className="player-turn-swatch" aria-hidden="true" />
+              <PlayerAvatarMark avatar={player.avatar} className="turn-avatar" label={`${player.name} 아이콘`} />
               <strong>{player.name}</strong>
               <span className="turn-chip-status">
                 <StatusIcon size={12} aria-hidden="true" />
@@ -1574,12 +2164,16 @@ function PlayPanel({
         <BoardPreview game={selectedGame} activePlayer={activePlayer} />
       )}
 
-      <div className="turn-actions compact-turn-actions">
-        <BoardButton tone="primary" type="button" onClick={advanceTurn} disabled={!canAdvanceTurn} title={turnEndRestriction || undefined}>
-          {isMyTurn ? "턴 종료" : "강제 턴 넘김"}
-        </BoardButton>
-        {action ? <span className="play-error-line">{action}</span> : null}
-      </div>
+      {canAdvanceTurn || action ? (
+        <div className="turn-actions compact-turn-actions">
+          {canAdvanceTurn ? (
+            <BoardButton tone="primary" type="button" onClick={advanceTurn} title={turnEndRestriction || undefined}>
+              {isMyTurn ? "턴 종료" : "강제 턴 넘김"}
+            </BoardButton>
+          ) : null}
+          {action ? <span className="play-error-line">{action}</span> : null}
+        </div>
+      ) : null}
 
       {showPostGameEffect ? (
         <div className={`post-game-dialog-backdrop reveal-${postGameRevealStage}`} role="presentation">
@@ -1663,11 +2257,13 @@ function GameMiniThumbnail({ game }: { game: GameDefinition }) {
 function BoardPreview({
   game,
   activePlayer,
-  previewLabel = "대기"
+  previewLabel = "대기",
+  showHeader = true
 }: {
   game: GameDefinition | null;
   activePlayer: PlayerSnapshot | null;
   previewLabel?: string;
+  showHeader?: boolean;
 }) {
   if (!game) {
     return <div className="board-preview empty">게임을 선택해주세요.</div>;
@@ -1676,11 +2272,13 @@ function BoardPreview({
   const cells = previewCellsFor(game);
   return (
     <div className={`board-preview ${game.table.kind} preview-${game.id}`} style={{ "--game-accent": game.accent } as CSSProperties}>
-      <div className="board-header">
-        <span>{game.table.primaryMetric}</span>
-        <strong>{activePlayer?.name ?? previewLabel}</strong>
-        <span>{game.table.secondaryMetric}</span>
-      </div>
+      {showHeader ? (
+        <div className="board-header">
+          <span>{game.table.primaryMetric}</span>
+          <strong>{activePlayer?.name ?? previewLabel}</strong>
+          <span>{game.table.secondaryMetric}</span>
+        </div>
+      ) : null}
       <div className={`board-stage stage-${game.id}`} role="img" aria-label={`${game.title} 미리보기: ${game.table.uiHint}`}>
         <BoardPreviewStage game={game} cells={cells} />
       </div>

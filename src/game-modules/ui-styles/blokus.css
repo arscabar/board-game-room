@@ -5,6 +5,11 @@
     #f8fbff !important;
 }
 
+.blokus-module,
+.blokus-module * {
+  box-sizing: border-box !important;
+}
+
 .blokus-board {
   border: 10px solid #c6ccd2 !important;
   border-radius: 6px !important;
@@ -130,7 +135,9 @@
 .blokus-layout {
   display: grid !important;
   grid-template-columns: minmax(420px, 1fr) minmax(280px, 0.62fr) !important;
-  grid-template-areas: "board controls" !important;
+  grid-template-areas:
+    "board controls"
+    "precision controls" !important;
   gap: 12px !important;
   align-items: start !important;
   overflow: visible !important;
@@ -158,10 +165,297 @@
   grid-area: controls !important;
   display: grid !important;
   grid-template-columns: 1fr !important;
-  grid-template-rows: auto minmax(0, 1fr) !important;
+  grid-template-rows: minmax(0, 1fr) !important;
   gap: 10px !important;
   align-self: stretch !important;
   min-width: 0 !important;
+}
+
+.blokus-placement-dock {
+  grid-area: precision !important;
+  display: grid !important;
+  width: min(100%, 620px) !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  justify-self: center !important;
+  overflow: hidden !important;
+  border: 1px solid rgba(226, 184, 109, 0.34) !important;
+  border-radius: 10px !important;
+  background:
+    linear-gradient(180deg, rgba(255, 238, 200, 0.97), rgba(226, 203, 162, 0.92)) !important;
+  color: #24170f !important;
+  box-shadow: 0 10px 18px rgba(0, 0, 0, 0.18) !important;
+}
+
+.blokus-placement-dock.is-ready {
+  border-color: rgba(32, 126, 75, 0.52) !important;
+}
+
+.blokus-placement-dock.is-invalid {
+  border-color: rgba(166, 34, 34, 0.48) !important;
+}
+
+.blokus-placement-head {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 8px !important;
+  padding: 10px 10px 0 !important;
+}
+
+.blokus-placement-head div {
+  min-width: 0 !important;
+  display: grid !important;
+  gap: 2px !important;
+}
+
+.blokus-placement-head span,
+.blokus-placement-head small {
+  color: rgba(36, 23, 15, 0.68) !important;
+  font-size: 0.76rem !important;
+  font-weight: 900 !important;
+}
+
+.blokus-placement-head strong {
+  overflow: hidden !important;
+  color: #24170f !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+.blokus-placement-body {
+  display: grid !important;
+  grid-template-columns: auto minmax(0, 1fr) !important;
+  gap: 10px !important;
+  align-items: start !important;
+  min-width: 0 !important;
+  padding: 10px !important;
+}
+
+.blokus-precision-board {
+  --precision-cell-size: 44px;
+  display: grid !important;
+  grid-template-columns: repeat(5, minmax(0, var(--precision-cell-size))) !important;
+  grid-template-rows: repeat(5, var(--precision-cell-size)) !important;
+  gap: 3px !important;
+  justify-content: center !important;
+  width: fit-content !important;
+  max-width: 100% !important;
+  padding: 6px !important;
+  overflow: hidden !important;
+  border: 1px solid rgba(78, 47, 28, 0.3) !important;
+  border-radius: 8px !important;
+  background:
+    linear-gradient(90deg, rgba(69, 86, 104, 0.28) 0 1px, transparent 1px),
+    linear-gradient(0deg, rgba(69, 86, 104, 0.28) 0 1px, transparent 1px),
+    linear-gradient(180deg, #f8f4e7, #dfd3b7) !important;
+}
+
+.blokus-precision-cell {
+  position: relative !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  border: 1px solid rgba(78, 47, 28, 0.22) !important;
+  border-radius: 5px !important;
+  padding: 0 !important;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.5), transparent 42%),
+    var(--cell-color, #f8fafc) !important;
+}
+
+.blokus-precision-cell.occupied {
+  background:
+    radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.48), transparent 26%),
+    linear-gradient(180deg, color-mix(in srgb, var(--cell-color) 86%, white), var(--cell-color)) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.42),
+    inset 0 -4px 0 rgba(0, 0, 0, 0.18) !important;
+}
+
+.blokus-precision-cell.anchor:not(.preview)::before {
+  content: "" !important;
+  position: absolute !important;
+  inset: 32% !important;
+  border-radius: 50% !important;
+  background: rgba(32, 126, 75, 0.75) !important;
+}
+
+.blokus-precision-cell.preview {
+  background:
+    radial-gradient(circle at 30% 18%, rgba(255, 255, 255, 0.48), transparent 24%),
+    linear-gradient(180deg, color-mix(in srgb, var(--preview-color) 74%, white), var(--preview-color)) !important;
+  box-shadow:
+    inset 0 0 0 3px rgba(32, 126, 75, 0.68),
+    inset 0 -4px 0 rgba(17, 85, 46, 0.18) !important;
+}
+
+.blokus-precision-cell.preview.invalid {
+  background:
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.28) 0 4px, transparent 4px 8px),
+    linear-gradient(180deg, #f79a8e, #b82828) !important;
+  box-shadow:
+    inset 0 0 0 3px rgba(124, 16, 16, 0.74),
+    inset 0 -4px 0 rgba(77, 0, 0, 0.24) !important;
+}
+
+.blokus-precision-cell.center::after {
+  content: "" !important;
+  position: absolute !important;
+  inset: 3px !important;
+  pointer-events: none !important;
+  border: 2px solid rgba(36, 23, 15, 0.72) !important;
+  border-radius: 4px !important;
+}
+
+.blokus-precision-cell.out {
+  opacity: 0.28 !important;
+  background:
+    repeating-linear-gradient(45deg, rgba(78, 47, 28, 0.16) 0 4px, transparent 4px 8px),
+    rgba(78, 47, 28, 0.08) !important;
+}
+
+.blokus-precision-empty {
+  grid-column: 1 / -1 !important;
+  display: grid !important;
+  min-height: 120px !important;
+  place-items: center !important;
+  color: rgba(36, 23, 15, 0.72) !important;
+  font-weight: 900 !important;
+}
+
+.blokus-placement-tools {
+  min-width: 0 !important;
+  display: grid !important;
+  gap: 8px !important;
+}
+
+.blokus-piece-preview-precision {
+  min-height: 70px !important;
+  justify-self: stretch !important;
+}
+
+.blokus-orient-pad {
+  position: relative !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-height: 72px !important;
+  display: grid !important;
+  place-items: center !important;
+  border: 1px solid rgba(78, 47, 28, 0.22) !important;
+  border-radius: 8px !important;
+  padding: 7px !important;
+  background:
+    radial-gradient(circle at 28% 18%, rgba(255, 255, 255, 0.72), transparent 24%),
+    linear-gradient(180deg, #fff6dd, #d9bd7e) !important;
+  box-shadow:
+    inset 0 -3px 0 rgba(83, 55, 34, 0.12),
+    0 3px 0 rgba(83, 55, 34, 0.1) !important;
+  color: #24170f !important;
+  cursor: pointer !important;
+  overflow: hidden !important;
+  touch-action: manipulation !important;
+}
+
+.blokus-orient-pad:disabled {
+  cursor: default !important;
+  opacity: 0.48 !important;
+}
+
+.blokus-orient-pad.is-holding {
+  border-color: rgba(22, 132, 84, 0.68) !important;
+  background:
+    radial-gradient(circle at 28% 18%, rgba(255, 255, 255, 0.72), transparent 24%),
+    linear-gradient(180deg, #b8dec0, #609b63) !important;
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 246, 221, 0.6),
+    0 0 0 3px rgba(22, 132, 84, 0.16),
+    0 3px 0 rgba(83, 55, 34, 0.1) !important;
+}
+
+.blokus-orient-pad .blokus-piece-mini {
+  pointer-events: none !important;
+}
+
+.blokus-orient-badges {
+  position: absolute !important;
+  right: 5px !important;
+  bottom: 5px !important;
+  display: inline-flex !important;
+  gap: 3px !important;
+}
+
+.blokus-orient-badges span {
+  width: 20px !important;
+  height: 20px !important;
+  display: inline-grid !important;
+  place-items: center !important;
+  border: 1px solid rgba(36, 23, 15, 0.16) !important;
+  border-radius: 999px !important;
+  background: rgba(36, 23, 15, 0.78) !important;
+  color: #fff2c5 !important;
+}
+
+.blokus-controls-row-precision {
+  grid-template-columns: repeat(auto-fit, minmax(92px, 1fr)) !important;
+  align-items: stretch !important;
+}
+
+.blokus-controls-row-precision button {
+  min-height: 44px !important;
+  border: 1px solid rgba(35, 100, 170, 0.18) !important;
+  border-radius: 8px !important;
+  background: linear-gradient(180deg, #fff7dc, #d9bd7e) !important;
+  color: #24170f !important;
+  font: inherit !important;
+  font-weight: 900 !important;
+}
+
+.blokus-controls-row-precision .blokus-placement-confirm {
+  border-color: rgba(32, 126, 75, 0.58) !important;
+  background: linear-gradient(180deg, #228b56, #12653a) !important;
+  color: #f6fff4 !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    0 3px 0 rgba(12, 69, 39, 0.18) !important;
+}
+
+.blokus-placement-dock.is-ready .blokus-placement-confirm:not(:disabled) {
+  animation: blokus-confirm-ready 900ms ease-in-out infinite alternate;
+}
+
+.blokus-controls-row-precision .blokus-placement-secondary {
+  border-color: rgba(78, 47, 28, 0.22) !important;
+  background: linear-gradient(180deg, rgba(255, 247, 220, 0.92), rgba(214, 190, 136, 0.86)) !important;
+}
+
+.blokus-controls-row-precision button:disabled {
+  cursor: default !important;
+  opacity: 0.46 !important;
+}
+
+.blokus-placement-feedback {
+  min-height: 38px !important;
+  margin: 0 !important;
+  padding: 8px 10px !important;
+  border: 1px solid rgba(78, 47, 28, 0.18) !important;
+  border-radius: 8px !important;
+  background: rgba(255, 255, 255, 0.46) !important;
+  color: rgba(36, 23, 15, 0.72) !important;
+  font-size: 0.82rem !important;
+  font-weight: 850 !important;
+  line-height: 1.35 !important;
+}
+
+.blokus-placement-feedback.valid {
+  border-color: rgba(32, 126, 75, 0.48) !important;
+  color: #11552e !important;
+}
+
+.blokus-placement-feedback.invalid {
+  border-color: rgba(166, 34, 34, 0.5) !important;
+  color: #7c1010 !important;
 }
 
 .blokus-controls,
@@ -184,7 +478,7 @@
 }
 
 .blokus-palette-grid {
-  grid-template-columns: repeat(auto-fill, minmax(42px, 1fr)) !important;
+  grid-template-columns: repeat(auto-fill, minmax(56px, 1fr)) !important;
   max-height: min(42vh, 360px) !important;
   overflow-y: auto !important;
   padding-right: 2px !important;
@@ -192,8 +486,9 @@
 
 .blokus-palette button {
   min-width: 0 !important;
-  min-height: 50px !important;
-  padding: 5px !important;
+  min-height: 54px !important;
+  padding: 6px !important;
+  overflow: hidden !important;
   background:
     linear-gradient(180deg, rgba(255, 246, 221, 0.98), rgba(219, 194, 139, 0.94)) !important;
 }
@@ -204,17 +499,24 @@
 
 .blokus-palette button .blokus-piece-mini {
   margin: auto !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
 }
 
 .blokus-palette .blokus-piece-mini {
-  grid-template-columns: repeat(var(--piece-width), 0.58rem) !important;
-  grid-template-rows: repeat(var(--piece-height), 0.58rem) !important;
-  min-height: calc(var(--piece-height) * 0.58rem) !important;
+  --palette-piece-cell: var(--piece-fit-cell, clamp(0.36rem, 2.35vw, 0.52rem));
+  grid-template-columns: repeat(var(--piece-width), var(--palette-piece-cell)) !important;
+  grid-template-rows: repeat(var(--piece-height), var(--palette-piece-cell)) !important;
+  width: fit-content !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  inline-size: max-content !important;
+  block-size: max-content !important;
 }
 
 .blokus-palette .blokus-piece-mini span {
-  width: 0.58rem !important;
-  height: 0.58rem !important;
+  width: var(--palette-piece-cell) !important;
+  height: var(--palette-piece-cell) !important;
 }
 
 .blokus-palette button:disabled {
@@ -289,6 +591,7 @@
 
 .blokus-palette button:focus-visible,
 .blokus-controls button:focus-visible,
+.blokus-placement-dock button:focus-visible,
 .blokus-cell:focus-visible {
   outline: 3px solid rgba(22, 132, 84, 0.78) !important;
   outline-offset: 2px !important;
@@ -296,9 +599,26 @@
 
 @media (prefers-reduced-motion: reduce) {
   .blokus-cell.preview,
-  .blokus-palette button.selected .blokus-piece-mini {
+  .blokus-palette button.selected .blokus-piece-mini,
+  .blokus-placement-dock.is-ready .blokus-placement-confirm:not(:disabled) {
     animation: none !important;
     transform: none !important;
+  }
+}
+
+@keyframes blokus-confirm-ready {
+  from {
+    filter: brightness(1);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.22),
+      0 3px 0 rgba(12, 69, 39, 0.18) !important;
+  }
+  to {
+    filter: brightness(1.08);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.24),
+      0 0 0 3px rgba(32, 126, 75, 0.2),
+      0 3px 0 rgba(12, 69, 39, 0.18) !important;
   }
 }
 
@@ -307,6 +627,7 @@
     grid-template-columns: 1fr !important;
     grid-template-areas:
       "board"
+      "precision"
       "controls" !important;
   }
 
@@ -325,20 +646,131 @@
     padding: 8px !important;
   }
 
+  .blokus-coach-card {
+    display: none !important;
+  }
+
+  .blokus-layout {
+    grid-template-areas:
+      "board"
+      "precision"
+      "controls" !important;
+  }
+
   .blokus-board {
     border-width: 7px !important;
+  }
+
+  .blokus-placement-dock {
+    display: grid !important;
+    justify-self: stretch !important;
+  }
+
+  .blokus-placement-body {
+    grid-template-areas:
+      "orient actions"
+      "feedback feedback"
+      "precision precision" !important;
+    grid-template-columns: minmax(58px, 72px) minmax(0, 1fr) !important;
+    gap: 8px !important;
+    align-items: start !important;
+    padding: 8px !important;
+  }
+
+  .blokus-precision-board {
+    --precision-cell-size: clamp(38px, 11vw, 44px);
+    grid-area: precision !important;
+    width: min(100%, 244px) !important;
+    max-width: 100% !important;
+    justify-self: center !important;
+  }
+
+  .blokus-piece-preview-precision {
+    grid-area: orient !important;
+    display: grid !important;
+    justify-self: stretch !important;
+    width: auto !important;
+    min-width: 0 !important;
+    min-height: 46px !important;
+    padding: 0 !important;
+    border: 0 !important;
+    background: transparent !important;
+    place-items: stretch !important;
+  }
+
+  .blokus-orient-pad {
+    min-height: 46px !important;
+    padding: 5px !important;
+  }
+
+  .blokus-orient-pad .blokus-piece-mini[data-large="true"] {
+    --orient-piece-cell: min(var(--piece-fit-cell, 0.52rem), 0.5rem);
+    grid-template-columns: repeat(var(--piece-width), var(--orient-piece-cell)) !important;
+    grid-template-rows: repeat(var(--piece-height), var(--orient-piece-cell)) !important;
+  }
+
+  .blokus-orient-pad .blokus-piece-mini[data-large="true"] span {
+    width: var(--orient-piece-cell) !important;
+    height: var(--orient-piece-cell) !important;
+  }
+
+  .blokus-orient-badges {
+    right: 4px !important;
+    bottom: 4px !important;
+    transform: scale(0.88) !important;
+    transform-origin: right bottom !important;
+  }
+
+  .blokus-precision-cell {
+    width: 100% !important;
+    min-width: 0 !important;
+    height: auto !important;
+    min-height: 0 !important;
+    aspect-ratio: 1 !important;
   }
 
   .blokus-side {
     grid-template-columns: 1fr !important;
   }
 
+  .blokus-side .blokus-controls {
+    display: none !important;
+  }
+
   .blokus-palette-grid {
-    grid-template-columns: repeat(auto-fill, minmax(40px, 1fr)) !important;
+    grid-template-columns: repeat(auto-fill, minmax(52px, 1fr)) !important;
     max-height: none !important;
+    overflow-y: visible !important;
+  }
+
+  .blokus-palette .blokus-piece-mini {
+    --palette-piece-cell: var(--piece-fit-cell, clamp(0.3rem, 1.72vw, 0.4rem));
+  }
+
+  .blokus-placement-tools {
+    display: contents !important;
+  }
+
+  .blokus-placement-feedback {
+    grid-area: feedback !important;
+    display: block !important;
+    min-height: 30px !important;
+    padding: 6px 8px !important;
+    font-size: 0.76rem !important;
   }
 
   .blokus-controls-row {
     grid-template-columns: 1fr !important;
+  }
+
+  .blokus-controls-row-precision {
+    grid-area: actions !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 6px !important;
+  }
+
+  .blokus-controls-row-precision button {
+    min-height: 44px !important;
+    padding-inline: 6px !important;
   }
 }

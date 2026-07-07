@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import type { CSSProperties } from "react";
 import type { GameAction, GameActionResult, GameComponentProps, GameContext, GameModule, GameSystemAction } from "../types";
+import { useInteractionGate } from "../useInteractionGate";
 
 type TileKind = "number" | "joker";
 type TileColor = "black" | "white" | "red" | "joker";
@@ -682,9 +683,15 @@ export function Component(props: GameComponentProps) {
     Boolean(effectiveTargetId) &&
     targetHiddenIndices.includes(effectiveTileIndex);
   const canDecide = canAct && publicState.phase === "decide";
+  const { isSubmitting, submitAction } = useInteractionGate(
+    onAction,
+    [activePlayer?.id, publicState.phase, publicState.drawnTileId, publicState.message, publicState.winnerIds.length],
+    { cooldownMs: 620 }
+  );
+
   function sendGuess() {
-    if (!canGuess) return;
-    onAction({
+    if (!canGuess || isSubmitting) return;
+    submitAction({
       type: "guess",
       payload: {
         targetPlayerId: effectiveTargetId,
@@ -695,7 +702,7 @@ export function Component(props: GameComponentProps) {
   }
 
   return (
-    <div className="dvc-shell">
+    <div className={`dvc-shell ${isSubmitting ? "is-submitting" : ""}`}>
       <style>{davinciStyles}</style>
       <div className="dvc-status" aria-live="polite">
         <div>
@@ -752,67 +759,84 @@ export function Component(props: GameComponentProps) {
         </div>
 
         <aside className="dvc-panel" aria-label="추측 조작">
-          <button className="dvc-action" disabled={!canDraw} onClick={() => onAction({ type: "draw" })} type="button">
+          <button className="dvc-action" disabled={!canDraw || isSubmitting} onClick={() => submitAction({ type: "draw" })} type="button">
             타일 뽑기
           </button>
 
-          <label htmlFor="dvc-target">상대</label>
-          <select
-            disabled={!canGuess || targets.length === 0}
-            id="dvc-target"
-            onChange={(event) => {
-              setTargetPlayerId(event.currentTarget.value);
-              setTileIndex(0);
-            }}
-            value={effectiveTargetId}
-          >
-            {targets.map((player) => (
-              <option key={player.id} value={player.id}>
-                {player.name}
-              </option>
-            ))}
-          </select>
+          <div className="dvc-guess-card">
+            <div className="dvc-guess-head">
+              <strong>추측</strong>
+              <span>
+                {target ? `${target.name} ${effectiveTileIndex + 1}번` : "대상 없음"}
+              </span>
+            </div>
 
-          <label htmlFor="dvc-tile">타일 위치</label>
-          <select
-            disabled={!canGuess || targetHiddenIndices.length === 0}
-            id="dvc-tile"
-            onChange={(event) => setTileIndex(Number(event.currentTarget.value))}
-            value={effectiveTileIndex}
-          >
-            {targetHiddenIndices.map((index) => (
-              <option key={index} value={index}>
-                {index + 1}
-              </option>
-            ))}
-          </select>
+            <div className="dvc-guess-controls">
+              <label htmlFor="dvc-target">
+                상대
+                <select
+                  disabled={!canGuess || isSubmitting || targets.length === 0}
+                  id="dvc-target"
+                  onChange={(event) => {
+                    setTargetPlayerId(event.currentTarget.value);
+                    setTileIndex(0);
+                  }}
+                  value={effectiveTargetId}
+                >
+                  {targets.map((player) => (
+                    <option key={player.id} value={player.id}>
+                      {player.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
 
-          <label htmlFor="dvc-guess">추측 값</label>
-          <select
-            disabled={!canGuess}
-            id="dvc-guess"
-            onChange={(event) => {
-              const value = event.currentTarget.value;
-              setGuess(value === "joker" ? "joker" : Number(value));
-            }}
-            value={String(guess)}
-          >
-            {guessOptions.map((value) => (
-              <option key={value} value={value}>
-                {guessLabel(value)}
-              </option>
-            ))}
-          </select>
+              <label htmlFor="dvc-tile">
+                타일
+                <select
+                  disabled={!canGuess || isSubmitting || targetHiddenIndices.length === 0}
+                  id="dvc-tile"
+                  onChange={(event) => setTileIndex(Number(event.currentTarget.value))}
+                  value={effectiveTileIndex}
+                >
+                  {targetHiddenIndices.map((index) => (
+                    <option key={index} value={index}>
+                      {index + 1}
+                    </option>
+                  ))}
+                </select>
+              </label>
 
-          <button className="dvc-action" disabled={!canGuess} onClick={sendGuess} type="button">
-            타일 추측
-          </button>
+              <label htmlFor="dvc-guess">
+                값
+                <select
+                  disabled={!canGuess || isSubmitting}
+                  id="dvc-guess"
+                  onChange={(event) => {
+                    const value = event.currentTarget.value;
+                    setGuess(value === "joker" ? "joker" : Number(value));
+                  }}
+                  value={String(guess)}
+                >
+                  {guessOptions.map((value) => (
+                    <option key={value} value={value}>
+                      {guessLabel(value)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <button className="dvc-action dvc-guess-submit" disabled={!canGuess || isSubmitting} onClick={sendGuess} type="button">
+                제출
+              </button>
+            </div>
+          </div>
 
           <div className="dvc-decision">
-            <button disabled={!canDecide} onClick={() => onAction({ type: "continue" })} type="button">
+            <button disabled={!canDecide || isSubmitting} onClick={() => submitAction({ type: "continue" })} type="button">
               계속
             </button>
-            <button disabled={!canDecide} onClick={() => onAction({ type: "pass" })} type="button">
+            <button disabled={!canDecide || isSubmitting} onClick={() => submitAction({ type: "pass" })} type="button">
               턴 종료
             </button>
           </div>

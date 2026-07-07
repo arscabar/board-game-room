@@ -109,3 +109,166 @@
 .dvc-tile.drawn small::after {
   content: "" !important;
 }
+
+/* Compression pass: keep hidden tile payload private while pulling guess controls next to the racks. */
+.dvc-shell {
+  gap: 10px !important;
+}
+
+.dvc-status {
+  padding: 8px 10px !important;
+}
+
+.dvc-layout {
+  grid-template-columns: minmax(0, 1fr) minmax(238px, 0.32fr) !important;
+  gap: 10px !important;
+}
+
+.dvc-racks {
+  gap: 7px !important;
+}
+
+.dvc-player {
+  grid-template-columns: minmax(124px, 0.28fr) minmax(0, 1fr) !important;
+  align-items: center !important;
+  gap: 8px !important;
+  padding: 8px !important;
+}
+
+.dvc-player-head {
+  align-items: flex-start !important;
+  min-width: 0 !important;
+}
+
+.dvc-player-head > div {
+  min-width: 0 !important;
+}
+
+.dvc-player-head strong,
+.dvc-player-head span {
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+.dvc-badge {
+  flex: 0 0 auto !important;
+  padding: 4px 6px !important;
+  font-size: 0.72rem !important;
+}
+
+.dvc-hand {
+  min-height: 74px !important;
+  align-items: end !important;
+  gap: 5px !important;
+  padding: 7px 7px 6px !important;
+}
+
+.dvc-tile {
+  width: 44px !important;
+  height: 62px !important;
+  padding: 4px !important;
+}
+
+.dvc-tile span {
+  font-size: 1.12rem !important;
+}
+
+.dvc-tile small {
+  font-size: 0.62rem !important;
+}
+
+.dvc-panel {
+  position: sticky !important;
+  top: 8px !important;
+  align-self: start !important;
+  gap: 8px !important;
+  padding: 8px !important;
+}
+
+.dvc-guess-card {
+  display: grid !important;
+  gap: 7px !important;
+  border: 1px solid rgba(83, 55, 34, 0.2) !important;
+  border-radius: 8px !important;
+  padding: 8px !important;
+  background:
+    linear-gradient(180deg, rgba(255, 252, 240, 0.84), rgba(214, 181, 123, 0.34)) !important;
+}
+
+.dvc-guess-head {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 8px !important;
+  color: #17201d !important;
+}
+
+.dvc-guess-head span {
+  min-width: 0 !important;
+  overflow: hidden !important;
+  color: #5f4c37 !important;
+  font-size: 0.78rem !important;
+  font-weight: 900 !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+.dvc-guess-controls {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 6px !important;
+}
+
+.dvc-guess-controls label {
+  display: grid !important;
+  gap: 3px !important;
+  min-width: 0 !important;
+  color: #5f4c37 !important;
+  font-size: 0.72rem !important;
+  font-weight: 950 !important;
+}
+
+.dvc-guess-controls select {
+  min-height: 44px !important;
+  padding-inline: 8px !important;
+}
+
+.dvc-guess-submit {
+  min-height: 44px !important;
+  margin-top: 0 !important;
+}
+
+.dvc-action,
+.dvc-decision button {
+  min-height: 44px !important;
+}
+
+@media (max-width: 860px) {
+  .dvc-layout {
+    grid-template-columns: 1fr !important;
+  }
+
+  .dvc-panel {
+    position: static !important;
+  }
+}
+
+@media (max-width: 560px) {
+  .dvc-player {
+    grid-template-columns: 1fr !important;
+  }
+
+  .dvc-player-head {
+    flex-direction: row !important;
+  }
+
+  .dvc-hand {
+    min-height: 68px !important;
+  }
+
+  .dvc-tile {
+    width: 44px !important;
+    height: 58px !important;
+  }
+}

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { CSSProperties } from "react";
 import type { GameAction, GameActionResult, GameComponentProps, GameContext, GameModule } from "../types";
+import { useInteractionGate } from "../useInteractionGate";
 
 const BOARD_SIZE = 9;
 const WALL_GRID = 8;
@@ -482,6 +483,11 @@ export function Component(props: GameComponentProps) {
   const activeModulePlayer = publicState.players.find((player) => player.id === activePlayer?.id) ?? null;
   const currentModulePlayer = publicState.players.find((player) => player.id === currentPlayer?.id) ?? null;
   const canAct = !disabled && !publicState.winnerId && currentPlayer?.id === activePlayer?.id && Boolean(currentModulePlayer);
+  const { isSubmitting, submitAction } = useInteractionGate(
+    onAction,
+    [activePlayer?.id, currentModulePlayer?.wallsRemaining, publicState.message, publicState.winnerId],
+    { cooldownMs: 620 }
+  );
   const moves = useMemo(() => (activeModulePlayer ? legalPawnMoves(publicState, activeModulePlayer) : []), [
     activeModulePlayer,
     publicState
@@ -532,10 +538,10 @@ export function Component(props: GameComponentProps) {
   }
 
   function selectPawnMove(row: number, col: number) {
-    if (!canAct || !moveModeActive || !legalMoveKeys.has(key(row, col))) return;
+    if (!canAct || isSubmitting || !moveModeActive || !legalMoveKeys.has(key(row, col))) return;
     setSelectedMove({ row, col });
     setWallPreviewVisible(false);
-    onAction({ type: "movePawn", payload: { row, col } });
+    submitAction({ type: "movePawn", payload: { row, col } });
   }
 
   function wallBlockedAt(nextOrientation: Orientation, row: number, col: number) {
@@ -578,22 +584,22 @@ export function Component(props: GameComponentProps) {
   }
 
   function placeWallAt(row: number, col: number) {
-    if (!canAct || !wallModeActive || wallBlockedAt(orientation, row, col)) return;
+    if (!canAct || isSubmitting || !wallModeActive || wallBlockedAt(orientation, row, col)) return;
     setWallPreviewVisible(false);
     setWallSelectionReady(false);
-    onAction({
+    submitAction({
       type: "placeWall",
       payload: { orientation, row, col }
     });
   }
 
   function sendWall() {
-    if (!canAct || selectedWallBlocked || (compactControls && !wallSelectionReady)) return;
+    if (!canAct || isSubmitting || selectedWallBlocked || (compactControls && !wallSelectionReady)) return;
     placeWallAt(wallRow, wallCol);
   }
 
   return (
-    <div className={`qdr-shell ${compactControls ? "compact" : "desktop"} ${wallModeActive ? "wall-mode" : "move-mode"}`}>
+    <div className={`qdr-shell ${compactControls ? "compact" : "desktop"} ${wallModeActive ? "wall-mode" : "move-mode"} ${isSubmitting ? "is-submitting" : ""}`}>
       <style>{quoridorStyles}</style>
       <div className="qdr-status">
         <div>
@@ -633,7 +639,7 @@ export function Component(props: GameComponentProps) {
               return (
                 <button
                   className={`qdr-cell ${legal ? "legal" : ""} ${selected ? "selected" : ""}`}
-                  disabled={!legal}
+                  disabled={!legal || isSubmitting}
                   key={key(row, col)}
                   onClick={() => selectPawnMove(row, col)}
                   type="button"
@@ -700,18 +706,19 @@ export function Component(props: GameComponentProps) {
                   }
                   const selected = wallPreviewVisible && row === wallRow && col === wallCol;
                   const blocked = wallBlockedAt(orientation, row, col);
+                  const wallLabel = `${row + 1}행 ${col + 1}열 ${orientationLabel(orientation)} 벽`;
                   return (
                     <button
                       aria-disabled={blocked}
-                      aria-label={`${row + 1}행 ${col + 1}열 ${orientation === "horizontal" ? "가로" : "세로"} 벽 ${
-                        blocked ? "불가" : "후보 선택"
-                      }`}
+                      aria-label={`${wallLabel} ${blocked ? "설치 불가" : compactControls ? "후보 선택" : "바로 설치"}`}
                       className={`qdr-wall-hit ${orientation} ${selected ? "selected" : ""} ${blocked ? "blocked" : "valid"}`}
+                      disabled={blocked || isSubmitting}
                       key={`hit-${orientation}-${row}-${col}`}
                       onClick={() => selectWallAt(row, col)}
                       onPointerEnter={() => previewWallOnBoard(row, col)}
                       style={wallPieceStyle(row, col)}
                       tabIndex={-1}
+                      title={`${wallLabel} ${blocked ? "설치 불가" : compactControls ? "후보 선택" : "클릭해 바로 설치"}`}
                       type="button"
                     />
                   );
@@ -727,7 +734,7 @@ export function Component(props: GameComponentProps) {
               <button
                 aria-pressed={mode === "move"}
                 className={mode === "move" ? "active" : ""}
-                disabled={!canAct}
+                disabled={!canAct || isSubmitting}
                 onClick={() => selectMode("move")}
                 type="button"
               >
@@ -736,7 +743,7 @@ export function Component(props: GameComponentProps) {
               <button
                 aria-pressed={mode === "wall"}
                 className={mode === "wall" ? "active" : ""}
-                disabled={!canAct || !currentModulePlayer || currentModulePlayer.wallsRemaining <= 0}
+                disabled={!canAct || isSubmitting || !currentModulePlayer || currentModulePlayer.wallsRemaining <= 0}
                 onClick={() => selectMode("wall")}
                 type="button"
               >
@@ -769,7 +776,7 @@ export function Component(props: GameComponentProps) {
                 <div className="qdr-segment">
                   <button
                     className={orientation === "horizontal" ? "active" : ""}
-                    disabled={!canAct}
+                    disabled={!canAct || isSubmitting}
                     onClick={() => setOrientation("horizontal")}
                     type="button"
                   >
@@ -777,7 +784,7 @@ export function Component(props: GameComponentProps) {
                   </button>
                   <button
                     className={orientation === "vertical" ? "active" : ""}
-                    disabled={!canAct}
+                    disabled={!canAct || isSubmitting}
                     onClick={() => setOrientation("vertical")}
                     type="button"
                   >
@@ -794,7 +801,7 @@ export function Component(props: GameComponentProps) {
                 {compactControls ? (
                   <button
                     className="qdr-action"
-                    disabled={!canAct || selectedWallBlocked || !wallSelectionReady}
+                    disabled={!canAct || isSubmitting || selectedWallBlocked || !wallSelectionReady}
                     onClick={sendWall}
                     type="button"
                   >

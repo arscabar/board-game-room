@@ -1,6 +1,7 @@
 import { CircleDot, MoveRight, Scissors } from "lucide-react";
 import { type CSSProperties, useMemo, useState } from "react";
 import type { GameComponentProps, GameModule } from "../types";
+import { useInteractionGate } from "../useInteractionGate";
 
 type YinshColor = "white" | "black";
 type YinshPhase = "ring-placement" | "move" | "remove-row" | "finished";
@@ -714,6 +715,11 @@ export function Component({
     state?.phase !== "finished" &&
     Boolean(currentColor) &&
     currentColor === activeColor;
+  const { isSubmitting, submitAction } = useInteractionGate(
+    onAction,
+    [state?.phase, activePlayer?.id, state?.message, state?.ringsRemoved.white, state?.ringsRemoved.black],
+    { cooldownMs: 650 }
+  );
   const phaseHint = !state
     ? ""
     : state.phase === "ring-placement"
@@ -736,12 +742,12 @@ export function Component({
   }
 
   function handlePointClick(key: string) {
-    if (!canInteract || !currentColor || !state) {
+    if (!canInteract || isSubmitting || !currentColor || !state) {
       return;
     }
 
     if (state.phase === "ring-placement") {
-      onAction({ type: "place-ring", payload: { key } });
+      submitAction({ type: "place-ring", payload: { key } });
       return;
     }
 
@@ -751,7 +757,7 @@ export function Component({
         return;
       }
       if (selectedRingKey && legalDestinations.has(key)) {
-        onAction({ type: "move-ring", payload: { from: selectedRingKey, to: key } });
+        submitAction({ type: "move-ring", payload: { from: selectedRingKey, to: key } });
       }
       return;
     }
@@ -767,7 +773,7 @@ export function Component({
   const viewBox = "-260 -220 520 440";
 
   return (
-    <div className="yinsh-module">
+    <div className={`yinsh-module ${isSubmitting ? "is-submitting" : ""}`}>
       <div className="yinsh-status">
         <div>
           <strong>{state.phase === "finished" ? "게임 종료" : `${activePlayer?.name ?? "대기"} 차례`}</strong>
@@ -815,7 +821,7 @@ export function Component({
                 <g
                   key={point.key}
                   role="button"
-                  tabIndex={canInteract ? 0 : -1}
+                  tabIndex={canInteract && !isSubmitting ? 0 : -1}
                   onClick={() => handlePointClick(point.key)}
                   onKeyDown={(event) => {
                     if (event.key === "Enter" || event.key === " ") {
@@ -882,7 +888,7 @@ export function Component({
                       key={`${row.color}-${row.cells.join("-")}-${index}`}
                       className={effectiveRowIndex === index ? "selected" : ""}
                       type="button"
-                      disabled={row.color !== currentColor}
+                      disabled={row.color !== currentColor || isSubmitting}
                       onClick={() => setSelectedRowIndex(index)}
                     >
                       {COLOR_LABELS[row.color]} 줄 {index + 1}
@@ -892,9 +898,9 @@ export function Component({
                 <button
                   className="yinsh-action-button"
                   type="button"
-                  disabled={!canInteract || effectiveRowIndex < 0 || !selectedRingIsRemovable}
+                  disabled={!canInteract || isSubmitting || effectiveRowIndex < 0 || !selectedRingIsRemovable}
                   onClick={() =>
-                    onAction({
+                    submitAction({
                       type: "remove-row",
                       payload: { rowIndex: effectiveRowIndex, ringKey: selectedRingKey }
                     })
