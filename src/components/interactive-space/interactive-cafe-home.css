@@ -75,6 +75,27 @@
   mix-blend-mode: overlay;
 }
 
+/* 🔦 Dynamic Cursor Flashlight */
+.cafe-viewport.coverflow-viewport::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle 300px at var(--mouse-x, -1000px) var(--mouse-y, -1000px),
+    rgba(255, 255, 255, 0.15) 0%,
+    rgba(255, 255, 255, 0.05) 40%,
+    transparent 80%
+  );
+  pointer-events: none;
+  z-index: 99;
+  mix-blend-mode: screen;
+  transition: opacity 0.3s;
+}
+
+.cafe-home:hover .cafe-viewport.coverflow-viewport::before {
+  opacity: 1;
+}
+
 @keyframes film-grain {
   0% { transform: translate(0, 0); }
   10% { transform: translate(-5%, -5%); }

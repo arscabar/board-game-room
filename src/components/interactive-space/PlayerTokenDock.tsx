@@ -55,6 +55,7 @@ export type PlayerTokenDockProps = {
   onResumeSavedRoom: () => void;
   onResetLocalIdentity: () => void;
   onTokenDrop: (clientX: number, clientY: number) => boolean;
+  onDragStateChange: (isDragging: boolean) => void;
 };
 
 type DragState = {
@@ -154,7 +155,8 @@ export function PlayerTokenDock({
   onCreateTable,
   onResumeSavedRoom,
   onResetLocalIdentity,
-  onTokenDrop
+  onTokenDrop,
+  onDragStateChange
 }: PlayerTokenDockProps) {
   const activeDragRef = useRef<ActiveDrag | null>(null);
   const [expanded, setExpanded] = useState(false);
@@ -183,6 +185,7 @@ export function PlayerTokenDock({
       moved: false
     };
     setDrag({ x: 0, y: 0, state: "lifted" });
+    onDragStateChange(true);
   }
 
   function handleTokenPointerMove(event: ReactPointerEvent<HTMLButtonElement>) {
@@ -209,6 +212,7 @@ export function PlayerTokenDock({
     }
 
     activeDragRef.current = null;
+    onDragStateChange(false);
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId);
     }
@@ -235,6 +239,7 @@ export function PlayerTokenDock({
     }
 
     activeDragRef.current = null;
+    onDragStateChange(false);
     resetDrag();
   }
 

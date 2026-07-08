@@ -1,5 +1,5 @@
 import { Plus } from "lucide-react";
-import { type CSSProperties, type MouseEvent } from "react";
+import { type CSSProperties, type MouseEvent, useState, type PointerEvent } from "react";
 import type { PublicRoomListItem } from "../../shared/types";
 import { PlayerTokenPawn } from "./PlayerTokenDock";
 
@@ -88,6 +88,21 @@ export function CafeTableObject({
   onCreateTable,
   onSelectRoom
 }: CafeTableObjectProps) {
+  const [magnet, setMagnet] = useState({ x: 0, y: 0, active: false });
+
+  function handlePointerMove(e: PointerEvent<HTMLButtonElement>) {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    const x = (e.clientX - centerX) * 0.15; // Pull factor
+    const y = (e.clientY - centerY) * 0.15;
+    setMagnet({ x, y, active: true });
+  }
+
+  function handlePointerLeave() {
+    setMagnet({ x: 0, y: 0, active: false });
+  }
+
   if (table.kind === "empty") {
     function handleCreate(event: MouseEvent<HTMLButtonElement>) {
       onCreateTable(event);
@@ -100,13 +115,17 @@ export function CafeTableObject({
           "empty-table-object",
           table.size === "large" && "cafe-table-object-large",
           isSelected && "cafe-table-object-selected",
-          createState === "placing" && "cafe-table-object-placing"
+          createState === "placing" && "cafe-table-object-placing",
+          magnet.active && "is-magnetic"
         )}
+        style={magnet.active ? { transform: `translate3d(${magnet.x}px, ${magnet.y}px, 50px) rotateX(${-magnet.y * 0.2}deg) rotateY(${magnet.x * 0.2}deg)` } : undefined}
         type="button"
         data-table-id={table.id}
         data-table-kind="empty"
         disabled={!canCreate}
         onClick={handleCreate}
+        onPointerMove={handlePointerMove}
+        onPointerLeave={handlePointerLeave}
         aria-label={canCreate ? "빈 테이블, 새 테이블 만들기 가능" : "빈 테이블, 준비 후 만들기 가능"}
       >
         <span className="pod-layer pod-layer-shadow" aria-hidden="true" />
@@ -140,8 +159,10 @@ export function CafeTableObject({
         "occupied-table-object",
         `cafe-table-object-${state}`,
         isSelected && "cafe-table-object-selected",
-        table.size === "large" && "cafe-table-object-large"
+        table.size === "large" && "cafe-table-object-large",
+        magnet.active && "is-magnetic"
       )}
+      style={magnet.active ? { transform: `translate3d(${magnet.x}px, ${magnet.y}px, 50px) rotateX(${-magnet.y * 0.2}deg) rotateY(${magnet.x * 0.2}deg)` } : undefined}
       type="button"
       data-table-id={table.id}
       data-table-kind="room"
@@ -151,6 +172,8 @@ export function CafeTableObject({
         canUseRoom ? "입장 가능" : "입장 대기"
       }`}
       onClick={() => onSelectRoom(room)}
+      onPointerMove={handlePointerMove}
+      onPointerLeave={handlePointerLeave}
     >
       <span className="pod-layer pod-layer-shadow" aria-hidden="true" />
       <span className="pod-layer pod-layer-base" aria-hidden="true">

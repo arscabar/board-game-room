@@ -5,6 +5,7 @@ import { CafeViewport } from "./CafeViewport";
 import type { CafeTablePlacement } from "./CafeTableObject";
 import { EntranceCounterSheet } from "./EntranceCounterSheet";
 import { PlayerTokenDock } from "./PlayerTokenDock";
+import { ParticleTrailOverlay } from "./ParticleTrailOverlay";
 import "./interactive-cafe-home.css";
 import { playJoinSound } from "../../utils/haptics";
 
@@ -98,7 +99,9 @@ export function InteractiveCafeHome({
   const [selectedRoomCode, setSelectedRoomCode] = useState("");
   const [createState, setCreateState] = useState<"idle" | "placing">("idle");
   const [joinTransition, setJoinTransition] = useState(false);
+  const [isTokenDragging, setIsTokenDragging] = useState(false);
   const [sceneTilt, setSceneTilt] = useState({ x: 0, y: 0 });
+  const [cursorPos, setCursorPos] = useState({ x: -1000, y: -1000 });
 
   const canCreate = connection === "connected" && Boolean(name.trim());
   const savedRoom = lastRoomCode ? rooms.find((room) => room.code === lastRoomCode) ?? null : null;
@@ -205,6 +208,7 @@ export function InteractiveCafeHome({
       x: Number(((event.clientX - rect.left) / rect.width - 0.5).toFixed(3)),
       y: Number(((event.clientY - rect.top) / rect.height - 0.5).toFixed(3))
     });
+    setCursorPos({ x: event.clientX - rect.left, y: event.clientY - rect.top });
   }
 
   return (
@@ -213,11 +217,13 @@ export function InteractiveCafeHome({
       data-connection={connection}
       aria-labelledby="cafe-home-title"
       onPointerMove={handleScenePointerMove}
-      onPointerLeave={() => setSceneTilt({ x: 0, y: 0 })}
+      onPointerLeave={() => { setSceneTilt({ x: 0, y: 0 }); setCursorPos({ x: -1000, y: -1000 }); }}
       style={
         {
           "--cafe-scene-x": sceneTilt.x,
-          "--cafe-scene-y": sceneTilt.y
+          "--cafe-scene-y": sceneTilt.y,
+          "--mouse-x": `${cursorPos.x}px`,
+          "--mouse-y": `${cursorPos.y}px`
         } as CSSProperties
       }
     >
@@ -262,6 +268,7 @@ export function InteractiveCafeHome({
           onResumeSavedRoom={onResumeSavedRoom}
           onResetLocalIdentity={onResetLocalIdentity}
           onTokenDrop={handleTokenDrop}
+          onDragStateChange={setIsTokenDragging}
         />
 
         <EntranceCounterSheet
@@ -278,6 +285,12 @@ export function InteractiveCafeHome({
             setSelectedRoomCode("");
             setSelectedTableId("empty-table-primary");
           }}
+        />
+
+        <ParticleTrailOverlay 
+           isDragging={isTokenDragging} 
+           mouseX={cursorPos.x} 
+           mouseY={cursorPos.y} 
         />
       </div>
 

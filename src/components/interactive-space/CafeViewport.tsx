@@ -68,6 +68,9 @@ export function CafeViewport({
   const layerRef = useRef<HTMLDivElement | null>(null);
   const physicsRef = useRef<PhysicsOverlayHandle | null>(null);
   const reducedMotion = useReducedMotionPreference();
+  
+  // Carousel swipe state
+  const dragRef = useRef({ isDragging: false, startX: 0, lastX: 0, velocity: 0, startTime: 0 });
 
   const tableIds = useMemo(() => tables.map((table) => table.id), [tables]);
   const selectedIndex = Math.max(0, tableIds.indexOf(selectedTableId));
@@ -117,15 +120,75 @@ export function CafeViewport({
 
   // Handle Drag to Join Dropzone
   function handleDrop(event: ReactPointerEvent<HTMLElement>) {
-     // If the user drops their token here, join the selected room
+     // Handled globally in InteractiveCafeHome now, but we keep physics pop
      if (tables[selectedIndex]?.kind === "room") {
         const room = tables[selectedIndex].room;
         if (room && (room.code === lastRoomCode || (room.canJoin && room.status === "lobby"))) {
-           // Simulate neon explosion via physics overlay
            physicsRef.current?.popAll();
-           onSelectRoom(room);
         }
      }
+  }
+
+  // Flick-to-Spin Pointer Events
+  function handlePointerDown(e: ReactPointerEvent<HTMLElement>) {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    dragRef.current = {
+      isDragging: true,
+      startX: e.clientX,
+      lastX: e.clientX,
+      velocity: 0,
+      startTime: performance.now()
+    };
+    e.currentTarget.setPointerCapture(e.pointerId);
+  }
+
+  function handlePointerMove(e: ReactPointerEvent<HTMLElement>) {
+    if (!dragRef.current.isDragging) return;
+    const dx = e.clientX - dragRef.current.lastX;
+    dragRef.current.velocity = dx;
+    dragRef.current.lastX = e.clientX;
+    
+    // If they dragged enough instantly snap to next
+    if (Math.abs(e.clientX - dragRef.current.startX) > 50) {
+       dragRef.current.startX = e.clientX; // reset
+       if (dx < 0) {
+          const nextIndex = Math.min(tableIds.length - 1, selectedIndex + 1);
+          if (nextIndex !== selectedIndex) {
+             playSwipeSound();
+             onSelectTable(tableIds[nextIndex]);
+          }
+       } else if (dx > 0) {
+          const prevIndex = Math.max(0, selectedIndex - 1);
+          if (prevIndex !== selectedIndex) {
+             playSwipeSound();
+             onSelectTable(tableIds[prevIndex]);
+          }
+       }
+    }
+  }
+
+  function handlePointerUp(e: ReactPointerEvent<HTMLElement>) {
+    if (!dragRef.current.isDragging) return;
+    dragRef.current.isDragging = false;
+    e.currentTarget.releasePointerCapture(e.pointerId);
+    
+    // Inertia
+    const v = dragRef.current.velocity;
+    if (Math.abs(v) > 10) {
+      // Fast flick
+      const step = v < 0 ? 1 : -1;
+      const targetIndex = Math.max(0, Math.min(tableIds.length - 1, selectedIndex + step * 2));
+      if (targetIndex !== selectedIndex) {
+         playSwipeSound();
+         setTimeout(() => onSelectTable(tableIds[targetIndex]), 150);
+      }
+    } else {
+      // Check if it was a drop (no movement)
+      const duration = performance.now() - dragRef.current.startTime;
+      if (Math.abs(e.clientX - dragRef.current.startX) < 10 && duration < 500) {
+         handleDrop(e);
+      }
+    }
   }
 
   return (
@@ -137,7 +200,10 @@ export function CafeViewport({
       aria-label="보드게임 방 갤러리"
       onKeyDown={handleKeyDown}
       onWheel={handleWheel}
-      onPointerUp={handleDrop}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerUp}
     >
       <div className="cafe-floor-vignette" aria-hidden="true" />
       <div
