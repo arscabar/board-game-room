@@ -1337,38 +1337,26 @@
 }
 
 .yacht-score-choice-list {
-  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  grid-template-columns: repeat(auto-fit, minmax(148px, 1fr)) !important;
   gap: 6px !important;
 }
 
 .yacht-score-choice {
-  min-height: 48px !important;
+  min-height: 50px !important;
   grid-template-columns: minmax(0, 1fr) auto !important;
   gap: 6px !important;
   padding: 6px 7px !important;
 }
 
 .yacht-score-choice-label {
-  display: grid !important;
-  gap: 1px !important;
-  line-height: 1 !important;
-}
-
-.yacht-score-choice-label abbr {
-  color: inherit !important;
-  font-size: 1rem !important;
+  display: block !important;
+  font-size: clamp(0.72rem, 1.8vw, 0.94rem) !important;
   font-weight: 950 !important;
-  text-decoration: none !important;
-}
-
-.yacht-score-choice-label small {
   min-width: 0 !important;
   overflow: hidden !important;
-  color: #52727b !important;
-  font-size: 0.58rem !important;
-  font-weight: 950 !important;
   text-overflow: ellipsis !important;
-  white-space: nowrap !important;
+  white-space: normal !important;
+  word-break: keep-all !important;
 }
 
 .yacht-score-choice-value {
@@ -1427,12 +1415,19 @@
 
 .yacht-player-category-grid {
   grid-area: cats !important;
-  grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
+  grid-template-columns: repeat(auto-fit, minmax(72px, 1fr)) !important;
   align-content: stretch !important;
 }
 
 .yacht-player-category-grid span {
-  min-height: 28px !important;
+  min-height: 34px !important;
+}
+
+.yacht-player-category-grid i {
+  font-size: clamp(0.5rem, 1.55vw, 0.66rem) !important;
+  line-height: 1.05 !important;
+  white-space: normal !important;
+  word-break: keep-all !important;
 }
 
 @media (max-width: 560px) {
@@ -1441,15 +1436,11 @@
   }
 
   .yacht-score-choice-list {
-    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   }
 
   .yacht-score-choice {
-    min-height: 46px !important;
-  }
-
-  .yacht-score-choice-label small {
-    display: none !important;
+    min-height: 48px !important;
   }
 
   .yacht-player-scorecards {
@@ -1462,7 +1453,7 @@
   }
 
   .yacht-player-category-grid span {
-    min-height: 26px !important;
+    min-height: 34px !important;
   }
 
   .yacht-player-category-grid i {

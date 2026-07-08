@@ -26,8 +26,8 @@ const CATEGORIES = [
   { id: "choice", label: "초이스" },
   { id: "fourKind", label: "포카드" },
   { id: "fullHouse", label: "풀하우스" },
-  { id: "smallStraight", label: "스몰" },
-  { id: "largeStraight", label: "라지" },
+  { id: "smallStraight", label: "스몰 스트레이트" },
+  { id: "largeStraight", label: "라지 스트레이트" },
   { id: "yacht", label: "요트" }
 ] as const;
 
@@ -45,27 +45,12 @@ const scoreSheetLabels: Record<CategoryId, string> = {
   fours: "4",
   fives: "5",
   sixes: "6",
-  choice: "초",
-  fourKind: "포",
-  fullHouse: "풀",
-  smallStraight: "스",
-  largeStraight: "라",
-  yacht: "요"
-};
-
-const scoreChoiceShortLabels: Record<CategoryId, string> = {
-  ones: "1",
-  twos: "2",
-  threes: "3",
-  fours: "4",
-  fives: "5",
-  sixes: "6",
-  choice: "초",
-  fourKind: "포",
-  fullHouse: "풀",
-  smallStraight: "스",
-  largeStraight: "라",
-  yacht: "요"
+  choice: "초이스",
+  fourKind: "포카드",
+  fullHouse: "풀하우스",
+  smallStraight: "스몰 스트레이트",
+  largeStraight: "라지 스트레이트",
+  yacht: "요트"
 };
 
 const DIE_TRAY_POSITIONS = [
@@ -669,8 +654,7 @@ export function Component({
                   onClick={() => scoreTurn(category.id)}
                 >
                   <span className="yacht-score-choice-label">
-                    <abbr title={category.label}>{scoreChoiceShortLabels[category.id]}</abbr>
-                    <small>{category.label}</small>
+                    {category.label}
                   </span>
                   <strong className="yacht-score-choice-value">{score}</strong>
                 </button>
