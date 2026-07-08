@@ -769,6 +769,58 @@
   padding: 0 12px;
 }
 
+.game-shelf-player-tabs {
+  display: grid;
+  gap: 7px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.game-shelf-player-tab {
+  align-items: center;
+  background: linear-gradient(145deg, rgba(242, 223, 173, 0.09), rgba(7, 4, 2, 0.52));
+  border: 1px solid rgba(242, 223, 173, 0.18);
+  border-radius: 8px;
+  color: var(--space-muted);
+  cursor: pointer;
+  display: grid;
+  font: inherit;
+  gap: 2px;
+  justify-items: center;
+  min-block-size: 46px;
+  min-inline-size: 0;
+  padding: 6px 5px;
+}
+
+.game-shelf-player-tab[data-current="true"] {
+  box-shadow: inset 0 -3px 0 rgba(47, 158, 115, 0.72);
+}
+
+.game-shelf-player-tab[data-selected="true"] {
+  background: linear-gradient(145deg, #f0c56d, #b97835);
+  border-color: rgba(255, 247, 220, 0.54);
+  color: #241407;
+}
+
+.game-shelf-player-tab span {
+  font-size: 0.86rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.game-shelf-player-tab small {
+  align-items: center;
+  background: rgba(7, 4, 2, 0.34);
+  border-radius: 999px;
+  color: inherit;
+  display: inline-flex;
+  font-size: 0.72rem;
+  font-weight: 900;
+  justify-content: center;
+  min-block-size: 18px;
+  min-inline-size: 24px;
+  padding-inline: 7px;
+}
+
 .game-shelf-grid {
   display: grid;
   gap: 12px;
@@ -822,6 +874,7 @@
 .game-box-main:focus-visible,
 .game-box-info-button:focus-visible,
 .game-shelf-toggle:focus-visible,
+.game-shelf-player-tab:focus-visible,
 .game-lobby-start-button:focus-visible,
 .game-lobby-timer-control select:focus-visible {
   outline: 3px solid var(--space-focus);
