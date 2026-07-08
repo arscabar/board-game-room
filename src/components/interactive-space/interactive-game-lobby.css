@@ -697,6 +697,11 @@
   inline-size: 6px;
 }
 
+.seat-token-avatar.player-token-pawn {
+  --player-token-size: 38px;
+  filter: drop-shadow(0 8px 12px rgba(0, 0, 0, 0.34));
+}
+
 .seat-token[data-filled="false"] .seat-token-piece {
   background: rgba(242, 223, 173, 0.12);
   border-color: rgba(242, 223, 173, 0.16);
@@ -2000,6 +2005,10 @@
   .seat-token-piece {
     block-size: 28px;
     inline-size: 26px;
+  }
+
+  .seat-token-avatar.player-token-pawn {
+    --player-token-size: 30px;
   }
 
   .seat-token-name {

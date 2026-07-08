@@ -49,6 +49,7 @@ import { socket } from "./lib/socket";
 import { InteractiveCafeHome } from "./components/interactive-space/InteractiveCafeHome";
 import { InteractiveGameLobby } from "./components/interactive-space/InteractiveGameLobby";
 import { InteractiveGameWrapper } from "./components/interactive-space/InteractiveGameWrapper";
+import { PlayerTokenPawn } from "./components/interactive-space/PlayerTokenDock";
 import { games, getGameById } from "./shared/games";
 import { canPlayGame, formatAllowedPlayers, gameAvailabilityLabel } from "./shared/eligibility";
 import { gameUsesTurnTimer, turnTimerOptions } from "./shared/timers";
@@ -204,20 +205,6 @@ function avatarDescription(avatar: PlayerAvatar) {
     avatarOptionLabel(avatarBodyOptions, avatar.body),
     avatarOptionLabel(avatarFaceOptions, avatar.face)
   ].join(" · ");
-}
-
-function avatarPalette(avatar: PlayerAvatar) {
-  return avatarPaletteOptions.find((option) => option.id === avatar.palette) ?? avatarPaletteOptions[0];
-}
-
-function avatarCssVars(avatar: PlayerAvatar) {
-  const palette = avatarPalette(avatar);
-  return {
-    "--avatar-base": palette.base,
-    "--avatar-light": palette.light,
-    "--avatar-dark": palette.dark,
-    "--avatar-accent": palette.accent
-  } as CSSProperties;
 }
 
 function emitWithAck<T>(event: string, payload: unknown) {
@@ -435,30 +422,7 @@ function PlayerAvatarMark({
   label?: string;
 }) {
   const safeAvatar = normalizeAvatar(avatar);
-  const accessibleProps = label
-    ? { role: "img", "aria-label": label }
-    : { "aria-hidden": true };
-
-  return (
-    <span
-      className={`player-avatar-mark ${className}`}
-      data-body={safeAvatar.body}
-      data-face={safeAvatar.face}
-      data-accessory={safeAvatar.accessory}
-      style={avatarCssVars(safeAvatar)}
-      {...accessibleProps}
-    >
-      <span className="avatar-shadow" />
-      <span className="avatar-body">
-        <span className="avatar-face">
-          <span className="avatar-eye left" />
-          <span className="avatar-eye right" />
-          <span className="avatar-mouth" />
-        </span>
-        <span className="avatar-accessory" />
-      </span>
-    </span>
-  );
+  return <PlayerTokenPawn avatar={safeAvatar} className={`player-avatar-mark ${className}`} label={label} />;
 }
 
 function phaseName(phase: string) {

@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
 import type { PlayerSnapshot } from "../../shared/types";
+import { PlayerTokenPawn } from "./PlayerTokenDock";
 
 type SeatTokensAroundTableProps = {
   players: PlayerSnapshot[];
@@ -47,9 +48,13 @@ export function SeatTokensAroundTable({ players, maxSeats }: SeatTokensAroundTab
           style={seatStyle(player, seat)}
           title={player ? player.name : "빈 좌석"}
         >
-          <span className="seat-token-piece" aria-hidden="true">
-            <i />
-          </span>
+          {player ? (
+            <PlayerTokenPawn avatar={player.avatar} className="seat-token-avatar" label={`${player.name} 아이콘`} />
+          ) : (
+            <span className="seat-token-piece" aria-hidden="true">
+              <i />
+            </span>
+          )}
           <span className="seat-token-name">{player?.name ?? "빈 좌석"}</span>
         </div>
       ))}

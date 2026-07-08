@@ -13475,6 +13475,14 @@ body .yacht-score-choice.used .yacht-score-choice-label small {
   filter: drop-shadow(0 5px 7px rgba(0, 0, 0, 0.3));
 }
 
+.player-avatar-mark.player-token-pawn {
+  --player-token-size: var(--avatar-size, 38px);
+  width: var(--player-token-size);
+  min-width: var(--player-token-size);
+  height: calc(var(--player-token-size) * 1.16);
+  filter: drop-shadow(0 5px 7px rgba(0, 0, 0, 0.3));
+}
+
 .player-avatar-mark .avatar-shadow {
   position: absolute;
   inset: auto 15% 4% 15%;
@@ -14846,4 +14854,33 @@ body .room-section.is-lobby .room-layout.interactive-lobby-layout {
 body .room-section.is-lobby .room-layout.interactive-lobby-layout > .interactive-game-lobby {
   inline-size: 100% !important;
   max-inline-size: 1180px !important;
+}
+
+/* Identity token consistency: the same player pawn is used in seats, turn chips, and the name dock. */
+body .player-avatar-mark.player-token-pawn,
+body .player-turn-chip .player-token-pawn {
+  overflow: visible !important;
+}
+
+body .player-turn-chip .player-token-pawn span {
+  overflow: visible !important;
+  text-overflow: clip !important;
+}
+
+body .room-section.is-playing .player-turn-chip {
+  grid-template-columns: auto minmax(0, 1fr) auto !important;
+  overflow: visible !important;
+}
+
+body .room-section.is-playing .turn-avatar.player-token-pawn {
+  --avatar-size: 30px;
+  --player-token-size: 30px;
+  margin-block: -5px -2px;
+}
+
+@media (max-width: 520px) {
+  body .room-section.is-playing .turn-avatar.player-token-pawn {
+    --avatar-size: 28px;
+    --player-token-size: 28px;
+  }
 }
