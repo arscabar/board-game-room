@@ -43,7 +43,6 @@ function tableGameLabel(room: PublicRoomListItem) {
   if (room.status === "playing") {
     return room.selectedGameTitle ?? "진행 중";
   }
-
   return room.selectedGameTitle ?? "게임 선택 전";
 }
 
@@ -104,24 +103,21 @@ export function CafeTableObject({
           createState === "placing" && "cafe-table-object-placing"
         )}
         type="button"
-        style={placementStyle(table)}
         data-table-id={table.id}
         data-table-kind="empty"
         disabled={!canCreate}
         onClick={handleCreate}
         aria-label={canCreate ? "빈 테이블, 새 테이블 만들기 가능" : "빈 테이블, 준비 후 만들기 가능"}
       >
-        <span className="cafe-table-chair cafe-table-chair-top" aria-hidden="true" />
-        <span className="cafe-table-chair cafe-table-chair-right" aria-hidden="true" />
-        <span className="cafe-table-chair cafe-table-chair-bottom" aria-hidden="true" />
-        <span className="cafe-table-chair cafe-table-chair-left" aria-hidden="true" />
-        <span className="cafe-table-surface" aria-hidden="true">
-          <span className="cafe-table-inner-rim" />
+        <span className="pod-layer pod-layer-shadow" aria-hidden="true" />
+        <span className="pod-layer pod-layer-base" aria-hidden="true" />
+        <span className="pod-layer pod-layer-glass" aria-hidden="true">
+          <span className="pod-neon-border" />
           <span className="cafe-empty-plus">
-            <Plus size={30} strokeWidth={2.4} aria-hidden="true" />
+            <Plus size={40} strokeWidth={2.4} aria-hidden="true" />
           </span>
         </span>
-        <span className="cafe-empty-nameplate">
+        <span className="pod-layer pod-layer-nameplate">
           <strong>빈 테이블</strong>
           <small>테이블 만들기</small>
         </span>
@@ -147,7 +143,6 @@ export function CafeTableObject({
         table.size === "large" && "cafe-table-object-large"
       )}
       type="button"
-      style={placementStyle(table)}
       data-table-id={table.id}
       data-table-kind="room"
       data-room-state={state}
@@ -157,27 +152,25 @@ export function CafeTableObject({
       }`}
       onClick={() => onSelectRoom(room)}
     >
-      <span className="cafe-table-chair cafe-table-chair-top" aria-hidden="true" />
-      <span className="cafe-table-chair cafe-table-chair-right" aria-hidden="true" />
-      <span className="cafe-table-chair cafe-table-chair-bottom" aria-hidden="true" />
-      <span className="cafe-table-chair cafe-table-chair-left" aria-hidden="true" />
-
-      <span className="cafe-table-surface" aria-hidden="true">
-        <span className="cafe-table-inner-rim" />
+      <span className="pod-layer pod-layer-shadow" aria-hidden="true" />
+      <span className="pod-layer pod-layer-base" aria-hidden="true">
+        {room.status === "playing" ? <span className="pod-active-glow" /> : null}
+      </span>
+      <span className="pod-layer pod-layer-glass" aria-hidden="true">
+        <span className="pod-neon-border" />
         <span className="cafe-seat-map">
-          {seatItems(room).map((seat) => (
+          {seatItems(room).map((seat, idx) => (
             <span
-              className={cx("cafe-seat-token", seat.filled && "cafe-seat-token-filled", seat.host && "cafe-seat-token-host")}
+              className={cx("cafe-seat-token", `seat-pos-${idx}`, seat.filled && "cafe-seat-token-filled", seat.host && "cafe-seat-token-host")}
               key={seat.id}
             >
               {seat.host && room.hostAvatar ? <PlayerTokenPawn avatar={room.hostAvatar} /> : null}
             </span>
           ))}
         </span>
-        {room.status === "playing" ? <span className="cafe-game-box-shadow" /> : null}
       </span>
 
-      <span className="cafe-table-nameplate">
+      <span className="pod-layer pod-layer-nameplate">
         <strong>{hostTableName(room)}</strong>
         <span>{room.playerCount}/{room.maxPlayers}</span>
         <small>{gameLabel}</small>

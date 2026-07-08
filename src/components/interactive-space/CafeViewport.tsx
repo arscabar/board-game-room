@@ -10,6 +10,7 @@ import {
 } from "react";
 import type { PublicRoomListItem } from "../../shared/types";
 import { CafeTableObject, type CafeTablePlacement } from "./CafeTableObject";
+import { CafePhysicsOverlay, type PhysicsOverlayHandle } from "./CafePhysicsOverlay";
 
 type PreventableEvent = {
   preventDefault: () => void;
@@ -27,23 +28,6 @@ export type CafeViewportProps = {
   onSelectTable: (tableId: string) => void;
   onSelectRoom: (room: PublicRoomListItem) => void;
 };
-
-type Pan = {
-  x: number;
-  y: number;
-};
-
-type ActivePan = {
-  pointerId: number;
-  startX: number;
-  startY: number;
-  originX: number;
-  originY: number;
-};
-
-function clamp(value: number, min: number, max: number) {
-  return Math.min(max, Math.max(min, value));
-}
 
 function isInteractiveTarget(target: EventTarget | null) {
   return target instanceof Element && Boolean(target.closest("button, input, select, textarea, a"));
@@ -81,85 +65,29 @@ export function CafeViewport({
 }: CafeViewportProps) {
   const viewportRef = useRef<HTMLElement | null>(null);
   const layerRef = useRef<HTMLDivElement | null>(null);
-  const activePanRef = useRef<ActivePan | null>(null);
-  const panRef = useRef<Pan>({ x: 0, y: 0 });
-  const [isPanning, setIsPanning] = useState(false);
+  const physicsRef = useRef<PhysicsOverlayHandle | null>(null);
   const reducedMotion = useReducedMotionPreference();
 
   const tableIds = useMemo(() => tables.map((table) => table.id), [tables]);
+  const selectedIndex = Math.max(0, tableIds.indexOf(selectedTableId));
 
-  function setPan(nextPan: Pan) {
-    const clampedPan = {
-      x: clamp(nextPan.x, -240, 240),
-      y: clamp(nextPan.y, -150, 150)
-    };
-    panRef.current = clampedPan;
-    layerRef.current?.style.setProperty("--cafe-pan-x", `${clampedPan.x}px`);
-    layerRef.current?.style.setProperty("--cafe-pan-y", `${clampedPan.y}px`);
-  }
-
-  function handlePointerDown(event: ReactPointerEvent<HTMLElement>) {
-    if (isInteractiveTarget(event.target)) {
-      return;
-    }
-
-    event.currentTarget.setPointerCapture(event.pointerId);
-    activePanRef.current = {
-      pointerId: event.pointerId,
-      startX: event.clientX,
-      startY: event.clientY,
-      originX: panRef.current.x,
-      originY: panRef.current.y
-    };
-    setIsPanning(true);
-  }
-
-  function handlePointerMove(event: ReactPointerEvent<HTMLElement>) {
-    const activePan = activePanRef.current;
-    if (!activePan || activePan.pointerId !== event.pointerId || reducedMotion) {
-      return;
-    }
-
-    setPan({
-      x: activePan.originX + event.clientX - activePan.startX,
-      y: activePan.originY + event.clientY - activePan.startY
-    });
-  }
-
-  function endPan(event: ReactPointerEvent<HTMLElement>) {
-    const activePan = activePanRef.current;
-    if (!activePan || activePan.pointerId !== event.pointerId) {
-      return;
-    }
-
-    activePanRef.current = null;
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-      event.currentTarget.releasePointerCapture(event.pointerId);
-    }
-    setIsPanning(false);
-  }
-
+  // Handle Cover Flow scrolling
   function handleWheel(event: WheelEvent<HTMLElement>) {
-    if (reducedMotion) {
-      return;
-    }
+    if (reducedMotion) return;
 
     const primaryDelta = Math.abs(event.deltaX) > Math.abs(event.deltaY) ? event.deltaX : event.deltaY;
-    if (Math.abs(primaryDelta) < 2) {
-      return;
-    }
+    if (Math.abs(primaryDelta) < 10) return;
 
+    // Prevent scrolling page
     event.preventDefault();
-    setPan({
-      x: panRef.current.x - primaryDelta * 0.24,
-      y: panRef.current.y
-    });
-  }
 
-  function focusTable(tableId: string) {
-    const button = viewportRef.current?.querySelector<HTMLButtonElement>(`[data-table-id="${tableId}"]`);
-    button?.focus();
-    onSelectTable(tableId);
+    if (primaryDelta > 0) {
+      const nextIndex = Math.min(tableIds.length - 1, selectedIndex + 1);
+      if (nextIndex !== selectedIndex) onSelectTable(tableIds[nextIndex]);
+    } else {
+      const prevIndex = Math.max(0, selectedIndex - 1);
+      if (prevIndex !== selectedIndex) onSelectTable(tableIds[prevIndex]);
+    }
   }
 
   function handleKeyDown(event: KeyboardEvent<HTMLElement>) {
@@ -170,78 +98,95 @@ export function CafeViewport({
       ArrowUp: -1
     };
     const offset = keyOffsets[event.key];
-    if (!offset || tableIds.length === 0) {
-      return;
-    }
+    if (!offset || tableIds.length === 0) return;
 
     event.preventDefault();
-    const currentIndex = Math.max(0, tableIds.indexOf(selectedTableId));
-    const nextIndex = (currentIndex + offset + tableIds.length) % tableIds.length;
-    focusTable(tableIds[nextIndex]);
+    const nextIndex = (selectedIndex + offset + tableIds.length) % tableIds.length;
+    const button = viewportRef.current?.querySelector<HTMLButtonElement>(`[data-table-id="${tableIds[nextIndex]}"]`);
+    button?.focus();
+    onSelectTable(tableIds[nextIndex]);
+  }
+
+  // Handle Drag to Join Dropzone
+  function handleDrop(event: ReactPointerEvent<HTMLElement>) {
+     // If the user drops their token here, join the selected room
+     if (tables[selectedIndex]?.kind === "room") {
+        const room = tables[selectedIndex].room;
+        if (room && (room.code === lastRoomCode || (room.canJoin && room.status === "lobby"))) {
+           // Simulate neon explosion via physics overlay
+           physicsRef.current?.popAll();
+           onSelectRoom(room);
+        }
+     }
   }
 
   return (
     <section
-      className="cafe-viewport"
-      data-panning={isPanning ? "true" : "false"}
+      className="cafe-viewport coverflow-viewport"
       data-connection={connectionState}
       ref={viewportRef}
       tabIndex={0}
-      aria-label="보드게임 카페 테이블 공간"
-      onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
-      onPointerUp={endPan}
-      onPointerCancel={endPan}
+      aria-label="보드게임 방 갤러리"
       onKeyDown={handleKeyDown}
       onWheel={handleWheel}
+      onPointerUp={handleDrop}
     >
       <div className="cafe-floor-vignette" aria-hidden="true" />
       <div
-        className="cafe-camera-layer"
+        className="cafe-camera-layer coverflow-layer"
         ref={layerRef}
-        style={
-          {
-            "--cafe-pan-x": "0px",
-            "--cafe-pan-y": "0px"
-          } as CSSProperties
-        }
       >
-        <div className="cafe-wall-counter" aria-hidden="true">
-          <span />
-          <span />
-          <span />
-        </div>
-        <div className="cafe-floor-runner" aria-hidden="true" />
-        <div className="cafe-sideboard" aria-hidden="true" />
-        <div className="cafe-menu-board" aria-hidden="true" />
+        {/* Cinematic Physics Layer (Zero Gravity) */}
+        {!reducedMotion && (
+          <CafePhysicsOverlay ref={physicsRef} width={3000} height={2000} interactive={true} />
+        )}
 
-        {tables.map((table) => {
+        {tables.map((table, idx) => {
           const room = table.kind === "room" ? table.room ?? null : null;
           const canUseRoom = Boolean(
             room && connectionState === "connected" && (room.code === lastRoomCode || (room.canJoin && room.status === "lobby"))
           );
+          
+          // Cover Flow Math
+          const offset = idx - selectedIndex;
+          const absOffset = Math.abs(offset);
+          const isSelected = offset === 0;
+
+          // Replace old positional data with Cover Flow data
+          const coverflowStyle = {
+             "--cafe-table-x": `${offset * 320}px`,
+             "--cafe-table-y": `0px`,
+             "--cafe-table-rotate": `${offset === 0 ? 0 : offset > 0 ? -45 : 45}deg`,
+             "--cafe-table-scale": isSelected ? 1.2 : 0.8,
+             "--cafe-table-depth": -absOffset * 150
+          } as CSSProperties;
+
           return (
-            <CafeTableObject
-              key={table.id}
-              table={table}
-              canCreate={canCreate}
-              canUseRoom={canUseRoom}
-              isSelected={selectedTableId === table.id}
-              isSavedRoom={Boolean(room && room.code === lastRoomCode)}
-              createState={createState}
-              onCreateTable={onCreateTable}
-              onSelectRoom={(nextRoom) => {
-                onSelectTable(table.id);
-                onSelectRoom(nextRoom);
-              }}
-            />
+            <div key={table.id} className="coverflow-item" style={coverflowStyle}>
+              <CafeTableObject
+                table={table}
+                canCreate={canCreate}
+                canUseRoom={canUseRoom}
+                isSelected={isSelected}
+                isSavedRoom={Boolean(room && room.code === lastRoomCode)}
+                createState={createState}
+                onCreateTable={onCreateTable}
+                onSelectRoom={(nextRoom) => {
+                  if (isSelected) {
+                     onSelectRoom(nextRoom);
+                  } else {
+                     onSelectTable(table.id);
+                  }
+                }}
+              />
+            </div>
           );
         })}
       </div>
 
       {roomsLoading ? (
         <div className="cafe-loading-chip" role="status" aria-live="polite">
-          테이블 정리 중
+          방 찾는 중...
         </div>
       ) : null}
     </section>

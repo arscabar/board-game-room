@@ -135,12 +135,12 @@ export function PlayerTokenMark({ avatar }: { avatar: PlayerAvatar }) {
   return <PlayerTokenPawn avatar={avatar} />;
 }
 
-function isOverEmptyTable(clientX: number, clientY: number) {
+function isOverDropZone(clientX: number, clientY: number) {
   if (typeof document === "undefined") {
     return false;
   }
 
-  return Boolean(document.elementFromPoint(clientX, clientY)?.closest(".empty-table-object"));
+  return Boolean(document.elementFromPoint(clientX, clientY)?.closest(".cafe-table-object"));
 }
 
 export function PlayerTokenDock({
@@ -195,7 +195,7 @@ export function PlayerTokenDock({
     setDrag({
       x,
       y,
-      state: moved ? (isOverEmptyTable(event.clientX, event.clientY) ? "over-empty" : "dragging") : "lifted"
+      state: moved ? (isOverDropZone(event.clientX, event.clientY) ? "over-empty" : "dragging") : "lifted"
     });
   }
 

@@ -30,12 +30,13 @@
   --token-shadow: 0 7px 0 rgba(76, 48, 28, 0.2), 0 18px 28px rgba(54, 35, 22, 0.12);
   --space: 8px;
   --radius: 8px;
-  --motion-fast: 160ms ease;
-  --motion-base: 240ms ease;
-  --motion-pop: 180ms cubic-bezier(0.2, 0.9, 0.3, 1.2);
-  --motion-shift: 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
-  --motion-flip: 260ms cubic-bezier(0.2, 0.7, 0.2, 1);
-  --motion-alert: 720ms ease-in-out;
+  --motion-fast: 160ms cubic-bezier(0.16, 1, 0.3, 1);
+  --motion-base: 320ms cubic-bezier(0.16, 1, 0.3, 1);
+  --motion-spring: 500ms cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  --motion-pop: 320ms cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  --motion-shift: 320ms cubic-bezier(0.16, 1, 0.3, 1);
+  --motion-flip: 400ms cubic-bezier(0.16, 1, 0.3, 1);
+  --motion-alert: 720ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 * {
@@ -64,6 +65,16 @@ select:focus-visible,
 a:focus-visible {
   outline: 3px solid color-mix(in srgb, var(--focus) 70%, white);
   outline-offset: 3px;
+}
+
+button:active,
+a:active {
+  transform: scale(0.96);
+  transition: transform 0.1s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+button, a {
+  transition: transform var(--motion-base), background-color var(--motion-fast), box-shadow var(--motion-base);
 }
 
 .visually-hidden {

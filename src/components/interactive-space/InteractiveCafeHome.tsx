@@ -136,13 +136,27 @@ export function InteractiveCafeHome({
       return false;
     }
 
-    const table = document.elementFromPoint(clientX, clientY)?.closest(".empty-table-object");
-    if (!table) {
+    const element = document.elementFromPoint(clientX, clientY);
+    const tableButton = element?.closest(".cafe-table-object");
+    if (!tableButton) {
       return false;
     }
 
-    requestCreateTable({ preventDefault: () => undefined });
-    return true;
+    const kind = tableButton.getAttribute("data-table-kind");
+    const tableId = tableButton.getAttribute("data-table-id");
+
+    if (kind === "empty") {
+      requestCreateTable({ preventDefault: () => undefined });
+      return true;
+    } else if (kind === "room") {
+      const code = tableId?.replace("table-", "");
+      if (code) {
+        onJoinListedRoom(code);
+        return true;
+      }
+    }
+
+    return false;
   }
 
   function handleSelectRoom(room: PublicRoomListItem) {
