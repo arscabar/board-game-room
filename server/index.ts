@@ -614,7 +614,7 @@ function startGameInRoom(room: RoomRecord, game: NonNullable<ReturnType<typeof g
   resetTurnClock(room);
 }
 
-function resetRoomToLobby(room: RoomRecord, options: { preservePostGameNotices?: boolean } = {}) {
+function resetRoomToLobby(room: RoomRecord, options: { preservePostGameNotices?: boolean; clearSelectedGame?: boolean } = {}) {
   void recordRoomStatsIfFinished(room);
   clearScheduledTurnTimeout(room);
   room.status = "lobby";
@@ -624,7 +624,11 @@ function resetRoomToLobby(room: RoomRecord, options: { preservePostGameNotices?:
   if (!options.preservePostGameNotices) {
     clearPostGameNotices(room);
   }
-  clearInvalidSelection(room);
+  if (options.clearSelectedGame) {
+    room.selectedGameId = null;
+  } else {
+    clearInvalidSelection(room);
+  }
 }
 
 function normalizePostGameChoice(choice: unknown) {
@@ -1741,8 +1745,8 @@ io.on("connection", (socket) => {
 
       if (choice === "game-select") {
         rejectPendingRematches(result.room);
-        resetRoomToLobby(result.room, { preservePostGameNotices: true });
-        appendSystemLog(result.room, `${result.player.name}님이 게임 선택으로 돌아갔습니다.`);
+        resetRoomToLobby(result.room, { preservePostGameNotices: true, clearSelectedGame: true });
+        appendSystemLog(result.room, `${result.player.name}님이 같은 인원으로 게임 선택으로 돌아갔습니다.`);
         reply(ack, { ok: true, data: { code: result.room.code, room: snapshotRoom(result.room, result.player.id) } });
         broadcastRoom(result.room);
         broadcastRoomList();

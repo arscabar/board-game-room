@@ -2397,17 +2397,19 @@ function PlayPanel({
 
               <div className="post-game-actions">
                 <BoardButton
-                  tone="primary"
                   type="button"
                   onClick={() => choosePostGame("rematch")}
                   disabled={currentPostGameChoice === "rematch"}
                 >
-                  재대결
+                  <RefreshCw size={15} aria-hidden="true" />
+                  다시 한 판
                 </BoardButton>
-                <BoardButton type="button" onClick={() => choosePostGame("game-select")}>
-                  게임 선택
+                <BoardButton className="post-game-same-room-action" tone="primary" type="button" onClick={() => choosePostGame("game-select")}>
+                  <Users size={15} aria-hidden="true" />
+                  같은 인원으로 게임 선택
                 </BoardButton>
                 <BoardButton tone="secondary" type="button" onClick={() => choosePostGame("leave-room")}>
+                  <DoorOpen size={15} aria-hidden="true" />
                   로비 이동
                 </BoardButton>
               </div>
