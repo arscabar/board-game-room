@@ -14819,3 +14819,14 @@ body .room-section.is-lobby .game-selection-actions {
     transform: none !important;
   }
 }
+
+body .room-section.is-lobby .room-layout.interactive-lobby-layout {
+  display: block !important;
+  inline-size: 100% !important;
+  max-inline-size: none !important;
+}
+
+body .room-section.is-lobby .room-layout.interactive-lobby-layout > .interactive-game-lobby {
+  inline-size: 100% !important;
+  max-inline-size: 1180px !important;
+}

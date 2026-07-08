@@ -1,0 +1,437 @@
+import { Clock3, DoorOpen, Play, Trash2, UsersRound } from "lucide-react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type PointerEvent as ReactPointerEvent
+} from "react";
+import { games } from "../../shared/games";
+import { canPlayGame, formatAllowedPlayers, gameAvailabilityLabel } from "../../shared/eligibility";
+import { gameUsesTurnTimer, turnTimerOptions } from "../../shared/timers";
+import type { GameDefinition, RoomSnapshot } from "../../shared/types";
+import { CentralTableStage, type CentralTableState } from "./CentralTableStage";
+import { GameShelfViewport } from "./GameShelfViewport";
+import type { GameBoxState, GamePlacementSource } from "./GameBoxObject";
+import "./interactive-game-lobby.css";
+
+export type InteractiveGameLobbyProps = {
+  room: RoomSnapshot;
+  isHost: boolean;
+  playerCount: number;
+  selectedGame: GameDefinition | null;
+  canStart: boolean;
+  onSelectGame: (gameId: string) => void | Promise<void>;
+  onConfigureTimer: (nextTimerMs: number) => void;
+  onStartGame: () => void;
+  onLeaveRoom?: () => void;
+  onDeleteRoom?: () => void;
+};
+
+type PointerDragState = {
+  gameId: string;
+  pointerId: number;
+  phase: "grabbed" | "dragging";
+  startX: number;
+  startY: number;
+  x: number;
+  y: number;
+  moved: boolean;
+  overTable: boolean;
+};
+
+function findGame(gameId: string | null | undefined) {
+  return gameId ? games.find((game) => game.id === gameId) ?? null : null;
+}
+
+function canUsePointerDrag(event: ReactPointerEvent<HTMLElement>) {
+  if (event.pointerType === "touch") {
+    return false;
+  }
+
+  if (typeof window === "undefined") {
+    return true;
+  }
+
+  return window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+}
+
+export function InteractiveGameLobby({
+  room,
+  isHost,
+  playerCount,
+  selectedGame,
+  canStart,
+  onSelectGame,
+  onConfigureTimer,
+  onStartGame,
+  onLeaveRoom,
+  onDeleteRoom
+}: InteractiveGameLobbyProps) {
+  const tableRef = useRef<HTMLElement | null>(null);
+  const [focusedGameId, setFocusedGameId] = useState<string | null>(null);
+  const [placedGameId, setPlacedGameId] = useState<string | null>(() => selectedGame?.id ?? room.selectedGameId);
+  const [tablePhase, setTablePhase] = useState<CentralTableState>(() => (selectedGame ?? findGame(room.selectedGameId) ? "selected" : "empty"));
+  const [pointerDrag, setPointerDrag] = useState<PointerDragState | null>(null);
+  const [pendingGameId, setPendingGameId] = useState<string | null>(null);
+  const [suppressedClickGameId, setSuppressedClickGameId] = useState<string | null>(null);
+  const [shelfCollapsed, setShelfCollapsed] = useState(false);
+  const [sceneTilt, setSceneTilt] = useState({ x: 0, y: 0 });
+
+  const serverSelectedGame = selectedGame ?? findGame(room.selectedGameId);
+  const selectedGameId = serverSelectedGame?.id ?? null;
+  const focusedGame = findGame(focusedGameId);
+  const placedGame = findGame(placedGameId) ?? serverSelectedGame;
+  const draggedGame = findGame(pointerDrag?.gameId);
+  const tableGame = draggedGame ?? (tablePhase === "empty" || tablePhase === "focused" ? focusedGame : null) ?? placedGame;
+  const turnTimerMs = room.gameState.turnTimerMs ?? turnTimerOptions[1]?.value ?? turnTimerOptions[0].value;
+  const usesTurnTimer = gameUsesTurnTimer(serverSelectedGame?.id);
+  const selectedMeta = serverSelectedGame ? `${serverSelectedGame.title} · ${formatAllowedPlayers(serverSelectedGame)}` : "게임 선택";
+
+  const sortedGames = useMemo(
+    () =>
+      games
+        .map((game, index) => ({
+          game,
+          index,
+          available: canPlayGame(game, playerCount)
+        }))
+        .sort((left, right) => {
+          if (left.available !== right.available) {
+            return left.available ? -1 : 1;
+          }
+          if (left.game.priority !== right.game.priority) {
+            return left.game.priority === "높음" ? -1 : 1;
+          }
+          return left.index - right.index;
+        })
+        .map(({ game }) => game),
+    [playerCount]
+  );
+
+  const tableState: CentralTableState = pointerDrag?.overTable
+    ? "focused"
+    : tablePhase === "empty" && focusedGame
+      ? "focused"
+      : tablePhase;
+
+  useEffect(() => {
+    if (!selectedGameId) {
+      if (!pendingGameId) {
+        setPlacedGameId(null);
+        setTablePhase("empty");
+      }
+      return;
+    }
+
+    setPlacedGameId(selectedGameId);
+    if (pendingGameId === selectedGameId) {
+      setPendingGameId(null);
+      return;
+    }
+
+    if (tablePhase !== "opening" && tablePhase !== "unfolded") {
+      setTablePhase("selected");
+    }
+  }, [pendingGameId, selectedGameId, tablePhase]);
+
+  useEffect(() => {
+    if (!pendingGameId) {
+      return undefined;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setPendingGameId((current) => (current === pendingGameId ? null : current));
+    }, 5000);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [pendingGameId]);
+
+  useEffect(() => {
+    if (tablePhase === "opening") {
+      const timeoutId = window.setTimeout(() => setTablePhase("unfolded"), 280);
+      return () => window.clearTimeout(timeoutId);
+    }
+
+    if (tablePhase === "unfolded" && selectedGameId && placedGameId === selectedGameId) {
+      const timeoutId = window.setTimeout(() => setTablePhase("selected"), 360);
+      return () => window.clearTimeout(timeoutId);
+    }
+
+    return undefined;
+  }, [placedGameId, selectedGameId, tablePhase]);
+
+  function isPointOverTable(x: number, y: number) {
+    const rect = tableRef.current?.getBoundingClientRect();
+    return Boolean(rect && x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom);
+  }
+
+  function previewGame(game: GameDefinition) {
+    if (pointerDrag) {
+      return;
+    }
+    setFocusedGameId(game.id);
+  }
+
+  function clearPreviewGame(game: GameDefinition) {
+    setFocusedGameId((current) => (current === game.id ? null : current));
+  }
+
+  function placeGame(game: GameDefinition, source: GamePlacementSource) {
+    if (source === "tap" && suppressedClickGameId === game.id) {
+      return;
+    }
+
+    if (!canPlayGame(game, playerCount) || !isHost) {
+      return;
+    }
+
+    setFocusedGameId(null);
+    setPlacedGameId(game.id);
+    setTablePhase("opening");
+
+    if (selectedGameId === game.id) {
+      setPendingGameId(null);
+      return;
+    }
+
+    setPendingGameId(game.id);
+    void Promise.resolve(onSelectGame(game.id)).catch(() => {
+      setPendingGameId((current) => (current === game.id ? null : current));
+      setPlacedGameId(selectedGameId);
+      setTablePhase(selectedGameId ? "selected" : "empty");
+    });
+  }
+
+  function handlePointerDown(event: ReactPointerEvent<HTMLButtonElement>, game: GameDefinition) {
+    if (!canUsePointerDrag(event) || !isHost || !canPlayGame(game, playerCount)) {
+      return;
+    }
+
+    if (event.pointerType === "mouse" && event.button !== 0) {
+      return;
+    }
+
+    event.currentTarget.setPointerCapture(event.pointerId);
+    setPointerDrag({
+      gameId: game.id,
+      pointerId: event.pointerId,
+      phase: "grabbed",
+      startX: event.clientX,
+      startY: event.clientY,
+      x: event.clientX,
+      y: event.clientY,
+      moved: false,
+      overTable: false
+    });
+  }
+
+  function handlePointerMove(event: ReactPointerEvent<HTMLButtonElement>, game: GameDefinition) {
+    setPointerDrag((current) => {
+      if (!current || current.gameId !== game.id || current.pointerId !== event.pointerId) {
+        return current;
+      }
+
+      const distance = Math.hypot(event.clientX - current.startX, event.clientY - current.startY);
+      const moved = current.moved || distance > 8;
+
+      return {
+        ...current,
+        phase: moved ? "dragging" : "grabbed",
+        x: event.clientX,
+        y: event.clientY,
+        moved,
+        overTable: moved && isPointOverTable(event.clientX, event.clientY)
+      };
+    });
+  }
+
+  function handlePointerUp(event: ReactPointerEvent<HTMLButtonElement>, game: GameDefinition) {
+    const current = pointerDrag;
+    if (!current || current.gameId !== game.id || current.pointerId !== event.pointerId) {
+      return;
+    }
+
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+
+    setPointerDrag(null);
+    if (current.moved) {
+      setSuppressedClickGameId(game.id);
+      window.setTimeout(() => {
+        setSuppressedClickGameId((value) => (value === game.id ? null : value));
+      }, 0);
+    }
+
+    if (current.moved && current.overTable) {
+      placeGame(game, "drag");
+    }
+  }
+
+  function handlePointerCancel(event: ReactPointerEvent<HTMLButtonElement>) {
+    if (pointerDrag && event.currentTarget.hasPointerCapture(pointerDrag.pointerId)) {
+      event.currentTarget.releasePointerCapture(pointerDrag.pointerId);
+    }
+    setPointerDrag(null);
+  }
+
+  function getBoxState(game: GameDefinition): GameBoxState {
+    const available = canPlayGame(game, playerCount);
+    if (!available) {
+      return "locked";
+    }
+
+    if (pointerDrag?.gameId === game.id) {
+      return pointerDrag.overTable ? "over-table" : "grabbed";
+    }
+
+    if (placedGameId === game.id && tablePhase === "opening") {
+      return "opening";
+    }
+
+    if (placedGameId === game.id && tablePhase === "unfolded") {
+      return "unfolded";
+    }
+
+    if (selectedGameId === game.id) {
+      return "selected";
+    }
+
+    if (focusedGameId === game.id) {
+      return "focused";
+    }
+
+    return "shelf";
+  }
+
+  function getDragPosition(game: GameDefinition) {
+    if (pointerDrag?.gameId !== game.id) {
+      return null;
+    }
+    return { x: pointerDrag.x, y: pointerDrag.y };
+  }
+
+  function handleScenePointerMove(event: ReactPointerEvent<HTMLElement>) {
+    if (event.pointerType === "touch") {
+      return;
+    }
+
+    const rect = event.currentTarget.getBoundingClientRect();
+    setSceneTilt({
+      x: Number(((event.clientX - rect.left) / rect.width - 0.5).toFixed(3)),
+      y: Number(((event.clientY - rect.top) / rect.height - 0.5).toFixed(3))
+    });
+  }
+
+  return (
+    <section
+      className="interactive-game-lobby is-game-lobby"
+      data-state={tableState}
+      data-host={isHost ? "true" : "false"}
+      aria-labelledby="interactive-game-lobby-title"
+      onPointerMove={handleScenePointerMove}
+      onPointerLeave={() => setSceneTilt({ x: 0, y: 0 })}
+      style={
+        {
+          "--lobby-scene-x": sceneTilt.x,
+          "--lobby-scene-y": sceneTilt.y
+        } as CSSProperties
+      }
+    >
+      <header className="game-lobby-header">
+        <div className="game-lobby-title-block">
+          <span className="game-lobby-count">
+            <UsersRound size={15} aria-hidden="true" />
+            {playerCount}/{room.maxPlayers}
+          </span>
+          <h2 id="interactive-game-lobby-title">게임 선택</h2>
+        </div>
+        <p className="game-lobby-status" aria-live="polite">
+          {serverSelectedGame ? selectedMeta : gameAvailabilityLabel(sortedGames[0] ?? games[0], playerCount)}
+        </p>
+        <div className="game-lobby-header-actions" aria-label="방 조작">
+          <div className="game-lobby-player-tokens" aria-label="참가자">
+            {room.players.map((player) => (
+              <span key={player.id} data-host={player.isHost ? "true" : "false"} title={player.name}>
+                {player.name.slice(0, 1)}
+              </span>
+            ))}
+          </div>
+          {onLeaveRoom || onDeleteRoom ? (
+            <button
+              className="game-lobby-exit-button"
+              type="button"
+              onClick={room.canDeleteRoom && onDeleteRoom ? onDeleteRoom : onLeaveRoom}
+              aria-label={room.canDeleteRoom ? "테이블 닫기" : "테이블 나가기"}
+            >
+              {room.canDeleteRoom ? <Trash2 size={16} aria-hidden="true" /> : <DoorOpen size={16} aria-hidden="true" />}
+            </button>
+          ) : null}
+        </div>
+      </header>
+
+      <div className="game-lobby-layout">
+        <CentralTableStage
+          game={tableGame}
+          state={tableState}
+          players={room.players}
+          maxSeats={room.maxPlayers}
+          tableRef={(node) => {
+            tableRef.current = node;
+          }}
+        />
+
+        <div className="game-lobby-side">
+          <GameShelfViewport
+            games={sortedGames}
+            playerCount={playerCount}
+            isHost={isHost}
+            selectedGameId={selectedGameId}
+            collapsed={shelfCollapsed}
+            canCollapse={Boolean(selectedGameId)}
+            getBoxState={getBoxState}
+            isGameAvailable={(game) => canPlayGame(game, playerCount)}
+            getDragPosition={getDragPosition}
+            onToggleCollapsed={() => setShelfCollapsed((current) => !current)}
+            onPreview={previewGame}
+            onPreviewEnd={clearPreviewGame}
+            onPlace={placeGame}
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+            onPointerCancel={handlePointerCancel}
+          />
+
+          {serverSelectedGame ? (
+            <div className="game-lobby-action-bar">
+              {usesTurnTimer ? (
+                <label className="game-lobby-timer-control">
+                  <span>
+                    <Clock3 size={15} aria-hidden="true" />
+                    턴 제한
+                  </span>
+                  <select value={turnTimerMs} disabled={!isHost} onChange={(event) => onConfigureTimer(Number(event.currentTarget.value))}>
+                    {turnTimerOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : null}
+
+              <button className="game-lobby-start-button" type="button" disabled={!isHost || !canStart} onClick={onStartGame}>
+                <Play size={16} aria-hidden="true" />
+                <span>{isHost ? (canStart ? "시작" : "대기") : "방장 대기"}</span>
+              </button>
+            </div>
+          ) : null}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+export default InteractiveGameLobby;

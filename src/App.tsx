@@ -46,6 +46,8 @@ import {
   useState
 } from "react";
 import { socket } from "./lib/socket";
+import { InteractiveCafeHome } from "./components/interactive-space/InteractiveCafeHome";
+import { InteractiveGameLobby } from "./components/interactive-space/InteractiveGameLobby";
 import { games, getGameById } from "./shared/games";
 import { canPlayGame, formatAllowedPlayers, gameAvailabilityLabel } from "./shared/eligibility";
 import { gameUsesTurnTimer, turnTimerOptions } from "./shared/timers";
@@ -863,7 +865,6 @@ function App() {
         </div>
         <div>
           <h1>Board Game Room</h1>
-          {!room && <p>웹에서 즐기는 보드게임</p>}
         </div>
       </header>
 
@@ -905,7 +906,26 @@ function App() {
   );
 }
 
-function HomeView({
+function HomeView(props: {
+  name: string;
+  avatar: PlayerAvatar;
+  notice: string;
+  connection: "connecting" | "connected" | "offline";
+  lastRoomCode: string;
+  rooms: PublicRoomListItem[];
+  roomsLoading: boolean;
+  onNameChange: (value: string) => void;
+  onAvatarChange: (value: PlayerAvatar) => void;
+  onCreateRoom: (event: FormEvent) => void;
+  onJoinListedRoom: (code: string) => void;
+  onRefreshRooms: () => void;
+  onResumeSavedRoom: () => void;
+  onResetLocalIdentity: () => void;
+}) {
+  return <InteractiveCafeHome {...props} />;
+}
+
+function LegacyHomeView({
   name,
   avatar,
   notice,
@@ -1579,7 +1599,8 @@ function RoomView({
 
   return (
     <section className={`room-section ${room.status === "lobby" ? "is-lobby" : "is-playing"}`} aria-label="게임 방">
-      <div className="room-layout">
+      <div className={`room-layout ${room.status === "lobby" ? "interactive-lobby-layout" : ""}`}>
+        {room.status !== "lobby" ? (
         <aside className="seat-panel" aria-label="플레이어">
           <div className="panel-header seat-panel-header">
             <div className="seat-panel-title">
@@ -1607,6 +1628,7 @@ function RoomView({
           </div>
           {notice ? <p className="notice" role="status">{notice}</p> : null}
         </aside>
+        ) : null}
 
         {room.status === "lobby" ? (
           <LobbyPanel
@@ -1618,6 +1640,8 @@ function RoomView({
             onSelectGame={onSelectGame}
             onConfigureTimer={onConfigureTimer}
             onStartGame={onStartGame}
+            onLeaveRoom={onLeaveLocalRoom}
+            onDeleteRoom={onDeleteLocalRoom}
           />
         ) : (
           <PlayPanel
@@ -1668,7 +1692,22 @@ function SeatRow({
   );
 }
 
-function LobbyPanel({
+function LobbyPanel(props: {
+  room: RoomSnapshot;
+  isHost: boolean;
+  playerCount: number;
+  selectedGame: GameDefinition | null;
+  canStart: boolean;
+  onSelectGame: (gameId: string) => void;
+  onConfigureTimer: (nextTimerMs: number) => void;
+  onStartGame: () => void;
+  onLeaveRoom: () => void;
+  onDeleteRoom: () => void;
+}) {
+  return <InteractiveGameLobby {...props} />;
+}
+
+function LegacyLobbyPanel({
   room,
   isHost,
   playerCount,
