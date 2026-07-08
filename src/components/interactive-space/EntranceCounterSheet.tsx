@@ -1,19 +1,12 @@
-import { DoorOpen, Plus, RefreshCw, X } from "lucide-react";
-import type { MouseEvent } from "react";
+import { DoorOpen, RefreshCw, X } from "lucide-react";
 import type { PublicRoomListItem } from "../../shared/types";
-
-type PreventableEvent = {
-  preventDefault: () => void;
-};
 
 export type EntranceCounterSheetProps = {
   selectedRoom: PublicRoomListItem | null;
   savedRoom: PublicRoomListItem | null;
-  canCreate: boolean;
   canEnterSelectedRoom: boolean;
   roomsLoading: boolean;
   connection: "connecting" | "connected" | "offline";
-  onCreateTable: (event: PreventableEvent) => void;
   onEnterSelectedRoom: () => void;
   onRefreshRooms: () => void;
   onCloseSelection: () => void;
@@ -57,23 +50,21 @@ function connectionLabel(connection: EntranceCounterSheetProps["connection"]) {
 export function EntranceCounterSheet({
   selectedRoom,
   savedRoom,
-  canCreate,
   canEnterSelectedRoom,
   roomsLoading,
   connection,
-  onCreateTable,
   onEnterSelectedRoom,
   onRefreshRooms,
   onCloseSelection
 }: EntranceCounterSheetProps) {
-  function handleCreate(event: MouseEvent<HTMLButtonElement>) {
-    onCreateTable(event);
-  }
-
   const activeRoom = selectedRoom ?? savedRoom;
 
+  if (!activeRoom) {
+    return null;
+  }
+
   return (
-    <aside className="entrance-counter-sheet" data-state={activeRoom ? "table-selected" : "empty-ready"} aria-label="입구 카운터">
+    <aside className="entrance-counter-sheet" data-state="table-selected" aria-label="선택한 테이블">
       <header className="entrance-counter-header">
         <span>{connectionLabel(connection)}</span>
         <div className="entrance-counter-actions">
@@ -88,31 +79,16 @@ export function EntranceCounterSheet({
         </div>
       </header>
 
-      {activeRoom ? (
-        <div className="entrance-table-summary">
-          <strong>{hostTableName(activeRoom)}</strong>
-          <span>{activeRoom.playerCount}/{activeRoom.maxPlayers}</span>
-          <small>{gameLabel(activeRoom)}</small>
-        </div>
-      ) : (
-        <div className="entrance-table-summary">
-          <strong>빈 테이블</strong>
-          <span>0/4</span>
-          <small>게임 선택 전</small>
-        </div>
-      )}
+      <div className="entrance-table-summary">
+        <strong>{hostTableName(activeRoom)}</strong>
+        <span>{activeRoom.playerCount}/{activeRoom.maxPlayers}</span>
+        <small>{gameLabel(activeRoom)}</small>
+      </div>
 
-      {activeRoom ? (
-        <button className="entrance-primary-button" type="button" onClick={onEnterSelectedRoom} disabled={!canEnterSelectedRoom}>
-          <DoorOpen size={16} aria-hidden="true" />
-          {actionLabel(activeRoom, savedRoom)}
-        </button>
-      ) : (
-        <button className="entrance-primary-button" type="button" onClick={handleCreate} disabled={!canCreate}>
-          <Plus size={16} aria-hidden="true" />
-          테이블 만들기
-        </button>
-      )}
+      <button className="entrance-primary-button" type="button" onClick={onEnterSelectedRoom} disabled={!canEnterSelectedRoom}>
+        <DoorOpen size={16} aria-hidden="true" />
+        {actionLabel(activeRoom, savedRoom)}
+      </button>
     </aside>
   );
 }

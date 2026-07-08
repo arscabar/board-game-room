@@ -13,21 +13,30 @@ type Particle = {
 
 export type ParticleTrailOverlayProps = {
   isDragging: boolean;
-  mouseX: number;
-  mouseY: number;
 };
 
-export function ParticleTrailOverlay({ isDragging, mouseX, mouseY }: ParticleTrailOverlayProps) {
+export function ParticleTrailOverlay({ isDragging }: ParticleTrailOverlayProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const particlesRef = useRef<Particle[]>([]);
-  const prevMouseRef = useRef({ x: mouseX, y: mouseY });
+  const mouseRef = useRef({ x: -1000, y: -1000 });
+  const prevMouseRef = useRef({ x: -1000, y: -1000 });
 
   useEffect(() => {
+    if (!isDragging) {
+      particlesRef.current = [];
+      return undefined;
+    }
+
     const canvas = canvasRef.current;
     if (!canvas) return;
 
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
+
+    const onMove = (e: PointerEvent) => {
+      mouseRef.current = { x: e.clientX, y: e.clientY };
+    };
+    window.addEventListener("pointermove", onMove);
 
     let animationFrameId: number;
 
@@ -45,15 +54,17 @@ export function ParticleTrailOverlay({ isDragging, mouseX, mouseY }: ParticleTra
 
       if (isDragging) {
         // Emit particles
-        const dx = mouseX - prevMouseRef.current.x;
-        const dy = mouseY - prevMouseRef.current.y;
+        const mx = mouseRef.current.x;
+        const my = mouseRef.current.y;
+        const dx = mx - prevMouseRef.current.x;
+        const dy = my - prevMouseRef.current.y;
         const speed = Math.hypot(dx, dy);
 
         const count = Math.min(Math.floor(speed * 0.5) + 1, 10);
         for (let i = 0; i < count; i++) {
           particlesRef.current.push({
-            x: mouseX + (Math.random() - 0.5) * 20,
-            y: mouseY + (Math.random() - 0.5) * 20,
+            x: mx + (Math.random() - 0.5) * 20,
+            y: my + (Math.random() - 0.5) * 20,
             vx: (Math.random() - 0.5) * 2 - dx * 0.05,
             vy: (Math.random() - 0.5) * 2 - dy * 0.05,
             life: 1,
@@ -64,7 +75,7 @@ export function ParticleTrailOverlay({ isDragging, mouseX, mouseY }: ParticleTra
         }
       }
 
-      prevMouseRef.current = { x: mouseX, y: mouseY };
+      prevMouseRef.current = { x: mouseRef.current.x, y: mouseRef.current.y };
 
       // Update & Draw
       ctx.globalCompositeOperation = "lighter";
@@ -99,9 +110,14 @@ export function ParticleTrailOverlay({ isDragging, mouseX, mouseY }: ParticleTra
 
     return () => {
       window.removeEventListener("resize", resize);
+      window.removeEventListener("pointermove", onMove);
       cancelAnimationFrame(animationFrameId);
     };
-  }, [isDragging, mouseX, mouseY]);
+  }, [isDragging]);
+
+  if (!isDragging) {
+    return null;
+  }
 
   return (
     <canvas
@@ -112,6 +128,7 @@ export function ParticleTrailOverlay({ isDragging, mouseX, mouseY }: ParticleTra
         left: 0,
         width: "100%",
         height: "100%",
+        display: "block",
         pointerEvents: "none",
         zIndex: 9999
       }}

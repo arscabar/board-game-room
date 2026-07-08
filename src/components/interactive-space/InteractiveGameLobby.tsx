@@ -4,7 +4,6 @@ import {
   useMemo,
   useRef,
   useState,
-  type CSSProperties,
   type PointerEvent as ReactPointerEvent
 } from "react";
 import { games } from "../../shared/games";
@@ -77,7 +76,6 @@ export function InteractiveGameLobby({
   const [pendingGameId, setPendingGameId] = useState<string | null>(null);
   const [suppressedClickGameId, setSuppressedClickGameId] = useState<string | null>(null);
   const [shelfCollapsed, setShelfCollapsed] = useState(false);
-  const [sceneTilt, setSceneTilt] = useState({ x: 0, y: 0 });
 
   const serverSelectedGame = selectedGame ?? findGame(room.selectedGameId);
   const selectedGameId = serverSelectedGame?.id ?? null;
@@ -313,32 +311,12 @@ export function InteractiveGameLobby({
     return { x: pointerDrag.x, y: pointerDrag.y };
   }
 
-  function handleScenePointerMove(event: ReactPointerEvent<HTMLElement>) {
-    if (event.pointerType === "touch") {
-      return;
-    }
-
-    const rect = event.currentTarget.getBoundingClientRect();
-    setSceneTilt({
-      x: Number(((event.clientX - rect.left) / rect.width - 0.5).toFixed(3)),
-      y: Number(((event.clientY - rect.top) / rect.height - 0.5).toFixed(3))
-    });
-  }
-
   return (
     <section
       className="interactive-game-lobby is-game-lobby"
       data-state={tableState}
       data-host={isHost ? "true" : "false"}
       aria-labelledby="interactive-game-lobby-title"
-      onPointerMove={handleScenePointerMove}
-      onPointerLeave={() => setSceneTilt({ x: 0, y: 0 })}
-      style={
-        {
-          "--lobby-scene-x": sceneTilt.x,
-          "--lobby-scene-y": sceneTilt.y
-        } as CSSProperties
-      }
     >
       <header className="game-lobby-header">
         <div className="game-lobby-title-block">

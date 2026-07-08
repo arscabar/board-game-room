@@ -16,7 +16,8 @@ const paletteColors: Record<string, { base: string; light: string }> = {
 };
 
 function seatStyle(player: PlayerSnapshot | undefined, seat: number) {
-  const palette = player ? paletteColors[player.avatar.palette] ?? paletteColors.teal : paletteColors.ivory;
+  const paletteId = player?.avatar?.palette ?? "ivory";
+  const palette = player ? paletteColors[paletteId] ?? paletteColors.teal : paletteColors.ivory;
   return {
     "--seat-index": seat,
     "--seat-base": palette.base,

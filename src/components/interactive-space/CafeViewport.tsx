@@ -132,6 +132,8 @@ export function CafeViewport({
   // Flick-to-Spin Pointer Events
   function handlePointerDown(e: ReactPointerEvent<HTMLElement>) {
     if (e.pointerType === "mouse" && e.button !== 0) return;
+    if (isInteractiveTarget(e.target)) return;
+
     dragRef.current = {
       isDragging: true,
       startX: e.clientX,
@@ -139,7 +141,7 @@ export function CafeViewport({
       velocity: 0,
       startTime: performance.now()
     };
-    e.currentTarget.setPointerCapture(e.pointerId);
+    // Do NOT capture yet. Let clicks pass through.
   }
 
   function handlePointerMove(e: ReactPointerEvent<HTMLElement>) {
@@ -147,7 +149,14 @@ export function CafeViewport({
     const dx = e.clientX - dragRef.current.lastX;
     dragRef.current.velocity = dx;
     dragRef.current.lastX = e.clientX;
-    
+
+    // If they drag significantly, capture the pointer to prevent accidental clicks
+    if (Math.abs(e.clientX - dragRef.current.startX) > 5) {
+       if (!e.currentTarget.hasPointerCapture(e.pointerId)) {
+          e.currentTarget.setPointerCapture(e.pointerId);
+       }
+    }
+
     // If they dragged enough instantly snap to next
     if (Math.abs(e.clientX - dragRef.current.startX) > 50) {
        dragRef.current.startX = e.clientX; // reset
@@ -170,7 +179,9 @@ export function CafeViewport({
   function handlePointerUp(e: ReactPointerEvent<HTMLElement>) {
     if (!dragRef.current.isDragging) return;
     dragRef.current.isDragging = false;
-    e.currentTarget.releasePointerCapture(e.pointerId);
+    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    }
     
     // Inertia
     const v = dragRef.current.velocity;
@@ -244,7 +255,14 @@ export function CafeViewport({
                 isSelected={isSelected}
                 isSavedRoom={Boolean(room && room.code === lastRoomCode)}
                 createState={createState}
-                onCreateTable={onCreateTable}
+                onCreateTable={(e) => {
+                  if (table.kind === "empty" || isSelected) {
+                     onCreateTable(e);
+                  } else {
+                     e.preventDefault();
+                     onSelectTable(table.id);
+                  }
+                }}
                 onSelectRoom={(nextRoom) => {
                   if (isSelected) {
                      onSelectRoom(nextRoom);

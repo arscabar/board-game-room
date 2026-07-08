@@ -1,17 +1,12 @@
-import { ChevronDown, DoorOpen, RotateCcw, Shuffle, Trash2 } from "lucide-react";
+import { ChevronDown, DoorOpen, Shuffle, Trash2 } from "lucide-react";
 import {
   type CSSProperties,
-  type FormEvent,
   type PointerEvent as ReactPointerEvent,
   useRef,
   useState
 } from "react";
 import type { PlayerAvatar } from "../../shared/types";
 import { playClickSound } from "../../utils/haptics";
-
-type PreventableEvent = {
-  preventDefault: () => void;
-};
 
 const avatarBodies: Array<{ id: PlayerAvatar["body"]; label: string }> = [
   { id: "pawn", label: "말" },
@@ -51,7 +46,6 @@ export type PlayerTokenDockProps = {
   hasSavedRoom: boolean;
   onNameChange: (value: string) => void;
   onAvatarChange: (value: PlayerAvatar) => void;
-  onCreateTable: (event: PreventableEvent) => void;
   onResumeSavedRoom: () => void;
   onResetLocalIdentity: () => void;
   onTokenDrop: (clientX: number, clientY: number) => boolean;
@@ -152,7 +146,6 @@ export function PlayerTokenDock({
   hasSavedRoom,
   onNameChange,
   onAvatarChange,
-  onCreateTable,
   onResumeSavedRoom,
   onResetLocalIdentity,
   onTokenDrop,
@@ -164,10 +157,6 @@ export function PlayerTokenDock({
 
   function resetDrag() {
     setDrag({ x: 0, y: 0, state: "docked" });
-  }
-
-  function handleCreateSubmit(event: FormEvent<HTMLFormElement>) {
-    onCreateTable(event);
   }
 
   function handleTokenPointerDown(event: ReactPointerEvent<HTMLButtonElement>) {
@@ -245,7 +234,7 @@ export function PlayerTokenDock({
 
   return (
     <aside className="player-token-dock" data-expanded={expanded ? "true" : "false"} data-token-state={drag.state} aria-label="내 말">
-      <form className="player-token-form" onSubmit={handleCreateSubmit}>
+      <form className="player-token-form" onSubmit={(event) => event.preventDefault()}>
         <div className="player-token-identity-row">
           <button
             className="player-token-handle"
@@ -364,10 +353,6 @@ export function PlayerTokenDock({
           <button className="player-token-soft-button" type="button" onClick={onResetLocalIdentity}>
             <Trash2 size={15} aria-hidden="true" />
             새 손님
-          </button>
-          <button className="player-token-primary-button" type="submit" disabled={!canCreate}>
-            <RotateCcw size={15} aria-hidden="true" />
-            테이블 만들기
           </button>
         </div>
       </form>

@@ -107,12 +107,6 @@ export function GameBoxObject({
         disabled={disabled}
         aria-pressed={selected}
         aria-label={`${game.title}, ${formatAllowedPlayers(game)}, ${stateLabel}`}
-        onPointerEnter={() => {
-          if (typeof window !== "undefined" && window.matchMedia("(min-width: 761px)").matches) onPreview(game);
-        }}
-        onPointerLeave={() => {
-          if (typeof window !== "undefined" && window.matchMedia("(min-width: 761px)").matches) onPreviewEnd(game);
-        }}
         onPointerDown={(event) => onPointerDown(event, game)}
         onPointerMove={(event) => onPointerMove(event, game)}
         onPointerUp={(event) => onPointerUp(event, game)}

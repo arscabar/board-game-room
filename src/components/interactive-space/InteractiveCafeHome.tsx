@@ -1,5 +1,5 @@
 import { RefreshCw } from "lucide-react";
-import { useEffect, useMemo, useState, type CSSProperties, type FormEvent, type PointerEvent as ReactPointerEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import type { PlayerAvatar, PublicRoomListItem } from "../../shared/types";
 import { CafeViewport } from "./CafeViewport";
 import type { CafeTablePlacement } from "./CafeTableObject";
@@ -100,8 +100,6 @@ export function InteractiveCafeHome({
   const [createState, setCreateState] = useState<"idle" | "placing">("idle");
   const [joinTransition, setJoinTransition] = useState(false);
   const [isTokenDragging, setIsTokenDragging] = useState(false);
-  const [sceneTilt, setSceneTilt] = useState({ x: 0, y: 0 });
-  const [cursorPos, setCursorPos] = useState({ x: -1000, y: -1000 });
 
   const canCreate = connection === "connected" && Boolean(name.trim());
   const savedRoom = lastRoomCode ? rooms.find((room) => room.code === lastRoomCode) ?? null : null;
@@ -198,34 +196,11 @@ export function InteractiveCafeHome({
     window.setTimeout(() => onJoinListedRoom(activeRoom.code), 800);
   }
 
-  function handleScenePointerMove(event: ReactPointerEvent<HTMLElement>) {
-    if (event.pointerType === "touch") {
-      return;
-    }
-
-    const rect = event.currentTarget.getBoundingClientRect();
-    setSceneTilt({
-      x: Number(((event.clientX - rect.left) / rect.width - 0.5).toFixed(3)),
-      y: Number(((event.clientY - rect.top) / rect.height - 0.5).toFixed(3))
-    });
-    setCursorPos({ x: event.clientX - rect.left, y: event.clientY - rect.top });
-  }
-
   return (
     <section
       className={cx("cafe-home", "is-cafe-home", joinTransition && "is-joining-room")}
       data-connection={connection}
       aria-labelledby="cafe-home-title"
-      onPointerMove={handleScenePointerMove}
-      onPointerLeave={() => { setSceneTilt({ x: 0, y: 0 }); setCursorPos({ x: -1000, y: -1000 }); }}
-      style={
-        {
-          "--cafe-scene-x": sceneTilt.x,
-          "--cafe-scene-y": sceneTilt.y,
-          "--mouse-x": `${cursorPos.x}px`,
-          "--mouse-y": `${cursorPos.y}px`
-        } as CSSProperties
-      }
     >
       <header className="cafe-home-bar">
         <div className="cafe-home-title-block">
@@ -264,7 +239,6 @@ export function InteractiveCafeHome({
           hasSavedRoom={Boolean(savedRoom)}
           onNameChange={onNameChange}
           onAvatarChange={onAvatarChange}
-          onCreateTable={requestCreateTable}
           onResumeSavedRoom={onResumeSavedRoom}
           onResetLocalIdentity={onResetLocalIdentity}
           onTokenDrop={handleTokenDrop}
@@ -274,11 +248,9 @@ export function InteractiveCafeHome({
         <EntranceCounterSheet
           selectedRoom={selectedRoom}
           savedRoom={savedRoom}
-          canCreate={canCreate}
           canEnterSelectedRoom={canEnterSelectedRoom}
           roomsLoading={roomsLoading}
           connection={connection}
-          onCreateTable={requestCreateTable}
           onEnterSelectedRoom={enterActiveRoom}
           onRefreshRooms={onRefreshRooms}
           onCloseSelection={() => {
@@ -289,8 +261,6 @@ export function InteractiveCafeHome({
 
         <ParticleTrailOverlay 
            isDragging={isTokenDragging} 
-           mouseX={cursorPos.x} 
-           mouseY={cursorPos.y} 
         />
       </div>
 

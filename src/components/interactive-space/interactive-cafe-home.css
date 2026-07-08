@@ -286,7 +286,10 @@
   gap: 3px;
   width: max-content;
   max-width: 220px;
-  margin: 155px auto 0;
+  height: auto;
+  left: 50%;
+  top: 155px;
+  margin: 0;
   padding: 8px 16px;
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 12px;
@@ -294,7 +297,7 @@
   background: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(12px);
   box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
-  transform: translateZ(30px);
+  transform: translateX(-50%) translateZ(30px);
   text-align: center;
 }
 
@@ -541,6 +544,13 @@
   .cafe-home-scene {
     width: 100%;
     min-height: calc(100vh - 68px);
+  }
+
+  .cafe-home-stage {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding-bottom: 22px;
   }
 
   .cafe-home-titlebar {
@@ -1625,7 +1635,7 @@
 
 .cafe-home .cafe-camera-layer {
   transform:
-    translate3d(calc(-50% + var(--cafe-pan-x) + var(--cafe-drift-x)), calc(-50% + var(--cafe-pan-y) + var(--cafe-drift-y)), 0)
+    translate3d(calc(-50% + var(--cafe-pan-x, 0px) + var(--cafe-drift-x)), calc(-50% + var(--cafe-pan-y, 0px) + var(--cafe-drift-y)), 0)
     rotateX(var(--cafe-tilt-x))
     rotateY(var(--cafe-tilt-y));
   transform-style: preserve-3d;
@@ -1737,4 +1747,26 @@
   .cafe-home .player-token-dock {
     bottom: 12px;
   }
+}
+
+/* Stability pass: keep the interactive cafe clickable and still. */
+.cafe-viewport.coverflow-viewport::before {
+  display: none;
+}
+
+.cafe-viewport.coverflow-viewport::after {
+  animation: none;
+  opacity: 0.025;
+}
+
+.cafe-home .coverflow-item .cafe-table-object {
+  transform: translate(-50%, calc(-50% + var(--cafe-table-lift, 0px))) scale(var(--cafe-table-scale, 1));
+}
+
+.cafe-home .coverflow-item .cafe-table-object:active:not(:disabled) {
+  transform: translate(-50%, calc(-50% + var(--cafe-table-lift, 0px))) scale(calc(var(--cafe-table-scale, 1) * 0.98));
+}
+
+.cafe-home .entrance-counter-sheet[data-state="empty-ready"] {
+  display: none !important;
 }
