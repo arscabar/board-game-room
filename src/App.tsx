@@ -342,6 +342,177 @@ function runtimeWinnerIds(room: RoomSnapshot) {
   return Array.from(winners);
 }
 
+type PlayerMomentumTone = "winner" | "streak" | "leader";
+
+interface PlayerMomentumBadge {
+  label: string;
+  tone: PlayerMomentumTone;
+}
+
+function finiteNumber(value: unknown) {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function sumNumericValues(value: unknown) {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+  const record = stateRecord(value);
+  if (!record) {
+    return null;
+  }
+  let total = 0;
+  let found = false;
+  Object.values(record).forEach((entry) => {
+    if (typeof entry === "number" && Number.isFinite(entry)) {
+      total += entry;
+      found = true;
+    }
+  });
+  return found ? total : null;
+}
+
+function playerValueFromRecord(value: unknown, playerId: string) {
+  const record = stateRecord(value);
+  if (!record) {
+    return null;
+  }
+  return sumNumericValues(record[playerId]);
+}
+
+function playerValueFromList(value: unknown, playerId: string, keys: string[]) {
+  if (!Array.isArray(value)) {
+    return null;
+  }
+  for (const entry of value) {
+    const record = stateRecord(entry);
+    if (!record) {
+      continue;
+    }
+    const id = typeof record.id === "string" ? record.id : typeof record.playerId === "string" ? record.playerId : null;
+    if (id !== playerId) {
+      continue;
+    }
+    for (const key of keys) {
+      const metric = finiteNumber(record[key]);
+      if (metric !== null) {
+        return metric;
+      }
+    }
+  }
+  return null;
+}
+
+function readPlayerMetric(sources: Array<Record<string, unknown>>, playerId: string, recordKeys: string[], listKeys: string[]) {
+  for (const source of sources) {
+    for (const key of recordKeys) {
+      const metric = playerValueFromRecord(source[key], playerId);
+      if (metric !== null) {
+        return metric;
+      }
+    }
+    const listMetric = playerValueFromList(source.players, playerId, listKeys);
+    if (listMetric !== null) {
+      return listMetric;
+    }
+  }
+  return null;
+}
+
+function winnerIdFromRound(value: unknown) {
+  const record = stateRecord(value);
+  const winnerId = record?.winnerId;
+  return typeof winnerId === "string" && winnerId ? winnerId : null;
+}
+
+function playerStreakFromRounds(value: unknown, playerId: string) {
+  if (!Array.isArray(value)) {
+    return null;
+  }
+  let streak = 0;
+  for (let index = value.length - 1; index >= 0; index -= 1) {
+    const winnerId = winnerIdFromRound(value[index]);
+    if (!winnerId) {
+      continue;
+    }
+    if (winnerId !== playerId) {
+      break;
+    }
+    streak += 1;
+  }
+  return streak > 0 ? streak : null;
+}
+
+function readPlayerStreak(sources: Array<Record<string, unknown>>, playerId: string) {
+  const direct = readPlayerMetric(sources, playerId, ["streaks", "winStreaks", "consecutiveWins"], ["streak", "winStreak", "consecutiveWins"]);
+  if (direct !== null) {
+    return direct;
+  }
+  for (const source of sources) {
+    const roundsStreak = playerStreakFromRounds(source.rounds, playerId);
+    if (roundsStreak !== null) {
+      return roundsStreak;
+    }
+  }
+  return null;
+}
+
+function buildPlayerMomentumBadges(room: RoomSnapshot, selectedGame: GameDefinition | null, winnerIds: string[]) {
+  const rootState = stateRecord(room.gameState);
+  const publicState = stateRecord(room.gameState.publicState);
+  const sources = [publicState, rootState].filter((source): source is Record<string, unknown> => Boolean(source));
+  const badges = new Map<string, PlayerMomentumBadge>();
+  const winnerSet = new Set(winnerIds);
+
+  const winMetrics = room.players.map((player) => ({
+    playerId: player.id,
+    value: readPlayerMetric(sources, player.id, ["wins", "roundWins", "victories"], ["wins", "roundWins", "victories"]),
+    streak: readPlayerStreak(sources, player.id)
+  }));
+  const hasRoundWins = winMetrics.some((metric) => (metric.value ?? 0) > 0);
+  const scoreAsWins = selectedGame?.scoreState === "승수제" || selectedGame?.id === "guryongtu";
+  const scoreMetrics = room.players.map((player) => ({
+    playerId: player.id,
+    value: readPlayerMetric(sources, player.id, ["totals", "scores", "points"], ["total", "score", "points"]),
+    streak: scoreAsWins ? readPlayerStreak(sources, player.id) : null
+  }));
+
+  const metrics = hasRoundWins ? winMetrics : scoreMetrics;
+  const values = metrics.map((metric) => metric.value).filter((value): value is number => value !== null);
+  const maxValue = values.length > 0 ? Math.max(...values) : null;
+  const useWinLabel = hasRoundWins || scoreAsWins;
+
+  metrics.forEach(({ playerId, value, streak }) => {
+    if (value === null || value <= 0 || maxValue === null) {
+      return;
+    }
+    if (useWinLabel) {
+      if (value !== maxValue) {
+        return;
+      }
+      const isStreak = (streak ?? 0) >= 2;
+      const tone: PlayerMomentumTone = isStreak ? "streak" : "leader";
+      badges.set(playerId, {
+        label: isStreak ? `${formatScore(streak)}연승` : `${formatScore(value)}승`,
+        tone
+      });
+      return;
+    }
+    if (value === maxValue) {
+      badges.set(playerId, {
+        label: `${formatScore(value)}점`,
+        tone: "leader"
+      });
+    }
+  });
+
+  winnerSet.forEach((playerId) => {
+    badges.set(playerId, { label: "승리", tone: "winner" });
+  });
+
+  return badges;
+}
+
 const victoryPiecesByKind: Record<GameTableKind, string[]> = {
   duel: ["1", "3", "5", "7", "9", "W", "1", "3", "5", "7", "9", "W"],
   maze: ["H", "V", "GO", "H", "V", "GO", "H", "V", "GO", "H", "V", "GO"],
@@ -1998,6 +2169,10 @@ function PlayPanel({
       : winnerId
         ? `${room.players.find((player) => player.id === winnerId)?.name ?? "플레이어"} 승리`
         : "무승부";
+  const playerMomentumBadges = useMemo(
+    () => buildPlayerMomentumBadges(room, selectedGame, winnerIds),
+    [room, selectedGame, winnerIds.join("|")]
+  );
   const postGameRevealKey = isFinished
     ? `${room.code}-${selectedGame?.id ?? "game"}-${phase}-${winnerIds.join("|") || winnerId || "draw"}-${room.gameState.turnNumber}`
     : "";
@@ -2131,15 +2306,21 @@ function PlayPanel({
           const active = player.id === activePlayer?.id;
           const current = player.id === currentPlayer?.id;
           const won = winnerIds.includes(player.id);
+          const momentumBadge = playerMomentumBadges.get(player.id);
           const StatusIcon = won ? Trophy : active ? Radio : current ? UserCheck : player.connected ? Clock3 : WifiOff;
           const statusLabel = won ? "승자" : active ? "현재 차례" : current ? "나" : player.connected ? "대기" : "오프라인";
           return (
             <div
               key={player.id}
-              className={`player-turn-chip ${active ? "active" : ""} ${current ? "current" : ""} ${won ? "winner" : ""}`}
+              className={`player-turn-chip ${active ? "active" : ""} ${current ? "current" : ""} ${won ? "winner" : ""} ${
+                momentumBadge ? `has-momentum momentum-${momentumBadge.tone}` : ""
+              }`}
               style={{ "--seat-accent": playerAccent(player) } as CSSProperties}
             >
-              <PlayerAvatarMark avatar={player.avatar} className="turn-avatar" label={`${player.name} 아이콘`} />
+              <div className="turn-avatar-stack">
+                <PlayerAvatarMark avatar={player.avatar} className="turn-avatar" label={`${player.name} 아이콘`} />
+                {momentumBadge ? <span className="turn-avatar-rank-badge">{momentumBadge.label}</span> : null}
+              </div>
               <strong>{player.name}</strong>
               <span className="turn-chip-status">
                 <StatusIcon size={12} aria-hidden="true" />

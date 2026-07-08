@@ -39,6 +39,13 @@ const avatarPalettes = [
   { id: "ivory", label: "상아", base: "#efe0b6", light: "#fff7dc", dark: "#6b5430", accent: "#0a7b64" }
 ] satisfies Array<{ id: PlayerAvatar["palette"]; label: string; base: string; light: string; dark: string; accent: string }>;
 
+const fallbackAvatar = {
+  body: "pawn",
+  face: "smile",
+  accessory: "crown",
+  palette: "teal"
+} satisfies PlayerAvatar;
+
 export type PlayerTokenDockProps = {
   name: string;
   avatar: PlayerAvatar;
@@ -73,13 +80,26 @@ function updateAvatarPart<T extends keyof PlayerAvatar>(avatar: PlayerAvatar, ke
   return { ...avatar, [key]: value };
 }
 
+function normalizeTokenAvatar(value: PlayerAvatar | null | undefined) {
+  if (!value || typeof value !== "object") {
+    return fallbackAvatar;
+  }
+  return {
+    body: avatarBodies.some((item) => item.id === value.body) ? value.body : fallbackAvatar.body,
+    face: avatarFaces.some((item) => item.id === value.face) ? value.face : fallbackAvatar.face,
+    accessory: avatarAccessories.some((item) => item.id === value.accessory) ? value.accessory : fallbackAvatar.accessory,
+    palette: avatarPalettes.some((item) => item.id === value.palette) ? value.palette : fallbackAvatar.palette
+  } satisfies PlayerAvatar;
+}
+
 function nextAvatar(avatar: PlayerAvatar) {
-  const nextBody = avatarBodies[(avatarBodies.findIndex((item) => item.id === avatar.body) + 1) % avatarBodies.length]?.id ?? "pawn";
-  const nextFace = avatarFaces[(avatarFaces.findIndex((item) => item.id === avatar.face) + 1) % avatarFaces.length]?.id ?? "smile";
+  const safeAvatar = normalizeTokenAvatar(avatar);
+  const nextBody = avatarBodies[(avatarBodies.findIndex((item) => item.id === safeAvatar.body) + 1) % avatarBodies.length]?.id ?? "pawn";
+  const nextFace = avatarFaces[(avatarFaces.findIndex((item) => item.id === safeAvatar.face) + 1) % avatarFaces.length]?.id ?? "smile";
   const nextAccessory =
-    avatarAccessories[(avatarAccessories.findIndex((item) => item.id === avatar.accessory) + 1) % avatarAccessories.length]?.id ?? "none";
+    avatarAccessories[(avatarAccessories.findIndex((item) => item.id === safeAvatar.accessory) + 1) % avatarAccessories.length]?.id ?? "none";
   const nextPalette =
-    avatarPalettes[(avatarPalettes.findIndex((item) => item.id === avatar.palette) + 1) % avatarPalettes.length]?.id ?? "teal";
+    avatarPalettes[(avatarPalettes.findIndex((item) => item.id === safeAvatar.palette) + 1) % avatarPalettes.length]?.id ?? "teal";
 
   return {
     body: nextBody,
@@ -89,8 +109,9 @@ function nextAvatar(avatar: PlayerAvatar) {
   } satisfies PlayerAvatar;
 }
 
-export function avatarCssVars(avatar: PlayerAvatar) {
-  const palette = avatarPalettes.find((item) => item.id === avatar.palette) ?? avatarPalettes[0];
+export function avatarCssVars(avatar: PlayerAvatar | null | undefined) {
+  const safeAvatar = normalizeTokenAvatar(avatar);
+  const palette = avatarPalettes.find((item) => item.id === safeAvatar.palette) ?? avatarPalettes[0];
   return {
     "--player-token-base": palette.base,
     "--player-token-light": palette.light,
@@ -104,23 +125,24 @@ export function PlayerTokenPawn({
   label,
   className = ""
 }: {
-  avatar: PlayerAvatar;
+  avatar?: PlayerAvatar | null;
   label?: string;
   className?: string;
 }) {
+  const safeAvatar = normalizeTokenAvatar(avatar);
   const accessibleProps = label ? { role: "img", "aria-label": label } : { "aria-hidden": true };
 
   return (
     <span
-      className={cx("player-token-pawn", `player-token-body-${avatar.body}`, className)}
-      style={avatarCssVars(avatar)}
+      className={cx("player-token-pawn", `player-token-body-${safeAvatar.body}`, className)}
+      style={avatarCssVars(safeAvatar)}
       {...accessibleProps}
     >
       <span className="player-token-shadow" aria-hidden="true" />
       <span className="player-token-body" aria-hidden="true">
-        <span className={cx("player-token-face", `player-token-face-${avatar.face}`)} />
-        {avatar.accessory !== "none" ? (
-          <span className={cx("player-token-accessory", `player-token-accessory-${avatar.accessory}`)} />
+        <span className={cx("player-token-face", `player-token-face-${safeAvatar.face}`)} />
+        {safeAvatar.accessory !== "none" ? (
+          <span className={cx("player-token-accessory", `player-token-accessory-${safeAvatar.accessory}`)} />
         ) : null}
       </span>
     </span>
