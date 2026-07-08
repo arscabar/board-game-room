@@ -1760,11 +1760,20 @@
 }
 
 .cafe-home .coverflow-item .cafe-table-object {
+  left: 0 !important;
+  top: 0 !important;
   transform: translate(-50%, calc(-50% + var(--cafe-table-lift, 0px))) scale(var(--cafe-table-scale, 1));
 }
 
 .cafe-home .coverflow-item .cafe-table-object:active:not(:disabled) {
   transform: translate(-50%, calc(-50% + var(--cafe-table-lift, 0px))) scale(calc(var(--cafe-table-scale, 1) * 0.98));
+}
+
+.cafe-table-object .pod-layer,
+.cafe-table-object .pod-layer *,
+.cafe-table-object .cafe-seat-map,
+.cafe-table-object .cafe-seat-map * {
+  pointer-events: none;
 }
 
 .cafe-home .entrance-counter-sheet[data-state="empty-ready"] {

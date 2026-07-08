@@ -223,7 +223,7 @@ export function CafeViewport({
       >
         {/* Cinematic Physics Layer (Zero Gravity) */}
         {!reducedMotion && (
-          <CafePhysicsOverlay ref={physicsRef} width={3000} height={2000} interactive={true} />
+          <CafePhysicsOverlay ref={physicsRef} width={3000} height={2000} interactive={false} />
         )}
 
         {tables.map((table, idx) => {
@@ -239,11 +239,12 @@ export function CafeViewport({
 
           // Replace old positional data with Cover Flow data
           const coverflowStyle = {
-             "--cafe-table-x": `${offset * 320}px`,
+             "--cafe-table-x": `${offset * 240}px`,
              "--cafe-table-y": `0px`,
              "--cafe-table-rotate": `${offset === 0 ? 0 : offset > 0 ? -45 : 45}deg`,
              "--cafe-table-scale": isSelected ? 1.2 : 0.8,
-             "--cafe-table-depth": -absOffset * 150
+             "--cafe-table-depth": -absOffset * 150,
+             zIndex: isSelected ? 30 : Math.max(1, 20 - absOffset)
           } as CSSProperties;
 
           return (

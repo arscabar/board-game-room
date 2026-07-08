@@ -111,6 +111,20 @@ export function InteractiveCafeHome({
   );
 
   useEffect(() => {
+    if (rooms.length === 0 || selectedRoomCode || selectedTableId !== "empty-table-primary") {
+      return;
+    }
+
+    const firstEnterableRoom = rooms.find((room) => room.status === "lobby" && room.canJoin) ?? rooms[0];
+    if (!firstEnterableRoom) {
+      return;
+    }
+
+    setSelectedRoomCode(firstEnterableRoom.code);
+    setSelectedTableId(`table-${firstEnterableRoom.code}`);
+  }, [rooms, selectedRoomCode, selectedTableId]);
+
+  useEffect(() => {
     if (!selectedRoomCode) {
       return;
     }

@@ -562,7 +562,6 @@ export const module: GameModule = {
   createInitialState,
   getPublicState: (state, context): VinciPublicState => {
     const vinciState = state as VinciState;
-    const viewer = vinciState.players.find((player) => player.id === context.viewerId);
     return {
       players: vinciState.players.map((player) => ({
         id: player.id,
@@ -571,9 +570,8 @@ export const module: GameModule = {
         teamId: player.teamId,
         eliminated: player.eliminated,
         hand: player.hand.map((tile, index) => {
-          const firstHiddenIndex = player.hand.findIndex((candidate) => !candidate.revealed);
-          const teamClue = sameTeam(player, viewer) && player.id !== context.viewerId && firstHiddenIndex === index && !tile.revealed;
-          const visible = tile.revealed || player.id === context.viewerId || teamClue;
+          const teamClue = false;
+          const visible = tile.revealed || player.id === context.viewerId;
           return {
             id: visible ? tile.id : `${player.id}-hidden-${index}`,
             kind: visible ? tile.kind : null,
@@ -622,9 +620,9 @@ export const module: GameModule = {
 };
 
 function tileText(tile: PublicVinciTile, ownerId: string, viewerId: string | null) {
-  if (tile.kind === "joker" && (tile.revealed || ownerId === viewerId)) return "★";
-  if (tile.value !== null) return String(tile.value);
-  if (ownerId === viewerId) return "?";
+  const visible = tile.revealed || ownerId === viewerId;
+  if (tile.kind === "joker" && visible) return "★";
+  if (tile.value !== null && visible) return String(tile.value);
   return "?";
 }
 
