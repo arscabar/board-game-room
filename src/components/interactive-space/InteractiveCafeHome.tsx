@@ -6,6 +6,7 @@ import type { CafeTablePlacement } from "./CafeTableObject";
 import { EntranceCounterSheet } from "./EntranceCounterSheet";
 import { PlayerTokenDock } from "./PlayerTokenDock";
 import "./interactive-cafe-home.css";
+import { playJoinSound } from "../../utils/haptics";
 
 type PreventableEvent = {
   preventDefault: () => void;
@@ -96,6 +97,7 @@ export function InteractiveCafeHome({
   const [selectedTableId, setSelectedTableId] = useState("empty-table-primary");
   const [selectedRoomCode, setSelectedRoomCode] = useState("");
   const [createState, setCreateState] = useState<"idle" | "placing">("idle");
+  const [joinTransition, setJoinTransition] = useState(false);
   const [sceneTilt, setSceneTilt] = useState({ x: 0, y: 0 });
 
   const canCreate = connection === "connected" && Boolean(name.trim());
@@ -150,8 +152,13 @@ export function InteractiveCafeHome({
       return true;
     } else if (kind === "room") {
       const code = tableId?.replace("table-", "");
-      if (code) {
-        onJoinListedRoom(code);
+      if (code && selectedRoomCode === code) {
+        enterActiveRoom();
+        return true;
+      } else if (code) {
+        // If they drop on a non-centered card, center it first then join
+        handleSelectRoom(rooms.find(r => r.code === code)!);
+        setTimeout(enterActiveRoom, 100);
         return true;
       }
     }
@@ -177,11 +184,15 @@ export function InteractiveCafeHome({
     }
 
     if (activeRoom.code === lastRoomCode) {
-      onResumeSavedRoom();
+      playJoinSound();
+      setJoinTransition(true);
+      window.setTimeout(onResumeSavedRoom, 800);
       return;
     }
 
-    onJoinListedRoom(activeRoom.code);
+    playJoinSound();
+    setJoinTransition(true);
+    window.setTimeout(() => onJoinListedRoom(activeRoom.code), 800);
   }
 
   function handleScenePointerMove(event: ReactPointerEvent<HTMLElement>) {
@@ -198,7 +209,7 @@ export function InteractiveCafeHome({
 
   return (
     <section
-      className="cafe-home is-cafe-home"
+      className={cx("cafe-home", "is-cafe-home", joinTransition && "is-joining-room")}
       data-connection={connection}
       aria-labelledby="cafe-home-title"
       onPointerMove={handleScenePointerMove}

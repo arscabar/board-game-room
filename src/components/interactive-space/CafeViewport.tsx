@@ -11,6 +11,7 @@ import {
 import type { PublicRoomListItem } from "../../shared/types";
 import { CafeTableObject, type CafeTablePlacement } from "./CafeTableObject";
 import { CafePhysicsOverlay, type PhysicsOverlayHandle } from "./CafePhysicsOverlay";
+import { playSwipeSound } from "../../utils/haptics";
 
 type PreventableEvent = {
   preventDefault: () => void;
@@ -83,10 +84,16 @@ export function CafeViewport({
 
     if (primaryDelta > 0) {
       const nextIndex = Math.min(tableIds.length - 1, selectedIndex + 1);
-      if (nextIndex !== selectedIndex) onSelectTable(tableIds[nextIndex]);
+      if (nextIndex !== selectedIndex) {
+         playSwipeSound();
+         onSelectTable(tableIds[nextIndex]);
+      }
     } else {
       const prevIndex = Math.max(0, selectedIndex - 1);
-      if (prevIndex !== selectedIndex) onSelectTable(tableIds[prevIndex]);
+      if (prevIndex !== selectedIndex) {
+         playSwipeSound();
+         onSelectTable(tableIds[prevIndex]);
+      }
     }
   }
 
@@ -104,6 +111,7 @@ export function CafeViewport({
     const nextIndex = (selectedIndex + offset + tableIds.length) % tableIds.length;
     const button = viewportRef.current?.querySelector<HTMLButtonElement>(`[data-table-id="${tableIds[nextIndex]}"]`);
     button?.focus();
+    playSwipeSound();
     onSelectTable(tableIds[nextIndex]);
   }
 

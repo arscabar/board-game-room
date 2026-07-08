@@ -7,6 +7,7 @@ import {
   useState
 } from "react";
 import type { PlayerAvatar } from "../../shared/types";
+import { playClickSound } from "../../utils/haptics";
 
 type PreventableEvent = {
   preventDefault: () => void;
@@ -171,6 +172,8 @@ export function PlayerTokenDock({
     if (!canCreate) {
       return;
     }
+    
+    playClickSound();
 
     event.currentTarget.setPointerCapture(event.pointerId);
     activeDragRef.current = {
@@ -271,7 +274,7 @@ export function PlayerTokenDock({
           <button
             className="player-token-icon-button"
             type="button"
-            onClick={() => setExpanded((current) => !current)}
+            onClick={() => { playClickSound(); setExpanded((current) => !current); }}
             aria-expanded={expanded}
             aria-controls="player-token-customizer"
             title="말 설정"
@@ -288,7 +291,7 @@ export function PlayerTokenDock({
                   className={cx("player-token-chip", avatar.body === body.id && "player-token-chip-selected")}
                   key={body.id}
                   type="button"
-                  onClick={() => onAvatarChange(updateAvatarPart(avatar, "body", body.id))}
+                  onClick={() => { playClickSound(); onAvatarChange(updateAvatarPart(avatar, "body", body.id)); }}
                 >
                   {body.label}
                 </button>

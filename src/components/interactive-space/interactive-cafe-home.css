@@ -62,6 +62,69 @@
   perspective: 1200px;
 }
 
+/* 🌌 WebGL-style Cinematic Shaders via CSS */
+.cafe-viewport.coverflow-viewport::after {
+  content: "";
+  position: absolute;
+  inset: -150%;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  opacity: 0.04;
+  animation: film-grain 0.2s steps(2) infinite;
+  z-index: 100;
+  mix-blend-mode: overlay;
+}
+
+@keyframes film-grain {
+  0% { transform: translate(0, 0); }
+  10% { transform: translate(-5%, -5%); }
+  20% { transform: translate(-10%, 5%); }
+  30% { transform: translate(5%, -10%); }
+  40% { transform: translate(-5%, 15%); }
+  50% { transform: translate(-10%, 5%); }
+  60% { transform: translate(15%, 0); }
+  70% { transform: translate(0, 15%); }
+  80% { transform: translate(3%, 35%); }
+  90% { transform: translate(-10%, 10%); }
+  100% { transform: translate(0, 0); }
+}
+
+/* 🎬 Seamless Morph Transition */
+.is-joining-room .cafe-camera-layer.coverflow-layer {
+  transform: translate(-50%, -50%) translateZ(400px);
+  transition: transform 0.8s cubic-bezier(0.19, 1, 0.22, 1);
+}
+
+.is-joining-room .coverflow-item {
+  opacity: 0;
+  transition: opacity 0.5s ease-out;
+}
+
+.is-joining-room .coverflow-item[style*="--cafe-table-rotate: 0deg"] {
+  opacity: 1;
+  z-index: 999;
+  filter: drop-shadow(0 0 100px rgba(50, 200, 255, 1)) brightness(1.5);
+  transform: translate(-50%, -50%) scale(5) translateZ(800px);
+  transition: transform 0.8s cubic-bezier(0.19, 1, 0.22, 1), filter 0.8s ease-in, opacity 0.3s;
+}
+
+.is-joining-room::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: white;
+  opacity: 0;
+  animation: flash-to-board 0.8s ease-in forwards;
+  z-index: 9999;
+  pointer-events: none;
+}
+
+@keyframes flash-to-board {
+  0% { opacity: 0; }
+  80% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
 .cafe-floor-grid {
   position: absolute;
   inset: -40px;
