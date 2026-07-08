@@ -48,6 +48,7 @@ import {
 import { socket } from "./lib/socket";
 import { InteractiveCafeHome } from "./components/interactive-space/InteractiveCafeHome";
 import { InteractiveGameLobby } from "./components/interactive-space/InteractiveGameLobby";
+import { InteractiveGameWrapper } from "./components/interactive-space/InteractiveGameWrapper";
 import { games, getGameById } from "./shared/games";
 import { canPlayGame, formatAllowedPlayers, gameAvailabilityLabel } from "./shared/eligibility";
 import { gameUsesTurnTimer, turnTimerOptions } from "./shared/timers";
@@ -2187,17 +2188,19 @@ function PlayPanel({
 
       {GameComponent && selectedGame ? (
         <div className="game-module-shell">
-          <Suspense fallback={<GameModuleLoading game={selectedGame} />}>
-            <GameComponent
-              game={selectedGame}
-              players={room.players}
-              currentPlayer={currentPlayer}
-              activePlayer={activePlayer}
-              publicState={room.gameState.publicState}
-              disabled={moduleDisabled}
-              onAction={sendGameAction}
-            />
-          </Suspense>
+          <InteractiveGameWrapper isMyTurn={isMyTurn}>
+            <Suspense fallback={<GameModuleLoading game={selectedGame} />}>
+              <GameComponent
+                game={selectedGame}
+                players={room.players}
+                currentPlayer={currentPlayer}
+                activePlayer={activePlayer}
+                publicState={room.gameState.publicState}
+                disabled={moduleDisabled}
+                onAction={sendGameAction}
+              />
+            </Suspense>
+          </InteractiveGameWrapper>
         </div>
       ) : (
         <BoardPreview game={selectedGame} activePlayer={activePlayer} />

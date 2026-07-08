@@ -1,0 +1,64 @@
+/* Global Game Board Wrapping Styles */
+
+.interactive-game-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  animation: unfold-board 0.8s cubic-bezier(0.19, 1, 0.22, 1) forwards;
+  will-change: transform;
+}
+
+@keyframes unfold-board {
+  0% {
+    opacity: 0;
+    transform: perspective(1000px) rotateX(-20deg) rotateY(0deg) scale3d(0.8, 0.8, 0.8) translateZ(-200px);
+  }
+  100% {
+    opacity: 1;
+    transform: perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1) translateZ(0);
+  }
+}
+
+/* Add a 3D physical depth layer behind the actual game component */
+.interactive-game-content {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  background: rgba(10, 15, 25, 0.4);
+  border-radius: 20px;
+  box-shadow: 
+    0 20px 50px rgba(0, 0, 0, 0.5),
+    inset 0 1px 2px rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(8px);
+}
+
+/* Ambient glow that changes depending on turns */
+.interactive-game-ambient-light {
+  position: absolute;
+  inset: -100px;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 50%, rgba(50, 200, 255, 0.1), transparent 60%);
+  opacity: 0.3;
+  transition: all 0.5s ease-in-out;
+  mix-blend-mode: screen;
+  z-index: -1;
+}
+
+.interactive-game-wrapper.is-my-turn .interactive-game-ambient-light {
+  opacity: 0.8;
+  background: radial-gradient(circle at 50% 50%, rgba(50, 255, 150, 0.15), transparent 70%);
+  animation: breathe-glow 3s infinite alternate;
+}
+
+@keyframes breathe-glow {
+  0% { transform: scale(0.9); opacity: 0.5; }
+  100% { transform: scale(1.1); opacity: 0.9; }
+}
+
+/* Overriding .game-module-shell for cinematic transition */
+.game-module-shell {
+  position: relative;
+  perspective: 1200px;
+}
