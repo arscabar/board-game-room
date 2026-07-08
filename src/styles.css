@@ -14884,3 +14884,49 @@ body .room-section.is-playing .turn-avatar.player-token-pawn {
     --player-token-size: 28px;
   }
 }
+
+/* Game shelf sizing: a tab with one game must not stretch that cover across the whole shelf. */
+body .room-section.is-lobby .game-shelf-grid {
+  align-items: start !important;
+  display: grid !important;
+  gap: 10px !important;
+  grid-template-columns: repeat(auto-fill, minmax(124px, 156px)) !important;
+  justify-content: start !important;
+  max-block-size: none !important;
+  min-block-size: 0 !important;
+  overflow: visible !important;
+  padding: 0 !important;
+  scroll-snap-type: none !important;
+}
+
+body .room-section.is-lobby .game-shelf-slot,
+body .room-section.is-lobby .game-shelf-slot:has(.game-box-object[data-state="locked"]) {
+  flex: none !important;
+  inline-size: 100% !important;
+  max-inline-size: 156px !important;
+  min-inline-size: 0 !important;
+  position: relative !important;
+}
+
+body .room-section.is-lobby .game-box-main {
+  inline-size: 100% !important;
+  min-block-size: 174px !important;
+}
+
+body .room-section.is-lobby .game-box-lid {
+  inline-size: 100% !important;
+}
+
+@media (max-width: 720px) {
+  body .room-section.is-lobby .game-shelf-grid {
+    gap: 9px !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    padding: 10px 0 14px !important;
+  }
+
+  body .room-section.is-lobby .game-shelf-slot,
+  body .room-section.is-lobby .game-shelf-slot:has(.game-box-object[data-state="locked"]) {
+    justify-self: stretch !important;
+    max-inline-size: 168px !important;
+  }
+}
