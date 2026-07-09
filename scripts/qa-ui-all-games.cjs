@@ -18,10 +18,21 @@ const games = [
   { id: "kkukkkuki", title: "꾹꾹이", players: 2, root: ".kkuk-shell", board: ".kkuk-board" },
   { id: "davinci-code-plus", title: "다빈치 코드 플러스", players: 4, root: ".dvc-shell", board: ".dvc-racks" },
   { id: "blokus", title: "블로커스", players: 4, root: ".blokus-module", board: ".blokus-board" },
+  { id: "masterpiece-copy", title: "명화 따라그리기", players: 4, root: ".painting-shell", board: ".painting-canvas-panel" },
   { id: "yacht-dice", title: "요트 다이스", players: 4, root: ".yacht-dice-module", board: ".yacht-throw-tray" },
   { id: "yinsh", title: "인쉬", players: 2, root: ".yinsh-module", board: ".yinsh-board" },
   { id: "hangman-board-game", title: "행맨 보드게임", players: 2, root: ".hangman-module", board: ".hangman-setup-panel, .hangman-board-grid" }
 ];
+
+const selectedGameIds = (process.env.QA_GAME || "")
+  .split(",")
+  .map((id) => id.trim())
+  .filter(Boolean);
+const gamesToRun = selectedGameIds.length > 0 ? games.filter((game) => selectedGameIds.includes(game.id)) : games;
+if (selectedGameIds.length > 0 && gamesToRun.length !== selectedGameIds.length) {
+  const missing = selectedGameIds.filter((id) => !games.some((game) => game.id === id));
+  throw new Error(`Unknown QA_GAME id: ${missing.join(", ")}`);
+}
 
 function shortName(prefix, gameId, suffix = "") {
   return `${prefix}${gameId.replace(/[^a-z0-9]/g, "").slice(0, 9)}${suffix}`.slice(0, 16);
@@ -134,28 +145,57 @@ async function qawaleCanvasGesture(page, notes) {
   const canvas = page.locator(".qaw-3d-canvas").first();
   const box = await canvas.boundingBox();
   if (!box) throw new Error("카왈레 3D 캔버스 좌표 없음");
-  const points = [
-    [0.83, 0.52],
-    [0.7, 0.48],
-    [0.58, 0.44],
-    [0.48, 0.53]
+  const candidatePaths = [
+    [
+      [0.83, 0.52],
+      [0.69, 0.47],
+      [0.62, 0.57],
+      [0.49, 0.53]
+    ],
+    [
+      [0.83, 0.52],
+      [0.72, 0.62],
+      [0.58, 0.57],
+      [0.49, 0.66]
+    ],
+    [
+      [0.18, 0.45],
+      [0.32, 0.42],
+      [0.39, 0.52],
+      [0.53, 0.48]
+    ],
+    [
+      [0.45, 0.72],
+      [0.36, 0.62],
+      [0.49, 0.58],
+      [0.57, 0.48]
+    ]
   ];
-  for (const [rx, ry] of points) {
-    await page.mouse.click(box.x + box.width * rx, box.y + box.height * ry);
-    await page.waitForTimeout(220);
+
+  const reset = page.getByRole("button", { name: "취소" }).first();
+  const place = page.getByRole("button", { name: "놓기" }).first();
+  for (const points of candidatePaths) {
+    if ((await reset.isVisible().catch(() => false)) && (await reset.isEnabled().catch(() => false))) {
+      await reset.click({ timeout: 3000 }).catch(() => {});
+      await page.waitForTimeout(180);
+    }
+    for (const [rx, ry] of points) {
+      await page.mouse.click(box.x + box.width * rx, box.y + box.height * ry);
+      await page.waitForTimeout(260);
+    }
+    for (let attempt = 0; attempt < 10; attempt += 1) {
+      if ((await place.isVisible().catch(() => false)) && (await place.isEnabled().catch(() => false))) break;
+      await page.waitForTimeout(160);
+    }
+    if ((await place.isVisible().catch(() => false)) && (await place.isEnabled().catch(() => false))) {
+      await place.click({ timeout: 3000 });
+      notes.push("카왈레 캔버스 경로 선택 후 놓기");
+      return;
+    }
   }
-  const place = page.locator(".qaw-board-actions button").filter({ hasText: "놓기" }).first();
-  for (let attempt = 0; attempt < 10; attempt += 1) {
-    if (await place.isVisible().catch(() => false) && await place.isEnabled().catch(() => false)) break;
-    await page.waitForTimeout(180);
-  }
-  if (await place.isVisible().catch(() => false) && await place.isEnabled().catch(() => false)) {
-    await place.click({ timeout: 3000 });
-    notes.push("카왈레 캔버스 셀 선택 후 놓기");
-  } else {
-    notes.push("카왈레: 3D 렌더/카메라 확인, 분배 경로 자동화는 완주 못 함");
-    await page.locator('.qaw-camera-controls button[aria-label="확대"]').click({ timeout: 3000 }).catch(() => {});
-  }
+
+  notes.push("카왈레: 3D 렌더/카메라 확인, 분배 경로 자동화는 완주 못 함");
+  await page.locator('.qaw-camera-controls button[aria-label="확대"]').click({ timeout: 3000 }).catch(() => {});
 }
 
 async function alkkagiGesture(page, notes) {
@@ -170,6 +210,29 @@ async function alkkagiGesture(page, notes) {
   await page.waitForTimeout(850);
   await page.mouse.up();
   notes.push("알까기: 알 선택 후 보드 홀드/릴리즈 발사");
+}
+
+async function masterpieceGesture(page, notes) {
+  await page.locator(".painting-canvas").waitFor({ state: "visible", timeout: 15000 });
+  const fill = page.getByRole("button", { name: "페인트" });
+  if (await fill.isVisible().catch(() => false)) {
+    await fill.click({ timeout: 5000 });
+  }
+  const paletteColor = page.locator('button[aria-label*="원본 팔레트 색 선택"]').nth(1);
+  if (await paletteColor.isVisible().catch(() => false)) {
+    await paletteColor.click({ timeout: 5000 });
+  }
+  const canvas = page.locator(".painting-canvas").first();
+  const box = await canvas.boundingBox();
+  if (!box) throw new Error("명화 따라그리기 캔버스 좌표 없음");
+  await page.mouse.click(box.x + box.width * 0.34, box.y + box.height * 0.44);
+  await page.getByRole("button", { name: "펜" }).click({ timeout: 5000 }).catch(() => {});
+  await page.mouse.move(box.x + box.width * 0.24, box.y + box.height * 0.34);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width * 0.58, box.y + box.height * 0.42, { steps: 7 });
+  await page.mouse.move(box.x + box.width * 0.72, box.y + box.height * 0.32, { steps: 5 });
+  await page.mouse.up();
+  notes.push("명화 따라그리기: 팔레트 선택, 페인트 채우기, 펜 스트로크");
 }
 
 async function abaloneMove(pages, notes) {
@@ -222,7 +285,17 @@ async function performGameAction(game, pages, notes) {
       notes.push(await clickFirstEnabled(pages, ".gho-cell.legal", "고스트 합법 이동"));
       break;
     case "qawale":
-      await qawaleCanvasGesture(pages[0], notes);
+      {
+        let activePage = pages[0];
+        for (const page of pages) {
+          const canAct = await page.locator(".qaw-board-actions").first().isVisible().catch(() => false);
+          if (canAct) {
+            activePage = page;
+            break;
+          }
+        }
+        await qawaleCanvasGesture(activePage, notes);
+      }
       break;
     case "omok":
       notes.push(await clickFirstEnabled(pages, ".omok-point:not(:has(.omok-stone))", "오목 착수"));
@@ -249,6 +322,9 @@ async function performGameAction(game, pages, notes) {
       await clickFirstEnabled(pages, ".blokus-placement-confirm", "블로커스 배치 확정")
         .then((value) => notes.push(value))
         .catch((error) => notes.push(`블로커스 배치 확정 자동화 미완: ${error.message}`));
+      break;
+    case "masterpiece-copy":
+      await masterpieceGesture(pages[0], notes);
       break;
     case "yinsh":
       notes.push(await clickFirstEnabled(pages, ".yinsh-point.legal, .yinsh-board [role=\"button\"], .yinsh-hit:not(.disabled)", "인쉬 링/마커 위치 선택"));
@@ -444,7 +520,7 @@ async function writeSummary(results) {
   const browser = await chromium.launch({ headless: true });
   const results = [];
   try {
-    for (const game of games) {
+    for (const game of gamesToRun) {
       console.log(`START ${game.id} ${game.title}`);
       const result = await testGame(browser, game);
       results.push(result);
