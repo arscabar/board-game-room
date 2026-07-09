@@ -188,16 +188,6 @@ export function InteractiveGameLobby({
     setFocusedGameId(null);
     setPlacedGameId(game.id);
     setTablePhase("opening");
-    if (source === "tap") {
-      const prefersReducedMotion =
-        typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      window.requestAnimationFrame(() => {
-        tableRef.current?.scrollIntoView({
-          behavior: prefersReducedMotion ? "auto" : "smooth",
-          block: "center"
-        });
-      });
-    }
 
     if (selectedGameId === game.id) {
       setPendingGameId(null);

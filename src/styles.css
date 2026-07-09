@@ -15511,3 +15511,53 @@ body .dvc-shell .dvc-player-head span {
     padding: 5px 6px !important;
   }
 }
+
+/* Final game-selection layout: the miniature board owns the table center. */
+body .interactive-game-lobby.is-game-lobby .table-game-spread {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  grid-template-columns: minmax(0, 1fr) !important;
+  inline-size: min(88%, 680px) !important;
+  max-block-size: calc(100% - 64px) !important;
+  max-inline-size: 680px !important;
+  overflow: visible !important;
+  padding: 0 !important;
+  transform: translateY(clamp(22px, 3.3vw, 42px)) !important;
+  width: min(88%, 680px) !important;
+}
+
+body .interactive-game-lobby.is-game-lobby .table-drop-ring {
+  opacity: 0 !important;
+}
+
+body .interactive-game-lobby.is-game-lobby .unfolded-board-preview.selection-scene-surface,
+body .interactive-game-lobby.is-game-lobby .unfolded-board-preview.selection-scene-surface[data-state="closed"],
+body .interactive-game-lobby.is-game-lobby .central-table-stage[data-state="opening"] .unfolded-board-preview.selection-scene-surface,
+body .interactive-game-lobby.is-game-lobby .central-table-stage[data-state="unfolded"] .unfolded-board-preview.selection-scene-surface,
+body .interactive-game-lobby.is-game-lobby .central-table-stage[data-state="selected"] .unfolded-board-preview.selection-scene-surface {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  display: block !important;
+  inline-size: 100% !important;
+  max-block-size: none !important;
+  min-block-size: 0 !important;
+  overflow: visible !important;
+  padding: 0 !important;
+}
+
+@media (max-width: 720px) {
+  body .interactive-game-lobby.is-game-lobby .table-game-spread {
+    grid-template-columns: minmax(0, 1fr) !important;
+    inline-size: min(94%, 560px) !important;
+    max-inline-size: 560px !important;
+    width: min(94%, 560px) !important;
+  }
+}
+
+@media (min-width: 721px) and (max-width: 900px) {
+  body .interactive-game-lobby.is-game-lobby .central-table-felt {
+    block-size: 334px !important;
+  }
+}
