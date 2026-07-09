@@ -2185,6 +2185,8 @@ function PlayPanel({
     : "";
   const showPostGameEffect = isFinished && postGameRevealStage !== "idle";
   const showPostGameDialog = isFinished && postGameRevealStage === "dialog";
+  const postGameEffectDelay = selectedGame?.id === "masterpiece-copy" ? 7600 : 620;
+  const postGameDialogDelay = selectedGame?.id === "masterpiece-copy" ? 9300 : 1850;
 
   useEffect(() => {
     if (!usesTurnTimer || isFinished || paused || !room.gameState.turnDeadlineAt) {
@@ -2201,13 +2203,13 @@ function PlayPanel({
     }
 
     setPostGameRevealStage("idle");
-    const effectTimer = window.setTimeout(() => setPostGameRevealStage("effect"), 620);
-    const dialogTimer = window.setTimeout(() => setPostGameRevealStage("dialog"), 1850);
+    const effectTimer = window.setTimeout(() => setPostGameRevealStage("effect"), postGameEffectDelay);
+    const dialogTimer = window.setTimeout(() => setPostGameRevealStage("dialog"), postGameDialogDelay);
     return () => {
       window.clearTimeout(effectTimer);
       window.clearTimeout(dialogTimer);
     };
-  }, [isFinished, postGameRevealKey]);
+  }, [isFinished, postGameRevealKey, postGameEffectDelay, postGameDialogDelay]);
 
   async function advanceTurn() {
     const response = await emitWithAck<RoomSnapshot>("room:advance-turn", { code: room.code });

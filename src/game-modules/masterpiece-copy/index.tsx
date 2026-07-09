@@ -91,6 +91,20 @@ const references: PaintingReference[] = [
     subtitle: "단순한 사물, 강한 윤곽, 따뜻한 바닥",
     palette: ["#2e6f91", "#8c6237", "#efc46f", "#f8edd2", "#233a46"],
     target: { hue: 0.36, saturation: 0.48, lightness: 0.5, coverage: 0.36, balanceX: 0.52, balanceY: 0.57, stroke: 0.5 }
+  },
+  {
+    id: "iris-field",
+    title: "보랏빛 붓꽃",
+    subtitle: "보라 꽃잎, 초록 잎, 밝은 정원",
+    palette: ["#5b3f9c", "#8361c7", "#2f7448", "#d9c45f", "#f5dfb4"],
+    target: { hue: 0.72, saturation: 0.58, lightness: 0.5, coverage: 0.48, balanceX: 0.5, balanceY: 0.54, stroke: 0.68 }
+  },
+  {
+    id: "almond-branch",
+    title: "꽃핀 가지",
+    subtitle: "하늘색 배경과 흰 꽃잎, 굽은 가지",
+    palette: ["#6fb5c9", "#f7f1df", "#d8a38d", "#5b3b2a", "#8ed0df"],
+    target: { hue: 0.54, saturation: 0.42, lightness: 0.66, coverage: 0.34, balanceX: 0.47, balanceY: 0.42, stroke: 0.48 }
   }
 ];
 
@@ -467,7 +481,7 @@ function ReferenceArtwork({ reference }: { reference: PaintingReference }) {
           ))}
           <path d="M184 155c-20-42-35-62-70-71M213 154c7-58 20-82 72-99M236 157c33-42 54-52 86-44" stroke="#557733" strokeWidth="8" fill="none" />
         </>
-      ) : (
+      ) : reference.id === "blue-chair" ? (
         <>
           <rect width="420" height="184" fill="#2f708f" />
           <rect y="184" width="420" height="116" fill="#b7834d" />
@@ -475,6 +489,36 @@ function ReferenceArtwork({ reference }: { reference: PaintingReference }) {
           <path d="M153 112h116l-18 76H169z" fill="#275a6d" />
           <path d="M145 202l-33 76M260 202l42 76M178 201l-4 76M234 201l8 76" stroke="#2a1a10" strokeWidth="15" strokeLinecap="round" />
           <path d="M99 245h232" stroke="#2a1a10" strokeWidth="18" strokeLinecap="round" />
+        </>
+      ) : reference.id === "iris-field" ? (
+        <>
+          <rect width="420" height="300" fill="#e8c978" />
+          <rect y="155" width="420" height="145" fill="#406d3e" />
+          <path d="M0 179c52-26 101 6 152-21 58-31 96 10 145-16 43-23 78-10 123 7v151H0z" fill="#31542f" />
+          {[55, 91, 132, 183, 229, 278, 323, 365].map((cx, index) => (
+            <g key={cx} transform={`rotate(${index % 2 === 0 ? -8 : 10} ${cx} 150)`}>
+              <path d={`M${cx} 244C${cx - 22} 205 ${cx - 11} 167 ${cx} 130`} stroke="#2d5c3b" strokeWidth="9" fill="none" />
+              <ellipse cx={cx - 15} cy="128" rx="20" ry="38" fill="#5b3f9c" />
+              <ellipse cx={cx + 14} cy="129" rx="19" ry="36" fill="#7b59bd" />
+              <ellipse cx={cx} cy="113" rx="15" ry="30" fill="#8d6bd0" />
+              <path d={`M${cx - 10} 151q10 19 25 0`} stroke="#f0ce5c" strokeWidth="8" strokeLinecap="round" fill="none" />
+            </g>
+          ))}
+          <path d="M26 230c49-32 77-8 120-26s73 6 116-18 75-9 131 12" fill="none" stroke="#b9a24c" strokeWidth="11" strokeLinecap="round" opacity="0.72" />
+        </>
+      ) : (
+        <>
+          <rect width="420" height="300" fill="#73b8cb" />
+          <path d="M0 238c83-39 142-6 213-28 66-21 128-14 207 12v78H0z" fill="#6db1bf" opacity="0.7" />
+          <path d="M29 183C93 145 131 122 194 94c65-29 112-58 189-79" fill="none" stroke="#543720" strokeWidth="16" strokeLinecap="round" />
+          <path d="M121 136C101 99 84 68 61 43M196 94c-3-42 8-70 32-101M260 66c30-25 60-42 96-52M300 48c22 24 52 42 88 52" fill="none" stroke="#5d3b23" strokeWidth="10" strokeLinecap="round" />
+          {[64, 97, 134, 181, 222, 268, 314, 354, 384].map((cx, index) => (
+            <g key={cx} transform={`rotate(${index * 23} ${cx} ${70 + (index % 4) * 37})`}>
+              <ellipse cx={cx} cy={70 + (index % 4) * 37} rx="24" ry="11" fill="#f8f0dc" />
+              <ellipse cx={cx + 1} cy={70 + (index % 4) * 37} rx="8" ry="6" fill="#d99d87" />
+            </g>
+          ))}
+          <path d="M34 184C92 150 128 127 193 99s112-61 184-81" fill="none" stroke="#8b5a34" strokeWidth="5" strokeLinecap="round" />
         </>
       )}
     </svg>
@@ -494,8 +538,10 @@ export function Component({ currentPlayer, publicState, disabled, onAction }: Ga
   const reference = referenceFor(state.referenceId);
   const [now, setNow] = useState(() => Date.now());
   const [brushColor, setBrushColor] = useState(brushColors[0]);
+  const [customColor, setCustomColor] = useState(brushColors[0]);
   const [brushSize, setBrushSize] = useState(8);
   const [strokeCount, setStrokeCount] = useState(0);
+  const [showRankBoard, setShowRankBoard] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const drawingRef = useRef(false);
   const lastPointRef = useRef<{ x: number; y: number } | null>(null);
@@ -505,6 +551,9 @@ export function Component({ currentPlayer, publicState, disabled, onAction }: Ga
   const currentSubmission = currentPlayer ? state.submissions[currentPlayer.id] : null;
   const canDraw = state.phase === "drawing" && Boolean(currentPlayer) && !currentSubmission && !disabled;
   const remainingMs = state.deadlineAt - now;
+  const winnerSet = new Set(state.winnerIds);
+  const revealScores = state.phase === "complete" && showRankBoard;
+  const hasFallingFrames = state.phase === "complete" && state.players.length > Math.max(1, state.winnerIds.length);
   const { isSubmitting, submitAction } = useInteractionGate(onAction, [state.phase, submittedCount(state), state.winnerIds.join("|")], {
     cooldownMs: 450
   });
@@ -623,6 +672,16 @@ export function Component({ currentPlayer, publicState, disabled, onAction }: Ga
     return () => window.clearTimeout(timer);
   }, [state.phase, state.rankings, state.startedAt, submitAction]);
 
+  useEffect(() => {
+    if (state.phase !== "complete") {
+      setShowRankBoard(false);
+      return;
+    }
+    setShowRankBoard(false);
+    const timer = window.setTimeout(() => setShowRankBoard(true), 3000);
+    return () => window.clearTimeout(timer);
+  }, [state.phase, state.startedAt, state.winnerIds.join("|")]);
+
   return (
     <div className={`game-module painting-shell phase-${state.phase}`}>
       <section className="painting-topline" aria-label="명화 따라그리기 상태">
@@ -686,6 +745,18 @@ export function Component({ currentPlayer, publicState, disabled, onAction }: Ga
                     onClick={() => setBrushColor(color)}
                   />
                 ))}
+                <label className={`painting-custom-color ${brushColor === customColor ? "selected" : ""}`}>
+                  <span>직접</span>
+                  <input
+                    type="color"
+                    value={customColor}
+                    aria-label="직접 색 고르기"
+                    onChange={(event) => {
+                      setCustomColor(event.target.value);
+                      setBrushColor(event.target.value);
+                    }}
+                  />
+                </label>
               </div>
               <div className="painting-brushes">
                 {brushSizes.map((size) => (
@@ -707,47 +778,81 @@ export function Component({ currentPlayer, publicState, disabled, onAction }: Ga
           </section>
         </section>
       ) : (
-        <section className="painting-results" aria-label="그림 결과">
-          <div className="painting-scan-grid">
-            {state.players.map((player, index) => {
-              const submission = state.submissions[player.id];
-              const ranking = state.rankings.find((item) => item.playerId === player.id);
-              return (
-                <article className="painting-result-card" key={player.id} style={{ "--reveal-index": index } as CSSProperties}>
-                  <div className="painting-result-paper">
-                    {submission?.imageData ? <img src={submission.imageData} alt={`${player.name} 그림`} /> : <span>미제출</span>}
-                    <i className="painting-scan-line" aria-hidden="true" />
-                  </div>
-                  <div className="painting-result-meta">
-                    <strong>{player.name}</strong>
-                    <b>{ranking ? `${ranking.score}%` : "-"}</b>
-                  </div>
-                  {ranking ? (
-                    <div className="painting-score-breakdown">
-                      <span>색감 {ranking.breakdown.color}</span>
-                      <span>구도 {ranking.breakdown.composition}</span>
-                      <span>채움 {ranking.breakdown.coverage}</span>
+        <section className={`painting-results ${showRankBoard ? "show-ranks" : ""}`} aria-label="그림 결과">
+          <div className="painting-gallery-wall">
+            <div className="painting-gallery-reference">
+              <ReferenceArtwork reference={reference} />
+              <span>원본</span>
+            </div>
+            <div className="painting-judgement-copy" role="status" aria-live="polite">
+              <strong>{state.phase === "scanning" ? "작품 스캔 중" : showRankBoard ? "순위 공개" : "판정 완료"}</strong>
+              <span>
+                {state.phase === "scanning"
+                  ? "제출된 그림을 벽에 걸고 유사도를 읽는 중입니다."
+                  : showRankBoard
+                    ? "점수표가 열렸습니다."
+                    : hasFallingFrames
+                      ? "가장 가까운 작품만 벽에 남습니다."
+                      : "우승 작품을 벽에서 강조합니다."}
+              </span>
+            </div>
+            <div className="painting-scan-grid">
+              {state.players.map((player, index) => {
+                const submission = state.submissions[player.id];
+                const ranking = state.rankings.find((item) => item.playerId === player.id);
+                const isWinner = winnerSet.has(player.id);
+                return (
+                  <article
+                    className={`painting-result-card ${isWinner ? "winner" : "non-winner"} ${state.phase === "complete" ? "judged" : ""}`}
+                    key={player.id}
+                    style={{ "--reveal-index": index, "--fall-index": ranking?.rank ?? index + 1 } as CSSProperties}
+                  >
+                    <div className="painting-result-paper">
+                      {submission?.imageData ? <img src={submission.imageData} alt={`${player.name} 그림`} /> : <span>미제출</span>}
+                      <i className="painting-scan-line" aria-hidden="true" />
                     </div>
-                  ) : null}
-                </article>
-              );
-            })}
+                    <div className="painting-result-meta">
+                      <strong>{player.name}</strong>
+                      <b>{revealScores && ranking ? `${ranking.score}%` : state.phase === "scanning" ? "스캔" : isWinner ? "보존" : "낙하"}</b>
+                    </div>
+                    {revealScores && ranking ? (
+                      <div className="painting-score-breakdown">
+                        <span>색감 {ranking.breakdown.color}</span>
+                        <span>구도 {ranking.breakdown.composition}</span>
+                        <span>채움 {ranking.breakdown.coverage}</span>
+                      </div>
+                    ) : null}
+                  </article>
+                );
+              })}
+            </div>
+            <div className="painting-gallery-floor" aria-hidden="true" />
           </div>
 
-          <div className="painting-rank-board">
-            <strong>순위</strong>
-            {state.rankings.map((ranking) => {
-              const player = playerById(state.players, ranking.playerId);
-              return (
-                <div className="painting-rank-row" key={ranking.playerId}>
-                  <span>{ranking.rank}</span>
-                  <b>{player?.name ?? "플레이어"}</b>
-                  <i style={{ inlineSize: `${ranking.score}%` }} />
-                  <em>{ranking.score}%</em>
-                </div>
-              );
-            })}
-          </div>
+          {showRankBoard ? (
+            <div className="painting-rank-board">
+              <strong>순위</strong>
+              {state.rankings.map((ranking) => {
+                const player = playerById(state.players, ranking.playerId);
+                return (
+                  <div className="painting-rank-row" key={ranking.playerId}>
+                    <span>{ranking.rank}</span>
+                    <b>{player?.name ?? "플레이어"}</b>
+                    <i style={{ inlineSize: `${ranking.score}%` }} />
+                    <em>{ranking.score}%</em>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="painting-ranking-wait" role="status" aria-live="polite">
+              {state.phase === "scanning"
+                ? "그림을 한 장씩 스캔하고 있습니다."
+                : hasFallingFrames
+                  ? "떨어진 액자가 정리되면 순위가 열립니다."
+                  : "판정이 정리되면 순위가 열립니다."}
+            </div>
+          )}
         </section>
       )}
     </div>
