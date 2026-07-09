@@ -2041,10 +2041,328 @@
   overflow: hidden !important;
 }
 
+.interactive-game-lobby.is-game-lobby .table-reveal-surface {
+  align-items: center !important;
+  background:
+    radial-gradient(circle at 50% 48%, color-mix(in srgb, var(--game-accent), transparent 78%), transparent 58%),
+    linear-gradient(180deg, rgba(5, 31, 24, 0.86), rgba(4, 12, 9, 0.92)) !important;
+  display: grid !important;
+  justify-items: center !important;
+  padding: clamp(8px, 1.2vw, 12px) !important;
+}
+
+.interactive-game-lobby.is-game-lobby .table-reveal-effect {
+  block-size: 100%;
+  border-radius: 12px;
+  inline-size: 100%;
+  min-block-size: 112px;
+  overflow: hidden;
+  position: relative;
+}
+
+.interactive-game-lobby.is-game-lobby .table-reveal-pulse {
+  border: 1px dashed color-mix(in srgb, var(--game-accent), rgba(255, 241, 194, 0.38) 42%);
+  border-radius: 999px;
+  content: "";
+  inset: 18% 12%;
+  opacity: 0.58;
+  position: absolute;
+  transform: scale(0.9);
+  animation: table-reveal-pulse 920ms ease-out both;
+}
+
+.interactive-game-lobby.is-game-lobby .table-reveal-pieces {
+  inset: 8px;
+  position: absolute;
+}
+
+.interactive-game-lobby.is-game-lobby .table-reveal-piece {
+  --piece-x: 0px;
+  --piece-y: 0px;
+  --piece-rot: 0deg;
+  --piece-delay: calc(var(--piece-index, 0) * 48ms);
+  block-size: clamp(24px, 4vw, 44px);
+  border: 1px solid rgba(255, 244, 211, 0.22);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.34),
+    0 10px 18px rgba(0, 0, 0, 0.26);
+  inline-size: clamp(24px, 4vw, 44px);
+  left: 50%;
+  position: absolute;
+  top: 50%;
+  transform: translate(calc(-50% + var(--piece-x)), calc(-50% + var(--piece-y))) rotate(var(--piece-rot)) scale(0.74);
+  transform-origin: center;
+  animation: table-reveal-piece-fan 520ms cubic-bezier(0.18, 0.82, 0.2, 1) both;
+  animation-delay: var(--piece-delay);
+}
+
+.interactive-game-lobby.is-game-lobby .table-reveal-piece:nth-child(1) {
+  --piece-x: clamp(-96px, -16vw, -54px);
+  --piece-y: -18px;
+  --piece-rot: -13deg;
+}
+
+.interactive-game-lobby.is-game-lobby .table-reveal-piece:nth-child(2) {
+  --piece-x: clamp(-48px, -8vw, -24px);
+  --piece-y: 26px;
+  --piece-rot: 8deg;
+}
+
+.interactive-game-lobby.is-game-lobby .table-reveal-piece:nth-child(3) {
+  --piece-x: 0px;
+  --piece-y: -30px;
+  --piece-rot: 0deg;
+}
+
+.interactive-game-lobby.is-game-lobby .table-reveal-piece:nth-child(4) {
+  --piece-x: clamp(48px, 8vw, 72px);
+  --piece-y: 24px;
+  --piece-rot: -8deg;
+}
+
+.interactive-game-lobby.is-game-lobby .table-reveal-piece:nth-child(5) {
+  --piece-x: clamp(88px, 15vw, 116px);
+  --piece-y: -16px;
+  --piece-rot: 12deg;
+}
+
+.interactive-game-lobby.is-game-lobby .table-reveal-piece[data-piece^="poly"] {
+  border-radius: 7px;
+  clip-path: polygon(0 0, 68% 0, 68% 32%, 100% 32%, 100% 100%, 32% 100%, 32% 68%, 0 68%);
+}
+
+.interactive-game-lobby.is-game-lobby .table-reveal-piece[data-piece="poly-blue"] {
+  background: linear-gradient(145deg, #4d91d9, #1f5fa8);
+}
+
+.interactive-game-lobby.is-game-lobby .table-reveal-piece[data-piece="poly-red"] {
+  background: linear-gradient(145deg, #df6f60, #9d302d);
+}
+
+.interactive-game-lobby.is-game-lobby .table-reveal-piece[data-piece="poly-green"] {
+  background: linear-gradient(145deg, #6db77b, #2f7b49);
+}
+
+.interactive-game-lobby.is-game-lobby .table-reveal-piece[data-piece="poly-yellow"],
+.interactive-game-lobby.is-game-lobby .table-reveal-piece[data-piece="corner"] {
+  background: linear-gradient(145deg, #f2cd64, #b78024);
+}
+
+.interactive-game-lobby.is-game-lobby .table-reveal-piece[data-piece^="marble"],
+.interactive-game-lobby.is-game-lobby .table-reveal-piece[data-piece^="stone"],
+.interactive-game-lobby.is-game-lobby .table-reveal-piece[data-piece^="disc"],
+.interactive-game-lobby.is-game-lobby .table-reveal-piece[data-piece^="token"],
+.interactive-game-lobby.is-game-lobby .table-reveal-piece[data-piece^="marker"],
+.interactive-game-lobby.is-game-lobby .table-reveal-piece[data-piece="pawn"] {
+  border-radius: 999px;
+}
+
+.interactive-game-lobby.is-game-lobby .table-reveal-piece[data-piece$="black"],
+.interactive-game-lobby.is-game-lobby .table-reveal-piece[data-piece="token-black"] {
+  background: radial-gradient(circle at 34% 24%, #6f6357, #15100b 58%, #050403);
+}
+
+.interactive-game-lobby.is-game-lobby .table-reveal-piece[data-piece$="white"],
+.interactive-game-lobby.is-game-lobby .table-reveal-piece[data-piece="stone-cream"] {
+  background: radial-gradient(circle at 34% 24%, #fff8dc, #dbc38a 68%, #9e7c44);
+}
+
+.interactive-game-lobby.is-game-lobby .table-reveal-piece[data-piece$="brown"] {
+  background: radial-gradient(circle at 34% 24%, #c99a5c, #623518 68%, #2b160b);
+}
+
+.interactive-game-lobby.is-game-lobby .table-reveal-piece[data-piece$="red"] {
+  background: radial-gradient(circle at 34% 24%, #ffb09c, #c34c40 66%, #73241e);
+}
+
+.interactive-game-lobby.is-game-lobby .table-reveal-piece[data-piece$="blue"] {
+  background: radial-gradient(circle at 34% 24%, #a7c8ff, #386ab5 66%, #182d62);
+}
+
+.interactive-game-lobby.is-game-lobby .table-reveal-piece[data-piece$="yellow"] {
+  background: radial-gradient(circle at 34% 24%, #fff1a8, #d6a13a 66%, #7a531c);
+}
+
+.interactive-game-lobby.is-game-lobby .table-reveal-piece[data-piece$="green"] {
+  background: radial-gradient(circle at 34% 24%, #a8f0c0, #399965 66%, #1e573a);
+}
+
+.interactive-game-lobby.is-game-lobby .table-reveal-piece[data-piece="ring"] {
+  background: transparent;
+  border: 5px solid color-mix(in srgb, var(--game-accent), #fff7d4 62%);
+  box-shadow: 0 10px 18px rgba(0, 0, 0, 0.24);
+}
+
+.interactive-game-lobby.is-game-lobby .table-reveal-piece[data-piece="wall"],
+.interactive-game-lobby.is-game-lobby .table-reveal-piece[data-piece="path"],
+.interactive-game-lobby.is-game-lobby .table-reveal-piece[data-piece="line"],
+.interactive-game-lobby.is-game-lobby .table-reveal-piece[data-piece="laser"],
+.interactive-game-lobby.is-game-lobby .table-reveal-piece[data-piece="brush"],
+.interactive-game-lobby.is-game-lobby .table-reveal-piece[data-piece="chalk"],
+.interactive-game-lobby.is-game-lobby .table-reveal-piece[data-piece="gallows"] {
+  block-size: 10px;
+  border-radius: 999px;
+  inline-size: clamp(48px, 9vw, 90px);
+}
+
+.interactive-game-lobby.is-game-lobby .table-reveal-piece[data-piece="wall"],
+.interactive-game-lobby.is-game-lobby .table-reveal-piece[data-piece="gallows"] {
+  background: linear-gradient(180deg, #d6ad62, #835023);
+}
+
+.interactive-game-lobby.is-game-lobby .table-reveal-piece[data-piece="path"],
+.interactive-game-lobby.is-game-lobby .table-reveal-piece[data-piece="line"] {
+  background: linear-gradient(90deg, transparent, #fff0b6, transparent);
+}
+
+.interactive-game-lobby.is-game-lobby .table-reveal-piece[data-piece="laser"] {
+  background: linear-gradient(90deg, transparent, #ff594d, transparent);
+  box-shadow: 0 0 12px rgba(255, 74, 64, 0.72);
+}
+
+.interactive-game-lobby.is-game-lobby .table-reveal-piece[data-piece="tile-hidden"],
+.interactive-game-lobby.is-game-lobby .table-reveal-piece[data-piece^="tile-"],
+.interactive-game-lobby.is-game-lobby .table-reveal-piece[data-piece="card"],
+.interactive-game-lobby.is-game-lobby .table-reveal-piece[data-piece="canvas"],
+.interactive-game-lobby.is-game-lobby .table-reveal-piece[data-piece="frame"],
+.interactive-game-lobby.is-game-lobby .table-reveal-piece[data-piece^="letter"] {
+  border-radius: 7px;
+}
+
+.interactive-game-lobby.is-game-lobby .table-reveal-piece[data-piece="tile-hidden"] {
+  background: linear-gradient(145deg, #27231d, #0c0906);
+}
+
+.interactive-game-lobby.is-game-lobby .table-reveal-piece[data-piece^="tile-"],
+.interactive-game-lobby.is-game-lobby .table-reveal-piece[data-piece="card"],
+.interactive-game-lobby.is-game-lobby .table-reveal-piece[data-piece^="letter"] {
+  background: linear-gradient(145deg, #fff0bf, #c69a50);
+}
+
+.interactive-game-lobby.is-game-lobby .table-reveal-piece[data-piece="tile-hidden"] {
+  background: linear-gradient(145deg, #27231d, #0c0906);
+}
+
+.interactive-game-lobby.is-game-lobby .table-reveal-piece[data-piece="canvas"] {
+  background: linear-gradient(145deg, #f3d49c, #d2a75c);
+  inline-size: clamp(54px, 9vw, 88px);
+}
+
+.interactive-game-lobby.is-game-lobby .table-reveal-piece[data-piece="frame"] {
+  background: transparent;
+  border: 5px solid #bb7c34;
+  inline-size: clamp(54px, 9vw, 88px);
+}
+
+.interactive-game-lobby.is-game-lobby .table-reveal-piece[data-piece="pawn"] {
+  background: radial-gradient(circle at 34% 24%, #fff1b8, color-mix(in srgb, var(--game-accent), #1f6d58 58%) 62%, #143229);
+}
+
+.interactive-game-lobby.is-game-lobby .table-reveal-piece[data-piece="brush"],
+.interactive-game-lobby.is-game-lobby .table-reveal-piece[data-piece="chalk"] {
+  background: linear-gradient(90deg, #f7ead0, #b47a3e 34%, #24201b 35% 100%);
+}
+
+.interactive-game-lobby.is-game-lobby .table-reveal-piece[data-piece^="ghost"] {
+  background: linear-gradient(180deg, #fff8e4, #d7dbff);
+  border-radius: 50% 50% 42% 42%;
+}
+
+.interactive-game-lobby.is-game-lobby .table-reveal-piece[data-piece="ghost-bad"] {
+  background: linear-gradient(180deg, #8263d8, #3f226b);
+}
+
+.interactive-game-lobby.is-game-lobby .table-reveal-piece[data-piece="ghost-hidden"],
+.interactive-game-lobby.is-game-lobby .table-reveal-piece[data-piece="gate"] {
+  background: linear-gradient(180deg, #31302b, #090806);
+}
+
+.interactive-game-lobby.is-game-lobby .table-reveal-piece[data-piece="kitten"],
+.interactive-game-lobby.is-game-lobby .table-reveal-piece[data-piece="cat"],
+.interactive-game-lobby.is-game-lobby .table-reveal-piece[data-piece="paw"],
+.interactive-game-lobby.is-game-lobby .table-reveal-piece[data-piece="boop"] {
+  background: radial-gradient(circle at 35% 25%, #ffe5b0, #d18b49 66%, #6d3a1e);
+  border-radius: 50% 50% 42% 42%;
+}
+
+.interactive-game-lobby.is-game-lobby .table-reveal-piece[data-piece="paw"],
+.interactive-game-lobby.is-game-lobby .table-reveal-piece[data-piece="boop"],
+.interactive-game-lobby.is-game-lobby .table-reveal-piece[data-piece="impact"],
+.interactive-game-lobby.is-game-lobby .table-reveal-piece[data-piece="flip"],
+.interactive-game-lobby.is-game-lobby .table-reveal-piece[data-piece="push"],
+.interactive-game-lobby.is-game-lobby .table-reveal-piece[data-piece="stack"] {
+  background:
+    radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--game-accent), #fff1c2 44%) 0 28%, transparent 30%),
+    conic-gradient(from 20deg, transparent 0 18%, color-mix(in srgb, var(--game-accent), #f0c46b 52%) 18% 26%, transparent 26% 42%, color-mix(in srgb, var(--game-accent), #f0c46b 52%) 42% 50%, transparent 50% 100%);
+  border: 0;
+  box-shadow: 0 0 18px color-mix(in srgb, var(--game-accent), transparent 56%);
+}
+
+.interactive-game-lobby.is-game-lobby .table-reveal-pieces .mini-die.table-reveal-piece {
+  background:
+    radial-gradient(circle at 28% 22%, rgba(255, 255, 255, 0.82), transparent 28%),
+    linear-gradient(145deg, #fff8e7, #e9d5a7);
+  border-radius: 9px;
+  display: grid;
+  gap: 2px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-rows: repeat(3, minmax(0, 1fr));
+  justify-items: center;
+  padding: 12%;
+}
+
+.interactive-game-lobby.is-game-lobby .table-reveal-pieces .mini-die.table-reveal-piece i {
+  block-size: clamp(5px, 0.66vw, 8px);
+  border-radius: 999px;
+  display: block;
+  inline-size: clamp(5px, 0.66vw, 8px);
+  opacity: 0;
+  place-self: center;
+}
+
+.interactive-game-lobby.is-game-lobby .table-reveal-pieces .mini-die.table-reveal-piece i[data-on="true"] {
+  background: #241407;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 1px 1px rgba(0, 0, 0, 0.2);
+  opacity: 1;
+}
+
+@keyframes table-reveal-piece-fan {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(0deg) scale(0.36);
+  }
+  62% {
+    opacity: 1;
+    transform: translate(calc(-50% + var(--piece-x)), calc(-50% + var(--piece-y))) rotate(var(--piece-rot)) scale(1.08);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(calc(-50% + var(--piece-x)), calc(-50% + var(--piece-y))) rotate(var(--piece-rot)) scale(1);
+  }
+}
+
+@keyframes table-reveal-pulse {
+  0% {
+    opacity: 0;
+    transform: scale(0.72);
+  }
+  100% {
+    opacity: 0.58;
+    transform: scale(1);
+  }
+}
+
 @media (max-width: 720px) {
   .interactive-game-lobby.is-game-lobby .seat-tokens-around-table {
     inset: 8px 0 auto !important;
     top: 8px !important;
     width: min(92%, 320px) !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .interactive-game-lobby.is-game-lobby .table-reveal-piece,
+  .interactive-game-lobby.is-game-lobby .table-reveal-pulse {
+    animation: none !important;
   }
 }

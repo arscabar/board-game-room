@@ -22,9 +22,9 @@ const pipsByValue: Record<number, number[]> = {
   6: [0, 2, 3, 5, 6, 8]
 };
 
-function diceFace(value: number, index: number, held = false) {
+function diceFace(value: number, index: number, held = false, className = "", style?: CSSProperties) {
   return (
-    <span className="mini-die" data-held={held ? "true" : "false"} key={`${value}-${index}`}>
+    <span className={`mini-die ${className}`.trim()} data-held={held ? "true" : "false"} key={`${value}-${index}`} style={style}>
       {Array.from({ length: 9 }, (_, pipIndex) => (
         <i key={pipIndex} data-on={pipsByValue[value]?.includes(pipIndex) ? "true" : "false"} />
       ))}
@@ -32,86 +32,50 @@ function diceFace(value: number, index: number, held = false) {
   );
 }
 
-function MiniBoardPreview({ game }: { game: GameDefinition }) {
-  if (game.id === "yacht-dice") {
-    return <div className="mini-board-dice">{[6, 4, 4, 2, 1].map((value, index) => diceFace(value, index, index === 1 || index === 2))}</div>;
-  }
+const revealPiecesByGame: Record<string, string[]> = {
+  "abalone-classic": ["marble-black", "marble-black", "push", "marble-white", "marble-white"],
+  alkkagi: ["disc-red", "disc-blue", "impact", "disc-yellow", "disc-green"],
+  blokus: ["poly-blue", "poly-red", "poly-green", "poly-yellow", "corner"],
+  "davinci-code-plus": ["tile-hidden", "tile-3", "tile-hidden", "tile-star"],
+  ghosts: ["ghost-hidden", "ghost-good", "ghost-bad", "gate"],
+  guryongtu: ["token-black", "token-white", "token-red", "flip"],
+  "hangman-board-game": ["gallows", "letter", "letter-hidden", "chalk"],
+  kkukkkuki: ["kitten", "paw", "cat", "boop"],
+  "masterpiece-copy": ["canvas", "card", "brush", "laser", "frame"],
+  omok: ["stone-black", "stone-white", "line", "stone-black", "stone-white"],
+  qawale: ["stone-cream", "stone-brown", "stack", "stone-cream"],
+  quoridor: ["pawn", "wall", "path", "wall", "pawn"],
+  "yacht-dice": ["die-6", "die-4", "die-4", "die-2", "die-1"],
+  yinsh: ["ring", "marker-black", "marker-white", "ring"]
+};
 
-  if (game.id === "abalone-classic") {
-    const rows = [5, 6, 7, 6, 5];
-    return (
-      <div className="mini-board-hex">
-        {rows.map((count, row) => (
-          <div key={row} style={{ "--mini-row-count": count } as CSSProperties}>
-            {Array.from({ length: count }, (_, col) => {
-              const tone = row < 2 ? "dark" : row > 2 ? "light" : col === 2 || col === 4 ? "light" : "";
-              return <span key={`${row}-${col}`} data-tone={tone} />;
-            })}
-          </div>
-        ))}
-      </div>
-    );
-  }
+const revealPiecesByKind: Record<string, string[]> = {
+  deduction: ["tile-hidden", "tile-3", "tile-hidden"],
+  duel: ["stone-black", "stone-white", "line"],
+  hidden: ["ghost-hidden", "ghost-good", "ghost-bad"],
+  maze: ["pawn", "wall", "path", "wall"],
+  physics: ["disc-red", "impact", "disc-blue"],
+  polyomino: ["poly-blue", "poly-red", "poly-yellow"],
+  rings: ["ring", "marker-black", "marker-white"],
+  stack: ["stone-cream", "stack", "stone-brown"],
+  word: ["gallows", "letter", "chalk"]
+};
 
-  if (game.id === "hangman-board-game") {
-    return (
-      <div className="mini-board-word">
-        <div className="mini-word-slots">
-          {Array.from({ length: 6 }, (_, index) => <span key={index} data-filled={index === 4 ? "false" : "true"} />)}
-        </div>
-        <div className="mini-letter-rack">
-          {Array.from({ length: 6 }, (_, index) => <span key={index} data-used={index < 3 ? "true" : "false"} />)}
-        </div>
-      </div>
-    );
-  }
-
-  if (game.id === "alkkagi") {
-    const stones = [
-      { x: 28, y: 34, tone: "red" },
-      { x: 40, y: 45, tone: "red" },
-      { x: 72, y: 64, tone: "blue" },
-      { x: 58, y: 52, tone: "blue" },
-      { x: 48, y: 71, tone: "green" }
-    ];
-    return (
-      <div className="mini-board-alkkagi">
-        {stones.map((stone, index) => (
-          <span key={index} data-tone={stone.tone} style={{ "--mini-x": `${stone.x}%`, "--mini-y": `${stone.y}%` } as CSSProperties} />
-        ))}
-      </div>
-    );
-  }
-
-  if (game.id === "davinci-code-plus") {
-    return (
-      <div className="mini-board-davinci">
-        {["?", "2", "5", "?", "8", "★"].map((label, index) => (
-          <span key={`${label}-${index}`} data-hidden={label === "?" ? "true" : "false"}>
-            {label}
-          </span>
-        ))}
-      </div>
-    );
-  }
-
-  const kind = game.table.kind;
-  const cellCount = kind === "polyomino" || kind === "maze" || kind === "rings" ? 49 : kind === "hidden" || kind === "deduction" ? 36 : kind === "stack" ? 16 : 25;
-  const tonesByGame: Record<string, string[]> = {
-    blokus: ["blue", "blue", "", "", "gold", "", "red", "", "", "green"],
-    quoridor: ["", "", "wall", "", "", "", "piece", "", "", "wall"],
-    qawale: ["stack", "", "stack", "stack", "", "stack"],
-    yinsh: ["ring", "", "stone", "", "ring", "stone"],
-    ghosts: ["hidden", "", "hidden", "", "hidden", "piece"],
-    guryongtu: ["tile", "", "tile", "", "tile"]
-  };
-  const tones = tonesByGame[game.id] ?? ["piece", "", "", "piece", "", "ring"];
+function TableRevealEffect({ game }: { game: GameDefinition }) {
+  const pieces = revealPiecesByGame[game.id] ?? revealPiecesByKind[game.table.kind] ?? ["token-black", "token-white", "flip"];
 
   return (
-    <div className="mini-board-grid" data-kind={kind}>
-      {Array.from({ length: cellCount }, (_, index) => (
-        <span key={index} data-tone={tones[index % tones.length]} />
-      ))}
+    <div className={`table-reveal-effect effect-${game.id}`} data-kind={game.table.kind} aria-hidden="true">
+      <span className="table-reveal-pulse" />
+      <div className="table-reveal-pieces">
+        {pieces.map((piece, index) =>
+          piece.startsWith("die-") ? (
+            diceFace(Number(piece.replace("die-", "")), index, index === 1 || index === 2, "table-reveal-piece", { "--piece-index": index } as CSSProperties)
+          ) : (
+            <span key={`${piece}-${index}`} className="table-reveal-piece" data-piece={piece} style={{ "--piece-index": index } as CSSProperties} />
+          )
+        )}
+      </div>
     </div>
   );
 }
@@ -140,18 +104,8 @@ export function CentralTableStage({ game, state, players = [], maxSeats = 4, tab
                 <span className="table-box-base" aria-hidden="true" />
               </div>
 
-              <div className="unfolded-board-preview" data-state={state === "focused" ? "closed" : "open"}>
-                <div className="mini-board-plaque">
-                  <strong>{game.title}</strong>
-                  <span>{game.allowedPlayerCounts.join(", ")}명</span>
-                </div>
-                <div className="mini-board-preview">
-                  <MiniBoardPreview game={game} />
-                </div>
-                <div className="mini-board-metrics">
-                  <span>{game.table.primaryMetric}</span>
-                  <span>{game.table.secondaryMetric}</span>
-                </div>
+              <div className="unfolded-board-preview table-reveal-surface" data-state={state === "focused" ? "closed" : "open"} aria-label={`${game.title} 선택 이펙트`}>
+                <TableRevealEffect game={game} />
               </div>
             </div>
           ) : (
