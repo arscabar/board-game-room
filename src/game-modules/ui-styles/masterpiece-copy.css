@@ -5,7 +5,7 @@
   --painting-paper: #fbefd6;
   --painting-gold: #d9a84d;
   color: var(--painting-ink) !important;
-  inline-size: min(100%, 1160px) !important;
+  inline-size: min(100%, 1240px) !important;
   margin: 0 auto !important;
 }
 
@@ -68,7 +68,7 @@
 
 .painting-studio {
   display: grid !important;
-  grid-template-columns: minmax(260px, 0.9fr) minmax(0, 1.55fr) !important;
+  grid-template-columns: minmax(220px, 0.62fr) minmax(0, 2.12fr) !important;
   gap: 14px !important;
   margin-top: 12px !important;
 }
@@ -139,13 +139,13 @@
   min-width: 0 !important;
   display: grid !important;
   gap: 10px !important;
-  padding: 14px !important;
+  padding: 12px !important;
 }
 
 .painting-canvas-frame {
   position: relative !important;
   overflow: hidden !important;
-  border: 10px solid #7b4b25 !important;
+  border: 8px solid #7b4b25 !important;
   border-radius: 12px !important;
   background:
     linear-gradient(180deg, rgba(255, 242, 205, 0.9), rgba(238, 209, 151, 0.92)),
@@ -159,6 +159,7 @@
   display: block !important;
   inline-size: 100% !important;
   aspect-ratio: 14 / 10 !important;
+  min-block-size: min(43vw, 560px) !important;
   background: var(--painting-paper) !important;
   cursor: crosshair !important;
   touch-action: none !important;
@@ -760,11 +761,21 @@
 
   .painting-studio {
     grid-template-columns: 1fr !important;
+    gap: 10px !important;
   }
 
   .painting-reference-card {
     grid-template-columns: minmax(112px, 0.72fr) minmax(0, 1fr) !important;
     align-items: center !important;
+    padding: 10px !important;
+  }
+
+  .painting-canvas-panel {
+    padding: 8px !important;
+  }
+
+  .painting-canvas-frame {
+    border-width: 6px !important;
   }
 
   .painting-palette-strip {

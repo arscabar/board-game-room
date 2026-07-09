@@ -4,8 +4,8 @@ import type { GameAction, GameActionResult, GameComponentProps, GameContext, Gam
 
 const DRAWING_MS = 150_000;
 const SCAN_MS = 5_400;
-const CANVAS_WIDTH = 420;
-const CANVAS_HEIGHT = 300;
+const CANVAS_WIDTH = 672;
+const CANVAS_HEIGHT = 480;
 const MAX_IMAGE_LENGTH = 520_000;
 const CANVAS_PAPER = "#fbefd6";
 
