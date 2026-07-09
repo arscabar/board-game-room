@@ -3,6 +3,7 @@ import { useInteractionGate } from "../useInteractionGate";
 import type { GameAction, GameActionResult, GameComponentProps, GameContext, GameModule } from "../types";
 
 const DRAWING_MS = 150_000;
+const SCAN_MS = 5_400;
 const CANVAS_WIDTH = 420;
 const CANVAS_HEIGHT = 300;
 const MAX_IMAGE_LENGTH = 520_000;
@@ -31,6 +32,8 @@ interface PaintingReference {
   id: string;
   title: string;
   subtitle: string;
+  imageUrl: string;
+  sourceUrl: string;
   palette: string[];
   target: DrawingAnalysis;
 }
@@ -63,6 +66,7 @@ interface PaintingState {
   referenceId: string;
   startedAt: number;
   deadlineAt: number;
+  scanStartedAt?: number;
   players: PaintingPlayer[];
   submissions: Record<string, PaintingSubmission>;
   rankings: PaintingRanking[];
@@ -72,39 +76,49 @@ interface PaintingState {
 
 const references: PaintingReference[] = [
   {
-    id: "starry-room",
-    title: "별빛 소용돌이",
-    subtitle: "푸른 밤, 노란 별, 굽이치는 하늘",
+    id: "starry-night",
+    title: "별이 빛나는 밤",
+    subtitle: "Vincent van Gogh, The Starry Night",
+    imageUrl: "/board-assets/masterpieces/starry-night.jpg",
+    sourceUrl: "https://commons.wikimedia.org/wiki/File:Van_Gogh_-_Starry_Night_-_Google_Art_Project.jpg",
     palette: ["#153a69", "#1f6596", "#f5ca4d", "#f8ead0", "#274b2c"],
-    target: { hue: 0.58, saturation: 0.64, lightness: 0.48, coverage: 0.5, balanceX: 0.49, balanceY: 0.43, stroke: 0.72 }
+    target: { hue: 0.52, saturation: 0.27, lightness: 0.38, coverage: 0.9, balanceX: 0.5, balanceY: 0.48, stroke: 0.72 }
   },
   {
-    id: "sunflower-vase",
-    title: "노란 꽃병",
-    subtitle: "황금빛 꽃과 짧은 붓질",
+    id: "sunflowers",
+    title: "해바라기",
+    subtitle: "Vincent van Gogh, Sunflowers",
+    imageUrl: "/board-assets/masterpieces/sunflowers.jpg",
+    sourceUrl: "https://commons.wikimedia.org/wiki/File:Vincent_van_Gogh_-_Sunflowers_(1888,_National_Gallery_London).jpg",
     palette: ["#f3c84e", "#d28a2f", "#6f8a3d", "#f7e1a2", "#5e3a1f"],
-    target: { hue: 0.16, saturation: 0.68, lightness: 0.56, coverage: 0.44, balanceX: 0.5, balanceY: 0.49, stroke: 0.66 }
+    target: { hue: 0.13, saturation: 0.57, lightness: 0.51, coverage: 1, balanceX: 0.5, balanceY: 0.5, stroke: 0.66 }
   },
   {
-    id: "blue-chair",
-    title: "푸른 의자",
-    subtitle: "단순한 사물, 강한 윤곽, 따뜻한 바닥",
+    id: "vangogh-chair",
+    title: "반 고흐의 의자",
+    subtitle: "Vincent van Gogh, Van Gogh's Chair",
+    imageUrl: "/board-assets/masterpieces/vangogh-chair.jpg",
+    sourceUrl: "https://commons.wikimedia.org/wiki/File:Van_Gogh%27s_Chair.jpg",
     palette: ["#2e6f91", "#8c6237", "#efc46f", "#f8edd2", "#233a46"],
-    target: { hue: 0.36, saturation: 0.48, lightness: 0.5, coverage: 0.36, balanceX: 0.52, balanceY: 0.57, stroke: 0.5 }
+    target: { hue: 0.15, saturation: 0.44, lightness: 0.32, coverage: 0.94, balanceX: 0.49, balanceY: 0.51, stroke: 0.5 }
   },
   {
-    id: "iris-field",
-    title: "보랏빛 붓꽃",
-    subtitle: "보라 꽃잎, 초록 잎, 밝은 정원",
+    id: "irises",
+    title: "붓꽃",
+    subtitle: "Vincent van Gogh, Irises",
+    imageUrl: "/board-assets/masterpieces/irises.jpg",
+    sourceUrl: "https://commons.wikimedia.org/wiki/File:Irises-Vincent_van_Gogh.jpg",
     palette: ["#5b3f9c", "#8361c7", "#2f7448", "#d9c45f", "#f5dfb4"],
-    target: { hue: 0.72, saturation: 0.58, lightness: 0.5, coverage: 0.48, balanceX: 0.5, balanceY: 0.54, stroke: 0.68 }
+    target: { hue: 0.37, saturation: 0.27, lightness: 0.44, coverage: 0.96, balanceX: 0.49, balanceY: 0.49, stroke: 0.68 }
   },
   {
-    id: "almond-branch",
-    title: "꽃핀 가지",
-    subtitle: "하늘색 배경과 흰 꽃잎, 굽은 가지",
+    id: "almond-blossom",
+    title: "아몬드 꽃",
+    subtitle: "Vincent van Gogh, Almond Blossom",
+    imageUrl: "/board-assets/masterpieces/almond-blossom.jpg",
+    sourceUrl: "https://commons.wikimedia.org/wiki/File:Vincent_van_Gogh_-_Almond_blossom_-_Google_Art_Project.jpg",
     palette: ["#6fb5c9", "#f7f1df", "#d8a38d", "#5b3b2a", "#8ed0df"],
-    target: { hue: 0.54, saturation: 0.42, lightness: 0.66, coverage: 0.34, balanceX: 0.47, balanceY: 0.42, stroke: 0.48 }
+    target: { hue: 0.44, saturation: 0.2, lightness: 0.56, coverage: 0.99, balanceX: 0.5, balanceY: 0.5, stroke: 0.48 }
   }
 ];
 
@@ -198,6 +212,7 @@ function moveToScanning(state: PaintingState, now: number) {
   const next: PaintingState = {
     ...state,
     phase: "scanning",
+    scanStartedAt: now,
     submissions: { ...state.submissions },
     winnerIds: [],
     message: "그림을 모두 펼치고 유사도를 스캔합니다."
@@ -308,6 +323,7 @@ function createInitialState({ players }: Pick<GameContext, "players">): Painting
     referenceId: chooseReferenceId(seatedPlayers),
     startedAt: now,
     deadlineAt: now + DRAWING_MS,
+    scanStartedAt: undefined,
     players: seatedPlayers,
     submissions: {},
     rankings: [],
@@ -453,76 +469,7 @@ function analyzeCanvas(canvas: HTMLCanvasElement | null, strokeCount: number): D
 }
 
 function ReferenceArtwork({ reference }: { reference: PaintingReference }) {
-  return (
-    <svg className={`painting-reference-art ref-${reference.id}`} viewBox="0 0 420 300" role="img" aria-label={`${reference.title} 원본`}>
-      <rect width="420" height="300" rx="20" fill="#f7dfac" />
-      {reference.id === "starry-room" ? (
-        <>
-          <rect width="420" height="205" fill="#16365f" />
-          <path d="M18 88C78 38 129 126 186 76s109-47 188 9" fill="none" stroke="#5aa4c7" strokeWidth="23" strokeLinecap="round" />
-          <path d="M38 140c63-48 111 26 180-13 60-34 90-41 158-2" fill="none" stroke="#f5c94c" strokeWidth="12" strokeLinecap="round" />
-          <circle cx="73" cy="62" r="18" fill="#f6cf54" />
-          <circle cx="246" cy="46" r="14" fill="#f8dc73" />
-          <circle cx="350" cy="77" r="16" fill="#f7d75b" />
-          <path d="M0 211h420v89H0z" fill="#244b2d" />
-          <path d="M40 244h100l42 56H8zM164 230h74l31 70h-126zM276 238h92l44 62H255z" fill="#111b18" opacity="0.72" />
-        </>
-      ) : reference.id === "sunflower-vase" ? (
-        <>
-          <rect width="420" height="300" fill="#efd48a" />
-          <ellipse cx="207" cy="224" rx="82" ry="42" fill="#b66d2e" />
-          <rect x="165" y="130" width="86" height="106" rx="34" fill="#df9b35" />
-          {[88, 129, 180, 235, 285, 330].map((cx, index) => (
-            <g key={cx} transform={`rotate(${index * 18} ${cx} 97)`}>
-              <circle cx={cx} cy={97 + (index % 2) * 18} r="30" fill="#d9902f" />
-              <circle cx={cx} cy={97 + (index % 2) * 18} r="16" fill="#59351e" />
-              <path d={`M${cx - 43} ${92 + (index % 2) * 18}q43-58 86 0`} fill="none" stroke="#f4cc4d" strokeWidth="13" strokeLinecap="round" />
-            </g>
-          ))}
-          <path d="M184 155c-20-42-35-62-70-71M213 154c7-58 20-82 72-99M236 157c33-42 54-52 86-44" stroke="#557733" strokeWidth="8" fill="none" />
-        </>
-      ) : reference.id === "blue-chair" ? (
-        <>
-          <rect width="420" height="184" fill="#2f708f" />
-          <rect y="184" width="420" height="116" fill="#b7834d" />
-          <path d="M139 100h144l-24 103H162z" fill="#d49d50" />
-          <path d="M153 112h116l-18 76H169z" fill="#275a6d" />
-          <path d="M145 202l-33 76M260 202l42 76M178 201l-4 76M234 201l8 76" stroke="#2a1a10" strokeWidth="15" strokeLinecap="round" />
-          <path d="M99 245h232" stroke="#2a1a10" strokeWidth="18" strokeLinecap="round" />
-        </>
-      ) : reference.id === "iris-field" ? (
-        <>
-          <rect width="420" height="300" fill="#e8c978" />
-          <rect y="155" width="420" height="145" fill="#406d3e" />
-          <path d="M0 179c52-26 101 6 152-21 58-31 96 10 145-16 43-23 78-10 123 7v151H0z" fill="#31542f" />
-          {[55, 91, 132, 183, 229, 278, 323, 365].map((cx, index) => (
-            <g key={cx} transform={`rotate(${index % 2 === 0 ? -8 : 10} ${cx} 150)`}>
-              <path d={`M${cx} 244C${cx - 22} 205 ${cx - 11} 167 ${cx} 130`} stroke="#2d5c3b" strokeWidth="9" fill="none" />
-              <ellipse cx={cx - 15} cy="128" rx="20" ry="38" fill="#5b3f9c" />
-              <ellipse cx={cx + 14} cy="129" rx="19" ry="36" fill="#7b59bd" />
-              <ellipse cx={cx} cy="113" rx="15" ry="30" fill="#8d6bd0" />
-              <path d={`M${cx - 10} 151q10 19 25 0`} stroke="#f0ce5c" strokeWidth="8" strokeLinecap="round" fill="none" />
-            </g>
-          ))}
-          <path d="M26 230c49-32 77-8 120-26s73 6 116-18 75-9 131 12" fill="none" stroke="#b9a24c" strokeWidth="11" strokeLinecap="round" opacity="0.72" />
-        </>
-      ) : (
-        <>
-          <rect width="420" height="300" fill="#73b8cb" />
-          <path d="M0 238c83-39 142-6 213-28 66-21 128-14 207 12v78H0z" fill="#6db1bf" opacity="0.7" />
-          <path d="M29 183C93 145 131 122 194 94c65-29 112-58 189-79" fill="none" stroke="#543720" strokeWidth="16" strokeLinecap="round" />
-          <path d="M121 136C101 99 84 68 61 43M196 94c-3-42 8-70 32-101M260 66c30-25 60-42 96-52M300 48c22 24 52 42 88 52" fill="none" stroke="#5d3b23" strokeWidth="10" strokeLinecap="round" />
-          {[64, 97, 134, 181, 222, 268, 314, 354, 384].map((cx, index) => (
-            <g key={cx} transform={`rotate(${index * 23} ${cx} ${70 + (index % 4) * 37})`}>
-              <ellipse cx={cx} cy={70 + (index % 4) * 37} rx="24" ry="11" fill="#f8f0dc" />
-              <ellipse cx={cx + 1} cy={70 + (index % 4) * 37} rx="8" ry="6" fill="#d99d87" />
-            </g>
-          ))}
-          <path d="M34 184C92 150 128 127 193 99s112-61 184-81" fill="none" stroke="#8b5a34" strokeWidth="5" strokeLinecap="round" />
-        </>
-      )}
-    </svg>
-  );
+  return <img className="painting-reference-art" src={reference.imageUrl} alt={`${reference.title} 원본 명화`} draggable={false} />;
 }
 
 function submittedCount(state: PaintingState) {
@@ -551,6 +498,8 @@ export function Component({ currentPlayer, publicState, disabled, onAction }: Ga
   const currentSubmission = currentPlayer ? state.submissions[currentPlayer.id] : null;
   const canDraw = state.phase === "drawing" && Boolean(currentPlayer) && !currentSubmission && !disabled;
   const remainingMs = state.deadlineAt - now;
+  const scanProgress =
+    state.phase === "scanning" ? Math.max(0, Math.min(1, (now - (state.scanStartedAt ?? now)) / SCAN_MS)) : state.phase === "complete" ? 1 : 0;
   const winnerSet = new Set(state.winnerIds);
   const revealScores = state.phase === "complete" && showRankBoard;
   const hasFallingFrames = state.phase === "complete" && state.players.length > Math.max(1, state.winnerIds.length);
@@ -565,8 +514,8 @@ export function Component({ currentPlayer, publicState, disabled, onAction }: Ga
   }, [state.referenceId, currentPlayer?.id]);
 
   useEffect(() => {
-    if (state.phase !== "drawing") return;
-    const timer = window.setInterval(() => setNow(Date.now()), 500);
+    if (state.phase !== "drawing" && state.phase !== "scanning") return;
+    const timer = window.setInterval(() => setNow(Date.now()), state.phase === "scanning" ? 80 : 500);
     return () => window.clearInterval(timer);
   }, [state.phase]);
 
@@ -668,7 +617,7 @@ export function Component({ currentPlayer, publicState, disabled, onAction }: Ga
     completeKeyRef.current = key;
     const timer = window.setTimeout(() => {
       submitAction({ type: "painting/complete" });
-    }, 5400);
+    }, SCAN_MS);
     return () => window.clearTimeout(timer);
   }, [state.phase, state.rankings, state.startedAt, submitAction]);
 
@@ -703,7 +652,7 @@ export function Component({ currentPlayer, publicState, disabled, onAction }: Ga
             <ReferenceArtwork reference={reference} />
             <div className="painting-reference-caption">
               <strong>원본</strong>
-              <span>색감, 큰 구도, 채움 정도를 따라가세요.</span>
+              <span>모든 플레이어가 같은 명화를 보고 색감, 큰 구도, 채움 정도를 따라갑니다.</span>
             </div>
             <div className="painting-palette-strip" aria-hidden="true">
               {reference.palette.map((color) => (
@@ -801,19 +750,21 @@ export function Component({ currentPlayer, publicState, disabled, onAction }: Ga
                 const submission = state.submissions[player.id];
                 const ranking = state.rankings.find((item) => item.playerId === player.id);
                 const isWinner = winnerSet.has(player.id);
+                const scanningScore = ranking ? Math.min(ranking.score, Math.round(ranking.score * scanProgress)) : 0;
                 return (
                   <article
                     className={`painting-result-card ${isWinner ? "winner" : "non-winner"} ${state.phase === "complete" ? "judged" : ""}`}
                     key={player.id}
-                    style={{ "--reveal-index": index, "--fall-index": ranking?.rank ?? index + 1 } as CSSProperties}
+                    style={{ "--reveal-index": index, "--fall-index": ranking?.rank ?? index + 1, "--scan-progress": scanProgress } as CSSProperties}
                   >
                     <div className="painting-result-paper">
                       {submission?.imageData ? <img src={submission.imageData} alt={`${player.name} 그림`} /> : <span>미제출</span>}
                       <i className="painting-scan-line" aria-hidden="true" />
+                      {state.phase === "scanning" && ranking ? <span className="painting-live-percent">{scanningScore}%</span> : null}
                     </div>
                     <div className="painting-result-meta">
                       <strong>{player.name}</strong>
-                      <b>{revealScores && ranking ? `${ranking.score}%` : state.phase === "scanning" ? "스캔" : isWinner ? "보존" : "낙하"}</b>
+                      <b>{revealScores && ranking ? `${ranking.score}%` : state.phase === "scanning" ? `${scanningScore}%` : isWinner ? "보존" : "낙하"}</b>
                     </div>
                     {revealScores && ranking ? (
                       <div className="painting-score-breakdown">

@@ -92,11 +92,14 @@
 }
 
 .painting-reference-art {
+  display: block !important;
   inline-size: 100% !important;
   aspect-ratio: 4 / 3 !important;
   border: 8px solid #7b4b25 !important;
   border-radius: 12px !important;
   background: #f5db9d !important;
+  object-fit: contain !important;
+  object-position: center !important;
   box-shadow:
     inset 0 0 0 2px rgba(255, 239, 184, 0.36),
     0 11px 22px rgba(0, 0, 0, 0.3) !important;
@@ -406,13 +409,39 @@
   inset-inline: 0 !important;
   top: -18% !important;
   block-size: 22% !important;
-  background: linear-gradient(180deg, transparent, rgba(116, 224, 255, 0.52), transparent) !important;
+  background:
+    linear-gradient(180deg, transparent, rgba(116, 224, 255, 0.56), transparent),
+    linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.36), transparent) !important;
   mix-blend-mode: screen !important;
-  animation: painting-scan 2.4s ease-in-out 620ms both;
+  opacity: 0 !important;
+  transform: translateY(calc(var(--scan-progress, 0) * 560%)) !important;
+  transition: transform 80ms linear, opacity 160ms ease !important;
+}
+
+.phase-scanning .painting-scan-line {
+  opacity: 1 !important;
 }
 
 .phase-complete .painting-scan-line {
   opacity: 0 !important;
+}
+
+.painting-live-percent {
+  position: absolute !important;
+  inset-inline-end: 8px !important;
+  top: calc(8px + var(--scan-progress, 0) * 70%) !important;
+  min-inline-size: 54px !important;
+  border: 1px solid rgba(116, 224, 255, 0.46) !important;
+  border-radius: 999px !important;
+  padding: 5px 8px !important;
+  color: #e7fbff !important;
+  background: rgba(7, 38, 47, 0.82) !important;
+  box-shadow: 0 0 18px rgba(116, 224, 255, 0.2) !important;
+  font-size: 0.84rem !important;
+  font-weight: 950 !important;
+  text-align: center !important;
+  transform: translateY(-50%) !important;
+  transition: top 80ms linear !important;
 }
 
 .painting-result-meta {

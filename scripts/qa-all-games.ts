@@ -701,6 +701,8 @@ async function playMasterpieceCopy(baseUrl: string, options: PlayOptions = {}): 
   assert(initial.phase === "drawing", "Masterpiece copy should start in drawing phase.");
   const remainingMs = initial.deadlineAt - Date.now();
   assert(remainingMs > 120_000 && remainingMs <= 150_500, "Masterpiece copy should use a fixed 2:30 timer.");
+  const referenceIds = new Set(table.clients.map((client) => publicState<any>(table, client).referenceId));
+  assert(referenceIds.size === 1, "Masterpiece copy should show the same reference painting to every player.");
 
   for (let index = 0; index < table.clients.length; index += 1) {
     const imageData = `data:image/png;base64,${Buffer.from(`masterpiece-${index}`).toString("base64")}`;

@@ -16,11 +16,12 @@
 ## 원본 그림
 
 - 현재 5종이 무작위로 선택됩니다.
-- 별빛 소용돌이
-- 노란 꽃병
-- 푸른 의자
-- 보랏빛 붓꽃
-- 꽃핀 가지
+- 모든 플레이어는 한 판에서 같은 원본 그림을 봅니다.
+- 별이 빛나는 밤
+- 해바라기
+- 반 고흐의 의자
+- 붓꽃
+- 아몬드 꽃
 
 ## 진행
 
@@ -40,11 +41,10 @@
 
 ## 점수 기준
 
-- 색감 유사도
-- 밝기 유사도
-- 채움 정도
-- 구도 중심
-- 선 사용량과 완성도
+- 클라이언트가 캔버스의 평균 색상, 채도, 밝기, 채움 비율, 중심 구도, 선 사용량을 분석합니다.
+- 서버는 선택된 원본 명화의 기준값과 제출 그림의 분석값을 비교합니다.
+- 최종 점수는 색감 34점, 밝기 14점, 채움 20점, 구도 22점, 완성도 10점 비율로 합산됩니다.
+- 결과 단계에서는 각 그림 위로 스캔 라인이 위에서 아래로 내려가며, 최종 점수까지 퍼센트가 올라갑니다.
 
 ## 승리
 
@@ -56,3 +56,12 @@
 - 결과 단계에서만 모든 그림 이미지가 공개됩니다.
 - 채점은 서버에서 최종 계산하지만, 캔버스 분석값은 클라이언트가 전송합니다.
 - 방이 게임 선택으로 돌아가거나 방이 비면 그림 데이터는 사라지는 휘발성 상태입니다.
+
+## 이미지 출처
+
+- 원본 명화 이미지는 Wikimedia Commons의 퍼블릭 도메인 파일을 앱 자산으로 저장해 사용합니다.
+- https://commons.wikimedia.org/wiki/File:Van_Gogh_-_Starry_Night_-_Google_Art_Project.jpg
+- https://commons.wikimedia.org/wiki/File:Vincent_van_Gogh_-_Sunflowers_(1888,_National_Gallery_London).jpg
+- https://commons.wikimedia.org/wiki/File:Van_Gogh%27s_Chair.jpg
+- https://commons.wikimedia.org/wiki/File:Irises-Vincent_van_Gogh.jpg
+- https://commons.wikimedia.org/wiki/File:Vincent_van_Gogh_-_Almond_blossom_-_Google_Art_Project.jpg
