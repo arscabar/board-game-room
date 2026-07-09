@@ -20,9 +20,13 @@ interface DrawingAnalysis {
   balanceX: number;
   balanceY: number;
   stroke: number;
+  pixelSimilarity?: number;
+  structureSimilarity?: number;
 }
 
 interface ScoreBreakdown {
+  pixel: number;
+  structure: number;
   color: number;
   light: number;
   coverage: number;
@@ -147,7 +151,9 @@ function normalizeAnalysis(value: unknown): DrawingAnalysis {
     coverage: clamp01(record.coverage),
     balanceX: clamp01(record.balanceX, 0.5),
     balanceY: clamp01(record.balanceY, 0.5),
-    stroke: clamp01(record.stroke)
+    stroke: clamp01(record.stroke),
+    pixelSimilarity: clamp01(record.pixelSimilarity),
+    structureSimilarity: clamp01(record.structureSimilarity)
   };
 }
 
@@ -157,6 +163,8 @@ function hueDistance(a: number, b: number) {
 }
 
 function scoreAnalysis(analysis: DrawingAnalysis, target: DrawingAnalysis) {
+  const pixel = clamp01(analysis.pixelSimilarity);
+  const structure = clamp01(analysis.structureSimilarity, pixel);
   const color = Math.max(0, 1 - (hueDistance(analysis.hue, target.hue) * 2.2 + Math.abs(analysis.saturation - target.saturation) * 0.9));
   const light = Math.max(0, 1 - Math.abs(analysis.lightness - target.lightness) * 1.9);
   const coverage = Math.max(0, 1 - Math.abs(analysis.coverage - target.coverage) * 2.4);
@@ -165,14 +173,20 @@ function scoreAnalysis(analysis: DrawingAnalysis, target: DrawingAnalysis) {
     1 - (Math.abs(analysis.balanceX - target.balanceX) * 1.7 + Math.abs(analysis.balanceY - target.balanceY) * 1.7)
   );
   const effort = Math.max(0, Math.min(1, analysis.stroke * 0.65 + analysis.coverage * 0.55));
+  const participation = Math.min(1, analysis.coverage * 2.6 + analysis.stroke * 0.5);
+  const detailGate = Math.min(1, 0.38 + structure * 0.9);
   const breakdown = {
+    pixel: Math.round(pixel * 100),
+    structure: Math.round(structure * 100),
     color: Math.round(color * 100),
     light: Math.round(light * 100),
     coverage: Math.round(coverage * 100),
     composition: Math.round(composition * 100),
     effort: Math.round(effort * 100)
   };
-  const score = Math.round(color * 34 + light * 14 + coverage * 20 + composition * 22 + effort * 10);
+  const score = Math.round(
+    (pixel * 46 + structure * 16 + color * 13 + light * 5 + coverage * 7 + composition * 5 + effort * 8) * participation * detailGate
+  );
   return { score: Math.max(0, Math.min(100, score)), breakdown };
 }
 
@@ -520,6 +534,125 @@ function analyzeCanvas(canvas: HTMLCanvasElement | null, strokeCount: number): D
   };
 }
 
+const SCORE_SAMPLE_WIDTH = 84;
+const SCORE_SAMPLE_HEIGHT = 60;
+
+function loadReferenceImage(src: string) {
+  return new Promise<HTMLImageElement>((resolve, reject) => {
+    const image = new Image();
+    image.crossOrigin = "anonymous";
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error(`원본 이미지를 불러오지 못했습니다: ${src}`));
+    image.src = src;
+  });
+}
+
+function drawContainedImage(ctx: CanvasRenderingContext2D, image: HTMLImageElement, width: number, height: number) {
+  ctx.fillStyle = CANVAS_PAPER;
+  ctx.fillRect(0, 0, width, height);
+  const scale = Math.min(width / image.naturalWidth, height / image.naturalHeight);
+  const drawWidth = image.naturalWidth * scale;
+  const drawHeight = image.naturalHeight * scale;
+  ctx.drawImage(image, (width - drawWidth) / 2, (height - drawHeight) / 2, drawWidth, drawHeight);
+}
+
+function luma(data: Uint8ClampedArray, index: number) {
+  return data[index] * 0.299 + data[index + 1] * 0.587 + data[index + 2] * 0.114;
+}
+
+function edgeAt(data: Uint8ClampedArray, width: number, x: number, y: number) {
+  const index = (y * width + x) * 4;
+  const right = (y * width + x + 1) * 4;
+  const down = ((y + 1) * width + x) * 4;
+  return Math.abs(luma(data, index) - luma(data, right)) + Math.abs(luma(data, index) - luma(data, down));
+}
+
+async function compareCanvasToReference(canvas: HTMLCanvasElement | null, reference: PaintingReference) {
+  if (!canvas) {
+    return { pixelSimilarity: 0, structureSimilarity: 0 };
+  }
+
+  const userCanvas = document.createElement("canvas");
+  const referenceCanvas = document.createElement("canvas");
+  userCanvas.width = SCORE_SAMPLE_WIDTH;
+  userCanvas.height = SCORE_SAMPLE_HEIGHT;
+  referenceCanvas.width = SCORE_SAMPLE_WIDTH;
+  referenceCanvas.height = SCORE_SAMPLE_HEIGHT;
+  const userCtx = userCanvas.getContext("2d", { willReadFrequently: true });
+  const referenceCtx = referenceCanvas.getContext("2d", { willReadFrequently: true });
+  if (!userCtx || !referenceCtx) {
+    return { pixelSimilarity: 0, structureSimilarity: 0 };
+  }
+
+  const referenceImage = await loadReferenceImage(reference.imageUrl);
+  userCtx.drawImage(canvas, 0, 0, SCORE_SAMPLE_WIDTH, SCORE_SAMPLE_HEIGHT);
+  drawContainedImage(referenceCtx, referenceImage, SCORE_SAMPLE_WIDTH, SCORE_SAMPLE_HEIGHT);
+
+  const userData = userCtx.getImageData(0, 0, SCORE_SAMPLE_WIDTH, SCORE_SAMPLE_HEIGHT).data;
+  const referenceData = referenceCtx.getImageData(0, 0, SCORE_SAMPLE_WIDTH, SCORE_SAMPLE_HEIGHT).data;
+  let colorMatch = 0;
+  let lumaMatch = 0;
+  let userEdgeTotal = 0;
+  let referenceEdgeTotal = 0;
+  let referenceStrongEdges = 0;
+  let matchedStrongEdges = 0;
+  let edgeSamples = 0;
+  const samples = SCORE_SAMPLE_WIDTH * SCORE_SAMPLE_HEIGHT;
+
+  for (let pixel = 0; pixel < samples; pixel += 1) {
+    const index = pixel * 4;
+    const channelDelta =
+      Math.abs(userData[index] - referenceData[index]) +
+      Math.abs(userData[index + 1] - referenceData[index + 1]) +
+      Math.abs(userData[index + 2] - referenceData[index + 2]);
+    colorMatch += 1 - Math.min(1, channelDelta / 765);
+    lumaMatch += 1 - Math.min(1, Math.abs(luma(userData, index) - luma(referenceData, index)) / 255);
+  }
+
+  for (let y = 0; y < SCORE_SAMPLE_HEIGHT - 1; y += 1) {
+    for (let x = 0; x < SCORE_SAMPLE_WIDTH - 1; x += 1) {
+      const userEdge = Math.min(1, edgeAt(userData, SCORE_SAMPLE_WIDTH, x, y) / 180);
+      const referenceEdge = Math.min(1, edgeAt(referenceData, SCORE_SAMPLE_WIDTH, x, y) / 180);
+      userEdgeTotal += userEdge;
+      referenceEdgeTotal += referenceEdge;
+      if (referenceEdge > 0.14) {
+        referenceStrongEdges += 1;
+        if (userEdge > 0.1) {
+          matchedStrongEdges += Math.min(1, userEdge / referenceEdge);
+        }
+      }
+      edgeSamples += 1;
+    }
+  }
+
+  const colorSimilarity = colorMatch / samples;
+  const lumaSimilarity = lumaMatch / samples;
+  const userEdgeEnergy = userEdgeTotal / Math.max(1, edgeSamples);
+  const referenceEdgeEnergy = referenceEdgeTotal / Math.max(1, edgeSamples);
+  const edgeEnergySimilarity =
+    referenceEdgeEnergy < 0.015
+      ? 1
+      : Math.min(userEdgeEnergy, referenceEdgeEnergy) / Math.max(userEdgeEnergy, referenceEdgeEnergy, 0.001);
+  const edgeShapeSimilarity = referenceStrongEdges === 0 ? edgeEnergySimilarity : matchedStrongEdges / referenceStrongEdges;
+  const structureSimilarity = lumaSimilarity * 0.28 + edgeEnergySimilarity * 0.32 + edgeShapeSimilarity * 0.4;
+  return {
+    pixelSimilarity: Math.max(0, Math.min(1, colorSimilarity * 0.58 + structureSimilarity * 0.42)),
+    structureSimilarity: Math.max(0, Math.min(1, structureSimilarity))
+  };
+}
+
+async function analyzeCanvasAgainstReference(canvas: HTMLCanvasElement | null, reference: PaintingReference, strokeCount: number) {
+  const analysis = analyzeCanvas(canvas, strokeCount);
+  try {
+    return {
+      ...analysis,
+      ...(await compareCanvasToReference(canvas, reference))
+    };
+  } catch {
+    return analysis;
+  }
+}
+
 function ReferenceArtwork({ reference }: { reference: PaintingReference }) {
   return <img className="painting-reference-art" src={reference.imageUrl} alt={`${reference.title} 원본 명화`} draggable={false} />;
 }
@@ -544,6 +677,7 @@ export function Component({ currentPlayer, publicState, disabled, onAction }: Ga
   const [eraserSize, setEraserSize] = useState(18);
   const [strokeCount, setStrokeCount] = useState(0);
   const [showRankBoard, setShowRankBoard] = useState(false);
+  const [isScoring, setIsScoring] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const drawingRef = useRef(false);
   const lastPointRef = useRef<{ x: number; y: number } | null>(null);
@@ -657,12 +791,17 @@ export function Component({ currentPlayer, publicState, disabled, onAction }: Ga
     setTool((current) => (current === "eraser" ? "pen" : current));
   }
 
-  function submitCurrent(reason: "manual" | "auto") {
-    if (!currentPlayer || currentSubmission || isSubmitting) return false;
+  async function submitCurrent(reason: "manual" | "auto") {
+    if (!currentPlayer || currentSubmission || isSubmitting || isScoring) return false;
     const canvas = canvasRef.current;
-    const analysis = analyzeCanvas(canvas, strokeCount);
-    const imageData = canvas?.toDataURL("image/jpeg", 0.72) ?? null;
-    return submitAction({ type: "painting/submit", payload: { imageData, analysis, reason } });
+    setIsScoring(true);
+    try {
+      const analysis = await analyzeCanvasAgainstReference(canvas, reference, strokeCount);
+      const imageData = canvas?.toDataURL("image/jpeg", 0.72) ?? null;
+      return submitAction({ type: "painting/submit", payload: { imageData, analysis, reason } });
+    } finally {
+      setIsScoring(false);
+    }
   }
 
   useEffect(() => {
@@ -671,7 +810,7 @@ export function Component({ currentPlayer, publicState, disabled, onAction }: Ga
     if (remainingMs > 0 || autoSubmitKeyRef.current === key) return;
     autoSubmitKeyRef.current = key;
     if (currentPlayer && !currentSubmission) {
-      submitCurrent("auto");
+      void submitCurrent("auto");
     } else {
       submitAction({ type: "painting/force-scan" });
     }
@@ -844,15 +983,20 @@ export function Component({ currentPlayer, publicState, disabled, onAction }: Ga
                 <button type="button" onClick={clearCanvas} disabled={!canDraw}>
                   지우기
                 </button>
-                <button className="painting-submit" type="button" onClick={() => submitCurrent("manual")} disabled={!canDraw || isSubmitting}>
-                  제출
+                <button
+                  className="painting-submit"
+                  type="button"
+                  onClick={() => void submitCurrent("manual")}
+                  disabled={!canDraw || isSubmitting || isScoring}
+                >
+                  {isScoring ? "판정 중" : "제출"}
                 </button>
               </div>
 
               <div className="painting-score-note" aria-label="유사도 판정 방식">
                 <strong>유사도 판정</strong>
                 <span>
-                  캔버스 픽셀에서 색감, 밝기, 채움, 중심 구도, 작업량을 읽어 원본 기준값과 비교합니다. 색감 34 · 밝기 14 · 채움 20 · 구도 22 · 완성도 10.
+                  원본 명화와 캔버스를 축소 비교해 색상 픽셀, 명암/윤곽, 색감, 채움, 중심 구도, 작업량을 함께 봅니다.
                 </span>
               </div>
             </div>
@@ -900,6 +1044,8 @@ export function Component({ currentPlayer, publicState, disabled, onAction }: Ga
                     </div>
                     {revealScores && ranking ? (
                       <div className="painting-score-breakdown">
+                        <span>원본 {ranking.breakdown.pixel}</span>
+                        <span>윤곽 {ranking.breakdown.structure}</span>
                         <span>색감 {ranking.breakdown.color}</span>
                         <span>구도 {ranking.breakdown.composition}</span>
                         <span>채움 {ranking.breakdown.coverage}</span>

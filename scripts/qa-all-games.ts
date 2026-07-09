@@ -685,10 +685,10 @@ async function playYacht(baseUrl: string, options: PlayOptions = {}): Promise<Qa
 
 function masterpieceAnalysis(index: number) {
   const samples = [
-    { hue: 0.58, saturation: 0.64, lightness: 0.48, coverage: 0.52, balanceX: 0.52, balanceY: 0.5, stroke: 0.78 },
-    { hue: 0.14, saturation: 0.52, lightness: 0.57, coverage: 0.44, balanceX: 0.46, balanceY: 0.55, stroke: 0.65 },
-    { hue: 0.68, saturation: 0.38, lightness: 0.42, coverage: 0.36, balanceX: 0.61, balanceY: 0.43, stroke: 0.52 },
-    { hue: 0.05, saturation: 0.72, lightness: 0.62, coverage: 0.63, balanceX: 0.38, balanceY: 0.6, stroke: 0.7 }
+    { hue: 0.58, saturation: 0.64, lightness: 0.48, coverage: 0.52, balanceX: 0.52, balanceY: 0.5, stroke: 0.78, pixelSimilarity: 0.74, structureSimilarity: 0.68 },
+    { hue: 0.14, saturation: 0.52, lightness: 0.57, coverage: 0.44, balanceX: 0.46, balanceY: 0.55, stroke: 0.65, pixelSimilarity: 0.58, structureSimilarity: 0.54 },
+    { hue: 0.68, saturation: 0.38, lightness: 0.42, coverage: 0.36, balanceX: 0.61, balanceY: 0.43, stroke: 0.52, pixelSimilarity: 0.42, structureSimilarity: 0.48 },
+    { hue: 0.05, saturation: 0.72, lightness: 0.62, coverage: 0.63, balanceX: 0.38, balanceY: 0.6, stroke: 0.7, pixelSimilarity: 0.51, structureSimilarity: 0.45 }
   ];
   return samples[index % samples.length];
 }
