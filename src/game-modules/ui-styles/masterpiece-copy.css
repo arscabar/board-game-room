@@ -1,0 +1,460 @@
+.painting-shell {
+  --painting-ink: #fff3d6;
+  --painting-muted: rgba(255, 235, 196, 0.72);
+  --painting-panel: rgba(38, 22, 13, 0.9);
+  --painting-paper: #fbefd6;
+  --painting-gold: #d9a84d;
+  color: var(--painting-ink) !important;
+  inline-size: min(100%, 1160px) !important;
+  margin: 0 auto !important;
+}
+
+.painting-topline {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto auto !important;
+  align-items: center !important;
+  gap: 10px !important;
+  border: 1px solid rgba(228, 181, 101, 0.24) !important;
+  border-radius: 10px !important;
+  padding: 10px 12px !important;
+  background:
+    linear-gradient(180deg, rgba(72, 43, 23, 0.92), rgba(26, 14, 8, 0.92)),
+    repeating-linear-gradient(90deg, rgba(255, 231, 181, 0.05) 0 1px, transparent 1px 18px) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 238, 190, 0.1) !important;
+}
+
+.painting-topline div:first-child {
+  min-width: 0 !important;
+  display: grid !important;
+  gap: 2px !important;
+}
+
+.painting-topline strong {
+  overflow: hidden !important;
+  color: #fff8df !important;
+  font-size: clamp(1rem, 2.8vw, 1.3rem) !important;
+  font-weight: 950 !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+.painting-topline span {
+  overflow: hidden !important;
+  color: var(--painting-muted) !important;
+  font-size: 0.78rem !important;
+  font-weight: 800 !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+.painting-clock,
+.painting-submit-count {
+  min-block-size: 40px !important;
+  display: inline-grid !important;
+  place-items: center !important;
+  border: 1px solid rgba(235, 190, 108, 0.3) !important;
+  border-radius: 8px !important;
+  padding: 0 12px !important;
+  color: #ffe2a2 !important;
+  background: rgba(8, 5, 3, 0.46) !important;
+  font-weight: 950 !important;
+  white-space: nowrap !important;
+}
+
+.painting-clock[data-urgent="true"] {
+  color: #ffd0b0 !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 131, 93, 0.42), 0 0 18px rgba(255, 131, 93, 0.18) !important;
+}
+
+.painting-studio {
+  display: grid !important;
+  grid-template-columns: minmax(260px, 0.9fr) minmax(0, 1.55fr) !important;
+  gap: 14px !important;
+  margin-top: 12px !important;
+}
+
+.painting-reference-card,
+.painting-canvas-panel,
+.painting-rank-board {
+  border: 1px solid rgba(228, 181, 101, 0.28) !important;
+  border-radius: 12px !important;
+  background:
+    linear-gradient(180deg, rgba(73, 42, 21, 0.92), rgba(24, 13, 7, 0.92)),
+    repeating-linear-gradient(0deg, rgba(255, 232, 183, 0.04) 0 2px, transparent 2px 9px) !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 240, 192, 0.06), 0 14px 28px rgba(0, 0, 0, 0.26) !important;
+}
+
+.painting-reference-card {
+  display: grid !important;
+  align-content: start !important;
+  gap: 12px !important;
+  padding: 14px !important;
+}
+
+.painting-reference-art {
+  inline-size: 100% !important;
+  aspect-ratio: 4 / 3 !important;
+  border: 8px solid #7b4b25 !important;
+  border-radius: 12px !important;
+  background: #f5db9d !important;
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 239, 184, 0.36),
+    0 11px 22px rgba(0, 0, 0, 0.3) !important;
+}
+
+.painting-reference-caption {
+  display: grid !important;
+  gap: 3px !important;
+}
+
+.painting-reference-caption strong {
+  color: #ffe2a2 !important;
+  font-size: 0.8rem !important;
+  font-weight: 950 !important;
+}
+
+.painting-reference-caption span {
+  color: rgba(255, 240, 213, 0.76) !important;
+  font-size: 0.78rem !important;
+  line-height: 1.45 !important;
+}
+
+.painting-palette-strip {
+  display: grid !important;
+  grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+  gap: 6px !important;
+}
+
+.painting-palette-strip i {
+  block-size: 22px !important;
+  border: 1px solid rgba(255, 238, 191, 0.24) !important;
+  border-radius: 999px !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18) !important;
+}
+
+.painting-canvas-panel {
+  min-width: 0 !important;
+  display: grid !important;
+  gap: 10px !important;
+  padding: 14px !important;
+}
+
+.painting-canvas-frame {
+  position: relative !important;
+  overflow: hidden !important;
+  border: 10px solid #7b4b25 !important;
+  border-radius: 12px !important;
+  background:
+    linear-gradient(180deg, rgba(255, 242, 205, 0.9), rgba(238, 209, 151, 0.92)),
+    #fbefd6 !important;
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 239, 184, 0.36),
+    0 12px 24px rgba(0, 0, 0, 0.3) !important;
+}
+
+.painting-canvas {
+  display: block !important;
+  inline-size: 100% !important;
+  aspect-ratio: 14 / 10 !important;
+  background: var(--painting-paper) !important;
+  cursor: crosshair !important;
+  touch-action: none !important;
+}
+
+.painting-canvas-lock {
+  position: absolute !important;
+  inset: 0 !important;
+  display: grid !important;
+  place-content: center !important;
+  gap: 5px !important;
+  background: rgba(12, 7, 4, 0.56) !important;
+  text-align: center !important;
+}
+
+.painting-canvas-lock strong {
+  color: #fff5d5 !important;
+  font-size: 1.2rem !important;
+}
+
+.painting-canvas-lock span {
+  color: rgba(255, 241, 211, 0.74) !important;
+  font-size: 0.86rem !important;
+}
+
+.painting-toolrail {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1.4fr) auto repeat(3, auto) !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+.painting-colors,
+.painting-brushes {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  min-width: 0 !important;
+}
+
+.painting-colors {
+  flex-wrap: wrap !important;
+}
+
+.painting-colors button,
+.painting-brushes button,
+.painting-toolrail > button {
+  min-block-size: 44px !important;
+  border: 1px solid rgba(235, 190, 108, 0.28) !important;
+  border-radius: 9px !important;
+  color: #fff1c7 !important;
+  background: rgba(12, 7, 4, 0.48) !important;
+  font-weight: 900 !important;
+}
+
+.painting-colors button {
+  inline-size: 34px !important;
+  min-block-size: 34px !important;
+  border-radius: 999px !important;
+  background: var(--paint-color) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 4px 9px rgba(0, 0, 0, 0.24) !important;
+}
+
+.painting-colors button.selected,
+.painting-brushes button.selected {
+  border-color: #ffdf91 !important;
+  box-shadow: 0 0 0 2px rgba(255, 223, 145, 0.22), 0 6px 12px rgba(0, 0, 0, 0.22) !important;
+}
+
+.painting-brushes button {
+  inline-size: 38px !important;
+}
+
+.painting-toolrail > button {
+  padding: 0 12px !important;
+}
+
+.painting-submit {
+  color: #1a0f07 !important;
+  background: linear-gradient(180deg, #ffe7a4, #c8842d) !important;
+}
+
+.painting-results {
+  display: grid !important;
+  gap: 14px !important;
+  margin-top: 12px !important;
+}
+
+.painting-scan-grid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)) !important;
+  gap: 12px !important;
+}
+
+.painting-result-card {
+  display: grid !important;
+  gap: 8px !important;
+  border: 1px solid rgba(228, 181, 101, 0.24) !important;
+  border-radius: 12px !important;
+  padding: 10px !important;
+  background: linear-gradient(180deg, rgba(66, 38, 20, 0.9), rgba(20, 11, 6, 0.92)) !important;
+  animation: painting-card-reveal 460ms ease-out both;
+  animation-delay: calc(var(--reveal-index, 0) * 180ms);
+}
+
+.painting-result-paper {
+  position: relative !important;
+  overflow: hidden !important;
+  display: grid !important;
+  place-items: center !important;
+  aspect-ratio: 14 / 10 !important;
+  border: 7px solid #7b4b25 !important;
+  border-radius: 10px !important;
+  background: #fbefd6 !important;
+}
+
+.painting-result-paper img {
+  inline-size: 100% !important;
+  block-size: 100% !important;
+  object-fit: cover !important;
+}
+
+.painting-result-paper > span {
+  color: rgba(58, 35, 19, 0.72) !important;
+  font-weight: 950 !important;
+}
+
+.painting-scan-line {
+  position: absolute !important;
+  inset-inline: 0 !important;
+  top: -18% !important;
+  block-size: 22% !important;
+  background: linear-gradient(180deg, transparent, rgba(116, 224, 255, 0.52), transparent) !important;
+  mix-blend-mode: screen !important;
+  animation: painting-scan 2.4s ease-in-out 620ms both;
+}
+
+.painting-result-meta {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  gap: 8px !important;
+  align-items: center !important;
+}
+
+.painting-result-meta strong {
+  overflow: hidden !important;
+  color: #fff5d7 !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+.painting-result-meta b {
+  border-radius: 999px !important;
+  padding: 4px 8px !important;
+  color: #1d1209 !important;
+  background: #ffd978 !important;
+  font-size: 0.9rem !important;
+}
+
+.painting-score-breakdown {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 5px !important;
+}
+
+.painting-score-breakdown span {
+  border-radius: 6px !important;
+  padding: 4px 5px !important;
+  color: rgba(255, 241, 212, 0.82) !important;
+  background: rgba(9, 5, 3, 0.38) !important;
+  font-size: 0.68rem !important;
+  font-weight: 850 !important;
+  text-align: center !important;
+}
+
+.painting-rank-board {
+  display: grid !important;
+  gap: 8px !important;
+  padding: 12px !important;
+}
+
+.painting-rank-board > strong {
+  color: #ffe2a2 !important;
+  font-size: 1rem !important;
+}
+
+.painting-rank-row {
+  display: grid !important;
+  grid-template-columns: 32px minmax(0, 1fr) minmax(80px, 0.75fr) 48px !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+.painting-rank-row span {
+  display: grid !important;
+  place-items: center !important;
+  inline-size: 28px !important;
+  block-size: 28px !important;
+  border-radius: 999px !important;
+  color: #1f1308 !important;
+  background: #ffd978 !important;
+  font-weight: 950 !important;
+}
+
+.painting-rank-row b {
+  overflow: hidden !important;
+  color: #fff5d7 !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+.painting-rank-row i {
+  block-size: 10px !important;
+  border-radius: 999px !important;
+  background: linear-gradient(90deg, #2ca77a, #ffd978) !important;
+}
+
+.painting-rank-row em {
+  color: #ffe2a2 !important;
+  font-style: normal !important;
+  font-weight: 950 !important;
+  text-align: right !important;
+}
+
+@keyframes painting-card-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(-18px) rotate(-2deg);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) rotate(0deg);
+  }
+}
+
+@keyframes painting-scan {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(560%);
+  }
+}
+
+@media (max-width: 760px) {
+  .painting-topline {
+    grid-template-columns: minmax(0, 1fr) auto !important;
+  }
+
+  .painting-submit-count {
+    grid-column: 1 / -1 !important;
+    justify-self: stretch !important;
+  }
+
+  .painting-studio {
+    grid-template-columns: 1fr !important;
+  }
+
+  .painting-reference-card {
+    grid-template-columns: minmax(112px, 0.72fr) minmax(0, 1fr) !important;
+    align-items: center !important;
+  }
+
+  .painting-palette-strip {
+    grid-column: 1 / -1 !important;
+  }
+
+  .painting-toolrail {
+    grid-template-columns: 1fr !important;
+  }
+
+  .painting-colors,
+  .painting-brushes {
+    justify-content: center !important;
+  }
+
+  .painting-rank-row {
+    grid-template-columns: 30px minmax(0, 1fr) 44px !important;
+  }
+
+  .painting-rank-row i {
+    grid-column: 2 / -1 !important;
+    inline-size: 100% !important;
+  }
+}
+
+@media (max-width: 420px) {
+  .painting-reference-card {
+    grid-template-columns: 1fr !important;
+  }
+
+  .painting-score-breakdown {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .painting-result-card,
+  .painting-scan-line {
+    animation: none !important;
+  }
+}

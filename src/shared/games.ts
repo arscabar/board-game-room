@@ -270,6 +270,37 @@ export const games: GameDefinition[] = [
     }
   },
   {
+    id: "masterpiece-copy",
+    title: "명화 따라그리기",
+    original: "Masterpiece Copy Challenge",
+    allowedPlayerCounts: [1, 2, 3, 4],
+    scoreState: "점수제",
+    priority: "중간",
+    genre: "파티 드로잉, 관찰력, 유사도 점수",
+    board: "원본 액자 + 개인 캔버스",
+    docFile: "15-masterpiece-copy.md",
+    learnUrl: "https://commons.wikimedia.org/wiki/Vincent_van_Gogh",
+    accent: "#d9a84d",
+    summary: "고흐풍 원본 그림을 2분 30초 동안 따라 그리고, 제출된 그림을 스캔해 유사도 퍼센트로 순위를 겨루는 드로잉 파티게임.",
+    components: ["원본 그림 카드", "플레이어별 캔버스", "브러시/색상 도구", "스캔 결과판", "퍼센트 순위표"],
+    setup: ["1~4명이 입장", "서버가 원본 그림 1장을 선택", "모든 플레이어가 같은 2분 30초 제한 시간을 받음"],
+    turnFlow: ["각자 동시에 원본을 보고 그림", "제출 또는 제한 시간 종료", "모든 그림이 탁탁탁탁 공개", "스캔 라인이 내려가며 유사도 점수 계산"],
+    winCondition: "색감, 밝기, 채움, 구도, 선 사용량을 종합한 유사도 퍼센트가 가장 높은 플레이어가 승리.",
+    implementation: ["동시 드로잉 잠금 해제", "캔버스 터치/마우스 입력", "제출 전 그림 비공개", "클라이언트 분석값 기반 서버 점수 산정", "스캔 후 결과 확정"],
+    table: {
+      kind: "word",
+      primaryMetric: "남은 시간",
+      secondaryMetric: "유사도",
+      uiHint: "액자 원본과 개인 스케치 캔버스가 놓인 화실 테이블"
+    },
+    visual: {
+      iconKind: "word",
+      thumbnailHint: "명화 액자와 캔버스",
+      motionHint: "scan",
+      texture: "paper"
+    }
+  },
+  {
     id: "yacht-dice",
     title: "요트 다이스",
     original: "Yacht / Yacht Dice",

@@ -683,6 +683,56 @@ async function playYacht(baseUrl: string, options: PlayOptions = {}): Promise<Qa
   return { gameId: "yacht-dice", title: "요트 다이스", players: playerCount, mode: "playthrough", actions, completed, winner, note: "all score sheets filled" };
 }
 
+function masterpieceAnalysis(index: number) {
+  const samples = [
+    { hue: 0.58, saturation: 0.64, lightness: 0.48, coverage: 0.52, balanceX: 0.52, balanceY: 0.5, stroke: 0.78 },
+    { hue: 0.14, saturation: 0.52, lightness: 0.57, coverage: 0.44, balanceX: 0.46, balanceY: 0.55, stroke: 0.65 },
+    { hue: 0.68, saturation: 0.38, lightness: 0.42, coverage: 0.36, balanceX: 0.61, balanceY: 0.43, stroke: 0.52 },
+    { hue: 0.05, saturation: 0.72, lightness: 0.62, coverage: 0.63, balanceX: 0.38, balanceY: 0.6, stroke: 0.7 }
+  ];
+  return samples[index % samples.length];
+}
+
+async function playMasterpieceCopy(baseUrl: string, options: PlayOptions = {}): Promise<QaResult> {
+  const playerCount = options.playerCount ?? 4;
+  const table = await createStartedRoom(baseUrl, "masterpiece-copy", playerCount);
+  let actions = 0;
+  const initial = publicState<any>(table);
+  assert(initial.phase === "drawing", "Masterpiece copy should start in drawing phase.");
+  const remainingMs = initial.deadlineAt - Date.now();
+  assert(remainingMs > 120_000 && remainingMs <= 150_500, "Masterpiece copy should use a fixed 2:30 timer.");
+
+  for (let index = 0; index < table.clients.length; index += 1) {
+    const imageData = `data:image/png;base64,${Buffer.from(`masterpiece-${index}`).toString("base64")}`;
+    await gameAction(table, table.clients[index], {
+      type: "painting/submit",
+      payload: { imageData, analysis: masterpieceAnalysis(index) }
+    });
+    actions += 1;
+  }
+
+  const scanning = publicState<any>(table, table.clients[table.clients.length - 1]);
+  assert(scanning.phase === "scanning", "Masterpiece copy should scan after every player submits.");
+  assert((scanning.rankings ?? []).length === playerCount, "Masterpiece copy should rank every submitted player.");
+  await gameAction(table, table.clients[0], { type: "painting/complete" });
+  actions += 1;
+
+  const state = publicState<any>(table);
+  const winner = winnerLabel(table);
+  const completed = state.phase === "complete" && winner !== "-";
+  await closeTable(table);
+  return {
+    gameId: "masterpiece-copy",
+    title: "명화 따라그리기",
+    players: playerCount,
+    mode: "playthrough",
+    actions,
+    completed,
+    winner,
+    note: "fixed 2:30 simultaneous drawing, scan reveal, similarity ranking"
+  };
+}
+
 async function playHangman(baseUrl: string, _options: PlayOptions = {}): Promise<QaResult> {
   const table = await createStartedRoom(baseUrl, "hangman-board-game", 2);
   let actions = 0;
@@ -1368,6 +1418,7 @@ const scenarios: Array<{ gameId: string; play: PlayScenario }> = [
   { gameId: "kkukkkuki", play: playKkukkkuki },
   { gameId: "davinci-code-plus", play: playDavinci },
   { gameId: "blokus", play: playBlokus },
+  { gameId: "masterpiece-copy", play: playMasterpieceCopy },
   { gameId: "yacht-dice", play: playYacht },
   { gameId: "yinsh", play: playYinsh },
   { gameId: "hangman-board-game", play: playHangman }

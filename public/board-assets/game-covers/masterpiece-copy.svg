@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 720" role="img" aria-label="명화 따라그리기 게임 상자">
+  <defs>
+    <linearGradient id="felt" x1="0" x2="1" y1="0" y2="1">
+      <stop stop-color="#123c31"/>
+      <stop offset="1" stop-color="#061915"/>
+    </linearGradient>
+    <linearGradient id="wood" x1="0" x2="0" y1="0" y2="1">
+      <stop stop-color="#7b4522"/>
+      <stop offset=".52" stop-color="#3a1d0e"/>
+      <stop offset="1" stop-color="#160a05"/>
+    </linearGradient>
+    <linearGradient id="paper" x1="0" x2="1" y1="0" y2="1">
+      <stop stop-color="#fff4d4"/>
+      <stop offset="1" stop-color="#e5c17c"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="150%">
+      <feDropShadow dx="0" dy="18" stdDeviation="12" flood-color="#000" flood-opacity=".42"/>
+    </filter>
+  </defs>
+  <rect width="720" height="720" fill="#0a1511"/>
+  <rect x="30" y="30" width="660" height="660" rx="34" fill="url(#wood)"/>
+  <rect x="58" y="58" width="604" height="604" rx="24" fill="url(#felt)" stroke="#d8a653" stroke-width="5"/>
+  <g filter="url(#shadow)">
+    <g transform="translate(82 90) rotate(-7 180 200)">
+      <rect width="310" height="405" rx="18" fill="#7b4b25"/>
+      <rect x="24" y="24" width="262" height="270" rx="14" fill="#183d68"/>
+      <path d="M42 130c55-68 103 47 155-7 43-45 74-61 128-14" fill="none" stroke="#66a8ca" stroke-width="24" stroke-linecap="round"/>
+      <path d="M56 180c66-49 108 19 165-15 50-30 82-34 128 0" fill="none" stroke="#f3cd4e" stroke-width="12" stroke-linecap="round"/>
+      <circle cx="80" cy="78" r="22" fill="#f5d258"/>
+      <circle cx="222" cy="66" r="16" fill="#ffe176"/>
+      <rect x="24" y="294" width="262" height="87" fill="#201006"/>
+      <text x="155" y="354" text-anchor="middle" font-family="Arial, sans-serif" font-size="34" font-weight="900" fill="#f6dfaf">명화</text>
+    </g>
+    <g transform="translate(360 186) rotate(5 140 180)">
+      <rect width="280" height="360" rx="16" fill="#f3d79b"/>
+      <rect x="20" y="20" width="240" height="250" rx="10" fill="url(#paper)" stroke="#8c5a2b" stroke-width="4"/>
+      <path d="M60 204c42-92 112-94 158-18" fill="none" stroke="#214a77" stroke-width="18" stroke-linecap="round"/>
+      <path d="M70 138c64-51 100 24 145-13" fill="none" stroke="#d59a35" stroke-width="14" stroke-linecap="round"/>
+      <circle cx="164" cy="97" r="31" fill="#e9b33a"/>
+      <path d="M38 305h204" stroke="#2c170b" stroke-width="12" stroke-linecap="round"/>
+      <path d="M62 330h150" stroke="#2c170b" stroke-width="8" stroke-linecap="round" opacity=".7"/>
+    </g>
+  </g>
+  <path d="M148 602h424" stroke="#e9bd69" stroke-width="6" stroke-linecap="round" opacity=".8"/>
+</svg>

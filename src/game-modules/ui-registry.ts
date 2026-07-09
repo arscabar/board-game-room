@@ -28,6 +28,7 @@ const gameComponents: Record<string, GameComponentLoader> = {
   kkukkkuki: lazyGame(() => import("./kkukkkuki"), [() => import("./ui-styles/kkukkkuki.css")]),
   "davinci-code-plus": lazyGame(() => import("./davinci-code-plus"), [() => import("./ui-styles/davinci-code-plus.css")]),
   blokus: lazyGame(() => import("./blokus"), [() => import("./ui-styles/blokus.css")]),
+  "masterpiece-copy": lazyGame(() => import("./masterpiece-copy"), [() => import("./ui-styles/masterpiece-copy.css")]),
   "yacht-dice": lazyGame(() => import("./yacht-dice"), [() => import("./ui-styles/yacht-dice.css")]),
   yinsh: lazyGame(() => import("./yinsh"), [() => import("./ui-styles/yinsh.css")]),
   "hangman-board-game": lazyGame(() => import("./hangman-board-game"), [() => import("./ui-styles/hangman-board-game.css")])

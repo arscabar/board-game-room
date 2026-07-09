@@ -533,6 +533,9 @@ function victoryPiecesFor(game: GameDefinition) {
   if (game.id === "kkukkkuki") {
     return ["S", "L", "S", "L", "S", "L", "S", "L", "S", "L", "S", "L"];
   }
+  if (game.id === "masterpiece-copy") {
+    return ["ART", "%", "W", "V", "ART", "%", "W", "V", "ART", "%", "W", "V"];
+  }
   return victoryPiecesByKind[game.table.kind];
 }
 
@@ -606,6 +609,8 @@ function phaseName(phase: string) {
     decide: "연속 추측 선택",
     setup: "준비",
     rolling: "주사위",
+    drawing: "그리기",
+    scanning: "스캔",
     "round-complete": "라운드 종료",
     "ring-placement": "링 배치",
     move: "이동",
@@ -2159,7 +2164,9 @@ function PlayPanel({
   const latestMove = room.gameState.moveLog.at(-1);
   const hangmanOpenPhase = selectedGame?.id === "hangman-board-game" && (phase === "setup" || phase === "round-complete");
   const setupOpenPhase = selectedGame?.id === "ghosts" && phase === "setup";
-  const moduleDisabled = paused || (!isMyTurn && !hangmanOpenPhase && !setupOpenPhase);
+  const simultaneousDrawingPhase =
+    selectedGame?.id === "masterpiece-copy" && (phase === "drawing" || phase === "scanning" || phase === "complete");
+  const moduleDisabled = paused || (!isMyTurn && !hangmanOpenPhase && !setupOpenPhase && !simultaneousDrawingPhase);
   const postGameChoices = stateRecord(room.gameState.postGameChoices);
   const currentPostGameChoice = currentPlayer ? String(postGameChoices?.[currentPlayer.id] ?? "") : "";
   const rematchRequesters = room.players.filter((player) => postGameChoices?.[player.id] === "rematch");
@@ -2260,7 +2267,15 @@ function PlayPanel({
           <h2 id="play-title">{selectedGame?.title ?? "게임 진행"}</h2>
           <p className="play-compact-status">
             <span>{phaseName(phase)}</span>
-            <span>{activePlayer?.name ?? "없음"} 차례</span>
+            <span>
+              {selectedGame?.id === "masterpiece-copy"
+                ? phase === "drawing"
+                  ? "모두 그리는 중"
+                  : phase === "scanning"
+                    ? "그림 스캔 중"
+                    : "결과 확인"
+                : `${activePlayer?.name ?? "없음"} 차례`}
+            </span>
           </p>
         </div>
         <div className="play-header-actions">
