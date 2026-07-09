@@ -164,6 +164,14 @@
   touch-action: none !important;
 }
 
+.painting-canvas.tool-fill {
+  cursor: cell !important;
+}
+
+.painting-canvas.tool-eraser {
+  cursor: grab !important;
+}
+
 .painting-canvas-lock {
   position: absolute !important;
   inset: 0 !important;
@@ -186,13 +194,14 @@
 
 .painting-toolrail {
   display: grid !important;
-  grid-template-columns: minmax(0, 1.4fr) auto repeat(3, auto) !important;
-  align-items: center !important;
-  gap: 8px !important;
+  grid-template-columns: minmax(0, 1.2fr) minmax(170px, 0.65fr) !important;
+  align-items: start !important;
+  gap: 10px !important;
 }
 
 .painting-colors,
-.painting-brushes {
+.painting-tool-modes,
+.painting-tool-actions {
   display: flex !important;
   align-items: center !important;
   gap: 6px !important;
@@ -205,8 +214,8 @@
 
 .painting-colors button,
 .painting-custom-color,
-.painting-brushes button,
-.painting-toolrail > button {
+.painting-tool-modes button,
+.painting-tool-actions button {
   min-block-size: 44px !important;
   border: 1px solid rgba(235, 190, 108, 0.28) !important;
   border-radius: 9px !important;
@@ -216,8 +225,8 @@
 }
 
 .painting-colors button {
-  inline-size: 34px !important;
-  min-block-size: 34px !important;
+  inline-size: 42px !important;
+  min-block-size: 42px !important;
   border-radius: 999px !important;
   background: var(--paint-color) !important;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 4px 9px rgba(0, 0, 0, 0.24) !important;
@@ -225,9 +234,71 @@
 
 .painting-colors button.selected,
 .painting-custom-color.selected,
-.painting-brushes button.selected {
+.painting-tool-modes button.selected {
   border-color: #ffdf91 !important;
   box-shadow: 0 0 0 2px rgba(255, 223, 145, 0.22), 0 6px 12px rgba(0, 0, 0, 0.22) !important;
+}
+
+.painting-tool-modes {
+  grid-column: 1 / -1 !important;
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+}
+
+.painting-tool-modes button.selected {
+  color: #1b1109 !important;
+  background: linear-gradient(180deg, #ffe7a4, #c8842d) !important;
+}
+
+.painting-color-panel {
+  min-width: 0 !important;
+  display: grid !important;
+  gap: 8px !important;
+}
+
+.painting-color-row {
+  display: grid !important;
+  gap: 6px !important;
+  min-width: 0 !important;
+}
+
+.painting-color-row > span {
+  color: rgba(255, 240, 213, 0.72) !important;
+  font-size: 0.7rem !important;
+  font-weight: 950 !important;
+}
+
+.painting-active-color {
+  display: grid !important;
+  grid-template-columns: auto minmax(0, 1fr) !important;
+  align-items: center !important;
+  gap: 8px !important;
+  min-block-size: 40px !important;
+  border: 1px solid rgba(235, 190, 108, 0.24) !important;
+  border-radius: 10px !important;
+  padding: 6px 10px 6px 48px !important;
+  color: #fff1c7 !important;
+  background:
+    radial-gradient(circle at 23px 50%, var(--paint-color) 0 13px, rgba(255,255,255,0.16) 14px 15px, transparent 16px),
+    rgba(12, 7, 4, 0.38) !important;
+}
+
+.painting-active-color span,
+.painting-active-color strong {
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+.painting-active-color span {
+  color: rgba(255, 240, 213, 0.78) !important;
+  font-size: 0.72rem !important;
+  font-weight: 900 !important;
+}
+
+.painting-active-color strong {
+  color: #ffe2a2 !important;
+  font-size: 0.78rem !important;
 }
 
 .painting-custom-color {
@@ -258,12 +329,62 @@
   cursor: pointer !important;
 }
 
-.painting-brushes button {
-  inline-size: 38px !important;
+.painting-size-controls {
+  display: grid !important;
+  gap: 8px !important;
 }
 
-.painting-toolrail > button {
+.painting-size-controls label {
+  display: grid !important;
+  gap: 6px !important;
+  border: 1px solid rgba(235, 190, 108, 0.22) !important;
+  border-radius: 10px !important;
+  padding: 8px 10px !important;
+  background: rgba(12, 7, 4, 0.36) !important;
+}
+
+.painting-size-controls span {
+  color: #fff1c7 !important;
+  font-size: 0.78rem !important;
+  font-weight: 950 !important;
+}
+
+.painting-size-controls input {
+  inline-size: 100% !important;
+  accent-color: #ffd978 !important;
+}
+
+.painting-tool-actions {
+  grid-column: 1 / -1 !important;
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+}
+
+.painting-tool-actions button {
   padding: 0 12px !important;
+}
+
+.painting-score-note {
+  grid-column: 1 / -1 !important;
+  display: grid !important;
+  gap: 3px !important;
+  border: 1px solid rgba(235, 190, 108, 0.2) !important;
+  border-radius: 10px !important;
+  padding: 9px 10px !important;
+  background: rgba(10, 6, 4, 0.35) !important;
+}
+
+.painting-score-note strong {
+  color: #ffe2a2 !important;
+  font-size: 0.78rem !important;
+  font-weight: 950 !important;
+}
+
+.painting-score-note span {
+  color: rgba(255, 240, 213, 0.76) !important;
+  font-size: 0.72rem !important;
+  line-height: 1.45 !important;
+  font-weight: 800 !important;
 }
 
 .painting-submit {
@@ -407,14 +528,14 @@
 .painting-scan-line {
   position: absolute !important;
   inset-inline: 0 !important;
-  top: -18% !important;
-  block-size: 22% !important;
+  top: calc(var(--scan-progress, 0) * 100%) !important;
+  block-size: 2px !important;
   background:
-    linear-gradient(180deg, transparent, rgba(116, 224, 255, 0.56), transparent),
-    linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.36), transparent) !important;
+    linear-gradient(90deg, transparent 0%, rgba(255, 30, 30, 0.94) 18%, #fff6e3 50%, rgba(255, 30, 30, 0.94) 82%, transparent 100%) !important;
   mix-blend-mode: screen !important;
   opacity: 0 !important;
-  transform: translateY(calc(var(--scan-progress, 0) * 560%)) !important;
+  box-shadow: 0 0 7px rgba(255, 30, 30, 0.86), 0 0 16px rgba(255, 30, 30, 0.36) !important;
+  transform: translateY(-50%) !important;
   transition: transform 80ms linear, opacity 160ms ease !important;
 }
 
@@ -429,14 +550,14 @@
 .painting-live-percent {
   position: absolute !important;
   inset-inline-end: 8px !important;
-  top: calc(8px + var(--scan-progress, 0) * 70%) !important;
+  top: calc(var(--scan-progress, 0) * 100%) !important;
   min-inline-size: 54px !important;
-  border: 1px solid rgba(116, 224, 255, 0.46) !important;
+  border: 1px solid rgba(255, 74, 74, 0.56) !important;
   border-radius: 999px !important;
   padding: 5px 8px !important;
-  color: #e7fbff !important;
-  background: rgba(7, 38, 47, 0.82) !important;
-  box-shadow: 0 0 18px rgba(116, 224, 255, 0.2) !important;
+  color: #fff4e4 !important;
+  background: rgba(55, 5, 5, 0.86) !important;
+  box-shadow: 0 0 18px rgba(255, 48, 48, 0.28) !important;
   font-size: 0.84rem !important;
   font-weight: 950 !important;
   text-align: center !important;
@@ -655,8 +776,13 @@
   }
 
   .painting-colors,
-  .painting-brushes {
+  .painting-tool-modes,
+  .painting-tool-actions {
     justify-content: center !important;
+  }
+
+  .painting-size-controls {
+    grid-template-columns: 1fr 1fr !important;
   }
 
   .painting-rank-row {
@@ -701,6 +827,10 @@
 
 @media (max-width: 420px) {
   .painting-reference-card {
+    grid-template-columns: 1fr !important;
+  }
+
+  .painting-size-controls {
     grid-template-columns: 1fr !important;
   }
 

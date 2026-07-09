@@ -7,8 +7,10 @@ const SCAN_MS = 5_400;
 const CANVAS_WIDTH = 420;
 const CANVAS_HEIGHT = 300;
 const MAX_IMAGE_LENGTH = 520_000;
+const CANVAS_PAPER = "#fbefd6";
 
 type PaintingPhase = "drawing" | "scanning" | "complete";
+type DrawingTool = "pen" | "eraser" | "fill";
 
 interface DrawingAnalysis {
   hue: number;
@@ -123,7 +125,6 @@ const references: PaintingReference[] = [
 ];
 
 const brushColors = ["#17263c", "#f2c84b", "#2f6d93", "#7a4a24", "#e36d3d", "#f8f0dc", "#1f6f4a", "#6e3fa6"];
-const brushSizes = [4, 8, 13, 19];
 
 function assertState(state: unknown): PaintingState {
   if (!state || typeof state !== "object") {
@@ -413,12 +414,63 @@ function rgbToHsl(r: number, g: number, b: number) {
   return { hue: hue / 6, saturation, lightness };
 }
 
+function hexToRgb(hex: string) {
+  const normalized = hex.replace("#", "").trim();
+  if (!/^[0-9a-fA-F]{6}$/.test(normalized)) {
+    return { r: 23, g: 38, b: 60 };
+  }
+  return {
+    r: Number.parseInt(normalized.slice(0, 2), 16),
+    g: Number.parseInt(normalized.slice(2, 4), 16),
+    b: Number.parseInt(normalized.slice(4, 6), 16)
+  };
+}
+
+function colorDelta(data: Uint8ClampedArray, index: number, target: { r: number; g: number; b: number }) {
+  return Math.abs(data[index] - target.r) + Math.abs(data[index + 1] - target.g) + Math.abs(data[index + 2] - target.b);
+}
+
 function setupCanvas(canvas: HTMLCanvasElement | null) {
   if (!canvas) return;
   const ctx = canvas.getContext("2d");
   if (!ctx) return;
-  ctx.fillStyle = "#fbefd6";
+  ctx.fillStyle = CANVAS_PAPER;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
+}
+
+function floodFill(canvas: HTMLCanvasElement | null, point: { x: number; y: number }, color: string) {
+  const ctx = canvas?.getContext("2d", { willReadFrequently: true });
+  if (!canvas || !ctx) return false;
+  const image = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const data = image.data;
+  const startX = Math.max(0, Math.min(canvas.width - 1, Math.floor(point.x)));
+  const startY = Math.max(0, Math.min(canvas.height - 1, Math.floor(point.y)));
+  const startIndex = (startY * canvas.width + startX) * 4;
+  const target = { r: data[startIndex], g: data[startIndex + 1], b: data[startIndex + 2] };
+  const fill = hexToRgb(color);
+  if (Math.abs(target.r - fill.r) + Math.abs(target.g - fill.g) + Math.abs(target.b - fill.b) < 8) return false;
+
+  const tolerance = 54;
+  const stack = [[startX, startY]];
+  const seen = new Uint8Array(canvas.width * canvas.height);
+  while (stack.length > 0) {
+    const current = stack.pop();
+    if (!current) continue;
+    const [x, y] = current;
+    if (x < 0 || y < 0 || x >= canvas.width || y >= canvas.height) continue;
+    const pixel = y * canvas.width + x;
+    if (seen[pixel]) continue;
+    seen[pixel] = 1;
+    const index = pixel * 4;
+    if (colorDelta(data, index, target) > tolerance) continue;
+    data[index] = fill.r;
+    data[index + 1] = fill.g;
+    data[index + 2] = fill.b;
+    data[index + 3] = 255;
+    stack.push([x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]);
+  }
+  ctx.putImageData(image, 0, 0);
+  return true;
 }
 
 function analyzeCanvas(canvas: HTMLCanvasElement | null, strokeCount: number): DrawingAnalysis {
@@ -483,10 +535,13 @@ function playerById(players: PaintingPlayer[], playerId: string) {
 export function Component({ currentPlayer, publicState, disabled, onAction }: GameComponentProps<PaintingState>) {
   const state = assertState(publicState);
   const reference = referenceFor(state.referenceId);
+  const baseColors = brushColors.filter((color) => !reference.palette.includes(color));
   const [now, setNow] = useState(() => Date.now());
+  const [tool, setTool] = useState<DrawingTool>("pen");
   const [brushColor, setBrushColor] = useState(brushColors[0]);
   const [customColor, setCustomColor] = useState(brushColors[0]);
   const [brushSize, setBrushSize] = useState(8);
+  const [eraserSize, setEraserSize] = useState(18);
   const [strokeCount, setStrokeCount] = useState(0);
   const [showRankBoard, setShowRankBoard] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -539,10 +594,11 @@ export function Component({ currentPlayer, publicState, disabled, onAction }: Ga
     const ctx = canvas?.getContext("2d");
     const last = lastPointRef.current ?? point;
     if (!canvas || !ctx) return;
+    const erasing = tool === "eraser";
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
-    ctx.strokeStyle = brushColor;
-    ctx.lineWidth = brushSize;
+    ctx.strokeStyle = erasing ? CANVAS_PAPER : brushColor;
+    ctx.lineWidth = erasing ? eraserSize : brushSize;
     ctx.beginPath();
     ctx.moveTo(last.x, last.y);
     ctx.lineTo(point.x, point.y);
@@ -553,10 +609,16 @@ export function Component({ currentPlayer, publicState, disabled, onAction }: Ga
   function handlePointerDown(event: ReactPointerEvent<HTMLCanvasElement>) {
     if (!canDraw) return;
     event.preventDefault();
-    event.currentTarget.setPointerCapture(event.pointerId);
     pushHistory();
-    drawingRef.current = true;
     const point = canvasPoint(event);
+    if (tool === "fill") {
+      if (floodFill(canvasRef.current, point, brushColor)) {
+        setStrokeCount((count) => count + 4);
+      }
+      return;
+    }
+    event.currentTarget.setPointerCapture(event.pointerId);
+    drawingRef.current = true;
     lastPointRef.current = point;
     drawTo(point);
     setStrokeCount((count) => count + 1);
@@ -588,6 +650,11 @@ export function Component({ currentPlayer, publicState, disabled, onAction }: Ga
     if (!canDraw) return;
     pushHistory();
     setupCanvas(canvasRef.current);
+  }
+
+  function selectBrushColor(color: string) {
+    setBrushColor(color);
+    setTool((current) => (current === "eraser" ? "pen" : current));
   }
 
   function submitCurrent(reason: "manual" | "auto") {
@@ -667,7 +734,7 @@ export function Component({ currentPlayer, publicState, disabled, onAction }: Ga
                 ref={canvasRef}
                 width={CANVAS_WIDTH}
                 height={CANVAS_HEIGHT}
-                className="painting-canvas"
+                className={`painting-canvas tool-${tool}`}
                 aria-label="내 그림 캔버스"
                 onPointerDown={handlePointerDown}
                 onPointerMove={handlePointerMove}
@@ -683,46 +750,111 @@ export function Component({ currentPlayer, publicState, disabled, onAction }: Ga
             </div>
 
             <div className="painting-toolrail" aria-label="그리기 도구">
-              <div className="painting-colors">
-                {brushColors.map((color) => (
+              <div className="painting-tool-modes" role="group" aria-label="도구 선택">
+                {[
+                  ["pen", "펜"],
+                  ["eraser", "지우개"],
+                  ["fill", "페인트"]
+                ].map(([mode, label]) => (
                   <button
-                    key={color}
+                    key={mode}
                     type="button"
-                    className={color === brushColor ? "selected" : ""}
-                    style={{ "--paint-color": color } as CSSProperties}
-                    aria-label={`${color} 색 선택`}
-                    onClick={() => setBrushColor(color)}
-                  />
-                ))}
-                <label className={`painting-custom-color ${brushColor === customColor ? "selected" : ""}`}>
-                  <span>직접</span>
-                  <input
-                    type="color"
-                    value={customColor}
-                    aria-label="직접 색 고르기"
-                    onChange={(event) => {
-                      setCustomColor(event.target.value);
-                      setBrushColor(event.target.value);
-                    }}
-                  />
-                </label>
-              </div>
-              <div className="painting-brushes">
-                {brushSizes.map((size) => (
-                  <button key={size} type="button" className={size === brushSize ? "selected" : ""} onClick={() => setBrushSize(size)}>
-                    {size}
+                    className={tool === mode ? "selected" : ""}
+                    aria-pressed={tool === mode}
+                    onClick={() => setTool(mode as DrawingTool)}
+                  >
+                    {label}
                   </button>
                 ))}
               </div>
-              <button type="button" onClick={undo} disabled={!canDraw}>
-                되돌리기
-              </button>
-              <button type="button" onClick={clearCanvas} disabled={!canDraw}>
-                지우기
-              </button>
-              <button className="painting-submit" type="button" onClick={() => submitCurrent("manual")} disabled={!canDraw || isSubmitting}>
-                제출
-              </button>
+
+              <div className="painting-color-panel">
+                <div className="painting-active-color" style={{ "--paint-color": brushColor } as CSSProperties}>
+                  <span>색상</span>
+                  <strong>{brushColor.toUpperCase()}</strong>
+                </div>
+                <div className="painting-color-row">
+                  <span>원본 팔레트</span>
+                  <div className="painting-colors">
+                    {reference.palette.map((color, index) => (
+                      <button
+                        key={`${color}-${index}`}
+                        type="button"
+                        className={color === brushColor ? "selected" : ""}
+                        style={{ "--paint-color": color } as CSSProperties}
+                        aria-label={`${color} 원본 팔레트 색 선택`}
+                        aria-pressed={color === brushColor}
+                        onClick={() => selectBrushColor(color)}
+                      />
+                    ))}
+                  </div>
+                </div>
+                <div className="painting-color-row">
+                  <span>기본 / 직접</span>
+                  <div className="painting-colors">
+                    {baseColors.map((color, index) => (
+                      <button
+                        key={`${color}-${index}`}
+                        type="button"
+                        className={color === brushColor ? "selected" : ""}
+                        style={{ "--paint-color": color } as CSSProperties}
+                        aria-label={`${color} 기본 색 선택`}
+                        aria-pressed={color === brushColor}
+                        onClick={() => selectBrushColor(color)}
+                      />
+                    ))}
+                    <label className={`painting-custom-color ${brushColor === customColor ? "selected" : ""}`}>
+                      <span>직접</span>
+                      <input
+                        type="color"
+                        value={customColor}
+                        aria-label="직접 색 고르기"
+                        onChange={(event) => {
+                          setCustomColor(event.target.value);
+                          selectBrushColor(event.target.value);
+                        }}
+                      />
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <div className="painting-size-controls">
+                <label>
+                  <span>펜 {brushSize}px</span>
+                  <input type="range" min="2" max="28" step="1" value={brushSize} onChange={(event) => setBrushSize(Number(event.target.value))} />
+                </label>
+                <label>
+                  <span>지우개 {eraserSize}px</span>
+                  <input
+                    type="range"
+                    min="8"
+                    max="48"
+                    step="2"
+                    value={eraserSize}
+                    onChange={(event) => setEraserSize(Number(event.target.value))}
+                  />
+                </label>
+              </div>
+
+              <div className="painting-tool-actions">
+                <button type="button" onClick={undo} disabled={!canDraw}>
+                  되돌리기
+                </button>
+                <button type="button" onClick={clearCanvas} disabled={!canDraw}>
+                  지우기
+                </button>
+                <button className="painting-submit" type="button" onClick={() => submitCurrent("manual")} disabled={!canDraw || isSubmitting}>
+                  제출
+                </button>
+              </div>
+
+              <div className="painting-score-note" aria-label="유사도 판정 방식">
+                <strong>유사도 판정</strong>
+                <span>
+                  캔버스 픽셀에서 색감, 밝기, 채움, 중심 구도, 작업량을 읽어 원본 기준값과 비교합니다. 색감 34 · 밝기 14 · 채움 20 · 구도 22 · 완성도 10.
+                </span>
+              </div>
             </div>
           </section>
         </section>
