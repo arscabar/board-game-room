@@ -15260,6 +15260,191 @@ body .room-section.is-playing .player-turn-chip.momentum-winner .turn-avatar-sta
   }
 }
 
+/* QA correction: keep the interactive lobby preview docked inside the felt table. */
+body .interactive-game-lobby.is-game-lobby .game-lobby-layout {
+  display: grid !important;
+  gap: clamp(12px, 2vw, 18px) !important;
+  grid-template-columns: minmax(0, 1fr) !important;
+  position: relative !important;
+}
+
+body .interactive-game-lobby.is-game-lobby .central-table-stage {
+  block-size: auto !important;
+  min-block-size: 0 !important;
+  overflow: visible !important;
+  padding: clamp(62px, 5.6vw, 84px) clamp(18px, 3vw, 42px) clamp(18px, 3vw, 34px) !important;
+  perspective: none !important;
+}
+
+body .interactive-game-lobby.is-game-lobby .central-table-frame {
+  min-block-size: 0 !important;
+  transform: none !important;
+  transform-style: flat !important;
+}
+
+body .interactive-game-lobby.is-game-lobby .central-table-felt {
+  block-size: clamp(310px, 35vw, 430px) !important;
+  min-block-size: 0 !important;
+  overflow: visible !important;
+  padding: clamp(14px, 2vw, 24px) !important;
+}
+
+body .interactive-game-lobby.is-game-lobby .table-game-spread {
+  align-items: stretch !important;
+  display: grid !important;
+  gap: clamp(8px, 1.2vw, 12px) !important;
+  grid-template-columns: minmax(72px, 108px) minmax(0, 1fr) !important;
+  inline-size: min(88%, 520px) !important;
+  max-block-size: calc(100% - 16px) !important;
+  max-inline-size: min(88%, 520px) !important;
+  min-block-size: 0 !important;
+  overflow: hidden !important;
+  padding: clamp(8px, 1.2vw, 12px) !important;
+  transform: none !important;
+  width: min(88%, 520px) !important;
+}
+
+body .interactive-game-lobby.is-game-lobby .table-game-spread > * {
+  min-block-size: 0 !important;
+  min-inline-size: 0 !important;
+}
+
+body .interactive-game-lobby.is-game-lobby .table-box-shell,
+body .interactive-game-lobby.is-game-lobby .table-box-shell[data-state="focused"],
+body .interactive-game-lobby.is-game-lobby .table-box-shell[data-state="opening"],
+body .interactive-game-lobby.is-game-lobby .table-box-shell[data-state="unfolded"],
+body .interactive-game-lobby.is-game-lobby .table-box-shell[data-state="selected"] {
+  align-self: start !important;
+  inline-size: min(100%, 96px) !important;
+  transform: rotate(-2deg) !important;
+}
+
+body .interactive-game-lobby.is-game-lobby .unfolded-board-preview,
+body .interactive-game-lobby.is-game-lobby .unfolded-board-preview[data-state="closed"],
+body .interactive-game-lobby.is-game-lobby .central-table-stage[data-state="opening"] .unfolded-board-preview,
+body .interactive-game-lobby.is-game-lobby .central-table-stage[data-state="unfolded"] .unfolded-board-preview,
+body .interactive-game-lobby.is-game-lobby .central-table-stage[data-state="selected"] .unfolded-board-preview {
+  block-size: auto !important;
+  display: grid !important;
+  gap: 8px !important;
+  grid-template-rows: auto minmax(0, 1fr) !important;
+  max-block-size: 100% !important;
+  min-block-size: 0 !important;
+  overflow: hidden !important;
+  padding: clamp(8px, 1vw, 10px) !important;
+  transform: none !important;
+}
+
+body .interactive-game-lobby.is-game-lobby .mini-board-preview {
+  block-size: clamp(92px, 12vw, 142px) !important;
+  max-block-size: 142px !important;
+  min-block-size: 0 !important;
+  overflow: hidden !important;
+}
+
+body .interactive-game-lobby.is-game-lobby .mini-board-plaque span,
+body .interactive-game-lobby.is-game-lobby .mini-board-metrics {
+  display: none !important;
+}
+
+body .interactive-game-lobby.is-game-lobby .seat-tokens-around-table {
+  bottom: auto !important;
+  inset: 6px 0 auto !important;
+  margin-inline: auto !important;
+  max-inline-size: 430px !important;
+  top: 6px !important;
+  transform: none !important;
+  width: min(76%, 430px) !important;
+  z-index: 9 !important;
+}
+
+body .interactive-game-lobby.is-game-lobby .game-lobby-side {
+  bottom: auto !important;
+  display: grid !important;
+  gap: 12px !important;
+  grid-template-columns: minmax(0, 1fr) minmax(240px, 320px) !important;
+  left: auto !important;
+  margin-block-start: 0 !important;
+  pointer-events: auto !important;
+  position: relative !important;
+  right: auto !important;
+  z-index: 2 !important;
+}
+
+body .interactive-game-lobby.is-game-lobby .game-shelf-viewport {
+  pointer-events: auto !important;
+}
+
+body .interactive-game-lobby.is-game-lobby .game-shelf-grid {
+  display: grid !important;
+  gap: 10px !important;
+  grid-template-columns: repeat(auto-fill, minmax(118px, 156px)) !important;
+  height: auto !important;
+  justify-content: start !important;
+  max-block-size: none !important;
+  min-block-size: 0 !important;
+  overflow: visible !important;
+  padding: 0 !important;
+  pointer-events: auto !important;
+  scroll-snap-type: none !important;
+}
+
+body .interactive-game-lobby.is-game-lobby .game-shelf-slot,
+body .interactive-game-lobby.is-game-lobby .game-shelf-slot:has(.game-box-object[data-state="locked"]) {
+  flex: none !important;
+  inline-size: 100% !important;
+  left: auto !important;
+  max-inline-size: 156px !important;
+  pointer-events: auto !important;
+  position: relative !important;
+  right: auto !important;
+  top: auto !important;
+  transform: none !important;
+}
+
+@media (max-width: 900px) {
+  body .interactive-game-lobby.is-game-lobby .game-lobby-side {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 720px) {
+  body .interactive-game-lobby.is-game-lobby .central-table-stage {
+    padding: 58px 10px 12px !important;
+  }
+
+  body .interactive-game-lobby.is-game-lobby .central-table-felt {
+    block-size: auto !important;
+    min-block-size: 300px !important;
+  }
+
+  body .interactive-game-lobby.is-game-lobby .table-game-spread {
+    grid-template-columns: 74px minmax(0, 1fr) !important;
+    inline-size: min(94%, 360px) !important;
+    max-inline-size: min(94%, 360px) !important;
+    width: min(94%, 360px) !important;
+  }
+
+  body .interactive-game-lobby.is-game-lobby .mini-board-preview {
+    block-size: 96px !important;
+  }
+
+  body .interactive-game-lobby.is-game-lobby .seat-tokens-around-table {
+    inset: 8px 0 auto !important;
+    top: 8px !important;
+    width: min(92%, 320px) !important;
+  }
+
+  body .interactive-game-lobby.is-game-lobby .game-shelf-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  body .interactive-game-lobby.is-game-lobby .game-shelf-slot,
+  body .interactive-game-lobby.is-game-lobby .game-shelf-slot:has(.game-box-object[data-state="locked"]) {
+    max-inline-size: none !important;
+  }
+}
+
 /* QA correction: player turn chips must never be clipped during real play. */
 body .room-section.is-playing .player-turn-strip {
   display: grid !important;

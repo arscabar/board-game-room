@@ -2019,3 +2019,32 @@
     max-inline-size: 100%;
   }
 }
+
+/* Final lobby containment pass: seats sit on the table rail, preview stays inside the felt. */
+.interactive-game-lobby.is-game-lobby .central-table-felt {
+  overflow: visible !important;
+}
+
+.interactive-game-lobby.is-game-lobby .seat-tokens-around-table {
+  bottom: auto !important;
+  inset: 6px 0 auto !important;
+  margin-inline: auto !important;
+  max-inline-size: 430px !important;
+  top: 6px !important;
+  transform: none !important;
+  width: min(76%, 430px) !important;
+  z-index: 9 !important;
+}
+
+.interactive-game-lobby.is-game-lobby .table-game-spread {
+  max-block-size: calc(100% - 16px) !important;
+  overflow: hidden !important;
+}
+
+@media (max-width: 720px) {
+  .interactive-game-lobby.is-game-lobby .seat-tokens-around-table {
+    inset: 8px 0 auto !important;
+    top: 8px !important;
+    width: min(92%, 320px) !important;
+  }
+}
