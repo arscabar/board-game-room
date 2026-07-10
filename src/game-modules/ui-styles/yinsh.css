@@ -19,6 +19,12 @@
   background: linear-gradient(180deg, #ffffff, #e8f1ee);
 }
 
+.yinsh-status,
+.yinsh-status * {
+  color: #21322e !important;
+  text-shadow: none !important;
+}
+
 .yinsh-layout {
   display: grid;
   grid-template-columns: minmax(320px, 1fr) 270px;

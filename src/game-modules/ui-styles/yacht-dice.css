@@ -1448,8 +1448,18 @@
   }
 
   .yacht-player-scorecard {
-    grid-template-columns: minmax(88px, 0.34fr) minmax(0, 1fr) !important;
+    grid-template-columns: minmax(104px, 0.4fr) minmax(0, 1fr) !important;
     padding: 6px !important;
+  }
+
+  .yacht-player-title strong {
+    display: -webkit-box !important;
+    overflow: hidden !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+    -webkit-box-orient: vertical !important;
+    -webkit-line-clamp: 2 !important;
+    line-height: 1.15 !important;
   }
 
   .yacht-player-category-grid span {

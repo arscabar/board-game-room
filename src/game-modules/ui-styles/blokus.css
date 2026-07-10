@@ -678,7 +678,7 @@
   }
 
   .blokus-precision-board {
-    --precision-cell-size: clamp(38px, 11vw, 44px);
+    --precision-cell-size: 44px;
     grid-area: precision !important;
     width: min(100%, 244px) !important;
     max-width: 100% !important;
@@ -727,6 +727,7 @@
     height: auto !important;
     min-height: 0 !important;
     aspect-ratio: 1 !important;
+    touch-action: manipulation !important;
   }
 
   .blokus-side {

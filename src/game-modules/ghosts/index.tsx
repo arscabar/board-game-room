@@ -975,7 +975,7 @@ const ghostsStyles = `
   font-weight: 800;
 }
 .gho-setup-actions button {
-  min-height: 42px;
+  min-height: 44px;
   border: 1px solid rgba(46, 77, 132, 0.28);
   border-radius: 8px;
   padding: 0 14px;

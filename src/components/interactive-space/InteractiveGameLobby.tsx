@@ -69,6 +69,7 @@ export function InteractiveGameLobby({
   onDeleteRoom
 }: InteractiveGameLobbyProps) {
   const tableRef = useRef<HTMLElement | null>(null);
+  const pointerDragRef = useRef<PointerDragState | null>(null);
   const [focusedGameId, setFocusedGameId] = useState<string | null>(null);
   const [placedGameId, setPlacedGameId] = useState<string | null>(() => selectedGame?.id ?? room.selectedGameId);
   const [tablePhase, setTablePhase] = useState<CentralTableState>(() => (selectedGame ?? findGame(room.selectedGameId) ? "selected" : "empty"));
@@ -212,7 +213,7 @@ export function InteractiveGameLobby({
     }
 
     event.currentTarget.setPointerCapture(event.pointerId);
-    setPointerDrag({
+    const nextDrag: PointerDragState = {
       gameId: game.id,
       pointerId: event.pointerId,
       phase: "grabbed",
@@ -222,31 +223,34 @@ export function InteractiveGameLobby({
       y: event.clientY,
       moved: false,
       overTable: false
-    });
+    };
+    pointerDragRef.current = nextDrag;
   }
 
   function handlePointerMove(event: ReactPointerEvent<HTMLButtonElement>, game: GameDefinition) {
-    setPointerDrag((current) => {
-      if (!current || current.gameId !== game.id || current.pointerId !== event.pointerId) {
-        return current;
-      }
+    const current = pointerDragRef.current;
+    if (!current || current.gameId !== game.id || current.pointerId !== event.pointerId) {
+      return;
+    }
 
-      const distance = Math.hypot(event.clientX - current.startX, event.clientY - current.startY);
-      const moved = current.moved || distance > 8;
-
-      return {
-        ...current,
-        phase: moved ? "dragging" : "grabbed",
-        x: event.clientX,
-        y: event.clientY,
-        moved,
-        overTable: moved && isPointOverTable(event.clientX, event.clientY)
-      };
-    });
+    const distance = Math.hypot(event.clientX - current.startX, event.clientY - current.startY);
+    const moved = current.moved || distance > 8;
+    const nextDrag: PointerDragState = {
+      ...current,
+      phase: moved ? "dragging" : "grabbed",
+      x: event.clientX,
+      y: event.clientY,
+      moved,
+      overTable: moved && isPointOverTable(event.clientX, event.clientY)
+    };
+    pointerDragRef.current = nextDrag;
+    if (moved) {
+      setPointerDrag(nextDrag);
+    }
   }
 
   function handlePointerUp(event: ReactPointerEvent<HTMLButtonElement>, game: GameDefinition) {
-    const current = pointerDrag;
+    const current = pointerDragRef.current;
     if (!current || current.gameId !== game.id || current.pointerId !== event.pointerId) {
       return;
     }
@@ -255,6 +259,7 @@ export function InteractiveGameLobby({
       event.currentTarget.releasePointerCapture(event.pointerId);
     }
 
+    pointerDragRef.current = null;
     setPointerDrag(null);
     if (current.moved) {
       setSuppressedClickGameId(game.id);
@@ -269,9 +274,11 @@ export function InteractiveGameLobby({
   }
 
   function handlePointerCancel(event: ReactPointerEvent<HTMLButtonElement>) {
-    if (pointerDrag && event.currentTarget.hasPointerCapture(pointerDrag.pointerId)) {
-      event.currentTarget.releasePointerCapture(pointerDrag.pointerId);
+    const current = pointerDragRef.current;
+    if (current && event.currentTarget.hasPointerCapture(current.pointerId)) {
+      event.currentTarget.releasePointerCapture(current.pointerId);
     }
+    pointerDragRef.current = null;
     setPointerDrag(null);
   }
 

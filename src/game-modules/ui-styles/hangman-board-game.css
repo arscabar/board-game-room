@@ -892,6 +892,11 @@
 .hangman-word-guess-form input {
   width: 100% !important;
   min-width: 0 !important;
+  min-height: 44px !important;
+}
+
+.hangman-module input {
+  min-height: 44px !important;
 }
 
 @media (max-width: 900px) {

@@ -165,6 +165,7 @@
   }
 
   .abl-board {
+    order: 1 !important;
     --abl-cell-size: clamp(27px, calc((100vw - 80px) / 9), 38px);
     justify-content: center !important;
     width: min(100%, calc(100vw - 40px)) !important;
@@ -192,6 +193,7 @@
   }
 
   .abl-panel {
+    order: 2 !important;
     gap: 8px !important;
   }
 
