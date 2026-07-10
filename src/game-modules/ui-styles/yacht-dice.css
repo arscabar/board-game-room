@@ -643,6 +643,10 @@
   line-height: 1;
 }
 
+.yacht-mobile-score-matrix {
+  display: none;
+}
+
 .yacht-player-category-grid b {
   color: #1f3438;
   font-size: 0.82rem;
@@ -1444,7 +1448,76 @@
   }
 
   .yacht-player-scorecards {
-    grid-template-columns: 1fr !important;
+    display: none !important;
+  }
+
+  .yacht-mobile-score-matrix {
+    display: block !important;
+    width: 100% !important;
+    overflow: hidden !important;
+    border: 1px solid rgba(57, 100, 116, 0.2) !important;
+    border-radius: 8px !important;
+    background: rgba(255, 255, 255, 0.58) !important;
+  }
+
+  .yacht-mobile-score-matrix:focus-visible {
+    outline: 3px solid #177d78 !important;
+    outline-offset: 2px !important;
+  }
+
+  .yacht-mobile-score-matrix table {
+    width: 100% !important;
+    table-layout: fixed !important;
+    border-collapse: collapse !important;
+    color: #243d42 !important;
+    font-size: 0.67rem !important;
+  }
+
+  .yacht-mobile-score-matrix th,
+  .yacht-mobile-score-matrix td {
+    height: 30px !important;
+    border: 1px solid rgba(57, 100, 116, 0.15) !important;
+    padding: 2px !important;
+    text-align: center !important;
+    font-variant-numeric: tabular-nums !important;
+  }
+
+  .yacht-mobile-score-matrix th:first-child {
+    width: 68px !important;
+    color: #243d42 !important;
+    background: rgba(227, 238, 232, 0.9) !important;
+    font-weight: 950 !important;
+  }
+
+  .yacht-mobile-score-matrix thead th {
+    height: 38px !important;
+    color: #fffdf4 !important;
+    background: linear-gradient(180deg, #2f6f73, #254f54) !important;
+  }
+
+  .yacht-mobile-score-matrix thead th.active {
+    background: linear-gradient(180deg, #178f87, #126b67) !important;
+  }
+
+  .yacht-mobile-score-matrix thead th span {
+    display: -webkit-box !important;
+    overflow: hidden !important;
+    overflow-wrap: anywhere !important;
+    -webkit-box-orient: vertical !important;
+    -webkit-line-clamp: 2 !important;
+    line-height: 1.05 !important;
+  }
+
+  .yacht-mobile-score-matrix td {
+    color: #243d42 !important;
+    background: rgba(255, 253, 244, 0.78) !important;
+    font-weight: 900 !important;
+  }
+
+  .yacht-mobile-score-matrix .summary-row th,
+  .yacht-mobile-score-matrix .summary-row td {
+    background: #e7f1ec !important;
+    font-weight: 950 !important;
   }
 
   .yacht-player-scorecard {

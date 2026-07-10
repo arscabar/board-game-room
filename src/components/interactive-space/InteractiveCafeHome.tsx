@@ -219,7 +219,7 @@ export function InteractiveCafeHome({
       <header className="cafe-home-bar">
         <div className="cafe-home-title-block">
           <span className="cafe-home-kicker">Board Game Cafe</span>
-          <h1 id="cafe-home-title">테이블</h1>
+          <h2 id="cafe-home-title">테이블</h2>
         </div>
         <div className="cafe-home-status-area">
           <span className={cx("cafe-connection-chip", connection === "connected" && "cafe-connection-chip-ready")}>

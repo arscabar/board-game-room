@@ -51,6 +51,7 @@ import { InteractiveGameLobby } from "./components/interactive-space/Interactive
 import { InteractiveGameWrapper } from "./components/interactive-space/InteractiveGameWrapper";
 import { PlayerTokenPawn } from "./components/interactive-space/PlayerTokenDock";
 import { games, getGameById } from "./shared/games";
+import { gameCoverSrc } from "./shared/gameCover";
 import { canPlayGame, formatAllowedPlayers, gameAvailabilityLabel } from "./shared/eligibility";
 import { gameUsesTurnTimer, turnTimerOptions } from "./shared/timers";
 import type { Ack, GameDefinition, GameTableKind, PlayerAvatar, PlayerSnapshot, PublicRoomListItem, RoomSnapshot } from "./shared/types";
@@ -279,25 +280,17 @@ function GameKindIcon({ game, size = 17 }: { game: GameDefinition; size?: number
   return <Icon size={size} aria-hidden="true" />;
 }
 
-const rasterGameCoverIds = new Set([
-  "abalone-classic",
-  "blokus",
-  "davinci-code-plus",
-  "ghosts",
-  "guryongtu",
-  "hangman-board-game",
-  "qawale",
-  "quoridor",
-  "yacht-dice",
-  "yinsh"
-]);
-
-function gameCoverSrc(game: GameDefinition) {
-  return `/board-assets/game-covers/${game.id}.${rasterGameCoverIds.has(game.id) ? "png" : "svg"}`;
-}
-
 function GameCoverImage({ game, className = "" }: { game: GameDefinition; className?: string }) {
-  return <img className={`game-cover-image ${className}`} src={gameCoverSrc(game)} alt={`${game.title} 대표 이미지`} draggable={false} />;
+  return (
+    <img
+      className={`game-cover-image ${className}`}
+      src={gameCoverSrc(game)}
+      alt={`${game.title} 대표 이미지`}
+      loading="lazy"
+      decoding="async"
+      draggable={false}
+    />
+  );
 }
 
 function stateRecord(value: unknown) {
@@ -2318,7 +2311,11 @@ function PlayPanel({
         </div>
       </div>
 
-      <div className="player-turn-strip" aria-label="플레이어 차례와 상태">
+      <div
+        className="player-turn-strip"
+        aria-label="플레이어 차례와 상태"
+        style={{ "--player-count": room.players.length } as CSSProperties}
+      >
         {room.players.map((player) => {
           const active = player.id === activePlayer?.id;
           const current = player.id === currentPlayer?.id;

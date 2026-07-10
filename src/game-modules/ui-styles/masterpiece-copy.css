@@ -135,6 +135,10 @@
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18) !important;
 }
 
+.painting-reference-toggle {
+  display: none !important;
+}
+
 .painting-canvas-panel {
   min-width: 0 !important;
   display: grid !important;
@@ -848,7 +852,91 @@
 
 @media (max-width: 420px) {
   .painting-reference-card {
+    position: sticky !important;
+    top: 4px !important;
+    z-index: 8 !important;
+    grid-template-columns: 92px minmax(0, 1fr) !important;
+    grid-template-rows: auto auto !important;
+    gap: 5px 8px !important;
+    padding: 7px !important;
+  }
+
+  .painting-reference-card .painting-reference-art {
+    grid-column: 1 !important;
+    grid-row: 1 / span 2 !important;
+    inline-size: 92px !important;
+    border-width: 4px !important;
+    border-radius: 8px !important;
+  }
+
+  .painting-reference-card .painting-reference-caption {
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+    align-self: end !important;
+    padding-right: 42px !important;
+  }
+
+  .painting-reference-card .painting-reference-caption span {
+    display: none !important;
+  }
+
+  .painting-reference-card .painting-palette-strip {
+    grid-column: 2 !important;
+    grid-row: 2 !important;
+    gap: 3px !important;
+  }
+
+  .painting-reference-card .painting-palette-strip i {
+    block-size: 14px !important;
+  }
+
+  .painting-reference-toggle {
+    position: absolute !important;
+    top: 7px !important;
+    right: 7px !important;
+    display: inline-grid !important;
+    place-items: center !important;
+    min-inline-size: 44px !important;
+    min-block-size: 44px !important;
+    border: 1px solid rgba(255, 226, 162, 0.32) !important;
+    border-radius: 8px !important;
+    padding: 0 !important;
+    color: #ffe2a2 !important;
+    background: rgba(20, 11, 6, 0.88) !important;
+  }
+
+  .painting-reference-toggle span {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    overflow: hidden !important;
+    clip: rect(0 0 0 0) !important;
+  }
+
+  .painting-reference-card.is-expanded {
+    position: relative !important;
     grid-template-columns: 1fr !important;
+    grid-template-rows: auto auto auto !important;
+  }
+
+  .painting-reference-card.is-expanded .painting-reference-art {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+    inline-size: 100% !important;
+  }
+
+  .painting-reference-card.is-expanded .painting-reference-caption {
+    grid-column: 1 !important;
+    grid-row: 2 !important;
+  }
+
+  .painting-reference-card.is-expanded .painting-reference-caption span {
+    display: block !important;
+  }
+
+  .painting-reference-card.is-expanded .painting-palette-strip {
+    grid-column: 1 !important;
+    grid-row: 3 !important;
   }
 
   .painting-size-controls {

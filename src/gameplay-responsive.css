@@ -1,0 +1,158 @@
+/* Final gameplay QA layer. Keep responsive corrections isolated from legacy theme passes. */
+
+body .abl-status,
+body .abl-status strong,
+body .abl-status span,
+body .abl-status p,
+body .gho-status,
+body .gho-status strong,
+body .gho-status span,
+body .gho-status p,
+body .dvc-status,
+body .dvc-status strong,
+body .dvc-status span {
+  color: #24312d !important;
+  text-shadow: none !important;
+}
+
+body .yacht-score-choice:not(.used) .yacht-score-choice-label,
+body .yacht-score-choice:not(.used) .yacht-score-choice-label abbr,
+body .yacht-score-choice:not(.used) .yacht-score-choice-label small {
+  color: #39261a !important;
+  text-shadow: none !important;
+}
+
+body .yacht-score-choice:disabled:not(.used) .yacht-score-choice-label,
+body .yacht-score-choice:disabled:not(.used) .yacht-score-choice-label abbr,
+body .yacht-score-choice:disabled:not(.used) .yacht-score-choice-label small {
+  color: #725f49 !important;
+  opacity: 1 !important;
+}
+
+@media (max-width: 820px) {
+  body .app-shell.is-playing .topbar {
+    display: none !important;
+  }
+
+  body .room-section.is-playing .work-panel.play-panel {
+    gap: 5px !important;
+    padding: 6px !important;
+  }
+
+  body .room-section.is-playing .play-panel-header {
+    min-height: 52px !important;
+    padding: 3px 4px !important;
+  }
+
+  body .room-section.is-playing .play-panel-header h2 {
+    font-size: 0.95rem !important;
+  }
+
+  body .room-section.is-playing .play-compact-status {
+    gap: 3px !important;
+  }
+
+  body .room-section.is-playing .play-compact-status span {
+    min-height: 18px !important;
+    padding-inline: 5px !important;
+    font-size: 0.66rem !important;
+  }
+
+  body .room-section.is-playing .play-header-actions {
+    max-width: 148px !important;
+  }
+
+  body .room-section.is-playing .player-turn-strip {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(0, 1fr)) !important;
+    gap: 4px !important;
+    overflow: hidden !important;
+    padding: 0 !important;
+  }
+
+  body .room-section.is-playing .player-turn-chip {
+    min-width: 0 !important;
+    min-height: 42px !important;
+    grid-template-columns: 28px minmax(0, 1fr) !important;
+    gap: 4px !important;
+    padding: 3px 5px !important;
+  }
+
+  body .room-section.is-playing .turn-avatar-stack {
+    inline-size: 28px !important;
+    min-inline-size: 28px !important;
+    min-block-size: 30px !important;
+    grid-template-rows: 25px 8px !important;
+  }
+
+  body .room-section.is-playing .turn-avatar {
+    inline-size: 25px !important;
+    block-size: 25px !important;
+  }
+
+  body .room-section.is-playing .player-turn-chip strong {
+    overflow: hidden !important;
+    font-size: 0.7rem !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+
+  body .room-section.is-playing .turn-chip-status {
+    grid-column: 2 !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+    font-size: 0.58rem !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+
+  body .room-section.is-playing .game-module-shell {
+    max-width: 100% !important;
+    overflow-x: clip !important;
+    scrollbar-gutter: auto !important;
+  }
+
+  body .omok-board-wrap,
+  body .kkuk-board-wrap {
+    overflow: hidden !important;
+    padding: 4px !important;
+  }
+
+  body .omok-board {
+    --cell: clamp(16px, calc((100vw - 100px) / 15), 18px) !important;
+    border-width: 6px !important;
+  }
+
+  body .kkuk-board {
+    --cell: clamp(42px, calc((100vw - 104px) / 6), 52px) !important;
+  }
+}
+
+@media (max-width: 520px) {
+  body .room-section.is-playing .player-turn-strip {
+    grid-template-columns: repeat(var(--player-count, 2), minmax(0, 1fr)) !important;
+  }
+
+  body .room-section.is-playing .player-turn-chip {
+    grid-template-columns: 24px minmax(0, 1fr) !important;
+    min-block-size: 40px !important;
+    padding-inline: 3px !important;
+  }
+
+  body .room-section.is-playing .turn-avatar-stack {
+    inline-size: 24px !important;
+    min-inline-size: 24px !important;
+  }
+
+  body .room-section.is-playing .turn-avatar {
+    inline-size: 23px !important;
+    block-size: 23px !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body .room-section.is-playing .player-turn-chip,
+  body .room-section.is-playing .play-header-actions button {
+    transition: none !important;
+  }
+}

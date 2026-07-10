@@ -20,6 +20,7 @@ import {
   type PointerEvent as ReactPointerEvent
 } from "react";
 import { games } from "../../shared/games";
+import { gameCoverSrc } from "../../shared/gameCover";
 import { canPlayGame, formatAllowedPlayers, gameAvailabilityLabel } from "../../shared/eligibility";
 import { gameUsesTurnTimer, turnTimerOptions } from "../../shared/timers";
 import type { GameDefinition, GameTableKind, RoomSnapshot } from "../../shared/types";
@@ -53,19 +54,6 @@ export type GamePickerSceneProps = {
   onStartGame: () => void;
 };
 
-const rasterGameCoverIds = new Set([
-  "abalone-classic",
-  "blokus",
-  "davinci-code-plus",
-  "ghosts",
-  "guryongtu",
-  "hangman-board-game",
-  "qawale",
-  "quoridor",
-  "yacht-dice",
-  "yinsh"
-]);
-
 const gameKindLabels: Record<GameTableKind, string> = {
   duel: "대결",
   maze: "경로",
@@ -78,10 +66,6 @@ const gameKindLabels: Record<GameTableKind, string> = {
   rings: "링",
   word: "단어"
 };
-
-function gameCoverSrc(game: GameDefinition) {
-  return `/board-assets/game-covers/${game.id}.${rasterGameCoverIds.has(game.id) ? "png" : "svg"}`;
-}
 
 function findGame(gameId: string | null | undefined) {
   return gameId ? games.find((game) => game.id === gameId) ?? null : null;
@@ -686,7 +670,17 @@ function GameCoverImage({ game, className = "" }: { game: GameDefinition; classN
     );
   }
 
-  return <img className={`ir-game-cover-image ${className}`} src={gameCoverSrc(game)} alt={label} draggable={false} onError={() => setFailed(true)} />;
+  return (
+    <img
+      className={`ir-game-cover-image ${className}`}
+      src={gameCoverSrc(game)}
+      alt={label}
+      loading="lazy"
+      decoding="async"
+      draggable={false}
+      onError={() => setFailed(true)}
+    />
+  );
 }
 
 function LightweightBoardPreview({ game }: { game: GameDefinition }) {

@@ -1072,6 +1072,7 @@ export function Component({
   const [rotation, setRotation] = useState(0);
   const [flipped, setFlipped] = useState(false);
   const [hoveredCell, setHoveredCell] = useState<Point | null>(null);
+  const [keyboardCell, setKeyboardCell] = useState<Point>({ x: 0, y: 0 });
   const [pendingPlacement, setPendingPlacement] = useState<{
     point: Point;
     pieceId: string;
@@ -1080,6 +1081,7 @@ export function Component({
   } | null>(null);
   const [draggingPieceId, setDraggingPieceId] = useState<string | null>(null);
   const orientationHoldTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const boardRef = useRef<HTMLDivElement | null>(null);
   const orientationHoldFired = useRef(false);
   const [orientationHoldActive, setOrientationHoldActive] = useState(false);
   const state = isBlokusPublicState(publicState) ? publicState : null;
@@ -1198,6 +1200,16 @@ export function Component({
   }, [currentBlokusPlayer?.id, flipped, rotation, selectedPieceId]);
 
   useEffect(() => {
+    if (!canInteract) return;
+    const firstAnchor = legalAnchors.values().next().value as string | undefined;
+    if (!firstAnchor) return;
+    const [x, y] = firstAnchor.split(",").map(Number);
+    if (Number.isFinite(x) && Number.isFinite(y)) {
+      setKeyboardCell({ x, y });
+    }
+  }, [canInteract, currentBlokusPlayer?.id, flipped, legalAnchors, rotation, selectedPieceId]);
+
+  useEffect(() => {
     if (!canInteract) {
       setDraggingPieceId(null);
       setPendingPlacement(null);
@@ -1271,6 +1283,35 @@ export function Component({
       return;
     }
     commitPieceAt(point, selectedPiece);
+  }
+
+  function focusBoardCell(point: Point) {
+    const next = {
+      x: Math.max(0, Math.min(BOARD_SIZE - 1, point.x)),
+      y: Math.max(0, Math.min(BOARD_SIZE - 1, point.y))
+    };
+    setKeyboardCell(next);
+    setHoveredCell(next);
+    window.requestAnimationFrame(() => {
+      boardRef.current
+        ?.querySelector<HTMLButtonElement>(`[data-blokus-x="${next.x}"][data-blokus-y="${next.y}"]`)
+        ?.focus();
+    });
+  }
+
+  function handleBoardCellKeyDown(event: KeyboardEvent<HTMLButtonElement>, point: Point) {
+    const movement: Record<string, Point> = {
+      ArrowUp: { x: point.x, y: point.y - 1 },
+      ArrowDown: { x: point.x, y: point.y + 1 },
+      ArrowLeft: { x: point.x - 1, y: point.y },
+      ArrowRight: { x: point.x + 1, y: point.y },
+      Home: { x: 0, y: point.y },
+      End: { x: BOARD_SIZE - 1, y: point.y }
+    };
+    const next = movement[event.key];
+    if (!next) return;
+    event.preventDefault();
+    focusBoardCell(next);
   }
 
   function confirmPlacement() {
@@ -1420,7 +1461,13 @@ export function Component({
       </div>
 
       <div className="blokus-layout">
-        <div className="blokus-board" onMouseLeave={() => setHoveredCell(null)} aria-label="블로커스 20x20 보드">
+        <div
+          ref={boardRef}
+          className="blokus-board"
+          role="group"
+          aria-label="블로커스 20x20 보드"
+          onMouseLeave={() => setHoveredCell(null)}
+        >
           {state.board.flatMap((row, y) =>
             row.map((ownerId, x) => {
               const owner = state.players.find((player) => player.id === ownerId);
@@ -1443,11 +1490,18 @@ export function Component({
                     .join(" ")}
                   type="button"
                   disabled={!canInteract}
+                  tabIndex={canInteract && keyboardCell.x === x && keyboardCell.y === y ? 0 : -1}
+                  data-blokus-x={x}
+                  data-blokus-y={y}
                   onClick={() => placeAt({ x, y })}
                   onDragEnter={(event) => handleCellDragOver(event, { x, y })}
                   onDragOver={(event) => handleCellDragOver(event, { x, y })}
                   onDrop={(event) => handleCellDrop(event, { x, y })}
-                  onFocus={() => setHoveredCell({ x, y })}
+                  onFocus={() => {
+                    setKeyboardCell({ x, y });
+                    setHoveredCell({ x, y });
+                  }}
+                  onKeyDown={(event) => handleBoardCellKeyDown(event, { x, y })}
                   onMouseEnter={() => setHoveredCell({ x, y })}
                   style={{
                     "--cell-color": owner?.color ?? "#f8fafc",

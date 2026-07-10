@@ -1,3 +1,4 @@
+import { Expand, Minimize2 } from "lucide-react";
 import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
 import { useInteractionGate } from "../useInteractionGate";
 import type { GameAction, GameActionResult, GameComponentProps, GameContext, GameModule } from "../types";
@@ -676,6 +677,7 @@ export function Component({ currentPlayer, publicState, disabled, onAction }: Ga
   const [brushSize, setBrushSize] = useState(8);
   const [eraserSize, setEraserSize] = useState(18);
   const [strokeCount, setStrokeCount] = useState(0);
+  const [referenceExpanded, setReferenceExpanded] = useState(false);
   const [showRankBoard, setShowRankBoard] = useState(false);
   const [isScoring, setIsScoring] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -854,9 +856,9 @@ export function Component({ currentPlayer, publicState, disabled, onAction }: Ga
 
       {state.phase === "drawing" ? (
         <section className="painting-studio" aria-label="그리기 화면">
-          <aside className="painting-reference-card">
+          <aside className={`painting-reference-card ${referenceExpanded ? "is-expanded" : ""}`}>
             <ReferenceArtwork reference={reference} />
-            <div className="painting-reference-caption">
+            <div className="painting-reference-caption" id="painting-reference-details">
               <strong>원본</strong>
               <span>모든 플레이어가 같은 명화를 보고 색감, 큰 구도, 채움 정도를 따라갑니다.</span>
             </div>
@@ -865,6 +867,16 @@ export function Component({ currentPlayer, publicState, disabled, onAction }: Ga
                 <i key={color} style={{ background: color }} />
               ))}
             </div>
+            <button
+              className="painting-reference-toggle"
+              type="button"
+              aria-expanded={referenceExpanded}
+              aria-controls="painting-reference-details"
+              onClick={() => setReferenceExpanded((current) => !current)}
+            >
+              {referenceExpanded ? <Minimize2 size={18} aria-hidden="true" /> : <Expand size={18} aria-hidden="true" />}
+              <span>{referenceExpanded ? "원본 접기" : "원본 크게"}</span>
+            </button>
           </aside>
 
           <section className="painting-canvas-panel">

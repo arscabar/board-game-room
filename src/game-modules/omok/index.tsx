@@ -1,4 +1,4 @@
-import type { CSSProperties } from "react";
+import { type CSSProperties, type KeyboardEvent, useRef, useState } from "react";
 import { useInteractionGate } from "../useInteractionGate";
 import type { GameAction, GameActionResult, GameComponentProps, GameContext, GameModule } from "../types";
 
@@ -263,6 +263,8 @@ export function Component({
   onAction
 }: GameComponentProps<OmokState>) {
   const state = assertOmokState(publicState);
+  const boardRef = useRef<HTMLDivElement | null>(null);
+  const [focusedPoint, setFocusedPoint] = useState<Coord>({ row: Math.floor(BOARD_SIZE / 2), col: Math.floor(BOARD_SIZE / 2) });
   const { isSubmitting, submitAction } = useInteractionGate(
     onAction,
     [state.activePlayerId, state.lastMove?.row, state.lastMove?.col, state.phase],
@@ -280,6 +282,34 @@ export function Component({
   const lastMoveShortLabel = state.lastMove ? `${state.lastMove.row + 1}-${state.lastMove.col + 1}` : "-";
   const turnBadgeLabel =
     state.phase !== "playing" ? (state.phase === "draw" ? "무승부" : "종료") : isMyTurn ? "내 차례" : "대기";
+
+  function focusPoint(row: number, col: number) {
+    const next = {
+      row: Math.max(0, Math.min(BOARD_SIZE - 1, row)),
+      col: Math.max(0, Math.min(BOARD_SIZE - 1, col))
+    };
+    setFocusedPoint(next);
+    window.requestAnimationFrame(() => {
+      boardRef.current
+        ?.querySelector<HTMLButtonElement>(`[data-omok-row="${next.row}"][data-omok-col="${next.col}"]`)
+        ?.focus();
+    });
+  }
+
+  function handlePointKeyDown(event: KeyboardEvent<HTMLButtonElement>, row: number, col: number) {
+    const movement: Record<string, Coord> = {
+      ArrowUp: { row: row - 1, col },
+      ArrowDown: { row: row + 1, col },
+      ArrowLeft: { row, col: col - 1 },
+      ArrowRight: { row, col: col + 1 },
+      Home: { row, col: 0 },
+      End: { row, col: BOARD_SIZE - 1 }
+    };
+    const next = movement[event.key];
+    if (!next) return;
+    event.preventDefault();
+    focusPoint(next.row, next.col);
+  }
 
   function placeAt(row: number, col: number) {
     if (!canPlace || isSubmitting || !inBoard(row, col) || state.board[row][col]) {
@@ -313,7 +343,13 @@ export function Component({
 
       <section className="omok-layout" aria-label="오목판">
         <div className="omok-board-wrap">
-          <div className="omok-board" style={{ "--omok-size": BOARD_SIZE } as CSSProperties}>
+          <div
+            ref={boardRef}
+            className="omok-board"
+            role="group"
+            aria-label="오목 15x15 보드"
+            style={{ "--omok-size": BOARD_SIZE } as CSSProperties}
+          >
             {state.board.map((row, rowIndex) =>
               row.map((ownerId, colIndex) => {
                 const owner = state.players.find((player) => player.id === ownerId);
@@ -324,9 +360,15 @@ export function Component({
                     key={`${rowIndex}-${colIndex}`}
                     className={`omok-point ${owner?.stone ?? ""} ${isLast ? "last" : ""} ${isWinning ? "winning" : ""}`}
                     type="button"
-                    disabled={!canPlace || isSubmitting || Boolean(ownerId)}
+                    disabled={!canPlace || isSubmitting}
+                    aria-disabled={Boolean(ownerId)}
+                    tabIndex={canPlace && focusedPoint.row === rowIndex && focusedPoint.col === colIndex ? 0 : -1}
+                    data-omok-row={rowIndex}
+                    data-omok-col={colIndex}
                     aria-label={`${rowIndex + 1}행 ${colIndex + 1}열${owner ? ` ${owner.name} 돌` : " 빈 자리"}${isLast ? " 마지막 수" : ""}`}
                     onClick={() => placeAt(rowIndex, colIndex)}
+                    onFocus={() => setFocusedPoint({ row: rowIndex, col: colIndex })}
+                    onKeyDown={(event) => handlePointKeyDown(event, rowIndex, colIndex)}
                   >
                     {owner ? <span className={`omok-stone ${owner.stone}`} aria-hidden="true" /> : null}
                   </button>

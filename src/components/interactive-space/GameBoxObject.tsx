@@ -1,6 +1,7 @@
 import { CheckCircle2, Hand, LockKeyhole } from "lucide-react";
 import { useEffect, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
 import { formatAllowedPlayers, gameAvailabilityLabel } from "../../shared/eligibility";
+import { gameCoverSrc } from "../../shared/gameCover";
 import type { GameDefinition } from "../../shared/types";
 import type { GameBoxState, PlacementSource } from "./interactive-space.types";
 
@@ -11,23 +12,6 @@ type DragPosition = {
   x: number;
   y: number;
 };
-
-const rasterCoverIds = new Set([
-  "abalone-classic",
-  "blokus",
-  "davinci-code-plus",
-  "ghosts",
-  "guryongtu",
-  "hangman-board-game",
-  "qawale",
-  "quoridor",
-  "yacht-dice",
-  "yinsh"
-]);
-
-function coverSrc(game: GameDefinition) {
-  return `/board-assets/game-covers/${game.id}.${rasterCoverIds.has(game.id) ? "png" : "svg"}`;
-}
 
 export function GameCover({ game, className = "" }: { game: GameDefinition; className?: string }) {
   const [failed, setFailed] = useState(false);
@@ -45,7 +29,17 @@ export function GameCover({ game, className = "" }: { game: GameDefinition; clas
     );
   }
 
-  return <img className={className} src={coverSrc(game)} alt={`${game.title} 게임 상자`} draggable={false} onError={() => setFailed(true)} />;
+  return (
+    <img
+      className={className}
+      src={gameCoverSrc(game)}
+      alt={`${game.title} 게임 상자`}
+      loading="lazy"
+      decoding="async"
+      draggable={false}
+      onError={() => setFailed(true)}
+    />
+  );
 }
 
 export function GameBoxObject({

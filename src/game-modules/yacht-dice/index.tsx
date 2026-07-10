@@ -697,6 +697,42 @@ export function Component({
             </article>
           ))}
         </div>
+        <div className="yacht-mobile-score-matrix" role="region" aria-label="모바일 전체 점수표" tabIndex={0}>
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">칸</th>
+                {state.playerIds.map((playerId) => (
+                  <th scope="col" key={playerId} className={playerId === activePlayerId ? "active" : ""}>
+                    <span title={getPlayerName(players, playerId)}>{getPlayerName(players, playerId)}</span>
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              <tr className="summary-row">
+                <th scope="row">총점</th>
+                {state.playerIds.map((playerId) => <td key={playerId}>{state.totals[playerId] ?? 0}</td>)}
+              </tr>
+              <tr className="summary-row">
+                <th scope="row">상단</th>
+                {state.playerIds.map((playerId) => <td key={playerId}>{state.upperTotals[playerId] ?? 0}</td>)}
+              </tr>
+              <tr className="summary-row">
+                <th scope="row">+35</th>
+                {state.playerIds.map((playerId) => <td key={playerId}>{state.upperBonuses[playerId] ? `+${state.upperBonuses[playerId]}` : "-"}</td>)}
+              </tr>
+              {CATEGORIES.map((category) => (
+                <tr key={category.id}>
+                  <th scope="row">{scoreSheetLabels[category.id]}</th>
+                  {state.playerIds.map((playerId) => (
+                    <td key={playerId}>{state.scores[playerId]?.[category.id] ?? "-"}</td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
         {state.phase === "complete" ? (
           <p>승자: {state.winnerId ? getPlayerName(players, state.winnerId) : "무승부"}</p>
         ) : null}

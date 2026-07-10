@@ -1,5 +1,5 @@
 import { CircleDot, MoveRight, Scissors } from "lucide-react";
-import { type CSSProperties, useMemo, useState } from "react";
+import { type CSSProperties, type KeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
 import type { GameComponentProps, GameModule } from "../types";
 import { useInteractionGate } from "../useInteractionGate";
 
@@ -684,6 +684,8 @@ export function Component({
 }: GameComponentProps<YinshPublicState>) {
   const [selectedRingKey, setSelectedRingKey] = useState<string | null>(null);
   const [selectedRowIndex, setSelectedRowIndex] = useState(0);
+  const [focusedPointKey, setFocusedPointKey] = useState("0,0");
+  const boardRef = useRef<SVGSVGElement | null>(null);
   const state = isYinshPublicState(publicState) ? publicState : null;
   const currentColor = state ? getColorForPlayer(state, currentPlayer?.id) : null;
   const activeColor = state ? getColorForPlayer(state, activePlayer?.id) : null;
@@ -715,6 +717,13 @@ export function Component({
     state?.phase !== "finished" &&
     Boolean(currentColor) &&
     currentColor === activeColor;
+
+  useEffect(() => {
+    if (!state || state.points.some((point) => point.key === focusedPointKey)) {
+      return;
+    }
+    setFocusedPointKey(state.points[0]?.key ?? "0,0");
+  }, [focusedPointKey, state]);
   const { isSubmitting, submitAction } = useInteractionGate(
     onAction,
     [state?.phase, activePlayer?.id, state?.message, state?.ringsRemoved.white, state?.ringsRemoved.black],
@@ -767,6 +776,40 @@ export function Component({
     }
   }
 
+  function focusYinshPoint(key: string) {
+    if (!state || !state.points.some((point) => point.key === key)) return;
+    setFocusedPointKey(key);
+    window.requestAnimationFrame(() => {
+      boardRef.current?.querySelector<SVGGElement>(`[data-yinsh-key="${key}"]`)?.focus();
+    });
+  }
+
+  function handlePointKeyDown(event: KeyboardEvent<SVGGElement>, point: AxialPoint) {
+    if (!state) return;
+    const movement: Record<string, { q: number; r: number }> = {
+      ArrowUp: { q: point.q, r: point.r - 1 },
+      ArrowDown: { q: point.q, r: point.r + 1 },
+      ArrowLeft: { q: point.q - 1, r: point.r },
+      ArrowRight: { q: point.q + 1, r: point.r }
+    };
+    if (event.key === "Home" || event.key === "End") {
+      event.preventDefault();
+      const target = event.key === "Home" ? state.points[0] : state.points[state.points.length - 1];
+      if (target) focusYinshPoint(target.key);
+      return;
+    }
+    const next = movement[event.key];
+    if (next) {
+      event.preventDefault();
+      focusYinshPoint(pointKey(next.q, next.r));
+      return;
+    }
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      handlePointClick(point.key);
+    }
+  }
+
   const selectedRingIsRemovable = Boolean(selectedRingKey && currentColor && state.rings[selectedRingKey] === currentColor);
   const markerCount = Object.keys(state.markers).length;
   const markersRemaining = getMarkersRemaining(state);
@@ -787,7 +830,7 @@ export function Component({
 
       <div className="yinsh-layout">
         <div className="yinsh-board-wrap">
-          <svg className="yinsh-board" viewBox={viewBox} role="img" aria-label="인쉬 85점 보드">
+          <svg ref={boardRef} className="yinsh-board" viewBox={viewBox} role="group" aria-label="인쉬 85점 보드">
             <defs>
               <radialGradient id="yinsh-white-marker" cx="34%" cy="28%" r="70%">
                 <stop offset="0%" stopColor="#ffffff" />
@@ -821,14 +864,11 @@ export function Component({
                 <g
                   key={point.key}
                   role="button"
-                  tabIndex={canInteract && !isSubmitting ? 0 : -1}
+                  tabIndex={canInteract && !isSubmitting && focusedPointKey === point.key ? 0 : -1}
+                  data-yinsh-key={point.key}
                   onClick={() => handlePointClick(point.key)}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter" || event.key === " ") {
-                      event.preventDefault();
-                      handlePointClick(point.key);
-                    }
-                  }}
+                  onFocus={() => setFocusedPointKey(point.key)}
+                  onKeyDown={(event) => handlePointKeyDown(event, point)}
                   aria-label={`${point.q}, ${point.r}`}
                 >
                   <circle
