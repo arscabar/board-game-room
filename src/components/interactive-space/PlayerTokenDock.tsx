@@ -158,7 +158,9 @@ function isOverDropZone(clientX: number, clientY: number) {
     return false;
   }
 
-  return Boolean(document.elementFromPoint(clientX, clientY)?.closest(".cafe-table-object"));
+  return document
+    .elementsFromPoint(clientX, clientY)
+    .some((element) => Boolean(element.closest(".cafe-table-object")));
 }
 
 export function PlayerTokenDock({
@@ -277,7 +279,7 @@ export function PlayerTokenDock({
           </button>
 
           <label className="player-token-name-field" htmlFor="cafe-player-name">
-            <span>내 말</span>
+            <span>플레이어 이름</span>
             <input
               id="cafe-player-name"
               value={name}
@@ -286,6 +288,12 @@ export function PlayerTokenDock({
               aria-label="플레이어 이름"
             />
           </label>
+
+          {hasSavedRoom ? (
+            <button className="player-token-icon-button player-token-resume-button" type="button" onClick={onResumeSavedRoom} title="이전 테이블 복귀" aria-label="이전 테이블 복귀">
+              <DoorOpen size={17} aria-hidden="true" />
+            </button>
+          ) : null}
 
           <button
             className="player-token-icon-button"
@@ -301,7 +309,17 @@ export function PlayerTokenDock({
 
         {expanded ? (
           <div className="player-token-customizer" id="player-token-customizer">
-            <div className="player-token-control-row" aria-label="몸체">
+            <header className="player-token-customizer-header">
+              <strong>말 꾸미기</strong>
+              <button className="player-token-soft-button" type="button" onClick={() => onAvatarChange(nextAvatar(avatar))}>
+                <Shuffle size={15} aria-hidden="true" />
+                무작위 조합
+              </button>
+            </header>
+
+            <fieldset className="player-token-option-group">
+              <legend>몸체</legend>
+              <div className="player-token-control-row">
               {avatarBodies.map((body) => (
                 <button
                   className={cx("player-token-chip", avatar.body === body.id && "player-token-chip-selected")}
@@ -312,9 +330,12 @@ export function PlayerTokenDock({
                   {body.label}
                 </button>
               ))}
-            </div>
+              </div>
+            </fieldset>
 
-            <div className="player-token-control-row" aria-label="표정">
+            <fieldset className="player-token-option-group">
+              <legend>표정</legend>
+              <div className="player-token-control-row">
               {avatarFaces.map((face) => (
                 <button
                   className={cx("player-token-chip", avatar.face === face.id && "player-token-chip-selected")}
@@ -325,9 +346,12 @@ export function PlayerTokenDock({
                   {face.label}
                 </button>
               ))}
-            </div>
+              </div>
+            </fieldset>
 
-            <div className="player-token-control-row" aria-label="장식">
+            <fieldset className="player-token-option-group">
+              <legend>장식</legend>
+              <div className="player-token-control-row">
               {avatarAccessories.map((accessory) => (
                 <button
                   className={cx("player-token-chip", avatar.accessory === accessory.id && "player-token-chip-selected")}
@@ -338,45 +362,39 @@ export function PlayerTokenDock({
                   {accessory.label}
                 </button>
               ))}
-            </div>
+              </div>
+            </fieldset>
 
-            <div className="player-token-swatch-row" aria-label="색상">
-              {avatarPalettes.map((palette) => (
-                <button
-                  className={cx("player-token-swatch", avatar.palette === palette.id && "player-token-swatch-selected")}
-                  key={palette.id}
-                  type="button"
-                  style={
-                    {
-                      "--player-token-base": palette.base,
-                      "--player-token-light": palette.light,
-                      "--player-token-dark": palette.dark
-                    } as CSSProperties
-                  }
-                  onClick={() => onAvatarChange(updateAvatarPart(avatar, "palette", palette.id))}
-                  aria-label={palette.label}
-                />
-              ))}
+            <fieldset className="player-token-option-group player-token-color-group">
+              <legend>색상</legend>
+              <div className="player-token-swatch-row">
+                {avatarPalettes.map((palette) => (
+                  <button
+                    className={cx("player-token-swatch", avatar.palette === palette.id && "player-token-swatch-selected")}
+                    key={palette.id}
+                    type="button"
+                    style={
+                      {
+                        "--player-token-base": palette.base,
+                        "--player-token-light": palette.light,
+                        "--player-token-dark": palette.dark
+                      } as CSSProperties
+                    }
+                    onClick={() => onAvatarChange(updateAvatarPart(avatar, "palette", palette.id))}
+                    aria-label={palette.label}
+                  />
+                ))}
+              </div>
+            </fieldset>
+
+            <div className="player-token-action-row">
+              <button className="player-token-soft-button player-token-reset-button" type="button" onClick={onResetLocalIdentity}>
+                <Trash2 size={15} aria-hidden="true" />
+                새 손님으로 시작
+              </button>
             </div>
           </div>
         ) : null}
-
-        <div className="player-token-action-row">
-          <button className="player-token-soft-button" type="button" onClick={() => onAvatarChange(nextAvatar(avatar))}>
-            <Shuffle size={15} aria-hidden="true" />
-            조합
-          </button>
-          {hasSavedRoom ? (
-            <button className="player-token-soft-button" type="button" onClick={onResumeSavedRoom}>
-              <DoorOpen size={15} aria-hidden="true" />
-              복귀
-            </button>
-          ) : null}
-          <button className="player-token-soft-button" type="button" onClick={onResetLocalIdentity}>
-            <Trash2 size={15} aria-hidden="true" />
-            새 손님
-          </button>
-        </div>
       </form>
     </aside>
   );

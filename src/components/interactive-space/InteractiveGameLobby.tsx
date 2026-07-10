@@ -1,4 +1,5 @@
 import { Clock3, DoorOpen, Play, Trash2, UsersRound } from "lucide-react";
+import { LazyMotion, MotionConfig } from "motion/react";
 import {
   useEffect,
   useMemo,
@@ -14,6 +15,8 @@ import { CentralTableStage, type CentralTableState } from "./CentralTableStage";
 import { GameShelfViewport } from "./GameShelfViewport";
 import type { GameBoxState, GamePlacementSource } from "./GameBoxObject";
 import "./interactive-game-lobby.css";
+
+const loadMotionFeatures = () => import("../../motion-features").then((module) => module.default);
 
 export type InteractiveGameLobbyProps = {
   room: RoomSnapshot;
@@ -319,12 +322,14 @@ export function InteractiveGameLobby({
   }
 
   return (
-    <section
-      className="interactive-game-lobby is-game-lobby"
-      data-state={tableState}
-      data-host={isHost ? "true" : "false"}
-      aria-labelledby="interactive-game-lobby-title"
-    >
+    <LazyMotion features={loadMotionFeatures} strict>
+      <MotionConfig reducedMotion="user">
+        <section
+          className="interactive-game-lobby is-game-lobby"
+          data-state={tableState}
+          data-host={isHost ? "true" : "false"}
+          aria-labelledby="interactive-game-lobby-title"
+        >
       <header className="game-lobby-header">
         <div className="game-lobby-title-block">
           <span className="game-lobby-count">
@@ -358,16 +363,6 @@ export function InteractiveGameLobby({
       </header>
 
       <div className="game-lobby-layout">
-        <CentralTableStage
-          game={tableGame}
-          state={tableState}
-          players={room.players}
-          maxSeats={room.maxPlayers}
-          tableRef={(node) => {
-            tableRef.current = node;
-          }}
-        />
-
         <div className="game-lobby-side">
           <GameShelfViewport
             games={sortedGames}
@@ -387,6 +382,16 @@ export function InteractiveGameLobby({
             onPointerMove={handlePointerMove}
             onPointerUp={handlePointerUp}
             onPointerCancel={handlePointerCancel}
+          />
+        </div>
+
+        <aside className="game-lobby-selection-rail" aria-label="선택한 게임">
+          <CentralTableStage
+            game={tableGame}
+            state={tableState}
+            tableRef={(node) => {
+              tableRef.current = node;
+            }}
           />
 
           {serverSelectedGame ? (
@@ -413,9 +418,11 @@ export function InteractiveGameLobby({
               </button>
             </div>
           ) : null}
-        </div>
+        </aside>
       </div>
-    </section>
+        </section>
+      </MotionConfig>
+    </LazyMotion>
   );
 }
 

@@ -5,6 +5,7 @@ import "@radix-ui/themes/styles.css";
 import App from "./App";
 import "./styles.css";
 import "./gameplay-responsive.css";
+import "./design-polish.css";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

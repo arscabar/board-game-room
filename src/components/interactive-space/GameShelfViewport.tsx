@@ -1,5 +1,11 @@
-import { useEffect, useMemo, useState, type PointerEvent as ReactPointerEvent } from "react";
-import { gameAvailabilityLabel } from "../../shared/eligibility";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent as ReactKeyboardEvent,
+  type PointerEvent as ReactPointerEvent
+} from "react";
 import type { GameDefinition } from "../../shared/types";
 import { GameBoxObject, type GameBoxState, type GamePlacementSource } from "./GameBoxObject";
 
@@ -50,6 +56,7 @@ export function GameShelfViewport({
   onPointerCancel
 }: GameShelfViewportProps) {
   const [activePlayerCount, setActivePlayerCount] = useState(() => Math.min(4, Math.max(1, playerCount || 1)));
+  const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
 
   useEffect(() => {
     setActivePlayerCount(Math.min(4, Math.max(1, playerCount || 1)));
@@ -67,20 +74,35 @@ export function GameShelfViewport({
     () => games.filter((game) => game.allowedPlayerCounts.includes(activePlayerCount)),
     [activePlayerCount, games]
   );
-  const firstGame = activeGames[0] ?? null;
-  const shelfHint =
-    activePlayerCount === playerCount
-      ? firstGame
-        ? gameAvailabilityLabel(firstGame, playerCount)
-        : "게임 선택"
-      : `${activePlayerCount}명 게임 목록`;
+  const activeTabId = `game-shelf-tab-${activePlayerCount}`;
+
+  function handleTabKeyDown(event: ReactKeyboardEvent<HTMLButtonElement>, index: number) {
+    let nextIndex = index;
+
+    if (event.key === "ArrowRight" || event.key === "ArrowDown") {
+      nextIndex = (index + 1) % playerCountTabs.length;
+    } else if (event.key === "ArrowLeft" || event.key === "ArrowUp") {
+      nextIndex = (index - 1 + playerCountTabs.length) % playerCountTabs.length;
+    } else if (event.key === "Home") {
+      nextIndex = 0;
+    } else if (event.key === "End") {
+      nextIndex = playerCountTabs.length - 1;
+    } else {
+      return;
+    }
+
+    event.preventDefault();
+    const nextCount = playerCountTabs[nextIndex];
+    setActivePlayerCount(nextCount);
+    tabRefs.current[nextIndex]?.focus();
+  }
 
   return (
     <section className="game-shelf-viewport" data-collapsed={collapsed ? "true" : "false"} aria-labelledby="game-shelf-title">
       <div className="game-shelf-plaque">
         <div>
-          <h3 id="game-shelf-title">게임 상자</h3>
-          <span>{shelfHint}</span>
+          <h3 id="game-shelf-title">게임 고르기</h3>
+          <span>{activePlayerCount}명 · {activeGames.length}개</span>
         </div>
         {canCollapse ? (
           <button className="game-shelf-toggle" type="button" aria-expanded={!collapsed} onClick={onToggleCollapsed}>
@@ -90,18 +112,26 @@ export function GameShelfViewport({
       </div>
 
       <div className="game-shelf-player-tabs" role="tablist" aria-label="인원수별 게임 목록">
-        {tabItems.map((tab) => {
+        {tabItems.map((tab, index) => {
           const selected = activePlayerCount === tab.count;
           return (
             <button
               key={tab.count}
+              id={`game-shelf-tab-${tab.count}`}
               className="game-shelf-player-tab"
               type="button"
               role="tab"
               aria-selected={selected}
+              aria-controls="game-shelf-panel"
+              aria-label={`${tab.count}명, 게임 ${tab.games.length}개`}
+              tabIndex={selected ? 0 : -1}
               data-selected={selected ? "true" : "false"}
               data-current={playerCount === tab.count ? "true" : "false"}
+              ref={(node) => {
+                tabRefs.current[index] = node;
+              }}
               onClick={() => setActivePlayerCount(tab.count)}
+              onKeyDown={(event) => handleTabKeyDown(event, index)}
             >
               <span>{tab.count}명</span>
               <small>{tab.games.length}</small>
@@ -110,30 +140,38 @@ export function GameShelfViewport({
         })}
       </div>
 
-      <div className="game-shelf-grid" role="list">
-        {activeGames.map((game) => {
-          const available = isGameAvailable(game);
-          return (
-            <div className="game-shelf-slot" key={game.id} role="listitem">
-              <GameBoxObject
-                game={game}
-                state={getBoxState(game)}
-                available={available}
-                selected={selectedGameId === game.id}
-                isHost={isHost}
-                playerCount={playerCount}
-                dragPosition={getDragPosition(game)}
-                onPreview={onPreview}
-                onPreviewEnd={onPreviewEnd}
-                onPlace={onPlace}
-                onPointerDown={onPointerDown}
-                onPointerMove={onPointerMove}
-                onPointerUp={onPointerUp}
-                onPointerCancel={onPointerCancel}
-              />
-            </div>
-          );
-        })}
+      <div
+        id="game-shelf-panel"
+        className="game-shelf-panel"
+        role="tabpanel"
+        aria-labelledby={activeTabId}
+        tabIndex={0}
+      >
+        <div className="game-shelf-grid" role="list">
+          {activeGames.map((game) => {
+            const available = isGameAvailable(game);
+            return (
+              <div className="game-shelf-slot" key={game.id} role="listitem">
+                <GameBoxObject
+                  game={game}
+                  state={getBoxState(game)}
+                  available={available}
+                  selected={selectedGameId === game.id}
+                  isHost={isHost}
+                  playerCount={playerCount}
+                  dragPosition={getDragPosition(game)}
+                  onPreview={onPreview}
+                  onPreviewEnd={onPreviewEnd}
+                  onPlace={onPlace}
+                  onPointerDown={onPointerDown}
+                  onPointerMove={onPointerMove}
+                  onPointerUp={onPointerUp}
+                  onPointerCancel={onPointerCancel}
+                />
+              </div>
+            );
+          })}
+        </div>
       </div>
     </section>
   );

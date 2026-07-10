@@ -1,4 +1,5 @@
 import { CheckCircle2, Hand, LockKeyhole } from "lucide-react";
+import * as m from "motion/react-m";
 import { useEffect, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
 import { formatAllowedPlayers, gameAvailabilityLabel } from "../../shared/eligibility";
 import { gameCoverSrc } from "../../shared/gameCover";
@@ -105,6 +106,18 @@ export function GameBoxObject({
         onPointerMove={(event) => onPointerMove(event, game)}
         onPointerUp={(event) => onPointerUp(event, game)}
         onPointerCancel={onPointerCancel}
+        onPointerEnter={(event) => {
+          if (event.pointerType === "mouse" || event.pointerType === "pen") {
+            onPreview(game);
+          }
+        }}
+        onPointerLeave={(event) => {
+          if ((event.pointerType === "mouse" || event.pointerType === "pen") && event.buttons === 0) {
+            onPreviewEnd(game);
+          }
+        }}
+        onMouseEnter={() => onPreview(game)}
+        onMouseLeave={() => onPreviewEnd(game)}
         onFocus={() => onPreview(game)}
         onBlur={() => onPreviewEnd(game)}
         onClick={() => {
@@ -113,9 +126,13 @@ export function GameBoxObject({
           }
         }}
       >
-        <span className="game-box-lid">
+        <m.span
+          className="game-box-lid"
+          layoutId={`game-box-${game.id}`}
+          transition={{ layout: { type: "spring", stiffness: 430, damping: 34, mass: 0.72 } }}
+        >
           <GameCover game={game} className="game-cover-art" />
-        </span>
+        </m.span>
         <span className="game-box-spine" aria-hidden="true" />
         <span className="game-box-label">
           <strong>{game.title}</strong>

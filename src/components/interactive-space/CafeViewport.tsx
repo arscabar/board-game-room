@@ -1,17 +1,6 @@
-import {
-  type CSSProperties,
-  type KeyboardEvent,
-  type PointerEvent as ReactPointerEvent,
-  type WheelEvent,
-  useEffect,
-  useMemo,
-  useRef,
-  useState
-} from "react";
+import { type KeyboardEvent, useMemo, useRef } from "react";
 import type { PublicRoomListItem } from "../../shared/types";
 import { CafeTableObject, type CafeTablePlacement } from "./CafeTableObject";
-import { CafePhysicsOverlay, type PhysicsOverlayHandle } from "./CafePhysicsOverlay";
-import { playSwipeSound } from "../../utils/haptics";
 
 type PreventableEvent = {
   preventDefault: () => void;
@@ -30,28 +19,6 @@ export type CafeViewportProps = {
   onSelectRoom: (room: PublicRoomListItem) => void;
 };
 
-function isInteractiveTarget(target: EventTarget | null) {
-  return target instanceof Element && Boolean(target.closest("button, input, select, textarea, a"));
-}
-
-function useReducedMotionPreference() {
-  const [reduced, setReduced] = useState(false);
-
-  useEffect(() => {
-    if (typeof window === "undefined" || !("matchMedia" in window)) {
-      return undefined;
-    }
-
-    const query = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const sync = () => setReduced(query.matches);
-    sync();
-    query.addEventListener("change", sync);
-    return () => query.removeEventListener("change", sync);
-  }, []);
-
-  return reduced;
-}
-
 export function CafeViewport({
   tables,
   selectedTableId,
@@ -65,190 +32,73 @@ export function CafeViewport({
   onSelectRoom
 }: CafeViewportProps) {
   const viewportRef = useRef<HTMLElement | null>(null);
-  const layerRef = useRef<HTMLDivElement | null>(null);
-  const physicsRef = useRef<PhysicsOverlayHandle | null>(null);
-  const reducedMotion = useReducedMotionPreference();
-  
-  // Carousel swipe state
-  const dragRef = useRef({ isDragging: false, startX: 0, lastX: 0, velocity: 0, startTime: 0 });
-
+  const roomCount = tables.filter((table) => table.kind === "room").length;
   const tableIds = useMemo(() => tables.map((table) => table.id), [tables]);
-  const selectedIndex = Math.max(0, tableIds.indexOf(selectedTableId));
 
-  // Handle Cover Flow scrolling
-  function handleWheel(event: WheelEvent<HTMLElement>) {
-    if (reducedMotion) return;
-
-    const primaryDelta = Math.abs(event.deltaX) > Math.abs(event.deltaY) ? event.deltaX : event.deltaY;
-    if (Math.abs(primaryDelta) < 10) return;
-
-    // Prevent scrolling page
-    event.preventDefault();
-
-    if (primaryDelta > 0) {
-      const nextIndex = Math.min(tableIds.length - 1, selectedIndex + 1);
-      if (nextIndex !== selectedIndex) {
-         playSwipeSound();
-         onSelectTable(tableIds[nextIndex]);
-      }
-    } else {
-      const prevIndex = Math.max(0, selectedIndex - 1);
-      if (prevIndex !== selectedIndex) {
-         playSwipeSound();
-         onSelectTable(tableIds[prevIndex]);
-      }
-    }
+  function focusTable(tableId: string) {
+    onSelectTable(tableId);
+    window.requestAnimationFrame(() => {
+      viewportRef.current?.querySelector<HTMLButtonElement>(`[data-table-id="${tableId}"]`)?.focus();
+    });
   }
 
   function handleKeyDown(event: KeyboardEvent<HTMLElement>) {
-    const keyOffsets: Record<string, number> = {
+    if (!["ArrowRight", "ArrowDown", "ArrowLeft", "ArrowUp", "Home", "End"].includes(event.key)) {
+      return;
+    }
+
+    const currentIndex = Math.max(0, tableIds.indexOf(selectedTableId));
+    const columns = window.matchMedia("(min-width: 1180px)").matches ? 3 : window.matchMedia("(min-width: 680px)").matches ? 2 : 1;
+    const offsetByKey: Record<string, number> = {
       ArrowRight: 1,
-      ArrowDown: 1,
       ArrowLeft: -1,
-      ArrowUp: -1
+      ArrowDown: columns,
+      ArrowUp: -columns
     };
-    const offset = keyOffsets[event.key];
-    if (!offset || tableIds.length === 0) return;
+    const nextIndex = event.key === "Home"
+      ? 0
+      : event.key === "End"
+        ? tableIds.length - 1
+        : Math.max(0, Math.min(tableIds.length - 1, currentIndex + (offsetByKey[event.key] ?? 0)));
+
+    if (nextIndex === currentIndex && event.key !== "Home" && event.key !== "End") {
+      return;
+    }
 
     event.preventDefault();
-    const nextIndex = (selectedIndex + offset + tableIds.length) % tableIds.length;
-    const button = viewportRef.current?.querySelector<HTMLButtonElement>(`[data-table-id="${tableIds[nextIndex]}"]`);
-    button?.focus();
-    playSwipeSound();
-    onSelectTable(tableIds[nextIndex]);
-  }
-
-  // Handle Drag to Join Dropzone
-  function handleDrop(event: ReactPointerEvent<HTMLElement>) {
-     // Handled globally in InteractiveCafeHome now, but we keep physics pop
-     if (tables[selectedIndex]?.kind === "room") {
-        const room = tables[selectedIndex].room;
-        if (room && (room.code === lastRoomCode || (room.canJoin && room.status === "lobby"))) {
-           physicsRef.current?.popAll();
-        }
-     }
-  }
-
-  // Flick-to-Spin Pointer Events
-  function handlePointerDown(e: ReactPointerEvent<HTMLElement>) {
-    if (e.pointerType === "mouse" && e.button !== 0) return;
-    if (isInteractiveTarget(e.target)) return;
-
-    dragRef.current = {
-      isDragging: true,
-      startX: e.clientX,
-      lastX: e.clientX,
-      velocity: 0,
-      startTime: performance.now()
-    };
-    // Do NOT capture yet. Let clicks pass through.
-  }
-
-  function handlePointerMove(e: ReactPointerEvent<HTMLElement>) {
-    if (!dragRef.current.isDragging) return;
-    const dx = e.clientX - dragRef.current.lastX;
-    dragRef.current.velocity = dx;
-    dragRef.current.lastX = e.clientX;
-
-    // If they drag significantly, capture the pointer to prevent accidental clicks
-    if (Math.abs(e.clientX - dragRef.current.startX) > 5) {
-       if (!e.currentTarget.hasPointerCapture(e.pointerId)) {
-          e.currentTarget.setPointerCapture(e.pointerId);
-       }
-    }
-
-    // If they dragged enough instantly snap to next
-    if (Math.abs(e.clientX - dragRef.current.startX) > 50) {
-       dragRef.current.startX = e.clientX; // reset
-       if (dx < 0) {
-          const nextIndex = Math.min(tableIds.length - 1, selectedIndex + 1);
-          if (nextIndex !== selectedIndex) {
-             playSwipeSound();
-             onSelectTable(tableIds[nextIndex]);
-          }
-       } else if (dx > 0) {
-          const prevIndex = Math.max(0, selectedIndex - 1);
-          if (prevIndex !== selectedIndex) {
-             playSwipeSound();
-             onSelectTable(tableIds[prevIndex]);
-          }
-       }
-    }
-  }
-
-  function handlePointerUp(e: ReactPointerEvent<HTMLElement>) {
-    if (!dragRef.current.isDragging) return;
-    dragRef.current.isDragging = false;
-    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
-      e.currentTarget.releasePointerCapture(e.pointerId);
-    }
-    
-    // Inertia
-    const v = dragRef.current.velocity;
-    if (Math.abs(v) > 10) {
-      // Fast flick
-      const step = v < 0 ? 1 : -1;
-      const targetIndex = Math.max(0, Math.min(tableIds.length - 1, selectedIndex + step * 2));
-      if (targetIndex !== selectedIndex) {
-         playSwipeSound();
-         setTimeout(() => onSelectTable(tableIds[targetIndex]), 150);
-      }
-    } else {
-      // Check if it was a drop (no movement)
-      const duration = performance.now() - dragRef.current.startTime;
-      if (Math.abs(e.clientX - dragRef.current.startX) < 10 && duration < 500) {
-         handleDrop(e);
-      }
-    }
+    focusTable(tableIds[nextIndex]);
   }
 
   return (
     <section
-      className="cafe-viewport coverflow-viewport"
+      className="cafe-viewport"
       data-connection={connectionState}
       ref={viewportRef}
-      tabIndex={0}
-      aria-label="보드게임 방 갤러리"
+      aria-labelledby="cafe-room-list-title"
       onKeyDown={handleKeyDown}
-      onWheel={handleWheel}
-      onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
-      onPointerUp={handlePointerUp}
-      onPointerCancel={handlePointerUp}
     >
-      <div className="cafe-floor-vignette" aria-hidden="true" />
-      <div
-        className="cafe-camera-layer coverflow-layer"
-        ref={layerRef}
-      >
-        {/* Cinematic Physics Layer (Zero Gravity) */}
-        {!reducedMotion && (
-          <CafePhysicsOverlay ref={physicsRef} width={3000} height={2000} interactive={false} />
-        )}
+      <header className="cafe-room-list-header">
+        <div>
+          <span className="cafe-section-index">01</span>
+          <h3 id="cafe-room-list-title">열린 테이블</h3>
+        </div>
+        <span className="cafe-room-count" aria-label={`${roomCount}개 테이블`}>{roomCount}</span>
+      </header>
 
-        {tables.map((table, idx) => {
+      <div className="cafe-table-grid" role="list" aria-busy={roomsLoading}>
+        {tables.map((table) => {
           const room = table.kind === "room" ? table.room ?? null : null;
           const canUseRoom = Boolean(
             room && connectionState === "connected" && (room.code === lastRoomCode || (room.canJoin && room.status === "lobby"))
           );
-          
-          // Cover Flow Math
-          const offset = idx - selectedIndex;
-          const absOffset = Math.abs(offset);
-          const isSelected = offset === 0;
-
-          // Replace old positional data with Cover Flow data
-          const coverflowStyle = {
-             "--cafe-table-x": `${offset * 240}px`,
-             "--cafe-table-y": `0px`,
-             "--cafe-table-rotate": `${offset === 0 ? 0 : offset > 0 ? -45 : 45}deg`,
-             "--cafe-table-scale": isSelected ? 1.2 : 0.8,
-             "--cafe-table-depth": -absOffset * 150,
-             zIndex: isSelected ? 30 : Math.max(1, 20 - absOffset)
-          } as CSSProperties;
+          const isSelected = table.id === selectedTableId;
 
           return (
-            <div key={table.id} className="coverflow-item" style={coverflowStyle}>
+            <div
+              className={table.size === "large" ? "cafe-table-grid-item cafe-table-grid-item-large" : "cafe-table-grid-item"}
+              role="listitem"
+              key={table.id}
+            >
               <CafeTableObject
                 table={table}
                 canCreate={canCreate}
@@ -256,20 +106,10 @@ export function CafeViewport({
                 isSelected={isSelected}
                 isSavedRoom={Boolean(room && room.code === lastRoomCode)}
                 createState={createState}
-                onCreateTable={(e) => {
-                  if (table.kind === "empty" || isSelected) {
-                     onCreateTable(e);
-                  } else {
-                     e.preventDefault();
-                     onSelectTable(table.id);
-                  }
-                }}
+                onCreateTable={onCreateTable}
                 onSelectRoom={(nextRoom) => {
-                  if (isSelected) {
-                     onSelectRoom(nextRoom);
-                  } else {
-                     onSelectTable(table.id);
-                  }
+                  onSelectTable(table.id);
+                  onSelectRoom(nextRoom);
                 }}
               />
             </div>
@@ -279,7 +119,7 @@ export function CafeViewport({
 
       {roomsLoading ? (
         <div className="cafe-loading-chip" role="status" aria-live="polite">
-          방 찾는 중...
+          테이블을 확인하고 있습니다.
         </div>
       ) : null}
     </section>

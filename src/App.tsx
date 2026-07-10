@@ -2258,11 +2258,12 @@ function PlayPanel({
           : `${selectedGame?.title ?? "게임"} ${phaseName(phase)} ${activePlayer?.name ?? "플레이어 없음"}`}
       </p>
       <div className="panel-header play-panel-header">
-        <div>
+        <div className="play-match-copy">
           <h2 id="play-title">{selectedGame?.title ?? "게임 진행"}</h2>
-          <p className="play-compact-status">
-            <span>{phaseName(phase)}</span>
-            <span>
+          <p className="play-compact-status" aria-label="경기 진행 상태">
+            <span className="play-phase-label">{phaseName(phase)}</span>
+            <span className="play-status-separator" aria-hidden="true">·</span>
+            <span className="play-turn-label">
               {selectedGame?.id === "masterpiece-copy"
                 ? phase === "drawing"
                   ? "모두 그리는 중"
@@ -2282,12 +2283,26 @@ function PlayPanel({
           ) : null}
           {isHost ? (
             paused ? (
-              <BoardButton className="play-mini-action" type="button" onClick={resumeGame} disabled={isFinished} title="재개">
+              <BoardButton
+                className="play-mini-action"
+                type="button"
+                onClick={resumeGame}
+                disabled={isFinished}
+                title="재개"
+                aria-label="게임 재개"
+              >
                 <Play size={15} aria-hidden="true" />
                 <span className="play-action-label">재개</span>
               </BoardButton>
             ) : (
-              <BoardButton className="play-mini-action" type="button" onClick={pauseGame} disabled={isFinished} title="일시정지">
+              <BoardButton
+                className="play-mini-action"
+                type="button"
+                onClick={pauseGame}
+                disabled={isFinished}
+                title="일시정지"
+                aria-label="게임 일시정지"
+              >
                 <Pause size={15} aria-hidden="true" />
                 <span className="play-action-label">일시정지</span>
               </BoardButton>
@@ -2299,12 +2314,19 @@ function PlayPanel({
             </BoardButton>
           ) : null}
           {isHost ? (
-            <BoardButton className="play-mini-action" type="button" onClick={onReturnLobby} title="로비">
+            <BoardButton className="play-mini-action" type="button" onClick={onReturnLobby} title="로비" aria-label="게임 선택 로비로 이동">
               <Route size={15} aria-hidden="true" />
               <span className="play-action-label">로비</span>
             </BoardButton>
           ) : null}
-          <BoardButton className="play-mini-action" tone="secondary" type="button" onClick={onLeaveLocalRoom} title="나가기">
+          <BoardButton
+            className="play-mini-action"
+            tone="secondary"
+            type="button"
+            onClick={onLeaveLocalRoom}
+            title="나가기"
+            aria-label="현재 방 나가기"
+          >
             <DoorOpen size={15} aria-hidden="true" />
             <span className="play-action-label">나가기</span>
           </BoardButton>
@@ -2330,6 +2352,7 @@ function PlayPanel({
                 momentumBadge ? `has-momentum momentum-${momentumBadge.tone}` : ""
               }`}
               style={{ "--seat-accent": playerAccent(player) } as CSSProperties}
+              aria-label={`${player.name}, ${statusLabel}`}
             >
               <div className="turn-avatar-stack">
                 <PlayerAvatarMark avatar={player.avatar} className="turn-avatar" label={`${player.name} 아이콘`} />
@@ -2338,7 +2361,7 @@ function PlayPanel({
               <strong>{player.name}</strong>
               <span className="turn-chip-status">
                 <StatusIcon size={12} aria-hidden="true" />
-                {statusLabel}
+                <span className="turn-chip-status-label">{statusLabel}</span>
               </span>
             </div>
           );

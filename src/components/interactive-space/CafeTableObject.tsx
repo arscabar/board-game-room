@@ -1,4 +1,4 @@
-import { Plus } from "lucide-react";
+import { Plus, UsersRound } from "lucide-react";
 import { type MouseEvent } from "react";
 import type { PublicRoomListItem } from "../../shared/types";
 import { PlayerTokenPawn } from "./PlayerTokenDock";
@@ -59,6 +59,14 @@ function roomState(room: PublicRoomListItem, canUseRoom: boolean, isSavedRoom: b
   return canUseRoom ? "open" : "waiting";
 }
 
+function roomStateLabel(state: ReturnType<typeof roomState>) {
+  if (state === "saved") return "복귀 가능";
+  if (state === "playing") return "게임 중";
+  if (state === "full") return "만석";
+  if (state === "open") return "입장 가능";
+  return "대기";
+}
+
 function seatItems(room: PublicRoomListItem) {
   const totalSeats = Math.max(2, Math.min(room.maxPlayers || 4, 4));
   return Array.from({ length: totalSeats }, (_, index) => ({
@@ -101,17 +109,14 @@ export function CafeTableObject({
         onPointerDown={(event) => event.stopPropagation()}
         aria-label={canCreate ? "빈 테이블, 새 테이블 만들기 가능" : "빈 테이블, 준비 후 만들기 가능"}
       >
-        <span className="pod-layer pod-layer-shadow" aria-hidden="true" />
-        <span className="pod-layer pod-layer-base" aria-hidden="true" />
-        <span className="pod-layer pod-layer-glass" aria-hidden="true">
-          <span className="pod-neon-border" />
-          <span className="cafe-empty-plus">
-            <Plus size={40} strokeWidth={2.4} aria-hidden="true" />
+        <span className="cafe-table-visual" aria-hidden="true">
+          <span className="cafe-table-top cafe-empty-table-top">
+            <span className="cafe-empty-plus"><Plus size={22} strokeWidth={2} /></span>
           </span>
         </span>
-        <span className="pod-layer pod-layer-nameplate">
-          <strong>빈 테이블</strong>
-          <small>빈 자리</small>
+        <span className="cafe-table-copy">
+          <strong>새 테이블</strong>
+          <small>{canCreate ? "방 만들기" : "이름을 먼저 입력하세요"}</small>
         </span>
       </button>
     );
@@ -145,12 +150,10 @@ export function CafeTableObject({
       onClick={() => onSelectRoom(room)}
       onPointerDown={(event) => event.stopPropagation()}
     >
-      <span className="pod-layer pod-layer-shadow" aria-hidden="true" />
-      <span className="pod-layer pod-layer-base" aria-hidden="true">
-        {room.status === "playing" ? <span className="pod-active-glow" /> : null}
-      </span>
-      <span className="pod-layer pod-layer-glass" aria-hidden="true">
-        <span className="pod-neon-border" />
+      <span className="cafe-table-visual" aria-hidden="true">
+        <span className="cafe-table-top">
+          <span className="cafe-table-inlay" />
+        </span>
         <span className="cafe-seat-map">
           {seatItems(room).map((seat, idx) => (
             <span
@@ -163,10 +166,15 @@ export function CafeTableObject({
         </span>
       </span>
 
-      <span className="pod-layer pod-layer-nameplate">
-        <strong>{hostTableName(room)}</strong>
-        <span>{room.playerCount}/{room.maxPlayers}</span>
-        <small>{gameLabel}</small>
+      <span className="cafe-table-copy">
+        <span className="cafe-table-copy-main">
+          <strong>{hostTableName(room)}</strong>
+          <span className="cafe-table-capacity"><UsersRound size={14} />{room.playerCount}/{room.maxPlayers}</span>
+        </span>
+        <span className="cafe-table-copy-meta">
+          <small>{gameLabel}</small>
+          <em>{roomStateLabel(state)}</em>
+        </span>
       </span>
     </button>
   );

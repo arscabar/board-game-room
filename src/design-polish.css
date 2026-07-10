@@ -1,0 +1,352 @@
+/* Final visual system: quiet chrome, tactile game objects. */
+
+:root {
+  --club-ink: #f3ead7;
+  --club-muted: #b9aa91;
+  --club-surface: #181410;
+  --club-surface-raised: #211a14;
+  --club-line: rgba(226, 197, 139, 0.2);
+  --club-line-strong: rgba(226, 197, 139, 0.36);
+  --club-brass: #c99a4a;
+  --club-felt: #0d4d3b;
+  --club-walnut-texture: url("/assets/materials/walnut.webp");
+  --club-felt-texture: url("/assets/materials/felt.webp");
+}
+
+body {
+  background-color: #0b241b;
+}
+
+body .cafe-home,
+body .interactive-game-lobby {
+  background-image:
+    linear-gradient(rgba(5, 37, 27, 0.86), rgba(4, 25, 19, 0.9)),
+    var(--club-felt-texture) !important;
+  background-size: auto, 320px 320px !important;
+}
+
+body .cafe-home .cafe-table-top,
+body .interactive-game-lobby .central-table-frame {
+  background-image:
+    linear-gradient(rgba(37, 20, 12, 0.34), rgba(16, 9, 6, 0.52)),
+    var(--club-walnut-texture) !important;
+  background-size: auto, 280px 280px !important;
+}
+
+body .interactive-game-lobby .central-table-felt {
+  background-image:
+    linear-gradient(rgba(5, 77, 56, 0.46), rgba(4, 51, 38, 0.58)),
+    var(--club-felt-texture) !important;
+  background-size: auto, 240px 240px !important;
+}
+
+body .topbar {
+  background: #17120e !important;
+  border: 1px solid var(--club-line) !important;
+  border-radius: 6px !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2) !important;
+}
+
+body .topbar::before,
+body .topbar::after {
+  display: none !important;
+}
+
+body .room-section.is-playing {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+body .room-section.is-playing .work-panel.play-panel {
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+body .room-section.is-playing .play-panel-header {
+  background: var(--club-surface) !important;
+  border: 1px solid var(--club-line) !important;
+  border-radius: 6px !important;
+  box-shadow: none !important;
+}
+
+body .room-section.is-playing .play-panel-header::before,
+body .room-section.is-playing .play-panel-header::after {
+  display: none !important;
+}
+
+body .room-section.is-playing .play-compact-status span,
+body .room-section.is-playing .play-timer-chip {
+  background: transparent !important;
+  border: 1px solid var(--club-line) !important;
+  border-radius: 999px !important;
+  box-shadow: none !important;
+  color: var(--club-muted) !important;
+}
+
+body .room-section.is-playing .player-turn-strip {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+body .room-section.is-playing .player-turn-chip {
+  background: rgba(24, 20, 16, 0.92) !important;
+  border: 1px solid var(--club-line) !important;
+  border-radius: 5px !important;
+  box-shadow: none !important;
+}
+
+body .room-section.is-playing .player-turn-chip.active {
+  background: #123e30 !important;
+  border-color: rgba(97, 190, 149, 0.62) !important;
+  box-shadow: inset 3px 0 0 #5eb88d !important;
+}
+
+body .room-section.is-playing .player-turn-chip.winner {
+  border-color: rgba(224, 177, 86, 0.72) !important;
+  box-shadow: inset 3px 0 0 var(--club-brass) !important;
+}
+
+body .room-section.is-playing .game-module-shell {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+body .room-section.is-playing .board-sdk-button,
+body .room-section.is-playing button.play-mini-action {
+  border-radius: 5px !important;
+  box-shadow: none !important;
+}
+
+/* Direct manipulation: game boxes lift, travel and dock into the table tray. */
+body .interactive-game-lobby .game-shelf-slot {
+  perspective: 760px;
+}
+
+body .interactive-game-lobby .game-box-main {
+  cursor: grab;
+  transform-origin: 50% 82%;
+  transform-style: preserve-3d;
+  transition:
+    transform 160ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    filter 160ms ease,
+    opacity 160ms ease !important;
+}
+
+body .interactive-game-lobby .game-box-main:active,
+body .interactive-game-lobby .game-box-object[data-state="grabbed"] .game-box-main,
+body .interactive-game-lobby .game-box-object[data-state="over-table"] .game-box-main {
+  cursor: grabbing;
+}
+
+body .interactive-game-lobby .game-box-main:disabled {
+  cursor: not-allowed;
+}
+
+body .interactive-game-lobby .game-box-object[data-state="focused"] .game-box-main {
+  filter: brightness(1.06) saturate(1.04);
+  transform: translateY(-7px) rotateX(2.5deg) scale(1.015);
+}
+
+body .interactive-game-lobby .game-box-object[data-state="grabbed"],
+body .interactive-game-lobby .game-box-object[data-state="over-table"] {
+  z-index: 20 !important;
+}
+
+body .interactive-game-lobby .game-box-object[data-state="grabbed"] .game-box-main {
+  filter: brightness(1.08) drop-shadow(0 16px 14px rgba(0, 0, 0, 0.34));
+  transform: rotate(-1.5deg) scale(1.035);
+}
+
+body .interactive-game-lobby .game-box-object[data-state="over-table"] .game-box-main {
+  filter: brightness(1.12) drop-shadow(0 18px 16px rgba(0, 0, 0, 0.38));
+  transform: rotate(1deg) scale(0.92);
+}
+
+body .interactive-game-lobby .game-shelf-slot:has(.game-box-object[data-selected="true"]) {
+  background: rgba(6, 22, 16, 0.42);
+  box-shadow: inset 0 -2px 0 var(--club-brass);
+}
+
+body .interactive-game-lobby .central-table-stage {
+  transition:
+    transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    filter 180ms ease;
+}
+
+body .interactive-game-lobby .central-table-stage[data-state="focused"] {
+  filter: brightness(1.1);
+  transform: translateY(-2px) scale(1.012);
+}
+
+body .interactive-game-lobby .central-table-stage[data-state="focused"] .table-drop-ring {
+  animation: club-drop-target 760ms ease-in-out infinite alternate;
+  border-color: rgba(235, 194, 105, 0.9) !important;
+  opacity: 1 !important;
+}
+
+body .interactive-game-lobby .table-selection-object[data-state="opening"] .tabletop-game-box {
+  animation: club-box-dock 320ms cubic-bezier(0.2, 0.9, 0.3, 1.15) both;
+}
+
+body .interactive-game-lobby .table-selection-object[data-state="opening"] .tabletop-token-cluster span,
+body .interactive-game-lobby .table-selection-object[data-state="unfolded"] .tabletop-token-cluster span {
+  animation: club-token-deal 280ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+body .interactive-game-lobby .tabletop-token-cluster span:nth-child(2) { animation-delay: 45ms !important; }
+body .interactive-game-lobby .tabletop-token-cluster span:nth-child(3) { animation-delay: 90ms !important; }
+body .interactive-game-lobby .tabletop-token-cluster span:nth-child(4) { animation-delay: 135ms !important; }
+body .interactive-game-lobby .tabletop-token-cluster span:nth-child(5) { animation-delay: 180ms !important; }
+
+/* Home interactions are functional: a room reacts as the pawn approaches it. */
+body .cafe-home .cafe-table-object {
+  transform-origin: 50% 75%;
+  transition:
+    transform 160ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    border-color 160ms ease,
+    background-color 160ms ease !important;
+}
+
+body .cafe-home .cafe-table-object:focus-visible,
+body .cafe-home .cafe-table-object-selected {
+  border-color: var(--club-line-strong) !important;
+  transform: translateY(-3px);
+}
+
+body .cafe-home .player-token-dock [aria-grabbed="true"] {
+  cursor: grabbing;
+  filter: drop-shadow(0 14px 10px rgba(0, 0, 0, 0.34));
+}
+
+@keyframes club-drop-target {
+  from { transform: scale(0.96); }
+  to { transform: scale(1.025); }
+}
+
+@keyframes club-box-dock {
+  from { opacity: 0.35; transform: translateY(-24px) rotate(-5deg) scale(1.08); }
+  to { opacity: 1; transform: translateY(0) rotate(0) scale(1); }
+}
+
+@keyframes club-token-deal {
+  from { opacity: 0; transform: translate(-14px, -8px) scale(0.6); }
+  to { opacity: 1; transform: translate(0, 0) scale(1); }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  body .interactive-game-lobby .game-box-main:hover {
+    filter: brightness(1.06) saturate(1.04);
+    transform: translateY(-7px) rotateX(2.5deg) scale(1.015);
+  }
+
+  body .cafe-home .cafe-table-object:hover {
+    background-color: rgba(55, 37, 26, 0.96) !important;
+    transform: translateY(-3px);
+  }
+}
+
+@media (max-width: 820px) {
+  body .room-section.is-playing .play-panel-header {
+    border-inline: 0 !important;
+    border-radius: 0 !important;
+  }
+
+  body .room-section.is-playing .player-turn-chip {
+    border-color: rgba(226, 197, 139, 0.14) !important;
+  }
+}
+
+@media (max-width: 760px) {
+  body .interactive-game-lobby .game-lobby-layout {
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  body .interactive-game-lobby .game-lobby-side {
+    order: 1 !important;
+  }
+
+  body .interactive-game-lobby .game-lobby-selection-rail {
+    align-items: stretch;
+    background: rgba(18, 14, 11, 0.96);
+    border: 1px solid var(--club-line);
+    bottom: max(6px, env(safe-area-inset-bottom));
+    display: grid;
+    gap: 6px;
+    grid-template-columns: minmax(0, 1fr) minmax(112px, 34%);
+    order: 2 !important;
+    padding: 6px;
+    position: sticky !important;
+    z-index: 35;
+  }
+
+  body .interactive-game-lobby .central-table-stage,
+  body .interactive-game-lobby .central-table-frame,
+  body .interactive-game-lobby .central-table-felt {
+    block-size: 78px !important;
+    min-block-size: 78px !important;
+  }
+
+  body .interactive-game-lobby .central-table-frame {
+    padding: 4px !important;
+  }
+
+  body .interactive-game-lobby .table-selection-object {
+    block-size: 100%;
+    gap: 6px !important;
+    grid-template-columns: 52px minmax(0, 1fr) !important;
+    padding: 4px !important;
+  }
+
+  body .interactive-game-lobby .tabletop-game-box {
+    block-size: 58px !important;
+    inline-size: 48px !important;
+  }
+
+  body .interactive-game-lobby .tabletop-token-cluster {
+    display: none !important;
+  }
+
+  body .interactive-game-lobby .table-selection-label strong,
+  body .interactive-game-lobby .table-selection-label span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  body .interactive-game-lobby .game-lobby-action-bar {
+    align-content: stretch;
+    display: grid !important;
+    min-inline-size: 0;
+  }
+
+  body .interactive-game-lobby .game-lobby-start-button {
+    block-size: 100%;
+    min-block-size: 52px !important;
+  }
+
+  body .interactive-game-lobby .game-lobby-timer-control {
+    min-inline-size: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body .room-section.is-playing *,
+  body .interactive-game-lobby *,
+  body .cafe-home * {
+    scroll-behavior: auto !important;
+  }
+
+  body .interactive-game-lobby .game-box-main,
+  body .interactive-game-lobby .central-table-stage,
+  body .interactive-game-lobby .table-selection-object *,
+  body .cafe-home .cafe-table-object {
+    animation: none !important;
+    transition-duration: 0.01ms !important;
+  }
+}

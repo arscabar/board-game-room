@@ -5,7 +5,6 @@ import { CafeViewport } from "./CafeViewport";
 import type { CafeTablePlacement } from "./CafeTableObject";
 import { EntranceCounterSheet } from "./EntranceCounterSheet";
 import { PlayerTokenDock } from "./PlayerTokenDock";
-import { ParticleTrailOverlay } from "./ParticleTrailOverlay";
 import "./interactive-cafe-home.css";
 import { playJoinSound } from "../../utils/haptics";
 
@@ -30,20 +29,6 @@ export type InteractiveCafeHomeProps = {
   onResetLocalIdentity: () => void;
 };
 
-const roomTablePositions = [
-  { x: 19, y: 28, scale: 0.94, rotate: -6, depth: 2 },
-  { x: 48, y: 22, scale: 1.05, rotate: 3, depth: 5 },
-  { x: 75, y: 32, scale: 0.91, rotate: 7, depth: 3 },
-  { x: 27, y: 65, scale: 1, rotate: 5, depth: 7 },
-  { x: 58, y: 62, scale: 0.96, rotate: -4, depth: 8 },
-  { x: 83, y: 69, scale: 0.88, rotate: 2, depth: 6 },
-  { x: 10, y: 76, scale: 0.82, rotate: 3, depth: 4 },
-  { x: 65, y: 40, scale: 0.84, rotate: -8, depth: 1 }
-] satisfies Array<{ x: number; y: number; scale: number; rotate: number; depth: number }>;
-
-const emptyTableWithRooms = { x: 42, y: 46, scale: 1.08, rotate: -2, depth: 9 };
-const emptyTableAlone = { x: 48, y: 48, scale: 1.34, rotate: -2, depth: 9 };
-
 function cx(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
 }
@@ -59,24 +44,30 @@ function connectionLabel(connection: InteractiveCafeHomeProps["connection"]) {
 }
 
 function buildCafeTables(rooms: PublicRoomListItem[]) {
-  const visibleRooms = rooms.slice(0, roomTablePositions.length);
-  const hasRooms = visibleRooms.length > 0;
-  const emptyPlacement = hasRooms ? emptyTableWithRooms : emptyTableAlone;
+  const visibleRooms = rooms.slice(0, 12);
   const emptyTable: CafeTablePlacement = {
     id: "empty-table-primary",
     kind: "empty",
-    size: hasRooms ? "normal" : "large",
-    ...emptyPlacement
+    size: visibleRooms.length === 0 ? "large" : "normal",
+    x: 0,
+    y: 0,
+    scale: 1,
+    rotate: 0,
+    depth: 0
   };
 
   const roomTables: CafeTablePlacement[] = visibleRooms.map((room, index) => ({
     id: `table-${room.code}`,
     kind: "room",
     room,
-    ...roomTablePositions[index]
+    x: index,
+    y: 0,
+    scale: 1,
+    rotate: 0,
+    depth: 0
   }));
 
-  return hasRooms ? [...roomTables, emptyTable] : [emptyTable];
+  return [...roomTables, emptyTable];
 }
 
 export function InteractiveCafeHome({
@@ -99,30 +90,16 @@ export function InteractiveCafeHome({
   const [selectedRoomCode, setSelectedRoomCode] = useState("");
   const [createState, setCreateState] = useState<"idle" | "placing">("idle");
   const [joinTransition, setJoinTransition] = useState(false);
-  const [isTokenDragging, setIsTokenDragging] = useState(false);
 
   const canCreate = connection === "connected" && Boolean(name.trim());
   const savedRoom = lastRoomCode ? rooms.find((room) => room.code === lastRoomCode) ?? null : null;
   const selectedRoom = selectedRoomCode ? rooms.find((room) => room.code === selectedRoomCode) ?? null : null;
   const activeRoom = selectedRoom ?? savedRoom;
   const tables = useMemo(() => buildCafeTables(rooms), [rooms]);
+  const openRoomCount = rooms.filter((room) => room.status === "lobby" && room.canJoin).length;
   const canEnterSelectedRoom = Boolean(
     activeRoom && connection === "connected" && Boolean(name.trim()) && (activeRoom.code === lastRoomCode || (activeRoom.canJoin && activeRoom.status === "lobby"))
   );
-
-  useEffect(() => {
-    if (rooms.length === 0 || selectedRoomCode || selectedTableId !== "empty-table-primary") {
-      return;
-    }
-
-    const firstEnterableRoom = rooms.find((room) => room.status === "lobby" && room.canJoin) ?? rooms[0];
-    if (!firstEnterableRoom) {
-      return;
-    }
-
-    setSelectedRoomCode(firstEnterableRoom.code);
-    setSelectedTableId(`table-${firstEnterableRoom.code}`);
-  }, [rooms, selectedRoomCode, selectedTableId]);
 
   useEffect(() => {
     if (!selectedRoomCode) {
@@ -153,8 +130,10 @@ export function InteractiveCafeHome({
       return false;
     }
 
-    const element = document.elementFromPoint(clientX, clientY);
-    const tableButton = element?.closest(".cafe-table-object");
+    const tableButton = document
+      .elementsFromPoint(clientX, clientY)
+      .map((element) => element.closest<HTMLElement>(".cafe-table-object"))
+      .find((element): element is HTMLElement => Boolean(element));
     if (!tableButton) {
       return false;
     }
@@ -167,13 +146,10 @@ export function InteractiveCafeHome({
       return true;
     } else if (kind === "room") {
       const code = tableId?.replace("table-", "");
-      if (code && selectedRoomCode === code) {
-        enterActiveRoom();
-        return true;
-      } else if (code) {
-        // If they drop on a non-centered card, center it first then join
-        handleSelectRoom(rooms.find(r => r.code === code)!);
-        setTimeout(enterActiveRoom, 100);
+      const room = code ? rooms.find((item) => item.code === code) : null;
+      if (room) {
+        handleSelectRoom(room);
+        enterRoom(room);
         return true;
       }
     }
@@ -194,20 +170,32 @@ export function InteractiveCafeHome({
   }
 
   function enterActiveRoom() {
-    if (!activeRoom || !canEnterSelectedRoom) {
+    if (!activeRoom) {
       return;
     }
 
-    if (activeRoom.code === lastRoomCode) {
+    enterRoom(activeRoom);
+  }
+
+  function enterRoom(room: PublicRoomListItem) {
+    const canEnter =
+      connection === "connected" &&
+      Boolean(name.trim()) &&
+      (room.code === lastRoomCode || (room.canJoin && room.status === "lobby"));
+    if (!canEnter) {
+      return;
+    }
+
+    if (room.code === lastRoomCode) {
       playJoinSound();
       setJoinTransition(true);
-      window.setTimeout(onResumeSavedRoom, 800);
+      window.setTimeout(onResumeSavedRoom, 360);
       return;
     }
 
     playJoinSound();
     setJoinTransition(true);
-    window.setTimeout(() => onJoinListedRoom(activeRoom.code), 800);
+    window.setTimeout(() => onJoinListedRoom(room.code), 360);
   }
 
   return (
@@ -218,14 +206,12 @@ export function InteractiveCafeHome({
     >
       <header className="cafe-home-bar">
         <div className="cafe-home-title-block">
-          <span className="cafe-home-kicker">Board Game Cafe</span>
-          <h2 id="cafe-home-title">테이블</h2>
+          <span className="cafe-home-kicker">BOARD GAME CLUB</span>
+          <h2 id="cafe-home-title">오늘의 테이블</h2>
+          <p>{rooms.length > 0 ? `${rooms.length}개 테이블 · 지금 입장 가능 ${openRoomCount}개` : "첫 테이블을 열어 게임을 시작하세요."}</p>
         </div>
         <div className="cafe-home-status-area">
-          <span className={cx("cafe-connection-chip", connection === "connected" && "cafe-connection-chip-ready")}>
-            <i aria-hidden="true" />
-            {connectionLabel(connection)}
-          </span>
+          <span className="cafe-connection-status" role="status" aria-live="polite">{connectionLabel(connection)}</span>
           <button className="cafe-refresh-button" type="button" onClick={onRefreshRooms} disabled={roomsLoading} aria-label="테이블 새로 보기">
             <RefreshCw size={17} aria-hidden="true" />
           </button>
@@ -233,49 +219,49 @@ export function InteractiveCafeHome({
       </header>
 
       <div className="cafe-home-stage">
-        <CafeViewport
-          tables={tables}
-          selectedTableId={selectedTableId}
-          canCreate={canCreate}
-          roomsLoading={roomsLoading}
-          lastRoomCode={lastRoomCode}
-          createState={createState}
-          connectionState={connection}
-          onCreateTable={requestCreateTable}
-          onSelectTable={handleSelectTable}
-          onSelectRoom={handleSelectRoom}
-        />
+        <div className="cafe-table-ledger">
+          <CafeViewport
+            tables={tables}
+            selectedTableId={selectedTableId}
+            canCreate={canCreate}
+            roomsLoading={roomsLoading}
+            lastRoomCode={lastRoomCode}
+            createState={createState}
+            connectionState={connection}
+            onCreateTable={requestCreateTable}
+            onSelectTable={handleSelectTable}
+            onSelectRoom={handleSelectRoom}
+          />
+        </div>
 
-        <PlayerTokenDock
-          name={name}
-          avatar={avatar}
-          canCreate={canCreate}
-          hasSavedRoom={Boolean(savedRoom)}
-          onNameChange={onNameChange}
-          onAvatarChange={onAvatarChange}
-          onResumeSavedRoom={onResumeSavedRoom}
-          onResetLocalIdentity={onResetLocalIdentity}
-          onTokenDrop={handleTokenDrop}
-          onDragStateChange={setIsTokenDragging}
-        />
+        <div className="cafe-counter-rail">
+          <PlayerTokenDock
+            name={name}
+            avatar={avatar}
+            canCreate={canCreate}
+            hasSavedRoom={Boolean(savedRoom)}
+            onNameChange={onNameChange}
+            onAvatarChange={onAvatarChange}
+            onResumeSavedRoom={onResumeSavedRoom}
+            onResetLocalIdentity={onResetLocalIdentity}
+            onTokenDrop={handleTokenDrop}
+            onDragStateChange={() => undefined}
+          />
 
-        <EntranceCounterSheet
-          selectedRoom={selectedRoom}
-          savedRoom={savedRoom}
-          canEnterSelectedRoom={canEnterSelectedRoom}
-          roomsLoading={roomsLoading}
-          connection={connection}
-          onEnterSelectedRoom={enterActiveRoom}
-          onRefreshRooms={onRefreshRooms}
-          onCloseSelection={() => {
-            setSelectedRoomCode("");
-            setSelectedTableId("empty-table-primary");
-          }}
-        />
-
-        <ParticleTrailOverlay 
-           isDragging={isTokenDragging} 
-        />
+          <EntranceCounterSheet
+            selectedRoom={selectedRoom}
+            savedRoom={savedRoom}
+            canEnterSelectedRoom={canEnterSelectedRoom}
+            roomsLoading={roomsLoading}
+            connection={connection}
+            onEnterSelectedRoom={enterActiveRoom}
+            onRefreshRooms={onRefreshRooms}
+            onCloseSelection={() => {
+              setSelectedRoomCode("");
+              setSelectedTableId("empty-table-primary");
+            }}
+          />
+        </div>
       </div>
 
       {notice ? (
