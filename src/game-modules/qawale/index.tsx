@@ -394,6 +394,7 @@ function QawaleThreeBoard({
   const sceneRef = useRef<THREE.Scene | null>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   const boardGroupRef = useRef<THREE.Group | null>(null);
+  const boardTextureRef = useRef<THREE.Texture | null>(null);
   const clickableRef = useRef<CellHitMesh[]>([]);
   const frameRef = useRef<number | null>(null);
   const latestSelectRef = useRef(onCellSelect);
@@ -444,6 +445,14 @@ function QawaleThreeBoard({
     renderer.shadowMap.type = THREE.PCFShadowMap;
     rendererRef.current = renderer;
     mount.appendChild(renderer.domElement);
+
+    const boardTexture = new THREE.TextureLoader().load("/board-assets/generated/soapstone-v1.webp");
+    boardTexture.wrapS = THREE.RepeatWrapping;
+    boardTexture.wrapT = THREE.RepeatWrapping;
+    boardTexture.repeat.set(1.7, 1.7);
+    boardTexture.colorSpace = THREE.SRGBColorSpace;
+    boardTexture.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+    boardTextureRef.current = boardTexture;
 
     const ambientLight = new THREE.HemisphereLight(0xfff7e7, 0x1a2522, 2.65);
     scene.add(ambientLight);
@@ -585,6 +594,8 @@ function QawaleThreeBoard({
         scene.remove(boardGroupRef.current);
         disposeSceneObject(boardGroupRef.current);
       }
+      boardTextureRef.current?.dispose();
+      boardTextureRef.current = null;
       renderer.dispose();
       mount.removeChild(renderer.domElement);
     };
@@ -605,7 +616,8 @@ function QawaleThreeBoard({
     clickableRef.current = [];
 
     const boardMaterial = new THREE.MeshStandardMaterial({
-      color: 0x59564e,
+      color: 0xd9d4ca,
+      map: boardTextureRef.current,
       roughness: 0.9,
       metalness: 0.02
     });

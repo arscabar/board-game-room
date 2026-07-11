@@ -139,8 +139,8 @@ body .room-section.is-playing .guryongtu-tile-button[aria-pressed="true"] {
 body .room-section.is-playing .guryongtu-coin {
   border: 2px solid #91651f !important;
   background:
-    radial-gradient(circle at 34% 26%, #fff0ac 0 9%, transparent 10%),
-    radial-gradient(circle, #dfb75f 0 52%, #a06b25 54% 66%, #e5bd64 68%) !important;
+    linear-gradient(rgba(255, 235, 171, 0.04), rgba(76, 39, 10, 0.08)),
+    url("/board-assets/generated/guryongtu-medallion-v1.webp") center / cover no-repeat !important;
   box-shadow:
     inset 0 0 0 3px rgba(255, 239, 169, 0.34),
     0 5px 8px rgba(0, 0, 0, 0.34) !important;
@@ -150,8 +150,9 @@ body .room-section.is-playing .guryongtu-coin {
 body .room-section.is-playing .qdr-board {
   border-color: #543019 !important;
   background:
+    linear-gradient(145deg, rgba(255, 221, 158, 0.12), rgba(60, 29, 12, 0.34)),
     repeating-linear-gradient(92deg, rgba(255, 231, 180, 0.1) 0 1px, transparent 1px 17px),
-    linear-gradient(145deg, #bd8246, #72401f 64%, #3b2112) !important;
+    url("/board-assets/generated/kaya-maple-v1.webp") center / cover no-repeat !important;
   box-shadow:
     inset 0 0 0 3px rgba(255, 232, 181, 0.3),
     inset 0 0 0 8px rgba(65, 33, 15, 0.24),
@@ -226,7 +227,8 @@ body .room-section.is-playing .abl-board {
   background:
     radial-gradient(circle at 32% 20%, rgba(255, 255, 255, 0.08), transparent 32%),
     repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.012) 0 2px, transparent 2px 8px),
-    linear-gradient(145deg, #31393e, #0b0e10 68%) !important;
+    linear-gradient(145deg, rgba(42, 50, 54, 0.54), rgba(6, 8, 9, 0.86) 68%),
+    url("/board-assets/generated/soapstone-v1.webp") center / cover no-repeat !important;
   box-shadow:
     inset 0 0 0 3px #545e63,
     inset 0 0 32px rgba(0, 0, 0, 0.68),
@@ -443,7 +445,8 @@ body .room-section.is-playing .omok-board {
     linear-gradient(90deg, transparent calc(var(--cell) / 2 - 1px), var(--omok-line) calc(var(--cell) / 2 - 1px) calc(var(--cell) / 2 + 1px), transparent calc(var(--cell) / 2 + 1px)) 0 0 / var(--cell) var(--cell),
     linear-gradient(0deg, transparent calc(var(--cell) / 2 - 1px), var(--omok-line) calc(var(--cell) / 2 - 1px) calc(var(--cell) / 2 + 1px), transparent calc(var(--cell) / 2 + 1px)) 0 0 / var(--cell) var(--cell),
     repeating-linear-gradient(94deg, rgba(105, 55, 24, 0.06) 0 1px, transparent 1px 18px),
-    linear-gradient(145deg, #e2b66f, #a76a35) !important;
+    linear-gradient(145deg, rgba(255, 213, 135, 0.14), rgba(104, 49, 20, 0.28)),
+    url("/board-assets/generated/kaya-maple-v1.webp") center / cover no-repeat !important;
   box-shadow:
     inset 0 0 0 2px rgba(255, 235, 190, 0.44),
     inset 0 -12px 22px rgba(80, 39, 16, 0.28),
@@ -509,7 +512,8 @@ body .room-section.is-playing .kkuk-board {
   border-radius: 15px !important;
   background:
     repeating-linear-gradient(0deg, rgba(255, 235, 190, 0.035) 0 1px, transparent 1px 7px),
-    linear-gradient(145deg, #b57a42, #673817) !important;
+    linear-gradient(145deg, rgba(173, 104, 53, 0.32), rgba(61, 28, 11, 0.58)),
+    url("/board-assets/generated/kaya-maple-v1.webp") center / cover no-repeat !important;
   box-shadow:
     inset 0 0 0 2px rgba(255, 230, 180, 0.26),
     inset 0 0 0 7px rgba(72, 33, 13, 0.22),
@@ -746,7 +750,8 @@ body .room-section.is-playing .yacht-throw-tray {
   background:
     radial-gradient(circle at 50% 34%, rgba(70, 174, 135, 0.18), transparent 50%),
     repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.014) 0 1px, transparent 1px 5px),
-    linear-gradient(145deg, #0f5a46, #073326) !important;
+    linear-gradient(145deg, rgba(5, 95, 70, 0.22), rgba(2, 35, 25, 0.64)),
+    url("/board-assets/generated/emerald-felt-v1.webp") center / cover no-repeat !important;
   box-shadow:
     inset 0 0 0 2px #8b5a35,
     inset 0 0 28px rgba(0, 0, 0, 0.48),
@@ -885,7 +890,8 @@ body .room-section.is-playing .hangman-module {
   border-color: #5d3821 !important;
   background:
     repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.012) 0 1px, transparent 1px 4px),
-    linear-gradient(145deg, #17483c, #08271f) !important;
+    linear-gradient(145deg, rgba(7, 69, 54, 0.54), rgba(2, 24, 18, 0.78)),
+    url("/board-assets/generated/emerald-felt-v1.webp") center / 720px 720px repeat !important;
   box-shadow:
     inset 0 0 0 2px #93623d,
     inset 0 0 26px rgba(0, 0, 0, 0.32),
