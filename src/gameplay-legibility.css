@@ -1,0 +1,309 @@
+:root {
+  --play-readable-ink: #fff8e7;
+  --play-readable-soft: #ead8b4;
+  --play-readable-muted: #cdbb96;
+  --play-readable-gold: #ffd98a;
+  --play-readable-surface: rgba(14, 9, 6, 0.96);
+  --play-readable-line: rgba(236, 194, 119, 0.34);
+}
+
+body .room-section.is-playing {
+  color: var(--play-readable-ink);
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+body .room-section.is-playing .play-panel-header {
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  min-height: 58px !important;
+  gap: 10px !important;
+  padding: 6px 8px !important;
+  border-bottom-color: var(--play-readable-line) !important;
+  background: var(--play-readable-surface) !important;
+}
+
+body .room-section.is-playing .play-match-copy {
+  display: grid !important;
+  min-width: 0;
+  align-content: center;
+  gap: 4px !important;
+  overflow: visible !important;
+}
+
+body .room-section.is-playing .play-panel-header h2 {
+  max-width: none !important;
+  color: var(--play-readable-ink) !important;
+  font-size: clamp(1rem, 1.5vw, 1.12rem) !important;
+  font-weight: 850 !important;
+  line-height: 1.12 !important;
+}
+
+body .room-section.is-playing .play-compact-status {
+  min-width: 0;
+  gap: 4px !important;
+  overflow: visible !important;
+  color: var(--play-readable-soft) !important;
+  font-size: 0.8rem !important;
+  font-weight: 760 !important;
+  line-height: 1.25 !important;
+  white-space: normal !important;
+}
+
+body .room-section.is-playing .play-compact-status .play-phase-label {
+  color: var(--play-readable-soft) !important;
+}
+
+body .room-section.is-playing .play-compact-status .play-status-separator {
+  color: rgba(255, 217, 138, 0.82) !important;
+}
+
+body .room-section.is-playing .play-compact-status .play-turn-label {
+  overflow: visible !important;
+  color: var(--play-readable-gold) !important;
+  text-overflow: clip !important;
+}
+
+body .room-section.is-playing .play-timer-chip {
+  border-color: var(--play-readable-line) !important;
+  color: var(--play-readable-ink) !important;
+  background: rgba(42, 27, 16, 0.98) !important;
+  font-size: 0.8rem !important;
+  font-weight: 850 !important;
+}
+
+body .room-section.is-playing .play-header-actions .board-sdk-button {
+  border-color: var(--play-readable-line) !important;
+  color: var(--play-readable-ink) !important;
+  font-size: 0.78rem !important;
+}
+
+body .room-section.is-playing .player-turn-strip {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)) !important;
+  gap: 5px !important;
+  overflow: visible !important;
+}
+
+body .room-section.is-playing .player-turn-chip {
+  grid-template-columns: 30px minmax(0, 1fr) !important;
+  grid-template-rows: auto auto !important;
+  min-width: 0 !important;
+  min-height: 54px !important;
+  gap: 1px 7px !important;
+  padding: 6px 8px !important;
+  border-color: rgba(236, 194, 119, 0.3) !important;
+  color: var(--play-readable-ink) !important;
+  background: rgba(13, 9, 6, 0.94) !important;
+}
+
+body .room-section.is-playing .player-turn-chip.active {
+  border-color: color-mix(in srgb, var(--seat-accent) 70%, var(--play-readable-gold)) !important;
+  background: color-mix(in srgb, var(--seat-accent) 18%, rgba(13, 9, 6, 0.96)) !important;
+  box-shadow: inset 3px 0 0 var(--seat-accent), 0 0 0 1px rgba(255, 222, 153, 0.08) !important;
+}
+
+body .room-section.is-playing .player-turn-chip .turn-avatar-stack {
+  grid-column: 1 !important;
+  grid-row: 1 / span 2 !important;
+  align-self: center !important;
+}
+
+body .room-section.is-playing .player-turn-chip strong {
+  grid-column: 2 !important;
+  grid-row: 1 !important;
+  color: var(--play-readable-ink) !important;
+  font-size: 0.82rem !important;
+  font-weight: 800 !important;
+  line-height: 1.2 !important;
+}
+
+body .room-section.is-playing .player-turn-chip .turn-chip-status {
+  grid-column: 2 !important;
+  grid-row: 2 !important;
+  justify-self: start !important;
+  overflow: visible !important;
+  color: var(--play-readable-soft) !important;
+  font-size: 0.74rem !important;
+  font-weight: 750 !important;
+  line-height: 1.2 !important;
+}
+
+body .room-section.is-playing .turn-chip-status-label {
+  position: static !important;
+  inline-size: auto !important;
+  block-size: auto !important;
+  overflow: visible !important;
+  clip: auto !important;
+  clip-path: none !important;
+  white-space: nowrap !important;
+}
+
+body .room-section.is-playing .game-module-shell,
+body .room-section.is-playing .game-module {
+  color: var(--play-readable-ink);
+}
+
+body .room-section.is-playing .game-module small {
+  font-size: 0.75rem !important;
+  line-height: 1.35 !important;
+  opacity: 0.96 !important;
+}
+
+body .room-section.is-playing :is(
+  .abl-status,
+  .alk-status,
+  .blokus-status,
+  .dvc-status,
+  .gho-status,
+  .guryongtu-status,
+  .kkuk-status,
+  .omok-status,
+  .painting-topline,
+  .qaw-status,
+  .qdr-status,
+  .yinsh-status
+) {
+  font-size: 0.88rem !important;
+  line-height: 1.4 !important;
+}
+
+body .room-section.is-playing :is(
+  .abl-status,
+  .alk-status,
+  .blokus-status,
+  .dvc-status,
+  .gho-status,
+  .guryongtu-status,
+  .kkuk-status,
+  .omok-status,
+  .painting-topline,
+  .qaw-status,
+  .qdr-status,
+  .yinsh-status
+) :is(p, em, small) {
+  font-size: 0.8rem !important;
+  line-height: 1.4 !important;
+  opacity: 1 !important;
+}
+
+body .room-section.is-playing .alk-status em {
+  color: #f2d9aa !important;
+}
+
+body .room-section.is-playing .kkuk-status p {
+  color: #fff0d2 !important;
+}
+
+body .room-section.is-playing .omok-status :is(span, p) {
+  color: #f8ebcf !important;
+}
+
+body .room-section.is-playing .painting-topline span {
+  color: #f4deb6 !important;
+}
+
+body .room-section.is-playing .yacht-die-label {
+  color: #fff4dc !important;
+  font-size: 0.82rem !important;
+}
+
+body .room-section.is-playing .yacht-die-button:disabled {
+  opacity: 0.74 !important;
+}
+
+body .room-section.is-playing .yacht-player-title small,
+body .room-section.is-playing .yacht-mini-score span {
+  font-size: 0.76rem !important;
+  opacity: 1 !important;
+}
+
+body .room-section.is-playing .yacht-player-title small {
+  color: #fff2d2 !important;
+}
+
+body .room-section.is-playing .yacht-mini-score span {
+  color: #f8e2b8 !important;
+}
+
+body .room-section.is-playing .yacht-score-panel-head span {
+  color: #203d43 !important;
+  font-size: 0.8rem !important;
+}
+
+@media (max-width: 820px) {
+  body .room-section.is-playing .play-panel-header h2 {
+    max-width: none !important;
+    font-size: 1rem !important;
+  }
+
+  body .room-section.is-playing .play-compact-status {
+    font-size: 0.78rem !important;
+  }
+
+  body .room-section.is-playing .play-header-actions .board-sdk-button,
+  body .room-section.is-playing .play-timer-chip {
+    font-size: 0.76rem !important;
+  }
+
+  body .room-section.is-playing .yacht-mobile-score-matrix table {
+    font-size: 0.78rem !important;
+  }
+
+  body .room-section.is-playing .yacht-mobile-score-matrix th,
+  body .room-section.is-playing .yacht-mobile-score-matrix td {
+    height: 34px !important;
+    padding: 3px !important;
+  }
+
+  body .room-section.is-playing .yacht-mobile-score-matrix thead th {
+    height: 42px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  body .room-section.is-playing .play-panel-header {
+    grid-template-columns: minmax(0, 1fr) !important;
+    min-height: 102px !important;
+    gap: 6px !important;
+    padding: 7px 6px !important;
+  }
+
+  body .room-section.is-playing .play-match-copy {
+    width: 100%;
+  }
+
+  body .room-section.is-playing .play-panel-header h2 {
+    font-size: 1.08rem !important;
+  }
+
+  body .room-section.is-playing .play-compact-status {
+    font-size: 0.8rem !important;
+  }
+
+  body .room-section.is-playing .play-header-actions {
+    width: 100% !important;
+    justify-content: flex-end !important;
+  }
+
+  body .room-section.is-playing .play-header-actions .play-timer-chip {
+    min-width: 92px !important;
+    margin-inline-end: auto !important;
+  }
+
+  body .room-section.is-playing .player-turn-strip {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)) !important;
+  }
+
+  body .room-section.is-playing .player-turn-chip {
+    grid-template-columns: 28px minmax(0, 1fr) !important;
+    min-height: 54px !important;
+    padding: 5px 7px !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body .room-section.is-playing .play-panel-header,
+  body .room-section.is-playing .player-turn-chip {
+    transition: none !important;
+  }
+}
