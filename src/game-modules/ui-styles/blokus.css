@@ -652,9 +652,9 @@
 
   .blokus-layout {
     grid-template-areas:
+      "controls"
       "board"
-      "precision"
-      "controls" !important;
+      "precision" !important;
   }
 
   .blokus-board {
@@ -739,9 +739,22 @@
   }
 
   .blokus-palette-grid {
-    grid-template-columns: repeat(auto-fill, minmax(52px, 1fr)) !important;
+    display: flex !important;
+    grid-template-columns: none !important;
+    gap: 6px !important;
     max-height: none !important;
-    overflow-y: visible !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    padding: 2px 2px 7px !important;
+    scroll-snap-type: x proximity;
+    touch-action: pan-x;
+  }
+
+  .blokus-palette button {
+    flex: 0 0 54px !important;
+    width: 54px !important;
+    min-width: 54px !important;
+    scroll-snap-align: start;
   }
 
   .blokus-palette .blokus-piece-mini {

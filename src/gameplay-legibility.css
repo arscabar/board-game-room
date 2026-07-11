@@ -284,6 +284,22 @@ body .yacht-score-choice.used .yacht-score-choice-value {
   background: #dce2d9 !important;
 }
 
+body .dvc-action,
+body .dvc-decision button {
+  border-color: #5a4b36 !important;
+  color: #f3ead5 !important;
+  background: #382d24 !important;
+}
+
+body .dvc-action:disabled,
+body .dvc-decision button:disabled {
+  border-color: #493e32 !important;
+  color: #bdb19b !important;
+  background: #211b16 !important;
+  opacity: 1 !important;
+  filter: none !important;
+}
+
 @media (max-width: 820px) {
   body .room-section.is-playing .play-panel-header h2 {
     max-width: none !important;
@@ -314,16 +330,17 @@ body .yacht-score-choice.used .yacht-score-choice-value {
   }
 }
 
-@media (max-width: 480px) {
+@media (max-width: 520px) {
   body .room-section.is-playing .play-panel-header {
-    grid-template-columns: minmax(0, 1fr) !important;
-    min-height: 102px !important;
+    grid-template-columns: minmax(88px, 1fr) auto !important;
+    min-height: 58px !important;
+    align-items: center !important;
     gap: 6px !important;
-    padding: 7px 6px !important;
+    padding: 6px !important;
   }
 
   body .room-section.is-playing .play-match-copy {
-    width: 100%;
+    width: auto;
   }
 
   body .room-section.is-playing .play-panel-header h2 {
@@ -335,23 +352,66 @@ body .yacht-score-choice.used .yacht-score-choice-value {
   }
 
   body .room-section.is-playing .play-header-actions {
-    width: 100% !important;
+    width: auto !important;
+    max-width: 232px !important;
+    flex-wrap: wrap !important;
     justify-content: flex-end !important;
   }
 
   body .room-section.is-playing .play-header-actions .play-timer-chip {
-    min-width: 92px !important;
-    margin-inline-end: auto !important;
+    min-width: 76px !important;
+    margin-inline-end: 0 !important;
   }
 
   body .room-section.is-playing .player-turn-strip {
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)) !important;
+    grid-template-columns: repeat(var(--player-count, 2), minmax(0, 1fr)) !important;
+    gap: 3px !important;
   }
 
   body .room-section.is-playing .player-turn-chip {
-    grid-template-columns: 28px minmax(0, 1fr) !important;
-    min-height: 54px !important;
-    padding: 5px 7px !important;
+    grid-template-columns: 22px minmax(0, 1fr) 14px !important;
+    grid-template-rows: 1fr !important;
+    min-height: 46px !important;
+    gap: 4px !important;
+    padding: 4px !important;
+  }
+
+  body .room-section.is-playing .player-turn-chip .turn-avatar-stack {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+    inline-size: 22px !important;
+    min-inline-size: 22px !important;
+    min-block-size: 22px !important;
+  }
+
+  body .room-section.is-playing .player-turn-chip .turn-avatar {
+    inline-size: 22px !important;
+    block-size: 22px !important;
+  }
+
+  body .room-section.is-playing .player-turn-chip strong {
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+    overflow: hidden !important;
+    font-size: 0.76rem !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+
+  body .room-section.is-playing .player-turn-chip .turn-chip-status {
+    grid-column: 3 !important;
+    grid-row: 1 !important;
+    justify-self: end !important;
+  }
+
+  body .room-section.is-playing .turn-chip-status-label {
+    position: absolute !important;
+    inline-size: 1px !important;
+    block-size: 1px !important;
+    overflow: hidden !important;
+    clip: rect(0 0 0 0) !important;
+    clip-path: inset(50%) !important;
+    white-space: nowrap !important;
   }
 }
 

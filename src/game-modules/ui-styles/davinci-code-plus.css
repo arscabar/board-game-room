@@ -327,6 +327,10 @@
     grid-template-columns: 1fr !important;
   }
 
+  .dvc-layout.has-action .dvc-panel {
+    order: -1;
+  }
+
   .dvc-panel {
     position: static !important;
   }

@@ -15491,13 +15491,13 @@ body .room-section.is-playing .player-turn-chip .turn-chip-status {
 }
 
 body .dvc-shell .dvc-player-head strong {
-  color: #2e1b0f !important;
-  text-shadow: none !important;
+  color: #ece8de !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.58) !important;
 }
 
 body .dvc-shell .dvc-player-head span {
-  color: #5a3c24 !important;
-  text-shadow: none !important;
+  color: #bdb4a5 !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.48) !important;
 }
 
 @media (max-width: 520px) {

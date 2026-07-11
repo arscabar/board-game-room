@@ -392,6 +392,8 @@
   min-width: 0;
   padding: 10px !important;
   border-bottom: 1px solid var(--gho-line);
+  color: var(--gho-ink) !important;
+  background: #122824 !important;
 }
 
 .gho-player:last-child {
@@ -436,13 +438,23 @@
   justify-content: space-between;
   gap: 5px;
   min-width: 0;
-  color: var(--gho-muted);
+  border: 1px solid var(--gho-line) !important;
+  background: #0d211d !important;
+  color: var(--gho-muted) !important;
   font-size: 0.68rem;
 }
 
 .gho-player dt,
 .gho-player dd {
   margin: 0;
+}
+
+.gho-player dt {
+  color: var(--gho-muted) !important;
+}
+
+.gho-player dd {
+  color: var(--gho-ink) !important;
 }
 
 .gho-capture-fx::before {

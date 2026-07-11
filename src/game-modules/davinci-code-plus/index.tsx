@@ -709,7 +709,7 @@ export function Component(props: GameComponentProps) {
         </div>
       </div>
 
-      <div className="dvc-layout">
+      <div className={`dvc-layout ${canDraw || canGuess || canDecide ? "has-action" : ""}`}>
         <div className="dvc-racks" aria-label="플레이어 타일 랙">
           {publicState.players.map((player) => {
             const isViewer = player.id === currentPlayer?.id;

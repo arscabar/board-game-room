@@ -3,16 +3,33 @@
 body .abl-status,
 body .abl-status strong,
 body .abl-status span,
-body .abl-status p,
+body .abl-status p {
+  color: #24312d !important;
+  text-shadow: none !important;
+}
+
 body .gho-status,
 body .gho-status strong,
 body .gho-status span,
-body .gho-status p,
+body .gho-status p {
+  color: #eaf0ef !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.58) !important;
+}
+
+body .gho-status strong,
+body .gho-status p {
+  color: #c7d3d0 !important;
+}
+
 body .dvc-status,
 body .dvc-status strong,
 body .dvc-status span {
-  color: #24312d !important;
-  text-shadow: none !important;
+  color: #ece8de !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.58) !important;
+}
+
+body .dvc-status strong {
+  color: #c5bbaa !important;
 }
 
 body .yacht-score-choice:not(.used) .yacht-score-choice-label,

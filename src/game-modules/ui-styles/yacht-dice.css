@@ -1547,3 +1547,30 @@
     font-size: 0.72rem !important;
   }
 }
+
+@media (min-width: 561px) and (max-width: 980px) {
+  .yacht-player-scorecard {
+    grid-template-columns: minmax(116px, 0.42fr) minmax(0, 1fr) !important;
+  }
+
+  .yacht-player-scorecard header {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    align-content: start !important;
+    gap: 3px !important;
+  }
+
+  .yacht-player-scorecard header > span:last-child {
+    justify-self: start !important;
+  }
+
+  .yacht-player-title strong {
+    display: block !important;
+    overflow: hidden !important;
+    font-size: 0.72rem !important;
+    white-space: nowrap !important;
+    overflow-wrap: normal !important;
+    text-overflow: clip !important;
+    line-height: 1.15 !important;
+  }
+}

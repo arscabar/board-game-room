@@ -7,19 +7,20 @@ const runDir =
   process.env.QA_RUN_DIR ||
   path.resolve("artifacts/all-game-ui-qa", `run-${new Date().toISOString().replace(/[:.]/g, "-")}`);
 
+// Visual QA pairs one desktop host with one mobile guest. Full player-count coverage lives in qa-all-games.ts.
 const games = [
   { id: "guryongtu", title: "구룡투", players: 2, root: ".guryongtu-module", board: ".guryongtu-choice-panel, .guryongtu-status" },
-  { id: "quoridor", title: "쿼리도", players: 4, root: ".qdr-shell", board: ".qdr-board" },
+  { id: "quoridor", title: "쿼리도", players: 2, root: ".qdr-shell", board: ".qdr-board" },
   { id: "abalone-classic", title: "아발론 클래식", players: 2, root: ".abl-shell", board: ".abl-board" },
   { id: "ghosts", title: "고스트", players: 2, root: ".gho-shell", board: ".gho-board, .gho-setup-grid" },
   { id: "qawale", title: "카왈레", players: 2, root: ".qaw-shell", board: ".qaw-3d-canvas" },
   { id: "omok", title: "오목", players: 2, root: ".omok-shell", board: ".omok-board" },
-  { id: "alkkagi", title: "알까기", players: 4, root: ".alk-shell", board: ".alk-board" },
+  { id: "alkkagi", title: "알까기", players: 2, root: ".alk-shell", board: ".alk-board" },
   { id: "kkukkkuki", title: "꾹꾹이", players: 2, root: ".kkuk-shell", board: ".kkuk-board" },
-  { id: "davinci-code-plus", title: "다빈치 코드 플러스", players: 4, root: ".dvc-shell", board: ".dvc-racks" },
-  { id: "blokus", title: "블로커스", players: 4, root: ".blokus-module", board: ".blokus-board" },
-  { id: "masterpiece-copy", title: "명화 따라그리기", players: 4, root: ".painting-shell", board: ".painting-canvas-panel" },
-  { id: "yacht-dice", title: "요트 다이스", players: 4, root: ".yacht-dice-module", board: ".yacht-throw-tray" },
+  { id: "davinci-code-plus", title: "다빈치 코드 플러스", players: 2, root: ".dvc-shell", board: ".dvc-racks" },
+  { id: "blokus", title: "블로커스", players: 2, root: ".blokus-module", board: ".blokus-board" },
+  { id: "masterpiece-copy", title: "명화 따라그리기", players: 2, root: ".painting-shell", board: ".painting-canvas-panel" },
+  { id: "yacht-dice", title: "요트 다이스", players: 2, root: ".yacht-dice-module", board: ".yacht-throw-tray" },
   { id: "yinsh", title: "인쉬", players: 2, root: ".yinsh-module", board: ".yinsh-board" },
   { id: "hangman-board-game", title: "행맨 보드게임", players: 2, root: ".hangman-module", board: ".hangman-setup-panel, .hangman-board-grid" }
 ];
@@ -70,15 +71,29 @@ async function joinRoom(page, hostName, guestName) {
   await room.waitFor({ state: "attached", timeout: 15000 });
   await room.scrollIntoViewIfNeeded().catch(() => {});
   await room.click({ timeout: 15000 });
+  const lobby = page.locator(".interactive-game-lobby").first();
   const enter = page.locator(".entrance-primary-button").first();
-  await enter.waitFor({ state: "visible", timeout: 15000 });
-  await enter.click({ timeout: 15000 });
-  await page.locator(".interactive-game-lobby").waitFor({ timeout: 20000 });
+  for (let attempt = 0; attempt < 120; attempt += 1) {
+    if ((await lobby.count()) > 0) break;
+    if (await enter.isVisible().catch(() => false)) {
+      await enter.click({ timeout: 15000, force: true }).catch(() => undefined);
+    }
+    await page.waitForTimeout(250);
+  }
+  await lobby.waitFor({ state: "attached", timeout: 30000 });
 }
 
 async function startSelectedGame(host, game) {
   await host.getByRole("tab", { name: new RegExp(`^${game.players}명`) }).click({ timeout: 10000 }).catch(() => {});
-  const gameButton = host.locator(".game-shelf-grid .game-box-main").filter({ hasText: game.title }).first();
+  let gameButton = host.locator(`.game-box-main[aria-label^="${game.title},"]`).first();
+  const nextPage = host.getByRole("button", { name: "다음 게임 목록" }).first();
+  for (let pageIndex = 0; pageIndex < 4; pageIndex += 1) {
+    if ((await gameButton.count()) > 0 && (await gameButton.isVisible().catch(() => false))) break;
+    if (!(await nextPage.isVisible().catch(() => false)) || !(await nextPage.isEnabled().catch(() => false))) break;
+    await nextPage.click({ timeout: 5000 });
+    await host.waitForTimeout(500);
+    gameButton = host.locator(`.game-box-main[aria-label^="${game.title},"]`).first();
+  }
   await gameButton.waitFor({ state: "visible", timeout: 15000 });
   await gameButton.scrollIntoViewIfNeeded().catch(() => {});
   await gameButton.click({ timeout: 15000 });
@@ -188,7 +203,7 @@ async function qawaleCanvasGesture(page, notes) {
       await page.waitForTimeout(160);
     }
     if ((await place.isVisible().catch(() => false)) && (await place.isEnabled().catch(() => false))) {
-      await place.click({ timeout: 3000 });
+      await place.click({ timeout: 3000, force: true });
       notes.push("카왈레 캔버스 경로 선택 후 놓기");
       return;
     }
@@ -429,7 +444,7 @@ async function testGame(browser, game) {
     for (let i = 0; i < game.players; i += 1) {
       const isMobile = i === 1;
       const context = await browser.newContext({
-        viewport: isMobile ? { width: 390, height: 844 } : i === 0 ? { width: 1280, height: 900 } : { width: 1024, height: 768 },
+        viewport: isMobile ? { width: 360, height: 800 } : i === 0 ? { width: 1280, height: 900 } : { width: 1024, height: 768 },
         isMobile,
         hasTouch: isMobile,
         locale: "ko-KR"
@@ -465,6 +480,13 @@ async function testGame(browser, game) {
       result.screenshots[label] = screenshotPath;
       result.inspections.push(await inspectPage(page, game, label));
     }
+
+    await pages[0].setViewportSize({ width: 768, height: 1024 });
+    await pages[0].waitForTimeout(250);
+    const tabletScreenshotPath = path.join(runDir, `${game.id}-tablet-host.png`);
+    await pages[0].screenshot({ path: tabletScreenshotPath, fullPage: true });
+    result.screenshots["tablet-host"] = tabletScreenshotPath;
+    result.inspections.push(await inspectPage(pages[0], game, "tablet-host"));
 
     for (const inspection of result.inspections) {
       if (!inspection.rootVisible) result.failures.push(`${inspection.label}: 게임 루트가 보이지 않음`);
