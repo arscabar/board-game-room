@@ -1,3 +1,4 @@
+import { Dices } from "lucide-react";
 import type { CSSProperties } from "react";
 import { useEffect, useRef, useState } from "react";
 import type { GameAction, GameActionResult, GameComponentProps, GameContext, GameModule, GameSystemAction } from "../types";
@@ -619,7 +620,8 @@ export function Component({
               disabled={!canAct || state.rollsThisTurn >= MAX_ROLLS || rolling || isSubmitting}
               onClick={rollDice}
             >
-              {rolling ? "굴리는 중" : state.rollsThisTurn === 0 ? "주사위 굴리기" : "다시 굴리기"}
+              <Dices size={18} aria-hidden="true" />
+              <span>{rolling ? "굴리는 중" : state.rollsThisTurn === 0 ? "주사위 굴리기" : "다시 굴리기"}</span>
             </button>
             {state.lastScored ? (
               <span>

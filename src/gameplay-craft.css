@@ -1,0 +1,992 @@
+/* Final component-craft layer: physical depth without changing game geometry. */
+body .room-section.is-playing {
+  --craft-brass: #d0a253;
+  --craft-brass-bright: #f0ce82;
+  --craft-ivory: #fff1cf;
+  --craft-ink: #1d130c;
+  --craft-edge: rgba(231, 190, 113, 0.34);
+  --craft-cast-shadow: 0 10px 22px rgba(5, 3, 2, 0.28);
+}
+
+body .room-section.is-playing .play-panel-header {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(205, 158, 82, 0.42) !important;
+  background:
+    linear-gradient(180deg, rgba(48, 29, 17, 0.96), rgba(14, 9, 6, 0.98)),
+    #17100b !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 229, 171, 0.12),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.32) !important;
+}
+
+body .room-section.is-playing .play-panel-header::before {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  pointer-events: none;
+  border: 1px solid rgba(235, 198, 125, 0.1);
+  border-radius: 3px;
+}
+
+body .room-section.is-playing .play-header-actions .play-mini-action {
+  border-color: rgba(215, 170, 94, 0.38) !important;
+  background: linear-gradient(180deg, #4c311d, #21140c) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 230, 177, 0.18),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.28) !important;
+}
+
+body .room-section.is-playing .play-header-actions .play-mini-action svg {
+  box-sizing: content-box;
+  padding: 3px;
+  border: 1px solid rgba(237, 200, 126, 0.18);
+  border-radius: 3px;
+  color: var(--craft-brass-bright);
+  background: rgba(9, 6, 4, 0.28);
+  stroke-width: 2.25;
+}
+
+body .room-section.is-playing .player-turn-chip {
+  position: relative;
+  overflow: hidden !important;
+  background:
+    linear-gradient(180deg, rgba(43, 28, 17, 0.96), rgba(16, 10, 7, 0.98)) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 229, 171, 0.1),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.24) !important;
+}
+
+body .room-section.is-playing .player-turn-chip.active {
+  box-shadow:
+    inset 4px 0 0 var(--seat-accent),
+    inset 0 1px 0 rgba(255, 235, 190, 0.16),
+    0 0 0 1px color-mix(in srgb, var(--seat-accent) 30%, transparent) !important;
+}
+
+/* Guryongtu: lacquered number tiles and a proper presentation tray. */
+body .room-section.is-playing .guryongtu-module {
+  border-color: #59412e !important;
+  background:
+    repeating-linear-gradient(135deg, rgba(220, 181, 109, 0.018) 0 2px, transparent 2px 14px),
+    radial-gradient(circle at 50% -20%, rgba(161, 47, 37, 0.14), transparent 48%),
+    linear-gradient(145deg, #211714, #0b0807 64%) !important;
+  box-shadow:
+    inset 0 0 0 5px #18110e,
+    inset 0 0 0 6px rgba(224, 185, 113, 0.12) !important;
+}
+
+body .room-section.is-playing .guryongtu-player-panel {
+  background:
+    linear-gradient(180deg, rgba(43, 31, 26, 0.96), rgba(18, 13, 11, 0.98)) !important;
+  box-shadow: inset 3px 0 0 rgba(183, 57, 45, 0.54) !important;
+}
+
+body .room-section.is-playing .guryongtu-play-stack,
+body .room-section.is-playing .guryongtu-tile-grid {
+  border: 1px solid rgba(184, 143, 86, 0.26) !important;
+  border-bottom-width: 6px !important;
+  background:
+    linear-gradient(180deg, #0b0807, #030202),
+    #060403 !important;
+  box-shadow:
+    inset 0 7px 14px rgba(0, 0, 0, 0.62),
+    0 1px 0 rgba(255, 229, 177, 0.08) !important;
+}
+
+body .room-section.is-playing .guryongtu-stack-token,
+body .room-section.is-playing .guryongtu-tile-button {
+  border-color: color-mix(in srgb, currentColor 32%, #7a684f) !important;
+  border-radius: 4px !important;
+  box-shadow:
+    inset 0 0 0 3px rgba(255, 255, 255, 0.06),
+    inset 0 -4px 0 rgba(0, 0, 0, 0.2),
+    0 5px 0 #030202,
+    0 7px 9px rgba(0, 0, 0, 0.34) !important;
+}
+
+body .room-section.is-playing .guryongtu-stack-token::before,
+body .room-section.is-playing .guryongtu-tile-button::before {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  pointer-events: none;
+  border: 1px solid currentColor;
+  border-radius: 2px;
+  opacity: 0.16;
+}
+
+body .room-section.is-playing .guryongtu-tile-button.white {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.94), transparent 35%),
+    linear-gradient(180deg, #fffdf5, #d8cdbb) !important;
+}
+
+body .room-section.is-playing .guryongtu-tile-button.black {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.17), transparent 34%),
+    linear-gradient(180deg, #393633, #090909) !important;
+}
+
+body .room-section.is-playing .guryongtu-tile-button[aria-pressed="true"] {
+  transform: translateY(-4px) rotate(-1deg);
+  box-shadow:
+    inset 0 0 0 3px rgba(255, 255, 255, 0.08),
+    0 0 0 3px var(--craft-brass),
+    0 9px 14px rgba(0, 0, 0, 0.4) !important;
+}
+
+body .room-section.is-playing .guryongtu-coin {
+  border: 2px solid #91651f !important;
+  background:
+    radial-gradient(circle at 34% 26%, #fff0ac 0 9%, transparent 10%),
+    radial-gradient(circle, #dfb75f 0 52%, #a06b25 54% 66%, #e5bd64 68%) !important;
+  box-shadow:
+    inset 0 0 0 3px rgba(255, 239, 169, 0.34),
+    0 5px 8px rgba(0, 0, 0, 0.34) !important;
+}
+
+/* Quoridor: raised maple squares, deep channels and standing walls. */
+body .room-section.is-playing .qdr-board {
+  border-color: #543019 !important;
+  background:
+    repeating-linear-gradient(92deg, rgba(255, 231, 180, 0.1) 0 1px, transparent 1px 17px),
+    linear-gradient(145deg, #bd8246, #72401f 64%, #3b2112) !important;
+  box-shadow:
+    inset 0 0 0 3px rgba(255, 232, 181, 0.3),
+    inset 0 0 0 8px rgba(65, 33, 15, 0.24),
+    0 18px 30px rgba(0, 0, 0, 0.32) !important;
+}
+
+body .room-section.is-playing .qdr-cell {
+  border: 1px solid rgba(82, 43, 20, 0.32) !important;
+  border-radius: 4px !important;
+  background:
+    repeating-linear-gradient(96deg, rgba(83, 45, 21, 0.045) 0 1px, transparent 1px 13px),
+    linear-gradient(145deg, #e6bd76, #a96f35) !important;
+  box-shadow:
+    inset 0 2px 1px rgba(255, 240, 202, 0.58),
+    inset 0 -5px 0 rgba(91, 48, 22, 0.2),
+    0 4px 5px rgba(50, 27, 13, 0.22) !important;
+}
+
+body .room-section.is-playing .qdr-cell.legal {
+  background:
+    radial-gradient(circle, rgba(51, 177, 153, 0.34), transparent 56%),
+    linear-gradient(145deg, #f0ca83, #af7438) !important;
+}
+
+body .room-section.is-playing .qdr-pawn {
+  width: 58% !important;
+  height: 72% !important;
+  border-radius: 52% 52% 32% 32% / 38% 38% 62% 62% !important;
+  box-shadow:
+    inset 0 8px 8px rgba(255, 255, 255, 0.3),
+    inset 0 -9px 10px rgba(0, 0, 0, 0.3),
+    0 7px 7px rgba(45, 23, 10, 0.36) !important;
+}
+
+body .room-section.is-playing .qdr-wall-piece,
+body .room-section.is-playing .qdr-wall-preview.valid {
+  border: 1px solid rgba(28, 14, 7, 0.5) !important;
+  background:
+    linear-gradient(90deg, rgba(255, 223, 164, 0.22), transparent 14% 82%, rgba(0, 0, 0, 0.24)),
+    linear-gradient(180deg, #6b3e20, #28150a) !important;
+  box-shadow:
+    inset 0 2px 0 rgba(255, 221, 159, 0.2),
+    0 6px 8px rgba(33, 16, 7, 0.42) !important;
+}
+
+body .room-section.is-playing .qdr-wall-count::before {
+  content: "";
+  width: 26px;
+  height: 5px;
+  border-radius: 2px;
+  background: #5a3219;
+  box-shadow: 0 7px 0 #70431f, 0 14px 0 #8a592b;
+}
+
+body .room-section.is-playing .qdr-action-mode,
+body .room-section.is-playing .qdr-current-walls,
+body .room-section.is-playing .qdr-wall-controls {
+  border-radius: 7px !important;
+  background:
+    linear-gradient(180deg, rgba(255, 240, 204, 0.98), rgba(218, 181, 119, 0.94)),
+    #ead0a0 !important;
+  box-shadow:
+    inset 0 1px 0 #fff7df,
+    inset 0 -3px 0 rgba(102, 57, 25, 0.14),
+    0 7px 13px rgba(45, 24, 11, 0.18) !important;
+}
+
+/* Abalone: molded hex plate, recessed sockets and glass marbles. */
+body .room-section.is-playing .abl-board {
+  border: 12px solid #111619 !important;
+  border-radius: 22px !important;
+  background:
+    radial-gradient(circle at 32% 20%, rgba(255, 255, 255, 0.08), transparent 32%),
+    repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.012) 0 2px, transparent 2px 8px),
+    linear-gradient(145deg, #31393e, #0b0e10 68%) !important;
+  box-shadow:
+    inset 0 0 0 3px #545e63,
+    inset 0 0 32px rgba(0, 0, 0, 0.68),
+    0 18px 30px rgba(0, 0, 0, 0.34) !important;
+}
+
+body .room-section.is-playing .abl-cell {
+  border: 1px solid rgba(214, 225, 228, 0.08) !important;
+  background:
+    radial-gradient(circle at 50% 64%, #161b1e 0 42%, #4f5a60 46% 60%, #20262a 64%) !important;
+  box-shadow:
+    inset 0 7px 10px rgba(0, 0, 0, 0.66),
+    inset 0 -2px 1px rgba(255, 255, 255, 0.14) !important;
+}
+
+body .room-section.is-playing .abl-marble {
+  width: 86% !important;
+  border: 1px solid rgba(255, 255, 255, 0.24) !important;
+  box-shadow:
+    inset 6px 8px 10px rgba(255, 255, 255, 0.3),
+    inset -7px -10px 13px rgba(0, 0, 0, 0.36),
+    0 7px 8px rgba(0, 0, 0, 0.44) !important;
+  filter: saturate(1.08);
+}
+
+body .room-section.is-playing .abl-cell.selectable:not(:disabled):hover .abl-marble,
+body .room-section.is-playing .abl-cell.selected .abl-marble {
+  filter: saturate(1.12) brightness(1.08) drop-shadow(0 7px 5px rgba(0, 0, 0, 0.36));
+}
+
+body .room-section.is-playing .abl-direction-pad {
+  padding: 7px !important;
+  border: 1px solid rgba(57, 66, 70, 0.24);
+  border-radius: 8px;
+  background: linear-gradient(145deg, #d7dcda, #9ca6a5) !important;
+  box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.46) !important;
+}
+
+body .room-section.is-playing .abl-controls,
+body .room-section.is-playing .abl-player,
+body .room-section.is-playing .abl-control-head,
+body .room-section.is-playing .abl-selection-guide {
+  color: #213137 !important;
+  text-shadow: none !important;
+}
+
+body .room-section.is-playing .abl-control-head strong,
+body .room-section.is-playing .abl-player strong {
+  color: #18282e !important;
+}
+
+body .room-section.is-playing .abl-control-head span,
+body .room-section.is-playing .abl-player span,
+body .room-section.is-playing .abl-selection-guide {
+  color: #455a5f !important;
+}
+
+body .room-section.is-playing .abl-marble {
+  outline: 1px solid rgba(232, 240, 240, 0.46);
+  outline-offset: -1px;
+}
+
+body .room-section.is-playing .abl-dir-button.available {
+  border-color: #327f79 !important;
+  background: linear-gradient(180deg, #f6fffb, #a9d3ca) !important;
+  box-shadow:
+    inset 0 1px 0 #ffffff,
+    inset 0 -3px 0 rgba(21, 91, 84, 0.18),
+    0 4px 7px rgba(22, 64, 62, 0.16) !important;
+}
+
+/* Ghosts: smoked acrylic board and translucent molded figures. */
+body .room-section.is-playing .gho-shell {
+  --gho-felt: #122b2d;
+  --gho-grid: #315c67;
+  --gho-grid-dark: #173d47;
+  border-color: #6a4a32 !important;
+  background:
+    linear-gradient(135deg, rgba(88, 171, 185, 0.1), transparent 40%),
+    linear-gradient(180deg, #193c3c, #0c2223) !important;
+  box-shadow:
+    inset 0 0 0 5px #102f2d,
+    inset 0 0 0 6px rgba(193, 224, 221, 0.1) !important;
+}
+
+body .room-section.is-playing .gho-board-wrap {
+  border-color: #5a3928 !important;
+  background:
+    linear-gradient(90deg, rgba(153, 211, 220, 0.04) 1px, transparent 1px),
+    #0c2528 !important;
+  box-shadow:
+    inset 0 0 0 2px #8a6041,
+    0 12px 20px rgba(0, 0, 0, 0.3) !important;
+}
+
+body .room-section.is-playing .gho-board {
+  border-color: #91bac1 !important;
+  background: linear-gradient(145deg, #284f59, #102e37) !important;
+  box-shadow:
+    inset 0 0 20px rgba(6, 18, 22, 0.52),
+    0 0 0 2px rgba(161, 204, 208, 0.1) !important;
+}
+
+body .room-section.is-playing .gho-cell {
+  border-color: rgba(202, 232, 234, 0.22) !important;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.08), transparent 44%),
+    linear-gradient(180deg, #3c6a73, #2a515c) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(215, 241, 242, 0.12),
+    inset 0 -3px 0 rgba(6, 24, 29, 0.18) !important;
+}
+
+body .room-section.is-playing .gho-cell:nth-child(2n) {
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.07), transparent 44%),
+    linear-gradient(180deg, #37646d, #264b55) !important;
+}
+
+body .room-section.is-playing .gho-setup-slot,
+body .room-section.is-playing .gho-token {
+  border: 1px solid rgba(244, 249, 244, 0.7) !important;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.88), rgba(217, 236, 232, 0.62) 45%, rgba(149, 181, 178, 0.72)) !important;
+  box-shadow:
+    inset 4px 5px 8px rgba(255, 255, 255, 0.5),
+    inset -4px -7px 9px rgba(33, 68, 68, 0.2),
+    0 6px 7px rgba(2, 14, 16, 0.42) !important;
+}
+
+body .room-section.is-playing .gho-token.opponent.hidden {
+  border-color: rgba(185, 210, 207, 0.5) !important;
+  background:
+    linear-gradient(145deg, rgba(210, 226, 221, 0.72), rgba(122, 154, 151, 0.72)) !important;
+}
+
+body .room-section.is-playing .gho-kind-symbol {
+  box-shadow:
+    inset 0 1px 2px rgba(255, 255, 255, 0.36),
+    0 0 0 2px rgba(10, 31, 35, 0.16) !important;
+}
+
+body .room-section.is-playing .gho-exits button {
+  border: 1px solid rgba(173, 210, 211, 0.15) !important;
+  background: linear-gradient(180deg, #294f50, #142f31) !important;
+}
+
+body .room-section.is-playing .gho-exits button.legal {
+  background: linear-gradient(180deg, #d7b462, #766029) !important;
+  box-shadow: 0 0 0 2px rgba(240, 211, 124, 0.24) !important;
+}
+
+/* Qawale: a stone-table display frame around the real 3D scene. */
+body .room-section.is-playing .qaw-3d-stage {
+  border: 7px solid #56483a !important;
+  border-radius: 8px !important;
+  background:
+    linear-gradient(135deg, rgba(255, 244, 216, 0.12), transparent 30%),
+    linear-gradient(145deg, #2e2923, #100e0c 64%) !important;
+  box-shadow:
+    inset 0 0 0 2px rgba(220, 205, 174, 0.2),
+    inset 0 0 42px rgba(0, 0, 0, 0.56),
+    0 18px 30px rgba(0, 0, 0, 0.34) !important;
+}
+
+body .room-section.is-playing .qaw-camera-controls button {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  border-color: rgba(229, 207, 166, 0.38) !important;
+  background: linear-gradient(180deg, rgba(75, 69, 59, 0.96), rgba(30, 27, 23, 0.98)) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 247, 224, 0.18),
+    inset 0 -3px 0 rgba(0, 0, 0, 0.28),
+    0 5px 8px rgba(0, 0, 0, 0.28) !important;
+}
+
+body .room-section.is-playing .qaw-board-actions button:last-child:not(:disabled) {
+  border-color: #efcf84 !important;
+  background: linear-gradient(180deg, #f1d184, #aa7433) !important;
+  box-shadow:
+    inset 0 1px 0 #fff3bf,
+    inset 0 -3px 0 rgba(91, 50, 15, 0.28),
+    0 6px 10px rgba(0, 0, 0, 0.24) !important;
+}
+
+body .room-section.is-playing .qaw-board-actions button,
+body .room-section.is-playing .qdr-segment button,
+body .room-section.is-playing .qdr-action,
+body .room-section.is-playing .dvc-action,
+body .room-section.is-playing .dvc-decision button,
+body .room-section.is-playing .yacht-roll-button {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 7px !important;
+}
+
+body .room-section.is-playing .qaw-board-actions svg,
+body .room-section.is-playing .qdr-segment svg,
+body .room-section.is-playing .qdr-action svg,
+body .room-section.is-playing .dvc-action svg,
+body .room-section.is-playing .dvc-decision svg,
+body .room-section.is-playing .yacht-roll-button svg {
+  flex: 0 0 auto;
+  stroke-width: 2.2;
+}
+
+/* Omok: printed kaya grain, lacquer stones and player bowls. */
+body .room-section.is-playing .omok-board {
+  border-color: #4b2a17 !important;
+  background:
+    linear-gradient(90deg, transparent calc(var(--cell) / 2 - 1px), var(--omok-line) calc(var(--cell) / 2 - 1px) calc(var(--cell) / 2 + 1px), transparent calc(var(--cell) / 2 + 1px)) 0 0 / var(--cell) var(--cell),
+    linear-gradient(0deg, transparent calc(var(--cell) / 2 - 1px), var(--omok-line) calc(var(--cell) / 2 - 1px) calc(var(--cell) / 2 + 1px), transparent calc(var(--cell) / 2 + 1px)) 0 0 / var(--cell) var(--cell),
+    repeating-linear-gradient(94deg, rgba(105, 55, 24, 0.06) 0 1px, transparent 1px 18px),
+    linear-gradient(145deg, #e2b66f, #a76a35) !important;
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 235, 190, 0.44),
+    inset 0 -12px 22px rgba(80, 39, 16, 0.28),
+    0 18px 32px rgba(0, 0, 0, 0.34) !important;
+}
+
+body .room-section.is-playing .omok-stone {
+  inset: 7% !important;
+  box-shadow:
+    inset -6px -8px 11px rgba(0, 0, 0, 0.32),
+    inset 5px 5px 8px rgba(255, 255, 255, 0.3),
+    0 6px 8px rgba(35, 18, 8, 0.34) !important;
+}
+
+body .room-section.is-playing .omok-player-card {
+  border-color: rgba(226, 184, 109, 0.28) !important;
+  background:
+    linear-gradient(180deg, rgba(56, 34, 20, 0.96), rgba(18, 11, 7, 0.98)) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 228, 174, 0.1),
+    inset 0 -3px 0 rgba(0, 0, 0, 0.2) !important;
+}
+
+body .room-section.is-playing .omok-player-card.active {
+  border-color: var(--craft-brass) !important;
+  box-shadow:
+    inset 4px 0 0 var(--craft-brass),
+    0 0 0 2px rgba(208, 162, 83, 0.14) !important;
+}
+
+/* Alkkagi: tournament carrom rim and instrument-like control dock. */
+body .room-section.is-playing .alk-board {
+  filter: drop-shadow(0 18px 18px rgba(0, 0, 0, 0.28));
+}
+
+body .room-section.is-playing .alk-table-rim {
+  stroke: #3a1b0f !important;
+  stroke-width: 9 !important;
+  filter: drop-shadow(0 8px 7px rgba(25, 11, 5, 0.42));
+}
+
+body .room-section.is-playing .alk-table-inner {
+  stroke: rgba(255, 229, 178, 0.42) !important;
+  stroke-width: 3 !important;
+}
+
+body .room-section.is-playing .alk-control-dock {
+  border-color: rgba(218, 171, 91, 0.38) !important;
+  background:
+    linear-gradient(180deg, rgba(58, 35, 20, 0.97), rgba(18, 11, 7, 0.99)) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 227, 171, 0.12),
+    0 10px 18px rgba(0, 0, 0, 0.26) !important;
+}
+
+body .room-section.is-playing .alk-egg-body {
+  filter: saturate(1.12);
+}
+
+/* Kkukkkuki: a stitched play mat and thick illustrated tokens. */
+body .room-section.is-playing .kkuk-board {
+  border-color: #553018 !important;
+  border-radius: 15px !important;
+  background:
+    repeating-linear-gradient(0deg, rgba(255, 235, 190, 0.035) 0 1px, transparent 1px 7px),
+    linear-gradient(145deg, #b57a42, #673817) !important;
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 230, 180, 0.26),
+    inset 0 0 0 7px rgba(72, 33, 13, 0.22),
+    0 18px 30px rgba(0, 0, 0, 0.34) !important;
+}
+
+body .room-section.is-playing .kkuk-cell {
+  border: 1px solid rgba(255, 230, 176, 0.24) !important;
+  border-radius: 9px !important;
+  background:
+    radial-gradient(circle at 50% 45%, rgba(247, 198, 117, 0.22), transparent 52%),
+    linear-gradient(145deg, #9c6638, #573018) !important;
+  box-shadow:
+    inset 0 2px 2px rgba(255, 224, 164, 0.18),
+    inset 0 -7px 10px rgba(44, 20, 9, 0.28),
+    0 2px 3px rgba(39, 18, 8, 0.18) !important;
+}
+
+body .room-section.is-playing .kkuk-piece-image {
+  filter:
+    drop-shadow(0 1px 0 rgba(255, 255, 255, 0.42))
+    drop-shadow(0 7px 5px rgba(34, 16, 7, 0.42));
+}
+
+body .room-section.is-playing .kkuk-piece-selector,
+body .room-section.is-playing .kkuk-line-picker {
+  border-radius: 7px !important;
+  background:
+    linear-gradient(180deg, #fff0c8, #d4a866) !important;
+  box-shadow:
+    inset 0 1px 0 #fff9e7,
+    inset 0 -3px 0 rgba(89, 48, 20, 0.14),
+    0 7px 12px rgba(0, 0, 0, 0.18) !important;
+}
+
+/* Da Vinci Code: thick keyed tiles with a machined rack. */
+body .room-section.is-playing .dvc-shell {
+  border-color: #514235 !important;
+  background:
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.018) 0 1px, transparent 1px 26px),
+    linear-gradient(145deg, #1a211f, #090c0b) !important;
+  box-shadow:
+    inset 0 0 0 5px #101512,
+    inset 0 0 0 6px rgba(219, 199, 157, 0.08) !important;
+}
+
+body .room-section.is-playing .dvc-player {
+  padding-block: 12px !important;
+  border-bottom-color: rgba(224, 208, 171, 0.16) !important;
+}
+
+body .room-section.is-playing .dvc-hand {
+  min-height: 88px !important;
+  border: 1px solid rgba(202, 181, 139, 0.16) !important;
+  border-bottom: 9px solid #5c4434 !important;
+  background:
+    linear-gradient(180deg, #0d1513, #050807) !important;
+  box-shadow:
+    inset 0 8px 12px rgba(0, 0, 0, 0.48),
+    0 4px 0 #261a13 !important;
+}
+
+body .room-section.is-playing .dvc-tile {
+  flex-basis: 50px;
+  width: 50px !important;
+  height: 72px !important;
+  border: 2px solid color-mix(in srgb, var(--tile-fg) 34%, #70685e) !important;
+  border-radius: 5px 5px 3px 3px !important;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.2), transparent 34%),
+    var(--tile-bg) !important;
+  box-shadow:
+    inset 0 0 0 3px rgba(255, 255, 255, 0.06),
+    inset 0 -5px 0 rgba(0, 0, 0, 0.18),
+    0 5px 0 rgba(0, 0, 0, 0.62),
+    0 7px 9px rgba(0, 0, 0, 0.34) !important;
+}
+
+body .room-section.is-playing .dvc-tile::before {
+  inset: 5px !important;
+  border-width: 2px !important;
+  opacity: 0.2 !important;
+}
+
+body .room-section.is-playing .dvc-tile span {
+  font-size: 1.34rem !important;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.16) !important;
+}
+
+body .room-section.is-playing .dvc-tile.drawn,
+body .room-section.is-playing .dvc-tile.selected {
+  transform: translateY(-7px) rotate(-1deg) !important;
+  box-shadow:
+    inset 0 0 0 3px rgba(255, 255, 255, 0.08),
+    0 0 0 3px var(--dvc-brass),
+    0 10px 12px rgba(0, 0, 0, 0.42) !important;
+}
+
+body .room-section.is-playing .dvc-guess-head strong {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+}
+
+body .room-section.is-playing .dvc-panel {
+  border-color: rgba(213, 185, 127, 0.28) !important;
+  background:
+    linear-gradient(180deg, #18211e, #0c1210) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 239, 199, 0.08),
+    0 8px 15px rgba(0, 0, 0, 0.24) !important;
+}
+
+/* Blokus: frosted injection-molded board and translucent resin pieces. */
+body .room-section.is-playing .blokus-board,
+body .room-section.is-playing .blokus-precision-board {
+  border-color: #aebbc3 !important;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.78), transparent 36%),
+    linear-gradient(180deg, #eaf2f3, #bdcbd0) !important;
+  box-shadow:
+    inset 0 0 0 3px rgba(255, 255, 255, 0.72),
+    inset 0 -7px 0 rgba(55, 76, 86, 0.12),
+    0 18px 28px rgba(0, 0, 0, 0.28) !important;
+}
+
+body .room-section.is-playing .blokus-cell,
+body .room-section.is-playing .blokus-precision-cell {
+  border: 1px solid rgba(81, 106, 117, 0.34) !important;
+  border-radius: 2px !important;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.5), rgba(193, 207, 212, 0.34)),
+    #dfe9eb !important;
+  box-shadow:
+    inset 1px 1px 2px rgba(255, 255, 255, 0.64),
+    inset -1px -2px 2px rgba(73, 96, 107, 0.14) !important;
+}
+
+body .room-section.is-playing .blokus-cell[style*="--cell-color"]:not([style*="#f8fafc"]),
+body .room-section.is-playing .blokus-precision-cell.occupied,
+body .room-section.is-playing .blokus-piece-mini .filled {
+  border-color: color-mix(in srgb, var(--cell-color, var(--piece-color)) 72%, #23313b) !important;
+  opacity: 0.94 !important;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.54), transparent 38%),
+    linear-gradient(180deg, color-mix(in srgb, var(--cell-color, var(--piece-color)) 84%, white), var(--cell-color, var(--piece-color))) !important;
+  box-shadow:
+    inset 0 2px 1px rgba(255, 255, 255, 0.46),
+    inset 0 -4px 0 rgba(0, 0, 0, 0.2),
+    0 2px 3px rgba(22, 33, 40, 0.2) !important;
+}
+
+body .room-section.is-playing .blokus-palette {
+  border-color: rgba(225, 188, 118, 0.26) !important;
+  background:
+    linear-gradient(180deg, rgba(45, 29, 18, 0.98), rgba(16, 10, 7, 0.99)) !important;
+}
+
+body .room-section.is-playing .blokus-palette button {
+  border: 1px solid rgba(151, 174, 181, 0.34) !important;
+  background:
+    linear-gradient(180deg, #f4f7f2, #bdc9c8) !important;
+  box-shadow:
+    inset 0 1px 0 #ffffff,
+    inset 0 -3px 0 rgba(52, 72, 78, 0.15),
+    0 4px 7px rgba(0, 0, 0, 0.22) !important;
+}
+
+body .room-section.is-playing .blokus-palette button.selected {
+  border-color: #238c69 !important;
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 255, 255, 0.48),
+    0 0 0 3px rgba(35, 140, 105, 0.26),
+    0 7px 11px rgba(0, 0, 0, 0.22) !important;
+}
+
+/* Masterpiece: brass easel, linen paper and compact studio tools. */
+body .room-section.is-playing .painting-canvas-frame,
+body .room-section.is-playing .painting-reference-card {
+  border-color: #6b3f22 !important;
+  background:
+    repeating-linear-gradient(90deg, rgba(255, 226, 166, 0.07) 0 1px, transparent 1px 19px),
+    linear-gradient(145deg, #8d5b2f, #3d2111) !important;
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 222, 159, 0.24),
+    0 12px 20px rgba(0, 0, 0, 0.28) !important;
+}
+
+body .room-section.is-playing .painting-canvas {
+  background:
+    repeating-linear-gradient(0deg, rgba(103, 82, 49, 0.026) 0 1px, transparent 1px 4px),
+    repeating-linear-gradient(90deg, rgba(103, 82, 49, 0.02) 0 1px, transparent 1px 5px),
+    #fff4da !important;
+  box-shadow:
+    inset 0 0 18px rgba(117, 83, 42, 0.1),
+    0 2px 0 rgba(255, 255, 255, 0.72) !important;
+}
+
+body .room-section.is-playing .painting-toolrail,
+body .room-section.is-playing .painting-color-panel {
+  border-color: rgba(220, 175, 101, 0.3) !important;
+  background:
+    linear-gradient(180deg, rgba(55, 34, 21, 0.98), rgba(18, 11, 7, 0.99)) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 228, 173, 0.1),
+    0 8px 14px rgba(0, 0, 0, 0.22) !important;
+}
+
+body .room-section.is-playing .painting-tool-modes button,
+body .room-section.is-playing .painting-tool-actions button {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 7px !important;
+}
+
+body .room-section.is-playing .painting-tool-modes svg,
+body .room-section.is-playing .painting-tool-actions svg {
+  flex: 0 0 auto;
+  stroke-width: 2.2;
+}
+
+body .room-section.is-playing .painting-colors button,
+body .room-section.is-playing .painting-palette-strip button {
+  box-shadow:
+    inset 0 2px 2px rgba(255, 255, 255, 0.4),
+    inset 0 -3px 0 rgba(0, 0, 0, 0.2),
+    0 4px 6px rgba(0, 0, 0, 0.24) !important;
+}
+
+/* Yacht: casino felt tray, ivory dice and a printed score pad. */
+body .room-section.is-playing .yacht-throw-tray {
+  border: 8px solid #5b341f !important;
+  background:
+    radial-gradient(circle at 50% 34%, rgba(70, 174, 135, 0.18), transparent 50%),
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.014) 0 1px, transparent 1px 5px),
+    linear-gradient(145deg, #0f5a46, #073326) !important;
+  box-shadow:
+    inset 0 0 0 2px #8b5a35,
+    inset 0 0 28px rgba(0, 0, 0, 0.48),
+    0 12px 20px rgba(0, 0, 0, 0.26) !important;
+}
+
+body .room-section.is-playing .yacht-die-face,
+body .room-section.is-playing .yacht-dock-slot.filled {
+  border: 1px solid #c8bfae !important;
+  border-radius: 8px !important;
+  background:
+    linear-gradient(145deg, #fffef7, #d9d2c4) !important;
+  box-shadow:
+    inset 5px 6px 8px rgba(255, 255, 255, 0.76),
+    inset -5px -7px 8px rgba(75, 63, 48, 0.16),
+    0 7px 8px rgba(0, 0, 0, 0.34) !important;
+}
+
+body .room-section.is-playing .yacht-pip.on {
+  background: #20201e !important;
+  box-shadow:
+    inset 0 2px 2px rgba(0, 0, 0, 0.72),
+    0 1px 0 rgba(255, 255, 255, 0.44) !important;
+}
+
+body .room-section.is-playing .yacht-score-panel,
+body .room-section.is-playing .yacht-scoreboard {
+  background:
+    repeating-linear-gradient(0deg, rgba(37, 70, 70, 0.035) 0 1px, transparent 1px 24px),
+    linear-gradient(180deg, #fffaf0, #e6e0d1) !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.72),
+    0 10px 18px rgba(0, 0, 0, 0.2) !important;
+}
+
+body .room-section.is-playing .yacht-player-scorecard {
+  border-color: rgba(34, 69, 72, 0.28) !important;
+  border-radius: 6px !important;
+  background:
+    linear-gradient(180deg, #f9f4e9, #dce3de) !important;
+  box-shadow:
+    inset 0 1px 0 #ffffff,
+    0 5px 10px rgba(36, 49, 45, 0.14) !important;
+}
+
+body .room-section.is-playing .yacht-player-scorecard.active {
+  border-color: #b4883f !important;
+  box-shadow:
+    inset 4px 0 0 #b4883f,
+    0 0 0 2px rgba(180, 136, 63, 0.14),
+    0 6px 12px rgba(36, 49, 45, 0.16) !important;
+}
+
+/* Yinsh: porcelain board with bakelite rings and two-sided markers. */
+body .room-section.is-playing .yinsh-module {
+  background:
+    linear-gradient(135deg, rgba(68, 117, 125, 0.1), transparent 42%),
+    linear-gradient(180deg, #eee9dc, #c3c9c2) !important;
+}
+
+body .room-section.is-playing .yinsh-board-wrap {
+  border: 10px solid #53646a !important;
+  border-radius: 8px !important;
+  background:
+    radial-gradient(circle at 32% 20%, rgba(255, 255, 255, 0.9), transparent 34%),
+    linear-gradient(145deg, #fffdf4, #d5ded9) !important;
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 255, 255, 0.64),
+    inset 0 0 24px rgba(52, 79, 79, 0.12),
+    0 16px 28px rgba(0, 0, 0, 0.24) !important;
+}
+
+body .room-section.is-playing .yinsh-edge {
+  stroke: rgba(47, 78, 82, 0.55) !important;
+  stroke-width: 1.8 !important;
+}
+
+body .room-section.is-playing .yinsh-point {
+  fill: #fffdf5 !important;
+  stroke: #3d6f73 !important;
+  stroke-width: 1.25 !important;
+}
+
+body .room-section.is-playing .yinsh-ring {
+  stroke-width: 8.5 !important;
+  filter:
+    drop-shadow(0 1px 0 rgba(255, 255, 255, 0.52))
+    drop-shadow(0 6px 4px rgba(24, 37, 38, 0.3)) !important;
+}
+
+body .room-section.is-playing .yinsh-marker {
+  filter:
+    drop-shadow(0 1px 0 rgba(255, 255, 255, 0.34))
+    drop-shadow(0 5px 4px rgba(24, 37, 38, 0.26)) !important;
+}
+
+body .room-section.is-playing .yinsh-panel {
+  border-radius: 7px !important;
+  background:
+    linear-gradient(180deg, #fffdf7, #dce5df) !important;
+  box-shadow:
+    inset 0 1px 0 #ffffff,
+    0 7px 12px rgba(35, 57, 57, 0.13) !important;
+}
+
+body .room-section.is-playing .yinsh-panel,
+body .room-section.is-playing .yinsh-panel p,
+body .room-section.is-playing .yinsh-panel span,
+body .room-section.is-playing .yinsh-panel strong,
+body .room-section.is-playing .yinsh-panel small,
+body .room-section.is-playing .yinsh-player-row,
+body .room-section.is-playing .yinsh-mini-metrics span,
+body .room-section.is-playing .yinsh-phase-guide {
+  color: #25383c !important;
+  text-shadow: none !important;
+}
+
+body .room-section.is-playing .yinsh-panel > strong,
+body .room-section.is-playing .yinsh-player-row strong,
+body .room-section.is-playing .yinsh-mini-metrics strong {
+  color: #14292f !important;
+}
+
+body .room-section.is-playing .yinsh-player-row.active strong {
+  color: #0a6170 !important;
+}
+
+body .room-section.is-playing .yinsh-action-button:not(:disabled) {
+  border-color: #356b70 !important;
+  color: #f7fff9 !important;
+  background: linear-gradient(180deg, #2b7d77, #14534f) !important;
+}
+
+/* Hangman: an injection-molded classroom toy instead of a flat keyboard. */
+body .room-section.is-playing .hangman-module {
+  border-color: #5d3821 !important;
+  background:
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.012) 0 1px, transparent 1px 4px),
+    linear-gradient(145deg, #17483c, #08271f) !important;
+  box-shadow:
+    inset 0 0 0 2px #93623d,
+    inset 0 0 26px rgba(0, 0, 0, 0.32),
+    0 14px 24px rgba(0, 0, 0, 0.24) !important;
+}
+
+body .room-section.is-playing .hangman-toy-board {
+  border-color: #5d3821 !important;
+  background: linear-gradient(145deg, #123d34, #061e18) !important;
+  box-shadow:
+    inset 0 0 0 2px #946440,
+    0 10px 18px rgba(0, 0, 0, 0.26) !important;
+}
+
+body .room-section.is-playing .hangman-letter-button,
+body .room-section.is-playing .hangman-letter-slot,
+body .room-section.is-playing .hangman-toy-letters span {
+  border: 1px solid #a79670 !important;
+  border-radius: 4px !important;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.72), transparent 35%),
+    linear-gradient(180deg, #f1dfb5, #bca574) !important;
+  box-shadow:
+    inset 0 1px 0 #fff9e8,
+    inset 0 -4px 0 rgba(82, 63, 34, 0.18),
+    0 5px 0 rgba(8, 22, 17, 0.5),
+    0 7px 8px rgba(0, 0, 0, 0.26) !important;
+}
+
+body .room-section.is-playing .hangman-letter-button:not(:disabled):hover,
+body .room-section.is-playing .hangman-letter-button:focus-visible {
+  transform: translateY(-3px);
+  border-color: #f0cd78 !important;
+  box-shadow:
+    inset 0 1px 0 #fff9e8,
+    inset 0 -4px 0 rgba(82, 63, 34, 0.18),
+    0 0 0 3px rgba(240, 205, 120, 0.24),
+    0 8px 9px rgba(0, 0, 0, 0.3) !important;
+}
+
+body .room-section.is-playing .hangman-gallows {
+  border: 1px solid rgba(219, 205, 163, 0.14) !important;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent),
+    #0a2d25 !important;
+  box-shadow: inset 0 0 14px rgba(0, 0, 0, 0.26) !important;
+}
+
+@media (max-width: 680px) {
+  body .room-section.is-playing .abl-board {
+    border-width: 7px !important;
+    border-radius: 12px !important;
+  }
+
+  body .room-section.is-playing .dvc-tile {
+    flex-basis: 46px;
+    width: 46px !important;
+    height: 66px !important;
+  }
+
+  body .room-section.is-playing .qaw-3d-stage,
+  body .room-section.is-playing .yacht-throw-tray {
+    border-width: 5px !important;
+  }
+
+  body .room-section.is-playing .yinsh-board-wrap {
+    border-width: 7px !important;
+  }
+}
+
+@media (max-width: 420px) {
+  body .room-section.is-playing .painting-tool-actions button:not(.painting-submit) span {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    overflow: hidden !important;
+    clip: rect(0 0 0 0) !important;
+    clip-path: inset(50%) !important;
+    white-space: nowrap !important;
+  }
+
+  body .room-section.is-playing .painting-tool-actions button:not(.painting-submit) svg {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  body .room-section.is-playing .play-header-actions .play-mini-action:not(:disabled):hover,
+  body .room-section.is-playing .qaw-camera-controls button:not(:disabled):hover,
+  body .room-section.is-playing .blokus-palette button:not(:disabled):hover {
+    filter: brightness(1.08);
+    transform: translateY(-1px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body .room-section.is-playing .guryongtu-tile-button,
+  body .room-section.is-playing .hangman-letter-button,
+  body .room-section.is-playing .play-mini-action,
+  body .room-section.is-playing .blokus-palette button {
+    transition: none !important;
+  }
+}

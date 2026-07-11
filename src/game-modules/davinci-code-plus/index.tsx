@@ -1,3 +1,4 @@
+import { Check, Eye, Search, SquarePlus } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { CSSProperties } from "react";
 import type { GameAction, GameActionResult, GameComponentProps, GameContext, GameModule, GameSystemAction } from "../types";
@@ -758,12 +759,13 @@ export function Component(props: GameComponentProps) {
 
         <aside className="dvc-panel" aria-label="추측 조작">
           <button className="dvc-action" disabled={!canDraw || isSubmitting} onClick={() => submitAction({ type: "draw" })} type="button">
-            타일 뽑기
+            <SquarePlus size={17} aria-hidden="true" />
+            <span>타일 뽑기</span>
           </button>
 
           <div className="dvc-guess-card">
             <div className="dvc-guess-head">
-              <strong>추측</strong>
+              <strong><Search size={16} aria-hidden="true" /> 추측</strong>
               <span>
                 {target ? `${target.name} ${effectiveTileIndex + 1}번` : "대상 없음"}
               </span>
@@ -825,14 +827,16 @@ export function Component(props: GameComponentProps) {
               </label>
 
               <button className="dvc-action dvc-guess-submit" disabled={!canGuess || isSubmitting} onClick={sendGuess} type="button">
-                제출
+                <Check size={16} aria-hidden="true" />
+                <span>제출</span>
               </button>
             </div>
           </div>
 
           <div className="dvc-decision">
             <button disabled={!canDecide || isSubmitting} onClick={() => submitAction({ type: "continue" })} type="button">
-              계속
+              <Eye size={16} aria-hidden="true" />
+              <span>계속</span>
             </button>
             <button disabled={!canDecide || isSubmitting} onClick={() => submitAction({ type: "pass" })} type="button">
               턴 종료

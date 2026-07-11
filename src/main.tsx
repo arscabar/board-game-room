@@ -8,6 +8,7 @@ import "./gameplay-responsive.css";
 import "./design-polish.css";
 import "./immersive-design.css";
 import "./gameplay-legibility.css";
+import "./gameplay-craft.css";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

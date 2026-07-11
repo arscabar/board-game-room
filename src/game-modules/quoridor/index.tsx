@@ -1,3 +1,4 @@
+import { Check, Footprints, PanelsTopLeft, MoveHorizontal, MoveVertical } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import type { CSSProperties } from "react";
 import type { GameAction, GameActionResult, GameComponentProps, GameContext, GameModule } from "../types";
@@ -738,7 +739,8 @@ export function Component(props: GameComponentProps) {
                 onClick={() => selectMode("move")}
                 type="button"
               >
-                말 이동
+                <Footprints size={17} aria-hidden="true" />
+                <span>말 이동</span>
               </button>
               <button
                 aria-pressed={mode === "wall"}
@@ -747,7 +749,8 @@ export function Component(props: GameComponentProps) {
                 onClick={() => selectMode("wall")}
                 type="button"
               >
-                벽 설치
+                <PanelsTopLeft size={17} aria-hidden="true" />
+                <span>벽 설치</span>
               </button>
             </div>
           </div>
@@ -780,7 +783,8 @@ export function Component(props: GameComponentProps) {
                     onClick={() => setOrientation("horizontal")}
                     type="button"
                   >
-                    가로
+                    <MoveHorizontal size={17} aria-hidden="true" />
+                    <span>가로</span>
                   </button>
                   <button
                     className={orientation === "vertical" ? "active" : ""}
@@ -788,7 +792,8 @@ export function Component(props: GameComponentProps) {
                     onClick={() => setOrientation("vertical")}
                     type="button"
                   >
-                    세로
+                    <MoveVertical size={17} aria-hidden="true" />
+                    <span>세로</span>
                   </button>
                 </div>
                 <span className={selectedWallBlocked ? "qdr-wall-hint blocked" : "qdr-wall-hint"}>
@@ -805,7 +810,8 @@ export function Component(props: GameComponentProps) {
                     onClick={sendWall}
                     type="button"
                   >
-                    벽 설치 확정
+                    <Check size={17} aria-hidden="true" />
+                    <span>벽 설치 확정</span>
                   </button>
                 ) : null}
               </>

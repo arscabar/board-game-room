@@ -1,3 +1,4 @@
+import { Check, RotateCcw, Undo2, ZoomIn, ZoomOut } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import type { GameAction, GameActionResult, GameComponentProps, GameContext, GameModule } from "../types";
@@ -444,16 +445,16 @@ function QawaleThreeBoard({
     rendererRef.current = renderer;
     mount.appendChild(renderer.domElement);
 
-    const ambientLight = new THREE.HemisphereLight(0xfff3d7, 0x16110d, 2.4);
+    const ambientLight = new THREE.HemisphereLight(0xfff7e7, 0x1a2522, 2.65);
     scene.add(ambientLight);
 
-    const keyLight = new THREE.DirectionalLight(0xffdf9a, 3.6);
+    const keyLight = new THREE.DirectionalLight(0xffe7b0, 4.1);
     keyLight.position.set(-3.8, 6.2, 4.6);
     keyLight.castShadow = true;
     keyLight.shadow.mapSize.set(1024, 1024);
     scene.add(keyLight);
 
-    const fillLight = new THREE.PointLight(0x8bc7ad, 1.2, 9);
+    const fillLight = new THREE.PointLight(0x8dc8b7, 1.45, 10);
     fillLight.position.set(3.2, 2.6, -4.2);
     scene.add(fillLight);
 
@@ -604,9 +605,9 @@ function QawaleThreeBoard({
     clickableRef.current = [];
 
     const boardMaterial = new THREE.MeshStandardMaterial({
-      color: 0x171512,
-      roughness: 0.84,
-      metalness: 0.08
+      color: 0x59564e,
+      roughness: 0.9,
+      metalness: 0.02
     });
     const base = new THREE.Mesh(new THREE.BoxGeometry(8.1, 0.34, 8.1), boardMaterial);
     base.position.y = -0.24;
@@ -614,7 +615,7 @@ function QawaleThreeBoard({
     base.receiveShadow = true;
     group.add(base);
 
-    const bevelMaterial = new THREE.MeshStandardMaterial({ color: 0x050403, roughness: 0.72, metalness: 0.18 });
+    const bevelMaterial = new THREE.MeshStandardMaterial({ color: 0x27241f, roughness: 0.78, metalness: 0.08 });
     const bevel = new THREE.Mesh(new THREE.BoxGeometry(8.5, 0.3, 8.5), bevelMaterial);
     bevel.position.y = -0.42;
     bevel.castShadow = true;
@@ -622,20 +623,20 @@ function QawaleThreeBoard({
     group.add(bevel);
 
     const wellMaterial = new THREE.MeshStandardMaterial({
-      color: 0x020202,
-      roughness: 0.9,
-      metalness: 0.05
+      color: 0x181816,
+      roughness: 0.94,
+      metalness: 0.01
     });
     const rimMaterial = new THREE.MeshStandardMaterial({
-      color: 0x5f5142,
-      roughness: 0.6,
-      metalness: 0.18
+      color: 0xb1aa96,
+      roughness: 0.58,
+      metalness: 0.08
     });
     const sourceMaterial = new THREE.MeshBasicMaterial({ color: 0xd7a545, transparent: true, opacity: 0.7 });
     const selectedMaterial = new THREE.MeshBasicMaterial({ color: 0xf2cf72, transparent: true, opacity: 0.9 });
     const pathMaterial = new THREE.MeshBasicMaterial({ color: 0x9fc9b8, transparent: true, opacity: 0.72 });
     const nextMaterial = new THREE.MeshBasicMaterial({ color: 0x66d19e, transparent: true, opacity: 0.78 });
-    const separatorMaterial = new THREE.MeshBasicMaterial({ color: 0x100905, transparent: true, opacity: 0.54 });
+    const separatorMaterial = new THREE.MeshBasicMaterial({ color: 0x2c2620, transparent: true, opacity: 0.62 });
     const hitMaterial = new THREE.MeshBasicMaterial({
       color: 0xffffff,
       transparent: true,
@@ -806,13 +807,14 @@ function QawaleThreeBoard({
       <div className="qaw-3d-canvas" ref={mountRef} role="application" aria-label="회전 가능한 3D 카왈레 보드" />
       <div className="qaw-camera-controls" aria-label="3D 보드 시점 조절">
         <button type="button" onClick={resetCamera}>
-          시점 초기화
+          <RotateCcw size={16} aria-hidden="true" />
+          <span>시점 초기화</span>
         </button>
         <button type="button" onClick={() => zoom(-0.8)} aria-label="확대">
-          +
+          <ZoomIn size={18} aria-hidden="true" />
         </button>
         <button type="button" onClick={() => zoom(0.8)} aria-label="축소">
-          -
+          <ZoomOut size={18} aria-hidden="true" />
         </button>
       </div>
     </div>
@@ -918,10 +920,12 @@ export function Component(props: GameComponentProps) {
           {canAct ? (
             <div className="qaw-board-actions" aria-label="카왈레 행동">
               <button disabled={!source} onClick={resetPath} type="button">
-                취소
+                <Undo2 size={16} aria-hidden="true" />
+                <span>취소</span>
               </button>
               <button disabled={!pathComplete || isSubmitting} onClick={submitMove} type="button">
-                놓기
+                <Check size={16} aria-hidden="true" />
+                <span>놓기</span>
               </button>
             </div>
           ) : null}

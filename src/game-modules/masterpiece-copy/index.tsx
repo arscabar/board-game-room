@@ -1,4 +1,4 @@
-import { Expand, Minimize2 } from "lucide-react";
+import { Eraser, Expand, Minimize2, PaintBucket, Pencil, Send, Trash2, Undo2 } from "lucide-react";
 import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
 import { useInteractionGate } from "../useInteractionGate";
 import type { GameAction, GameActionResult, GameComponentProps, GameContext, GameModule } from "../types";
@@ -914,7 +914,10 @@ export function Component({ currentPlayer, publicState, disabled, onAction }: Ga
                     aria-pressed={tool === mode}
                     onClick={() => setTool(mode as DrawingTool)}
                   >
-                    {label}
+                    {mode === "pen" ? <Pencil size={17} aria-hidden="true" /> : null}
+                    {mode === "eraser" ? <Eraser size={17} aria-hidden="true" /> : null}
+                    {mode === "fill" ? <PaintBucket size={17} aria-hidden="true" /> : null}
+                    <span>{label}</span>
                   </button>
                 ))}
               </div>
@@ -989,11 +992,13 @@ export function Component({ currentPlayer, publicState, disabled, onAction }: Ga
               </div>
 
               <div className="painting-tool-actions">
-                <button type="button" onClick={undo} disabled={!canDraw}>
-                  되돌리기
+                <button type="button" onClick={undo} disabled={!canDraw} aria-label="되돌리기" title="되돌리기">
+                  <Undo2 size={17} aria-hidden="true" />
+                  <span>되돌리기</span>
                 </button>
-                <button type="button" onClick={clearCanvas} disabled={!canDraw}>
-                  지우기
+                <button type="button" onClick={clearCanvas} disabled={!canDraw} aria-label="캔버스 지우기" title="캔버스 지우기">
+                  <Trash2 size={17} aria-hidden="true" />
+                  <span>지우기</span>
                 </button>
                 <button
                   className="painting-submit"
@@ -1001,7 +1006,8 @@ export function Component({ currentPlayer, publicState, disabled, onAction }: Ga
                   onClick={() => void submitCurrent("manual")}
                   disabled={!canDraw || isSubmitting || isScoring}
                 >
-                  {isScoring ? "판정 중" : "제출"}
+                  <Send size={17} aria-hidden="true" />
+                  <span>{isScoring ? "판정 중" : "제출"}</span>
                 </button>
               </div>
 
