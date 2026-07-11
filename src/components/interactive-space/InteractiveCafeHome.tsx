@@ -210,6 +210,16 @@ export function InteractiveCafeHome({
           <h2 id="cafe-home-title">오늘의 테이블</h2>
           <p>{rooms.length > 0 ? `${rooms.length}개 테이블 · 지금 입장 가능 ${openRoomCount}개` : "첫 테이블을 열어 게임을 시작하세요."}</p>
         </div>
+        <div className="cafe-home-metrics" aria-label="테이블 현황">
+          <span>
+            <strong>{rooms.length.toString().padStart(2, "0")}</strong>
+            <small>TABLES</small>
+          </span>
+          <span>
+            <strong>{openRoomCount.toString().padStart(2, "0")}</strong>
+            <small>OPEN</small>
+          </span>
+        </div>
         <div className="cafe-home-status-area">
           <span className="cafe-connection-status" role="status" aria-live="polite">{connectionLabel(connection)}</span>
           <button className="cafe-refresh-button" type="button" onClick={onRefreshRooms} disabled={roomsLoading} aria-label="테이블 새로 보기">

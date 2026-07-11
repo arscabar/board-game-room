@@ -1,18 +1,20 @@
 import type { CSSProperties } from "react";
-import * as m from "motion/react-m";
-import { formatAllowedPlayers } from "../../shared/eligibility";
-import type { GameDefinition } from "../../shared/types";
-import { GameCover } from "./GameBoxObject";
+import { Dices } from "lucide-react";
+import type { GameDefinition, PlayerSnapshot } from "../../shared/types";
+import { GameSelectionScene } from "./GameSelectionScene";
+import { SeatTokensAroundTable } from "./SeatTokensAroundTable";
 
 export type CentralTableState = "empty" | "focused" | "opening" | "unfolded" | "selected";
 
 type CentralTableStageProps = {
   game: GameDefinition | null;
   state: CentralTableState;
+  players?: PlayerSnapshot[];
+  maxSeats?: number;
   tableRef?: (node: HTMLElement | null) => void;
 };
 
-export function CentralTableStage({ game, state, tableRef }: CentralTableStageProps) {
+export function CentralTableStage({ game, state, players = [], maxSeats = 4, tableRef }: CentralTableStageProps) {
   return (
     <section
       className="central-table-stage"
@@ -26,32 +28,19 @@ export function CentralTableStage({ game, state, tableRef }: CentralTableStagePr
       <div className="central-table-frame">
         <div className="central-table-felt">
           <span className="table-drop-ring" aria-hidden="true" />
+          <SeatTokensAroundTable players={players} maxSeats={maxSeats} />
 
           {game ? (
-            <div className="table-selection-object" data-state={state}>
-              <m.div
-                className="tabletop-game-box"
-                aria-hidden="true"
-                layoutId={`game-box-${game.id}`}
-                transition={{ layout: { type: "spring", stiffness: 430, damping: 34, mass: 0.72 } }}
-              >
-                <GameCover game={game} className="table-cover-art" />
-                <span className="tabletop-game-box-spine" />
-              </m.div>
-              <div className="tabletop-token-cluster" aria-hidden="true">
-                {Array.from({ length: 5 }, (_, index) => (
-                  <span key={index} data-token={index + 1} />
-                ))}
-              </div>
-              <div className="table-selection-label">
-                <strong>{game.title}</strong>
-                <span>{formatAllowedPlayers(game)}</span>
+            <div className="table-game-spread">
+              <div className="unfolded-board-preview selection-scene-surface" data-state={state === "focused" ? "closed" : "open"}>
+                <GameSelectionScene game={game} />
               </div>
             </div>
           ) : (
             <div className="empty-table-slot">
-              <span className="empty-table-line" aria-hidden="true" />
-              <span className="empty-table-box">게임을 선택하세요</span>
+              <span className="empty-table-ring" aria-hidden="true" />
+              <span className="empty-table-emblem" aria-hidden="true"><Dices size={30} /></span>
+              <span className="empty-table-box">TABLE READY</span>
             </div>
           )}
         </div>

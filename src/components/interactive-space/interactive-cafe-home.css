@@ -301,10 +301,18 @@
   display: grid;
   place-items: center;
   background: var(--club-felt-dark);
-  border-style: dashed;
+  border-style: solid;
   box-shadow:
     inset 0 0 0 1px rgba(234, 215, 165, 0.12),
     0 7px 0 #24170f;
+}
+
+.cafe-empty-table-inlay {
+  position: absolute;
+  inset: 5px;
+  border: 1px dashed rgba(234, 215, 165, 0.25);
+  border-radius: 4px;
+  transition: border-color 180ms ease, inset 180ms ease;
 }
 
 .cafe-empty-plus {
@@ -317,6 +325,120 @@
   border: 2px solid #f4dfaa;
   border-radius: 50%;
   box-shadow: 0 3px 0 #6f4e21;
+  transition: box-shadow 150ms ease, transform 150ms ease;
+  z-index: 2;
+}
+
+.cafe-empty-seat-map {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.cafe-empty-seat-map i {
+  position: absolute;
+  width: 23px;
+  height: 18px;
+  background: #342318;
+  border: 1px solid #79593b;
+  border-radius: 5px 5px 3px 3px;
+  box-shadow: 0 3px 0 #17100b;
+  transition: border-color 180ms ease, transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.cafe-empty-seat-map i[data-seat="top"] {
+  left: 50%;
+  top: 0;
+  transform: translateX(-50%);
+}
+
+.cafe-empty-seat-map i[data-seat="right"] {
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%) rotate(90deg);
+}
+
+.cafe-empty-seat-map i[data-seat="bottom"] {
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%) rotate(180deg);
+}
+
+.cafe-empty-seat-map i[data-seat="left"] {
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%) rotate(-90deg);
+}
+
+.empty-table-object {
+  background:
+    linear-gradient(90deg, rgba(8, 57, 43, 0.88), rgba(15, 48, 38, 0.78)),
+    var(--club-felt-texture, none);
+  border-color: rgba(202, 164, 91, 0.36);
+  border-left-color: rgba(202, 164, 91, 0.36);
+  box-shadow: inset 0 0 0 1px rgba(255, 246, 220, 0.025);
+}
+
+.empty-table-object .cafe-table-visual {
+  width: 126px;
+  height: 104px;
+}
+
+.empty-table-object .cafe-table-top {
+  width: 106px;
+  height: 70px;
+}
+
+.empty-table-object .cafe-table-copy {
+  gap: 5px;
+}
+
+.empty-table-object .cafe-table-copy strong {
+  font-family: Georgia, "Noto Serif KR", serif;
+  font-size: clamp(1.05rem, 2vw, 1.28rem);
+}
+
+.empty-table-object .cafe-table-copy small {
+  color: rgba(240, 211, 145, 0.78);
+  font-weight: 700;
+}
+
+.empty-table-object:hover:not(:disabled) .cafe-empty-table-inlay,
+.empty-table-object:focus-visible .cafe-empty-table-inlay {
+  inset: 3px;
+  border-color: rgba(247, 218, 145, 0.62);
+}
+
+.empty-table-object:hover:not(:disabled) .cafe-empty-plus,
+.empty-table-object:focus-visible .cafe-empty-plus {
+  box-shadow: 0 5px 0 #6f4e21, 0 0 18px rgba(224, 180, 92, 0.28);
+  transform: translateY(-2px);
+}
+
+.empty-table-object:hover:not(:disabled) .cafe-empty-seat-map i[data-seat="top"] {
+  transform: translate(-50%, -3px);
+}
+
+.empty-table-object:hover:not(:disabled) .cafe-empty-seat-map i[data-seat="right"] {
+  transform: translate(3px, -50%) rotate(90deg);
+}
+
+.empty-table-object:hover:not(:disabled) .cafe-empty-seat-map i[data-seat="bottom"] {
+  transform: translate(-50%, 3px) rotate(180deg);
+}
+
+.empty-table-object:hover:not(:disabled) .cafe-empty-seat-map i[data-seat="left"] {
+  transform: translate(-3px, -50%) rotate(-90deg);
+}
+
+.empty-table-object.cafe-table-object-placing .cafe-empty-plus {
+  animation: cafe-create-token 320ms cubic-bezier(0.2, 0.85, 0.25, 1) both;
+}
+
+@keyframes cafe-create-token {
+  0% { transform: translateY(0) scale(1); }
+  45% { transform: translateY(3px) scale(0.9); box-shadow: 0 0 0 #6f4e21; }
+  100% { transform: translateY(-2px) scale(1.04); box-shadow: 0 5px 0 #6f4e21, 0 0 22px rgba(112, 201, 169, 0.36); }
 }
 
 .cafe-seat-map {
@@ -993,6 +1115,25 @@
     border-width: 6px;
   }
 
+  .empty-table-object .cafe-table-visual {
+    width: 88px;
+    height: 82px;
+  }
+
+  .empty-table-object .cafe-table-top {
+    width: 78px;
+    height: 54px;
+  }
+
+  .empty-table-object .cafe-empty-seat-map i {
+    width: 19px;
+    height: 15px;
+  }
+
+  .empty-table-object .cafe-table-copy strong {
+    font-size: 1rem;
+  }
+
   .cafe-seat-token {
     width: 21px;
     height: 21px;
@@ -1059,6 +1200,12 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .empty-table-object .cafe-empty-plus,
+  .empty-table-object .cafe-empty-seat-map i,
+  .empty-table-object .cafe-empty-table-inlay {
+    animation: none !important;
+    transition: none !important;
+  }
   .cafe-home.is-cafe-home *,
   .cafe-home.is-cafe-home *::before,
   .cafe-home.is-cafe-home *::after {

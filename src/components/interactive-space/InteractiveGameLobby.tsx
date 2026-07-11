@@ -331,11 +331,14 @@ export function InteractiveGameLobby({
         >
       <header className="game-lobby-header">
         <div className="game-lobby-title-block">
-          <span className="game-lobby-count">
-            <UsersRound size={15} aria-hidden="true" />
-            {playerCount}/{room.maxPlayers}
-          </span>
-          <h2 id="interactive-game-lobby-title">게임 선택</h2>
+          <span className="game-lobby-eyebrow">ROOM {room.code} / GAME LIBRARY</span>
+          <div className="game-lobby-title-line">
+            <span className="game-lobby-count">
+              <UsersRound size={15} aria-hidden="true" />
+              {playerCount}/{room.maxPlayers}
+            </span>
+            <h2 id="interactive-game-lobby-title">게임 선택</h2>
+          </div>
         </div>
         <p className="game-lobby-status" aria-live="polite">
           {serverSelectedGame ? selectedMeta : gameAvailabilityLabel(sortedGames[0] ?? games[0], playerCount)}
@@ -385,6 +388,8 @@ export function InteractiveGameLobby({
           <CentralTableStage
             game={tableGame}
             state={tableState}
+            players={room.players}
+            maxSeats={room.maxPlayers}
             tableRef={(node) => {
               tableRef.current = node;
             }}

@@ -301,6 +301,7 @@ export function PlayerTokenDock({
             onClick={() => { playClickSound(); setExpanded((current) => !current); }}
             aria-expanded={expanded}
             aria-controls="player-token-customizer"
+            aria-label="말 설정"
             title="말 설정"
           >
             <ChevronDown size={17} aria-hidden="true" />

@@ -50,6 +50,7 @@ import { InteractiveCafeHome } from "./components/interactive-space/InteractiveC
 import { InteractiveGameLobby } from "./components/interactive-space/InteractiveGameLobby";
 import { InteractiveGameWrapper } from "./components/interactive-space/InteractiveGameWrapper";
 import { PlayerTokenPawn } from "./components/interactive-space/PlayerTokenDock";
+import { ClubWorldCanvas, type ClubWorldMode } from "./components/immersive/ClubWorldCanvas";
 import { games, getGameById } from "./shared/games";
 import { gameCoverSrc } from "./shared/gameCover";
 import { canPlayGame, formatAllowedPlayers, gameAvailabilityLabel } from "./shared/eligibility";
@@ -988,21 +989,47 @@ function App() {
     setNotice("이 브라우저의 저장된 방/플레이어 연결을 지우고 새 손님으로 시작합니다.");
   }
 
+  const viewMode: ClubWorldMode = !room ? "home" : room.status === "lobby" ? "lobby" : "play";
+  const viewTitle = viewMode === "home" ? "Table Hall" : viewMode === "lobby" ? "Game Library" : "Live Match";
+  const viewMeta = viewMode === "home"
+    ? `${roomList.length.toString().padStart(2, "0")} TABLES`
+    : viewMode === "lobby"
+      ? `ROOM ${room?.code ?? ""}`
+      : selectedGame?.title ?? "GAME TABLE";
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, [viewMode]);
+
   return (
-    <div className={`app-shell ${room ? `has-room ${room.status === "lobby" ? "is-lobby" : "is-playing"}` : "is-home"}`}>
+    <div
+      className={`app-shell ${room ? `has-room ${room.status === "lobby" ? "is-lobby" : "is-playing"}` : "is-home"}`}
+      data-view={viewMode}
+    >
+      <ClubWorldCanvas mode={viewMode} accent={selectedGame?.accent} />
       <a className="skip-link" href="#main">
         본문으로 이동
       </a>
       <header className="topbar">
-        <div className="brand-mark" aria-hidden="true">
-          <img src="/brand/brand-mark.svg" alt="" />
+        <div className="club-brand-lockup">
+          <div className="brand-mark" aria-hidden="true">
+            <img src="/brand/brand-mark.svg" alt="" />
+          </div>
+          <div className="club-brand-copy">
+            <span>THE TABLE SOCIETY</span>
+            <h1>Board Game Room</h1>
+          </div>
         </div>
-        <div>
-          <h1>Board Game Room</h1>
+        <div className="topbar-stage" data-state={viewMode === "home" ? connection : "connected"} aria-label="현재 위치">
+          <span className="topbar-stage-light" aria-hidden="true" />
+          <span className="topbar-stage-copy">
+            <strong>{viewTitle}</strong>
+            <small>{viewMeta}</small>
+          </span>
         </div>
       </header>
 
-      <main id="main">
+      <main id="main" className="club-page-surface">
         {room ? (
           <RoomView
             room={room}

@@ -111,12 +111,19 @@ export function CafeTableObject({
       >
         <span className="cafe-table-visual" aria-hidden="true">
           <span className="cafe-table-top cafe-empty-table-top">
+            <span className="cafe-empty-table-inlay" />
             <span className="cafe-empty-plus"><Plus size={22} strokeWidth={2} /></span>
+          </span>
+          <span className="cafe-empty-seat-map">
+            <i data-seat="top" />
+            <i data-seat="right" />
+            <i data-seat="bottom" />
+            <i data-seat="left" />
           </span>
         </span>
         <span className="cafe-table-copy">
           <strong>새 테이블</strong>
-          <small>{canCreate ? "방 만들기" : "이름을 먼저 입력하세요"}</small>
+          <small>{canCreate ? "게임 방 열기" : "이름을 먼저 입력하세요"}</small>
         </span>
       </button>
     );

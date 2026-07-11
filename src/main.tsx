@@ -6,6 +6,7 @@ import App from "./App";
 import "./styles.css";
 import "./gameplay-responsive.css";
 import "./design-polish.css";
+import "./immersive-design.css";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
