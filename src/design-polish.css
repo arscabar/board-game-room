@@ -279,15 +279,35 @@ body .cafe-home .player-token-dock [aria-grabbed="true"] {
     display: grid;
     gap: 6px;
     grid-template-columns: minmax(0, 1fr) minmax(112px, 34%);
+    inset-inline: 10px;
+    margin-inline: auto;
+    max-inline-size: 520px;
     order: 2 !important;
     padding: 6px;
-    position: sticky !important;
+    position: fixed !important;
+    width: auto;
     z-index: 35;
+  }
+
+  body .room-section.is-lobby .interactive-game-lobby .game-lobby-selection-rail {
+    align-items: center;
+    block-size: auto !important;
+    grid-template-columns: minmax(0, 1fr) minmax(138px, 44%);
+    grid-template-rows: auto;
+    min-block-size: 0 !important;
+    top: auto !important;
   }
 
   body .interactive-game-lobby .central-table-stage,
   body .interactive-game-lobby .central-table-frame,
   body .interactive-game-lobby .central-table-felt {
+    block-size: 78px !important;
+    min-block-size: 78px !important;
+  }
+
+  body .room-section.is-lobby .interactive-game-lobby .central-table-stage,
+  body .room-section.is-lobby .interactive-game-lobby .central-table-frame,
+  body .room-section.is-lobby .interactive-game-lobby .central-table-felt {
     block-size: 78px !important;
     min-block-size: 78px !important;
   }
@@ -322,11 +342,24 @@ body .cafe-home .player-token-dock [aria-grabbed="true"] {
   body .interactive-game-lobby .game-lobby-action-bar {
     align-content: stretch;
     display: grid !important;
+    grid-template-columns: minmax(58px, 1fr) minmax(72px, auto) !important;
+    block-size: auto !important;
+    min-inline-size: 0;
+    padding: 0 !important;
+    position: static !important;
+  }
+
+  body .interactive-game-lobby .game-lobby-timer-control > span:first-child {
+    display: none;
+  }
+
+  body .interactive-game-lobby .game-lobby-timer-control select {
+    inline-size: 100%;
     min-inline-size: 0;
   }
 
   body .interactive-game-lobby .game-lobby-start-button {
-    block-size: 100%;
+    block-size: 52px !important;
     min-block-size: 52px !important;
   }
 

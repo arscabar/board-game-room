@@ -79,7 +79,6 @@ export function InteractiveGameLobby({
   const [pointerDrag, setPointerDrag] = useState<PointerDragState | null>(null);
   const [pendingGameId, setPendingGameId] = useState<string | null>(null);
   const [suppressedClickGameId, setSuppressedClickGameId] = useState<string | null>(null);
-  const [shelfCollapsed, setShelfCollapsed] = useState(false);
 
   const serverSelectedGame = selectedGame ?? findGame(room.selectedGameId);
   const selectedGameId = serverSelectedGame?.id ?? null;
@@ -369,12 +368,9 @@ export function InteractiveGameLobby({
             playerCount={playerCount}
             isHost={isHost}
             selectedGameId={selectedGameId}
-            collapsed={shelfCollapsed}
-            canCollapse={Boolean(selectedGameId)}
             getBoxState={getBoxState}
             isGameAvailable={(game) => canPlayGame(game, playerCount)}
             getDragPosition={getDragPosition}
-            onToggleCollapsed={() => setShelfCollapsed((current) => !current)}
             onPreview={previewGame}
             onPreviewEnd={clearPreviewGame}
             onPlace={placeGame}
