@@ -32,14 +32,31 @@ type GameShelfViewportProps = {
   onPointerCancel: (event: ReactPointerEvent<HTMLButtonElement>) => void;
 };
 
-const playerCountTabs = [1, 2, 3, 4];
+type PlayerCountFilter = "all" | number;
 
-function pageSizeForViewport() {
+const playerCountTabs: Array<{ value: PlayerCountFilter; label: string }> = [
+  { value: "all", label: "전체" },
+  { value: 1, label: "1명" },
+  { value: 2, label: "2명" },
+  { value: 3, label: "3명" },
+  { value: 4, label: "4명" }
+];
+
+function gamesForFilter(games: GameDefinition[], filter: PlayerCountFilter) {
+  if (filter === "all") {
+    return games;
+  }
+
+  const playerCount = filter;
+  return games.filter((game) => game.allowedPlayerCounts.includes(playerCount));
+}
+
+function pageSizeForViewport(gameCount: number) {
   if (typeof window === "undefined") {
     return 8;
   }
   if (window.matchMedia("(max-width: 760px)").matches) {
-    return 4;
+    return Math.max(1, gameCount);
   }
   if (window.matchMedia("(max-width: 980px)").matches) {
     return 6;
@@ -63,47 +80,43 @@ export function GameShelfViewport({
   onPointerUp,
   onPointerCancel
 }: GameShelfViewportProps) {
-  const [activePlayerCount, setActivePlayerCount] = useState(() => Math.min(4, Math.max(1, playerCount || 1)));
-  const [pageSize, setPageSize] = useState(pageSizeForViewport);
+  const [activeFilter, setActiveFilter] = useState<PlayerCountFilter>("all");
+  const [pageSize, setPageSize] = useState(() => pageSizeForViewport(games.length));
   const [pageIndex, setPageIndex] = useState(0);
   const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
 
   useEffect(() => {
-    setActivePlayerCount(Math.min(4, Math.max(1, playerCount || 1)));
-  }, [playerCount]);
-
-  useEffect(() => {
-    const updatePageSize = () => setPageSize(pageSizeForViewport());
+    const updatePageSize = () => setPageSize(pageSizeForViewport(games.length));
     window.addEventListener("resize", updatePageSize);
     return () => window.removeEventListener("resize", updatePageSize);
-  }, []);
+  }, [games.length]);
 
   const tabItems = useMemo(
     () =>
-      playerCountTabs.map((count) => ({
-        count,
-        games: games.filter((game) => game.allowedPlayerCounts.includes(count))
+      playerCountTabs.map((tab) => ({
+        ...tab,
+        games: gamesForFilter(games, tab.value)
       })),
     [games]
   );
   const activeGames = useMemo(
-    () => games.filter((game) => game.allowedPlayerCounts.includes(activePlayerCount)),
-    [activePlayerCount, games]
+    () => gamesForFilter(games, activeFilter),
+    [activeFilter, games]
   );
   const pageCount = Math.max(1, Math.ceil(activeGames.length / pageSize));
   const visibleGames = activeGames.slice(pageIndex * pageSize, (pageIndex + 1) * pageSize);
-  const activeTabId = `game-shelf-tab-${activePlayerCount}`;
+  const activeTabId = `game-shelf-tab-${activeFilter}`;
 
   useEffect(() => {
     setPageIndex(0);
-  }, [activePlayerCount]);
+  }, [activeFilter]);
 
   useEffect(() => {
     setPageIndex((current) => Math.min(current, pageCount - 1));
   }, [pageCount]);
 
-  function selectPlayerCount(count: number) {
-    setActivePlayerCount(count);
+  function selectFilter(filter: PlayerCountFilter) {
+    setActiveFilter(filter);
     setPageIndex(0);
   }
 
@@ -127,8 +140,8 @@ export function GameShelfViewport({
     }
 
     event.preventDefault();
-    const nextCount = playerCountTabs[nextIndex];
-    selectPlayerCount(nextCount);
+    const nextFilter = playerCountTabs[nextIndex].value;
+    selectFilter(nextFilter);
     tabRefs.current[nextIndex]?.focus();
   }
 
@@ -136,8 +149,8 @@ export function GameShelfViewport({
     <section className="game-shelf-viewport" aria-labelledby="game-shelf-title">
       <div className="game-shelf-plaque">
         <div>
-          <h3 id="game-shelf-title">게임 고르기</h3>
-          <span>{activePlayerCount}명용 {activeGames.length}개</span>
+          <h3 id="game-shelf-title">게임 둘러보기</h3>
+          <span>{activeFilter === "all" ? `전체 게임 ${activeGames.length}개` : `${activeFilter}명용 ${activeGames.length}개`}</span>
         </div>
         {pageCount > 1 ? (
           <nav className="game-shelf-compact-nav" aria-label="게임 목록 빠른 이동">
@@ -149,32 +162,32 @@ export function GameShelfViewport({
             </button>
           </nav>
         ) : null}
-        <span className="game-shelf-page-readout" aria-live="polite">{pageIndex + 1} / {pageCount}</span>
+        {pageCount > 1 ? <span className="game-shelf-page-readout" aria-live="polite">{pageIndex + 1} / {pageCount}</span> : null}
       </div>
 
       <div className="game-shelf-player-tabs" role="tablist" aria-label="인원수별 게임 목록">
         {tabItems.map((tab, index) => {
-          const selected = activePlayerCount === tab.count;
+          const selected = activeFilter === tab.value;
           return (
             <button
-              key={tab.count}
-              id={`game-shelf-tab-${tab.count}`}
+              key={tab.value}
+              id={`game-shelf-tab-${tab.value}`}
               className="game-shelf-player-tab"
               type="button"
               role="tab"
               aria-selected={selected}
               aria-controls="game-shelf-panel"
-              aria-label={`${tab.count}명, 게임 ${tab.games.length}개`}
+              aria-label={tab.value === "all" ? `전체 게임 ${tab.games.length}개` : `${tab.value}명, 게임 ${tab.games.length}개`}
               tabIndex={selected ? 0 : -1}
               data-selected={selected ? "true" : "false"}
-              data-current={playerCount === tab.count ? "true" : "false"}
+              data-current={tab.value !== "all" && playerCount === tab.value ? "true" : "false"}
               ref={(node) => {
                 tabRefs.current[index] = node;
               }}
-              onClick={() => selectPlayerCount(tab.count)}
+              onClick={() => selectFilter(tab.value)}
               onKeyDown={(event) => handleTabKeyDown(event, index)}
             >
-              <span>{tab.count}명</span>
+              <span>{tab.label}</span>
               <small>{tab.games.length}</small>
             </button>
           );
@@ -197,7 +210,7 @@ export function GameShelfViewport({
           }
         }}
       >
-        <div className="game-shelf-page" key={`${activePlayerCount}-${pageIndex}`}>
+        <div className="game-shelf-page" key={`${activeFilter}-${pageIndex}`}>
           <div className="game-shelf-grid" role="list">
           {visibleGames.map((game) => {
             const available = isGameAvailable(game);

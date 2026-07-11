@@ -1,4 +1,4 @@
-import { CheckCircle2, Hand, LockKeyhole } from "lucide-react";
+import { CheckCircle2, Eye, Hand } from "lucide-react";
 import * as m from "motion/react-m";
 import { useEffect, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
 import { formatAllowedPlayers, gameAvailabilityLabel } from "../../shared/eligibility";
@@ -74,7 +74,7 @@ export function GameBoxObject({
   onPointerUp: (event: ReactPointerEvent<HTMLButtonElement>, game: GameDefinition) => void;
   onPointerCancel: (event: ReactPointerEvent<HTMLButtonElement>) => void;
 }) {
-  const disabled = !available || !isHost;
+  const canPlace = available && isHost;
   const stateLabel = selected
     ? "선택됨"
     : !available
@@ -82,6 +82,7 @@ export function GameBoxObject({
       : isHost
         ? "테이블에 놓기"
         : "방장 선택 대기";
+  const interactionLabel = canPlace ? stateLabel : `${stateLabel}, 미리보기`;
   const rootStyle = {
     "--game-accent": game.accent,
     "--game-drag-x": `${dragPosition?.x ?? 0}px`,
@@ -94,14 +95,14 @@ export function GameBoxObject({
       data-state={state}
       data-available={available ? "true" : "false"}
       data-selected={selected ? "true" : "false"}
+      data-browse-only={canPlace ? "false" : "true"}
       style={rootStyle}
     >
       <button
         type="button"
         className="game-box-main"
-        disabled={disabled}
         aria-pressed={selected}
-        aria-label={`${game.title}, ${formatAllowedPlayers(game)}, ${stateLabel}`}
+        aria-label={`${game.title}, ${formatAllowedPlayers(game)}, ${interactionLabel}`}
         onPointerDown={(event) => onPointerDown(event, game)}
         onPointerMove={(event) => onPointerMove(event, game)}
         onPointerUp={(event) => onPointerUp(event, game)}
@@ -121,8 +122,10 @@ export function GameBoxObject({
         onFocus={() => onPreview(game)}
         onBlur={() => onPreviewEnd(game)}
         onClick={() => {
-          if (!disabled) {
+          if (canPlace) {
             onPlace(game, "tap");
+          } else {
+            onPreview(game);
           }
         }}
       >
@@ -139,7 +142,7 @@ export function GameBoxObject({
           <small>{formatAllowedPlayers(game)}</small>
         </span>
         <span className="game-box-state">
-          {selected ? <CheckCircle2 size={15} aria-hidden="true" /> : available ? <Hand size={15} aria-hidden="true" /> : <LockKeyhole size={15} aria-hidden="true" />}
+          {selected ? <CheckCircle2 size={15} aria-hidden="true" /> : canPlace ? <Hand size={15} aria-hidden="true" /> : <Eye size={15} aria-hidden="true" />}
         </span>
         <span className="game-box-action">{stateLabel}</span>
       </button>

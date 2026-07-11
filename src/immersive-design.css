@@ -1147,8 +1147,13 @@ body .game-box-object[data-state="selected"] .game-box-main {
 }
 
 body .game-box-object[data-state="locked"] .game-box-main {
-  filter: grayscale(0.78) brightness(0.5);
-  transform: perspective(760px) translateZ(-16px) scale(0.94);
+  filter: grayscale(0.42) brightness(0.74);
+  transform: perspective(760px) translateZ(-8px) scale(0.97);
+}
+
+body .game-box-object[data-state="locked"] {
+  filter: grayscale(0.2) saturate(0.78);
+  opacity: 0.74;
 }
 
 body .game-lobby-action-bar {
@@ -1620,16 +1625,25 @@ body .room-section.is-playing .work-panel.play-panel {
     padding-top: 14px;
   }
 
+  body .interactive-game-lobby .game-lobby-selection-rail:has(.central-table-stage[data-game="empty"]) {
+    display: none !important;
+  }
+
+  body .game-lobby-layout:has(.central-table-stage[data-game="empty"]) .game-lobby-side,
+  body .room-section.is-lobby .interactive-game-lobby.is-game-lobby .game-lobby-layout:has(.central-table-stage[data-game="empty"]) .game-lobby-side {
+    grid-row: 1 !important;
+  }
+
   body .central-table-stage,
   body .room-section.is-lobby .interactive-game-lobby.is-game-lobby .central-table-stage,
   body .central-table-frame,
   body .room-section.is-lobby .interactive-game-lobby.is-game-lobby .central-table-frame {
-    min-height: 420px;
+    min-height: 300px;
   }
 
   body .room-section.is-lobby .interactive-game-lobby.is-game-lobby .central-table-stage {
-    min-block-size: 420px !important;
-    block-size: 420px !important;
+    min-block-size: 300px !important;
+    block-size: 300px !important;
   }
 
   body .central-table-frame,
@@ -1640,22 +1654,22 @@ body .room-section.is-playing .work-panel.play-panel {
 
   body .central-table-felt,
   body .room-section.is-lobby .interactive-game-lobby.is-game-lobby .central-table-felt {
-    min-height: 380px;
+    min-height: 260px;
     border-width: 7px;
     border-radius: 20px;
   }
 
   body .room-section.is-lobby .interactive-game-lobby.is-game-lobby .central-table-felt {
-    min-block-size: 380px !important;
+    min-block-size: 260px !important;
     block-size: auto !important;
   }
 
   body .unfolded-board-preview.selection-scene-surface {
-    min-height: 260px;
+    min-height: 180px;
   }
 
   body .game-selection-scene {
-    min-height: 230px;
+    min-height: 160px;
   }
 
   body .game-shelf-viewport,

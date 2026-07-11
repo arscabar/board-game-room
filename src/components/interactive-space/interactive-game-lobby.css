@@ -777,7 +777,7 @@
 .game-shelf-player-tabs {
   display: grid;
   gap: 7px;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: 1.15fr repeat(4, minmax(0, 1fr));
 }
 
 .game-shelf-player-tab {
@@ -2759,7 +2759,7 @@
   border-block-end: 1px solid var(--catalog-line);
   display: grid;
   gap: 0;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: 1.15fr repeat(4, minmax(0, 1fr));
 }
 
 .game-shelf-player-tab {
@@ -3502,6 +3502,10 @@ body .room-section.is-lobby .interactive-game-lobby.is-game-lobby .game-shelf-gr
 
   .game-shelf-grid {
     gap: 11px 9px !important;
+  }
+
+  .game-shelf-panel {
+    overflow: visible;
   }
 
   .game-box-lid,

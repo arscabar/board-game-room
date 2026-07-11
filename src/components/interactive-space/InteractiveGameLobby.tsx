@@ -8,7 +8,7 @@ import {
   type PointerEvent as ReactPointerEvent
 } from "react";
 import { games } from "../../shared/games";
-import { canPlayGame, formatAllowedPlayers, gameAvailabilityLabel } from "../../shared/eligibility";
+import { canPlayGame, formatAllowedPlayers } from "../../shared/eligibility";
 import { gameUsesTurnTimer, turnTimerOptions } from "../../shared/timers";
 import type { GameDefinition, RoomSnapshot } from "../../shared/types";
 import { CentralTableStage, type CentralTableState } from "./CentralTableStage";
@@ -85,7 +85,7 @@ export function InteractiveGameLobby({
   const focusedGame = findGame(focusedGameId);
   const placedGame = findGame(placedGameId) ?? serverSelectedGame;
   const draggedGame = findGame(pointerDrag?.gameId);
-  const tableGame = draggedGame ?? (tablePhase === "empty" || tablePhase === "focused" ? focusedGame : null) ?? placedGame;
+  const tableGame = draggedGame ?? focusedGame ?? placedGame;
   const turnTimerMs = room.gameState.turnTimerMs ?? turnTimerOptions[1]?.value ?? turnTimerOptions[0].value;
   const usesTurnTimer = gameUsesTurnTimer(serverSelectedGame?.id);
   const selectedMeta = serverSelectedGame ? `${serverSelectedGame.title} · ${formatAllowedPlayers(serverSelectedGame)}` : "게임 선택";
@@ -110,10 +110,11 @@ export function InteractiveGameLobby({
         .map(({ game }) => game),
     [playerCount]
   );
+  const availableGameCount = useMemo(() => games.filter((game) => canPlayGame(game, playerCount)).length, [playerCount]);
 
   const tableState: CentralTableState = pointerDrag?.overTable
     ? "focused"
-    : tablePhase === "empty" && focusedGame
+    : focusedGame
       ? "focused"
       : tablePhase;
 
@@ -286,9 +287,6 @@ export function InteractiveGameLobby({
 
   function getBoxState(game: GameDefinition): GameBoxState {
     const available = canPlayGame(game, playerCount);
-    if (!available) {
-      return "locked";
-    }
 
     if (pointerDrag?.gameId === game.id) {
       return pointerDrag.overTable ? "over-table" : "grabbed";
@@ -308,6 +306,10 @@ export function InteractiveGameLobby({
 
     if (focusedGameId === game.id) {
       return "focused";
+    }
+
+    if (!available) {
+      return "locked";
     }
 
     return "shelf";
@@ -341,7 +343,7 @@ export function InteractiveGameLobby({
           </div>
         </div>
         <p className="game-lobby-status" aria-live="polite">
-          {serverSelectedGame ? selectedMeta : gameAvailabilityLabel(sortedGames[0] ?? games[0], playerCount)}
+          {serverSelectedGame ? selectedMeta : `전체 ${games.length}개 · ${playerCount}명으로 ${availableGameCount}개 시작 가능`}
         </p>
         <div className="game-lobby-header-actions" aria-label="방 조작">
           <div className="game-lobby-player-tokens" aria-label="참가자">
