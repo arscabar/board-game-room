@@ -542,39 +542,52 @@ function VictoryEffectOverlay({
   winnerNames: string[];
   isDraw: boolean;
 }) {
-  const pieces = victoryPiecesFor(game);
   const winnerLabel = isDraw ? "무승부" : `${winnerNames.length > 0 ? winnerNames.join(", ") : "플레이어"} 승리`;
 
   return (
     <div
-      className={`victory-effect-overlay victory-kind-${game.table.kind} victory-game-${game.id}`}
+      className={`victory-effect-overlay ${isDraw ? "is-draw" : "is-win"}`}
       style={{ "--victory-accent": game.accent } as CSSProperties}
       aria-hidden="true"
     >
-      <div className="victory-effect-rays">
-        {Array.from({ length: 10 }, (_, index) => (
-          <span key={index} style={{ "--ray-index": index } as CSSProperties} />
-        ))}
+      <div className="victory-unified-orbits">
+        {Array.from({ length: 3 }, (_, index) => <span key={index} />)}
       </div>
-      <div className="victory-piece-field">
-        {pieces.map((piece, index) => (
-          <span
-            key={`${piece}-${index}`}
-            className={`victory-piece piece-${index + 1}`}
-            style={{ "--piece-index": index } as CSSProperties}
-          >
-            {piece ? <b>{piece}</b> : null}
-          </span>
-        ))}
+      <div className="victory-unified-sparks">
+        {Array.from({ length: 12 }, (_, index) => <i key={index} />)}
+      </div>
+      <div className="victory-unified-medallion">
+        <span aria-hidden="true"><Trophy size={42} /></span>
       </div>
       <div className="victory-effect-banner">
-        <span>{isDraw ? "경기 종료" : "승리"}</span>
+        <span>{isDraw ? "경기 종료" : "결과 확정"}</span>
         <strong>{winnerLabel}</strong>
         <small>{game.title}</small>
       </div>
     </div>
   );
 }
+
+function VictoryBoardCue({ game, isDraw }: { game: GameDefinition; isDraw: boolean }) {
+  return (
+    <div
+      className="victory-board-cue"
+      style={{ "--victory-accent": game.accent } as CSSProperties}
+      role="status"
+      aria-live="polite"
+    >
+      <CheckCircle2 size={18} aria-hidden="true" />
+      <span>
+        <small>{isDraw ? "결과 집계 중" : "마지막 수 확정"}</small>
+        <strong>판을 확인하세요</strong>
+      </span>
+      <i aria-hidden="true" />
+    </div>
+  );
+}
+
+const POST_GAME_SETTLE_MS = 3000;
+const POST_GAME_DIALOG_MS = 5200;
 
 function playerAccent(player: PlayerSnapshot) {
   return seatAccentColors[(Math.max(1, player.seat) - 1) % seatAccentColors.length];
@@ -2149,7 +2162,8 @@ function PlayPanel({
 }) {
   const [action, setAction] = useState("");
   const [now, setNow] = useState(() => Date.now());
-  const [postGameRevealStage, setPostGameRevealStage] = useState<"idle" | "effect" | "dialog">("idle");
+  const [postGameRevealStage, setPostGameRevealStage] = useState<"idle" | "settle" | "effect" | "dialog">("idle");
+  const postGameDialogRef = useRef<HTMLElement | null>(null);
   const isMyTurn = currentPlayer?.id === activePlayer?.id;
   const GameComponent = getGameComponent(selectedGame?.id);
   const phase = runtimePhase(room);
@@ -2203,10 +2217,9 @@ function PlayPanel({
   const postGameRevealKey = isFinished
     ? `${room.code}-${selectedGame?.id ?? "game"}-${phase}-${winnerIds.join("|") || winnerId || "draw"}-${room.gameState.turnNumber}`
     : "";
-  const showPostGameEffect = isFinished && postGameRevealStage !== "idle";
+  const showPostGameSettle = isFinished && postGameRevealStage === "settle";
+  const showPostGameEffect = isFinished && (postGameRevealStage === "effect" || postGameRevealStage === "dialog");
   const showPostGameDialog = isFinished && postGameRevealStage === "dialog";
-  const postGameEffectDelay = selectedGame?.id === "masterpiece-copy" ? 7600 : 620;
-  const postGameDialogDelay = selectedGame?.id === "masterpiece-copy" ? 9300 : 1850;
 
   useEffect(() => {
     if (!usesTurnTimer || isFinished || paused || !room.gameState.turnDeadlineAt) {
@@ -2222,14 +2235,20 @@ function PlayPanel({
       return;
     }
 
-    setPostGameRevealStage("idle");
-    const effectTimer = window.setTimeout(() => setPostGameRevealStage("effect"), postGameEffectDelay);
-    const dialogTimer = window.setTimeout(() => setPostGameRevealStage("dialog"), postGameDialogDelay);
+    setPostGameRevealStage("settle");
+    const effectTimer = window.setTimeout(() => setPostGameRevealStage("effect"), POST_GAME_SETTLE_MS);
+    const dialogTimer = window.setTimeout(() => setPostGameRevealStage("dialog"), POST_GAME_DIALOG_MS);
     return () => {
       window.clearTimeout(effectTimer);
       window.clearTimeout(dialogTimer);
     };
-  }, [isFinished, postGameRevealKey, postGameEffectDelay, postGameDialogDelay]);
+  }, [isFinished, postGameRevealKey]);
+
+  useEffect(() => {
+    if (postGameRevealStage === "dialog") {
+      postGameDialogRef.current?.focus();
+    }
+  }, [postGameRevealStage]);
 
   async function advanceTurn() {
     const response = await emitWithAck<RoomSnapshot>("room:advance-turn", { code: room.code });
@@ -2396,7 +2415,11 @@ function PlayPanel({
       </div>
 
       {GameComponent && selectedGame ? (
-        <div className="game-module-shell">
+        <div
+          className={`game-module-shell ${showPostGameSettle ? "is-result-settling" : ""}`}
+          data-game-id={selectedGame.id}
+          style={{ "--victory-accent": selectedGame.accent } as CSSProperties}
+        >
           <InteractiveGameWrapper isMyTurn={isMyTurn}>
             <Suspense fallback={<GameModuleLoading game={selectedGame} />}>
               <GameComponent
@@ -2410,6 +2433,9 @@ function PlayPanel({
               />
             </Suspense>
           </InteractiveGameWrapper>
+          {showPostGameSettle ? (
+            <VictoryBoardCue game={selectedGame} isDraw={winnerIds.length === 0 && !winnerId} />
+          ) : null}
         </div>
       ) : (
         <BoardPreview game={selectedGame} activePlayer={activePlayer} />
@@ -2437,7 +2463,14 @@ function PlayPanel({
             />
           ) : null}
           {showPostGameDialog ? (
-            <section className="post-game-dialog" role="dialog" aria-modal="true" aria-labelledby="post-game-title">
+            <section
+              className="post-game-dialog"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="post-game-title"
+              ref={postGameDialogRef}
+              tabIndex={-1}
+            >
               <div className="post-game-emblem" aria-hidden="true">
                 <Trophy size={28} />
               </div>
@@ -2460,6 +2493,10 @@ function PlayPanel({
               ) : null}
 
               <div className="post-game-actions">
+                <BoardButton className="post-game-same-room-action" tone="primary" type="button" onClick={() => choosePostGame("game-select")}>
+                  <Users size={15} aria-hidden="true" />
+                  같은 인원으로 게임 선택
+                </BoardButton>
                 <BoardButton
                   type="button"
                   onClick={() => choosePostGame("rematch")}
@@ -2467,10 +2504,6 @@ function PlayPanel({
                 >
                   <RefreshCw size={15} aria-hidden="true" />
                   다시 한 판
-                </BoardButton>
-                <BoardButton className="post-game-same-room-action" tone="primary" type="button" onClick={() => choosePostGame("game-select")}>
-                  <Users size={15} aria-hidden="true" />
-                  같은 인원으로 게임 선택
                 </BoardButton>
                 <BoardButton tone="secondary" type="button" onClick={() => choosePostGame("leave-room")}>
                   <DoorOpen size={15} aria-hidden="true" />

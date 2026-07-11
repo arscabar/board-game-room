@@ -9,6 +9,7 @@ import "./design-polish.css";
 import "./immersive-design.css";
 import "./gameplay-legibility.css";
 import "./gameplay-craft.css";
+import "./victory-sequence.css";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

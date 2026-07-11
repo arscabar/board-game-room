@@ -1,0 +1,449 @@
+/* Shared finish ceremony: board first, result second. */
+body .room-section.is-playing .game-module-shell.is-result-settling {
+  --result-board-glow: color-mix(in srgb, var(--victory-accent, #d0a253) 48%, transparent);
+  isolation: isolate;
+}
+
+body .room-section.is-playing .game-module-shell.is-result-settling::before {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  z-index: 12;
+  pointer-events: none;
+  border: 1px solid color-mix(in srgb, var(--victory-accent, #d0a253) 62%, #f8ddb0);
+  border-radius: 8px;
+  opacity: 0;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 244, 214, 0.12),
+    0 0 24px var(--result-board-glow);
+  animation: result-frame-confirm 2.8s ease-out both;
+}
+
+body .room-section.is-playing .victory-board-cue {
+  position: absolute;
+  left: 50%;
+  bottom: clamp(10px, 2.4vw, 22px);
+  z-index: 14;
+  width: min(calc(100% - 20px), 330px);
+  min-height: 48px;
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) 42px;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 9px;
+  border: 1px solid color-mix(in srgb, var(--victory-accent) 58%, #f2d59c);
+  border-radius: 7px;
+  color: #fff4d5;
+  background:
+    linear-gradient(100deg, color-mix(in srgb, var(--victory-accent) 18%, transparent), transparent 42%),
+    rgba(20, 13, 8, 0.94);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 239, 198, 0.13),
+    0 10px 24px rgba(0, 0, 0, 0.34);
+  pointer-events: none;
+  transform: translate(-50%, 12px);
+  opacity: 0;
+  animation: result-cue-in 360ms cubic-bezier(0.16, 1, 0.3, 1) 220ms forwards;
+}
+
+body .room-section.is-playing .victory-board-cue > svg {
+  color: color-mix(in srgb, var(--victory-accent) 54%, #fff0bd);
+  stroke-width: 2.3;
+}
+
+body .room-section.is-playing .victory-board-cue > span {
+  min-width: 0;
+  display: grid;
+  gap: 1px;
+}
+
+body .room-section.is-playing .victory-board-cue small,
+body .room-section.is-playing .victory-board-cue strong {
+  overflow: hidden;
+  letter-spacing: 0;
+  line-height: 1.12;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+body .room-section.is-playing .victory-board-cue small {
+  color: #d8c39b;
+  font-size: 0.66rem;
+  font-weight: 800;
+}
+
+body .room-section.is-playing .victory-board-cue strong {
+  color: #fff8e7;
+  font-size: 0.86rem;
+  font-weight: 950;
+}
+
+body .room-section.is-playing .victory-board-cue > i {
+  position: relative;
+  display: block;
+  width: 38px;
+  height: 3px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 240, 204, 0.12);
+}
+
+body .room-section.is-playing .victory-board-cue > i::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: color-mix(in srgb, var(--victory-accent) 62%, #ffe6a4);
+  transform-origin: left center;
+  animation: result-cue-progress 2.45s linear 380ms both;
+}
+
+body .room-section.is-playing .game-module-shell.is-result-settling :is(
+  .guryongtu-choice-panel,
+  .qdr-board,
+  .abl-board,
+  .gho-board-wrap,
+  .qaw-3d-stage,
+  .omok-board,
+  .alk-board,
+  .kkuk-board,
+  .dvc-racks,
+  .blokus-board,
+  .painting-studio,
+  .yacht-throw-tray,
+  .yinsh-board-wrap,
+  .hangman-guess-panel
+) {
+  transform-origin: center;
+  animation: result-board-settle 2.75s ease-out both !important;
+}
+
+body .post-game-dialog-backdrop {
+  background:
+    radial-gradient(circle at 50% 42%, rgba(35, 23, 13, 0.1), rgba(7, 5, 3, 0.72)),
+    rgba(0, 0, 0, 0.34) !important;
+  backdrop-filter: blur(4px) saturate(0.88) !important;
+  animation: unified-backdrop-in 480ms ease-out both !important;
+}
+
+body .victory-effect-overlay {
+  --victory-accent: #d39a44;
+  display: grid !important;
+  place-items: center !important;
+}
+
+body .victory-effect-overlay::before,
+body .victory-effect-overlay::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  border-radius: 999px;
+  transform: translate(-50%, -50%);
+}
+
+body .victory-effect-overlay::before {
+  width: min(78vw, 660px) !important;
+  aspect-ratio: 1;
+  background:
+    radial-gradient(circle, color-mix(in srgb, var(--victory-accent) 32%, transparent) 0 9%, transparent 48%),
+    radial-gradient(circle, rgba(255, 232, 177, 0.14), transparent 62%) !important;
+  filter: none !important;
+  animation: unified-victory-glow 1.9s ease-out both !important;
+}
+
+body .victory-effect-overlay::after {
+  width: min(64vw, 500px) !important;
+  aspect-ratio: 1;
+  border: 1px solid color-mix(in srgb, var(--victory-accent) 70%, #ffe6ad) !important;
+  box-shadow:
+    0 0 0 9px color-mix(in srgb, var(--victory-accent) 9%, transparent),
+    inset 0 0 34px color-mix(in srgb, var(--victory-accent) 18%, transparent) !important;
+  animation: unified-victory-ring 1.7s cubic-bezier(0.16, 1, 0.3, 1) both !important;
+}
+
+body .victory-unified-orbits,
+body .victory-unified-sparks {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+body .victory-unified-orbits span {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: min(54vw, 430px);
+  aspect-ratio: 1;
+  border: 1px solid color-mix(in srgb, var(--victory-accent) 54%, transparent);
+  border-radius: 50%;
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.3);
+  animation: unified-orbit-open 1.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+body .victory-unified-orbits span:nth-child(2) {
+  width: min(64vw, 500px);
+  border-color: color-mix(in srgb, var(--victory-accent) 42%, transparent);
+  animation-delay: 100ms;
+}
+
+body .victory-unified-orbits span:nth-child(3) {
+  width: min(74vw, 570px);
+  border-color: color-mix(in srgb, var(--victory-accent) 30%, transparent);
+  animation-delay: 200ms;
+}
+
+body .victory-unified-sparks i {
+  --spark-angle: 0deg;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 4px;
+  height: clamp(34px, 8vh, 72px);
+  border-radius: 999px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--victory-accent) 66%, #fff0bd), transparent);
+  opacity: 0;
+  transform-origin: 50% 0;
+  transform: rotate(var(--spark-angle)) translateY(-74px) scaleY(0);
+  animation: unified-spark-out 1.25s ease-out 180ms both;
+}
+
+body .victory-unified-sparks i:nth-child(2) { --spark-angle: 30deg; animation-delay: 204ms; }
+body .victory-unified-sparks i:nth-child(3) { --spark-angle: 60deg; animation-delay: 228ms; }
+body .victory-unified-sparks i:nth-child(4) { --spark-angle: 90deg; animation-delay: 252ms; }
+body .victory-unified-sparks i:nth-child(5) { --spark-angle: 120deg; animation-delay: 276ms; }
+body .victory-unified-sparks i:nth-child(6) { --spark-angle: 150deg; animation-delay: 300ms; }
+body .victory-unified-sparks i:nth-child(7) { --spark-angle: 180deg; animation-delay: 324ms; }
+body .victory-unified-sparks i:nth-child(8) { --spark-angle: 210deg; animation-delay: 348ms; }
+body .victory-unified-sparks i:nth-child(9) { --spark-angle: 240deg; animation-delay: 372ms; }
+body .victory-unified-sparks i:nth-child(10) { --spark-angle: 270deg; animation-delay: 396ms; }
+body .victory-unified-sparks i:nth-child(11) { --spark-angle: 300deg; animation-delay: 420ms; }
+body .victory-unified-sparks i:nth-child(12) { --spark-angle: 330deg; animation-delay: 444ms; }
+
+body .victory-unified-medallion {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 2;
+  width: clamp(88px, 18vw, 132px);
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border: 2px solid color-mix(in srgb, var(--victory-accent) 74%, #ffe9b5);
+  border-radius: 50%;
+  color: #241409;
+  background:
+    radial-gradient(circle at 34% 27%, rgba(255, 255, 255, 0.7), transparent 16%),
+    linear-gradient(145deg, #ffe8aa, color-mix(in srgb, var(--victory-accent) 78%, #8a4c24));
+  box-shadow:
+    inset 0 0 0 6px rgba(73, 36, 12, 0.14),
+    inset 0 -10px 18px rgba(84, 39, 12, 0.22),
+    0 18px 44px rgba(0, 0, 0, 0.42);
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.36) rotate(-12deg);
+  animation: unified-medallion-lock 1.25s cubic-bezier(0.16, 1, 0.3, 1) 180ms both;
+}
+
+body .victory-unified-medallion > span {
+  width: 64%;
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(73, 36, 12, 0.28);
+  border-radius: 50%;
+  box-shadow: inset 0 0 12px rgba(255, 245, 208, 0.28);
+}
+
+body .victory-unified-medallion svg {
+  width: 58%;
+  height: 58%;
+  stroke-width: 1.8;
+}
+
+body .victory-effect-banner {
+  top: clamp(28px, 8vh, 72px) !important;
+  z-index: 3 !important;
+  min-width: min(84vw, 390px) !important;
+  border-radius: 7px !important;
+  transform: translate(-50%, -14px) scale(0.97) !important;
+  animation: unified-banner-in 650ms cubic-bezier(0.16, 1, 0.3, 1) 520ms both !important;
+}
+
+body .post-game-dialog {
+  border-radius: 8px !important;
+  animation: unified-dialog-rise 520ms cubic-bezier(0.16, 1, 0.3, 1) both !important;
+}
+
+body .post-game-dialog-backdrop.reveal-dialog .victory-effect-overlay {
+  animation: unified-ceremony-out 260ms ease-out both !important;
+}
+
+body .post-game-dialog-backdrop.reveal-dialog .post-game-dialog {
+  animation-delay: 160ms !important;
+}
+
+body .post-game-actions .post-game-same-room-action {
+  grid-column: 1 / -1;
+}
+
+body .post-game-dialog:focus {
+  outline: none;
+}
+
+@keyframes result-frame-confirm {
+  0% { opacity: 0; box-shadow: 0 0 0 transparent; }
+  18% { opacity: 0.94; }
+  68% { opacity: 0.54; }
+  100% { opacity: 0.18; box-shadow: 0 0 12px transparent; }
+}
+
+@keyframes result-cue-in {
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+@keyframes result-cue-progress {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+@keyframes result-board-settle {
+  0% { filter: brightness(1.08) saturate(1.08); transform: scale(1.004); }
+  16% { filter: brightness(1.03) saturate(1.04); transform: scale(1); }
+  100% { filter: none; transform: scale(1); }
+}
+
+@keyframes unified-backdrop-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes unified-victory-glow {
+  from { opacity: 0; transform: translate(-50%, -50%) scale(0.42); }
+  55% { opacity: 1; }
+  to { opacity: 0.58; transform: translate(-50%, -50%) scale(1); }
+}
+
+@keyframes unified-victory-ring {
+  from { opacity: 0; transform: translate(-50%, -50%) scale(0.18); }
+  70% { opacity: 0.9; }
+  to { opacity: 0.34; transform: translate(-50%, -50%) scale(1.04); }
+}
+
+@keyframes unified-orbit-open {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.28); }
+  46% { opacity: 0.72; }
+  100% { opacity: 0.16; transform: translate(-50%, -50%) scale(1); }
+}
+
+@keyframes unified-spark-out {
+  0% { opacity: 0; transform: rotate(var(--spark-angle)) translateY(-58px) scaleY(0); }
+  32% { opacity: 0.9; }
+  100% { opacity: 0; transform: rotate(var(--spark-angle)) translateY(-150px) scaleY(1); }
+}
+
+@keyframes unified-medallion-lock {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.36) rotate(-12deg); }
+  64% { opacity: 1; transform: translate(-50%, -50%) scale(1.06) rotate(2deg); }
+  100% { opacity: 1; transform: translate(-50%, -50%) scale(1) rotate(0); }
+}
+
+@keyframes unified-banner-in {
+  from { opacity: 0; transform: translate(-50%, -14px) scale(0.97); }
+  to { opacity: 1; transform: translate(-50%, 0) scale(1); }
+}
+
+@keyframes unified-dialog-rise {
+  from { opacity: 0; transform: translateY(16px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes unified-ceremony-out {
+  from { opacity: 1; transform: scale(1); }
+  to { opacity: 0; transform: scale(1.035); }
+}
+
+@media (max-width: 520px) {
+  body .room-section.is-playing .victory-board-cue {
+    position: sticky;
+    left: auto;
+    bottom: 6px;
+    width: calc(100% - 12px);
+    margin: -54px auto 6px;
+    transform: translateY(10px);
+    animation-name: result-cue-in-mobile;
+  }
+
+  body .victory-unified-medallion {
+    top: 52%;
+  }
+}
+
+@keyframes result-cue-in-mobile {
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body .room-section.is-playing .game-module-shell.is-result-settling::before,
+  body .room-section.is-playing .victory-board-cue,
+  body .room-section.is-playing .victory-board-cue > i::after,
+  body .room-section.is-playing .game-module-shell.is-result-settling :is(
+    .guryongtu-choice-panel,
+    .qdr-board,
+    .abl-board,
+    .gho-board-wrap,
+    .qaw-3d-stage,
+    .omok-board,
+    .alk-board,
+    .kkuk-board,
+    .dvc-racks,
+    .blokus-board,
+    .painting-studio,
+    .yacht-throw-tray,
+    .yinsh-board-wrap,
+    .hangman-guess-panel
+  ),
+  body .post-game-dialog-backdrop,
+  body .post-game-dialog-backdrop.reveal-dialog .victory-effect-overlay,
+  body .victory-effect-overlay::before,
+  body .victory-effect-overlay::after,
+  body .victory-unified-orbits span,
+  body .victory-unified-sparks i,
+  body .victory-unified-medallion,
+  body .victory-effect-banner,
+  body .post-game-dialog {
+    animation: none !important;
+  }
+
+  body .room-section.is-playing .game-module-shell.is-result-settling::before,
+  body .room-section.is-playing .victory-board-cue,
+  body .post-game-dialog-backdrop,
+  body .victory-unified-medallion,
+  body .victory-effect-banner,
+  body .post-game-dialog {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  body .post-game-dialog-backdrop.reveal-dialog .victory-effect-overlay {
+    opacity: 0 !important;
+  }
+
+  body .room-section.is-playing .victory-board-cue {
+    transform: translateX(-50%) !important;
+  }
+
+  body .victory-unified-medallion {
+    transform: translate(-50%, -50%) !important;
+  }
+
+  body .victory-effect-banner {
+    transform: translate(-50%, 0) !important;
+  }
+}
+
+@media (max-width: 520px) and (prefers-reduced-motion: reduce) {
+  body .room-section.is-playing .victory-board-cue {
+    transform: none !important;
+  }
+}
