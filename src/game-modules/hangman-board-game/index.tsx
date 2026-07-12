@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { CSSProperties, FormEvent } from "react";
+import { Eye, EyeOff, LockKeyhole, RotateCcw, Search } from "lucide-react";
 import type { GameAction, GameComponentProps, GameContext, GameModule } from "../types";
 import type { PlayerSnapshot } from "../../shared/types";
 import { useInteractionGate } from "../useInteractionGate";
@@ -545,8 +546,14 @@ function WordDisplay({ letters }: { letters: string[] }) {
 }
 
 function HangmanToyBoard({ misses = 0, maxMisses = MAX_MISSES }: { misses?: number; maxMisses?: number }) {
+  const progress = `${Math.min(100, Math.max(0, (misses / maxMisses) * 100))}%`;
+
   return (
-    <div className="hangman-toy-board" aria-hidden="true">
+    <div className="hangman-toy-board" style={{ "--hangman-progress": progress } as CSSProperties} aria-hidden="true">
+      <div className="hangman-toy-status">
+        <span>오답 조립 단계</span>
+        <strong>{misses}<small>/{maxMisses}</small></strong>
+      </div>
       <div className="hangman-toy-letters">
         {ALPHABET.map((letter, index) => (
           <span className={index % 2 === 0 ? "red" : "blue"} key={letter}>
@@ -556,6 +563,8 @@ function HangmanToyBoard({ misses = 0, maxMisses = MAX_MISSES }: { misses?: numb
       </div>
       <div className="hangman-toy-figure">
         <div className="hangman-gallows">
+          <span className="hangman-base" />
+          <span className="hangman-brace" />
           <span className="hangman-post" />
           <span className="hangman-beam" />
           <span className="hangman-rope" />
@@ -568,11 +577,42 @@ function HangmanToyBoard({ misses = 0, maxMisses = MAX_MISSES }: { misses?: numb
         </div>
         <div className="hangman-miss-track">
           {Array.from({ length: maxMisses }, (_, index) => (
-            <span className={index < misses ? "lit" : ""} key={index} />
+            <span className={index < misses ? "lit" : ""} key={index}>
+              <i>{index + 1}</i>
+            </span>
           ))}
         </div>
       </div>
     </div>
+  );
+}
+
+function HangmanScoreRail({ state, players }: { state: HangmanPublicState; players: PlayerSnapshot[] }) {
+  return (
+    <section className="hangman-score-rail" aria-label={`행맨 ${state.roundNumber}라운드 점수`}>
+      <div className="hangman-round-dial">
+        <small>라운드</small>
+        <strong>{state.roundNumber}</strong>
+        <span>{state.targetWins}승 선취</span>
+      </div>
+      <div className="hangman-score-players">
+        {state.playerIds.map((playerId) => {
+          const wins = state.wins[playerId] ?? 0;
+          const active = state.activePlayerId === playerId;
+          return (
+            <div className={`hangman-score-player ${active ? "active" : ""}`} key={playerId}>
+              <span title={getPlayerName(players, playerId)}>{getPlayerName(players, playerId)}</span>
+              <div className="hangman-score-lamps" aria-hidden="true">
+                {Array.from({ length: state.targetWins }, (_, index) => (
+                  <i className={index < wins ? "filled" : ""} key={index} />
+                ))}
+              </div>
+              <strong>{wins}<small>승</small></strong>
+            </div>
+          );
+        })}
+      </div>
+    </section>
   );
 }
 
@@ -649,7 +689,7 @@ export function Component({
     <section className={`game-module hangman-module ${isSubmitting ? "is-submitting" : ""}`} style={styles.shell} aria-label="행맨 보드게임">
       {state.phase === "setup" ? (
         <article className="hangman-setup-panel" style={styles.panel}>
-          <h3>비밀 단어 준비</h3>
+          <h3 className="hangman-section-heading"><LockKeyhole size={19} aria-hidden="true" /> 비밀 단어 준비</h3>
           <HangmanToyBoard maxMisses={state.maxMisses} />
           <div className="hangman-setup-grid" style={styles.grid}>
             {state.playerIds.map((playerId) => (
@@ -660,6 +700,7 @@ export function Component({
                   <div className="hangman-secret-lock">
                     <p>{showOwnSecret ? `내 단어: ${state.setup.ownSecret}` : "내 단어 숨김"}</p>
                     <button type="button" onClick={() => setShowOwnSecret((value) => !value)}>
+                      {showOwnSecret ? <EyeOff size={15} aria-hidden="true" /> : <Eye size={15} aria-hidden="true" />}
                       {showOwnSecret ? "숨기기" : "확인"}
                     </button>
                     <small>교대 전 숨기기</small>
@@ -682,7 +723,8 @@ export function Component({
                 />
               </label>
               <button type="submit" disabled={disabled || isSubmitting || !normalizeWord(secretWord)}>
-                제출
+                <LockKeyhole size={16} aria-hidden="true" />
+                단어 잠그기
               </button>
             </form>
           ) : null}
@@ -691,6 +733,7 @@ export function Component({
 
       {state.phase !== "setup" ? (
         <>
+          <HangmanScoreRail state={state} players={players} />
           <div className="hangman-board-grid" style={styles.grid}>
             {state.playerIds.map((playerId) => {
               const isOwnSecret = myId === playerId;
@@ -709,22 +752,33 @@ export function Component({
             style={{ ...styles.panel, "--misses": myProgress?.misses ?? 0 } as CSSProperties}
           >
               <div className="hangman-turn-meta" style={styles.meta}>
-                <strong>
-                {state.phase === "complete"
-                  ? "매치 종료"
-                  : state.phase === "round-complete"
-                    ? "라운드 종료"
-                    : `${getPlayerName(players, state.activePlayerId)} 추측 차례`}
-              </strong>
-              {myProgress ? (
-                <span>
-                  오답: {myProgress.misses}/{state.maxMisses}
-                </span>
-              ) : null}
+                <div className="hangman-turn-copy">
+                  <small>{state.phase === "guessing" ? `ROUND ${state.roundNumber}` : "RESULT"}</small>
+                  <strong>
+                    {state.phase === "complete"
+                      ? "매치 종료"
+                      : state.phase === "round-complete"
+                        ? "라운드 종료"
+                        : `${getPlayerName(players, state.activePlayerId)} 추측 차례`}
+                  </strong>
+                </div>
+                {state.lastGuess ? (
+                  <div
+                    className={`hangman-last-verdict ${state.lastGuess.hit ? "hit" : "miss"}`}
+                    key={`${state.roundNumber}-${state.lastGuess.playerId}-${state.lastGuess.kind}-${state.lastGuess.guess}`}
+                    aria-live="polite"
+                  >
+                    <small>최근 판정</small>
+                    <strong>{state.lastGuess.guess}</strong>
+                    <span>{state.lastGuess.hit ? "적중" : "오답"}</span>
+                  </div>
+                ) : null}
+                {myProgress ? <span className="hangman-error-count">오답 {myProgress.misses}/{state.maxMisses}</span> : null}
             </div>
 
             <div className="hangman-target-card">
-              <div>
+              <div className="hangman-target-word">
+                <small>해독 대상</small>
                 <strong>{targetName ? `${targetName} 단어` : "대기"}</strong>
                 <WordDisplay letters={targetLetters} />
               </div>
@@ -738,6 +792,7 @@ export function Component({
                   {state.roundNumber}라운드 종료 · 목표 {state.targetWins}승
                 </span>
                 <button type="button" disabled={isSubmitting} onClick={() => submitAction({ type: "hangman-board-game/next-round" })}>
+                  <RotateCcw size={16} aria-hidden="true" />
                   다음 라운드
                 </button>
               </div>
@@ -753,6 +808,7 @@ export function Component({
             ) : null}
 
             <div className="hangman-console-top" aria-hidden="true">
+              <span className="hangman-console-label">오답 조립판</span>
               <HangmanToyBoard misses={myProgress?.misses ?? 0} maxMisses={state.maxMisses} />
             </div>
 
@@ -790,7 +846,8 @@ export function Component({
                 />
               </label>
               <button type="submit" disabled={!canGuess || isSubmitting || !normalizeWord(wholeWord)}>
-                단어 추측
+                <Search size={16} aria-hidden="true" />
+                정답 확인
               </button>
             </form>
 
