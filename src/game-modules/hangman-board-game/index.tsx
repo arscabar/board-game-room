@@ -581,8 +581,8 @@ function HangmanToyBoard({ misses = 0, maxMisses = MAX_MISSES }: { misses?: numb
             </span>
             <span className={`hangman-robot-part robot-body ${misses >= 2 ? "is-assembled" : ""}`}>
               <i className="hangman-mannequin-grain" />
-              <i className="hangman-mannequin-waist" />
             </span>
+            <span className={`hangman-robot-part hangman-mannequin-pelvis ${misses >= 2 ? "is-assembled" : ""}`} />
             <span className={`hangman-robot-part robot-arm robot-arm-left ${misses >= 3 ? "is-assembled" : ""}`} />
             <span className={`hangman-robot-part robot-arm robot-arm-right ${misses >= 4 ? "is-assembled" : ""}`} />
             <span className={`hangman-robot-part robot-leg robot-leg-left ${misses >= 5 ? "is-assembled" : ""}`} />

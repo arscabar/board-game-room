@@ -1179,7 +1179,7 @@ body .room-section.is-playing .hangman-robot-bay {
   isolation: isolate;
   width: 100%;
   max-width: 236px;
-  min-height: 250px;
+  min-height: 288px;
   margin-inline: auto;
   overflow: hidden;
   border: 2px solid #38534d;
@@ -1317,7 +1317,7 @@ body .room-section.is-playing .hangman-robot-cable {
   top: 28px;
   left: calc(50% - 2px);
   width: 4px;
-  height: 37px;
+  height: 27px;
   display: block;
   border: 1px solid #263d39;
   background:
@@ -1329,9 +1329,9 @@ body .room-section.is-playing .hangman-robot-cable {
 body .room-section.is-playing .hangman-robot-clamp {
   position: absolute;
   z-index: 10;
-  top: 62px;
-  left: calc(50% - 16px);
-  width: 32px;
+  top: 52px;
+  left: calc(50% - 14px);
+  width: 28px;
   height: 8px;
   display: block;
   border: 2px solid #35231b;
@@ -1408,10 +1408,10 @@ body .room-section.is-playing .robot-head {
   --robot-highlight: #f4d8ad;
   --robot-shadow-color: #815237;
   z-index: 7;
-  top: 70px;
-  left: calc(50% - 15px);
-  width: 30px;
-  height: 34px;
+  top: 58px;
+  left: calc(50% - 11px);
+  width: 22px;
+  height: 26px;
   border: 2px solid #6c432c;
   border-radius: 48% 48% 44% 44% / 43% 43% 54% 54%;
 }
@@ -1421,8 +1421,8 @@ body .room-section.is-playing .robot-head::before {
   position: absolute;
   z-index: -1;
   top: -7px;
-  left: 9px;
-  width: 8px;
+  left: 6px;
+  width: 6px;
   height: 9px;
   border: 2px solid #6c432c;
   border-radius: 5px 5px 2px 2px;
@@ -1434,9 +1434,9 @@ body .room-section.is-playing .robot-head::after {
   position: absolute;
   z-index: -1;
   bottom: -11px;
-  left: 8px;
-  width: 10px;
-  height: 11px;
+  left: 5px;
+  width: 8px;
+  height: 10px;
   border: 2px solid #69422d;
   border-radius: 3px 3px 6px 6px;
   background: linear-gradient(90deg, #8f5c3b, #d3a06a, #75472f);
@@ -1444,7 +1444,7 @@ body .room-section.is-playing .robot-head::after {
 
 body .room-section.is-playing .hangman-robot-face {
   position: absolute;
-  inset: 5px 4px 6px;
+  inset: 3px 3px 4px;
   display: block;
   border: 1px solid rgba(103, 64, 40, 0.28);
   border-radius: 48% 48% 44% 44%;
@@ -1481,51 +1481,52 @@ body .room-section.is-playing .robot-body {
   --robot-highlight: #ebc796;
   --robot-shadow-color: #75472d;
   z-index: 5;
-  top: 111px;
-  left: calc(50% - 23px);
-  width: 46px;
+  top: 91px;
+  left: calc(50% - 25px);
+  width: 50px;
   height: 52px;
-  border: 2px solid #68412b;
-  border-radius: 17px 17px 18px 18px / 10px 10px 24px 24px;
+  border: 0;
+  border-radius: 0;
+  clip-path: polygon(16% 0, 84% 0, 100% 16%, 79% 87%, 67% 100%, 33% 100%, 21% 87%, 0 16%);
 }
 
 body .room-section.is-playing .robot-body::before {
-  content: "";
-  position: absolute;
-  top: -7px;
-  left: calc(50% - 8px);
-  width: 16px;
-  height: 9px;
-  border: 2px solid #68412b;
-  border-radius: 6px 6px 3px 3px;
-  background: radial-gradient(circle at 50% 35%, #e1bb87 0 28%, #7a4b31 30% 100%);
+  display: none;
 }
 
 body .room-section.is-playing .hangman-mannequin-grain {
   position: absolute;
-  inset: 9px 10px 12px;
+  inset: 9px 11px 11px;
   border-radius: 50%;
   background:
     repeating-radial-gradient(ellipse at 50% 115%, transparent 0 5px, rgba(94, 55, 32, 0.14) 6px 7px),
     linear-gradient(90deg, rgba(255, 239, 203, 0.16), transparent);
 }
 
-body .room-section.is-playing .hangman-mannequin-waist {
+body .room-section.is-playing .hangman-mannequin-pelvis {
+  --robot-color: #bd8755;
+  --robot-highlight: #e7c18f;
+  --robot-shadow-color: #6e432d;
   position: absolute;
-  bottom: -13px;
-  left: calc(50% - 14px);
-  width: 28px;
-  height: 14px;
+  z-index: 5;
+  top: 141px;
+  left: calc(50% - 18px);
+  width: 36px;
+  height: 21px;
   border: 2px solid #65402b;
-  border-radius: 50%;
+  border-radius: 42% 42% 48% 48% / 38% 38% 62% 62%;
   background: radial-gradient(circle at 50% 36%, #d9ae79 0 31%, var(--mannequin-joint) 33% 100%);
-  box-shadow: 0 2px 3px rgba(0, 0, 0, 0.28);
+  box-shadow:
+    inset 2px 2px rgba(255, 239, 204, 0.24),
+    inset -3px -3px rgba(63, 36, 23, 0.2),
+    0 4px 0 #4b2e20,
+    0 6px 8px rgba(0, 0, 0, 0.34);
 }
 
 body .room-section.is-playing .robot-arm {
-  top: 116px;
-  width: 12px;
-  height: 27px;
+  top: 98px;
+  width: 11px;
+  height: 37px;
   border: 2px solid var(--robot-shadow-color);
   border-radius: 50% 50% 45% 45%;
 }
@@ -1535,8 +1536,8 @@ body .room-section.is-playing .robot-arm::before {
   position: absolute;
   top: -7px;
   left: -2px;
-  width: 12px;
-  height: 12px;
+  width: 11px;
+  height: 11px;
   border: 2px solid var(--robot-shadow-color);
   border-radius: 50%;
   background: radial-gradient(circle at 38% 32%, var(--robot-highlight) 0 28%, var(--mannequin-joint) 31% 100%);
@@ -1545,10 +1546,10 @@ body .room-section.is-playing .robot-arm::before {
 body .room-section.is-playing .robot-arm::after {
   content: "";
   position: absolute;
-  top: 22px;
+  top: 32px;
   left: 0;
-  width: 9px;
-  height: 31px;
+  width: 8px;
+  height: 54px;
   border: 2px solid var(--robot-shadow-color);
   border-radius: 45% 45% 55% 55%;
   background:
@@ -1561,22 +1562,22 @@ body .room-section.is-playing .robot-arm-left {
   --robot-color: #c9945e;
   --robot-highlight: #edc998;
   --robot-shadow-color: #76482f;
-  left: calc(50% - 37px);
-  rotate: 6deg;
+  left: calc(50% - 38px);
+  rotate: 4deg;
 }
 
 body .room-section.is-playing .robot-arm-right {
   --robot-color: #bf8954;
   --robot-highlight: #e8c18e;
   --robot-shadow-color: #70432c;
-  left: calc(50% + 25px);
-  rotate: -6deg;
+  left: calc(50% + 27px);
+  rotate: -4deg;
 }
 
 body .room-section.is-playing .robot-leg {
-  top: 171px;
+  top: 157px;
   width: 14px;
-  height: 30px;
+  height: 52px;
   border: 2px solid var(--robot-shadow-color);
   border-radius: 45% 45% 38% 38%;
 }
@@ -1596,10 +1597,10 @@ body .room-section.is-playing .robot-leg::before {
 body .room-section.is-playing .robot-leg::after {
   content: "";
   position: absolute;
-  top: 26px;
+  top: 47px;
   left: 1px;
   width: 9px;
-  height: 31px;
+  height: 56px;
   border: 2px solid var(--robot-shadow-color);
   border-radius: 42% 42% 38% 38%;
   background:
@@ -1670,7 +1671,7 @@ body .room-section.is-playing .hangman-console-top .hangman-toy-letters {
 }
 
 body .room-section.is-playing .hangman-console-top .hangman-robot-bay {
-  min-height: 250px;
+  min-height: 288px;
 }
 
 body .room-section.is-playing .hangman-alphabet {
@@ -1930,7 +1931,7 @@ body .room-section.is-playing .hangman-round-complete {
   }
 
   body .room-section.is-playing .hangman-console-top .hangman-robot-bay {
-    min-height: 250px;
+    min-height: 288px;
   }
 
   body .room-section.is-playing .hangman-alphabet {
