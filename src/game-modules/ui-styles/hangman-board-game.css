@@ -1132,8 +1132,8 @@ body .room-section.is-playing .hangman-toy-status {
 }
 
 body .room-section.is-playing .hangman-toy-status span {
-  color: #bcb49e !important;
-  font-size: 0.62rem;
+  color: #eee2c4 !important;
+  font-size: 0.7rem;
   font-weight: 900;
 }
 
@@ -1174,115 +1174,357 @@ body .room-section.is-playing .hangman-toy-figure {
   background: #09251f !important;
 }
 
-body .room-section.is-playing .hangman-gallows {
+body .room-section.is-playing .hangman-robot-bay {
+  position: relative;
+  isolation: isolate;
   width: 100%;
-  max-width: 220px;
-  min-height: 164px !important;
+  max-width: 236px;
+  min-height: 184px;
   margin-inline: auto;
-  border: 1px solid rgba(224, 203, 151, 0.18) !important;
-  border-radius: 4px !important;
+  overflow: hidden;
+  border: 2px solid #38534d;
+  border-bottom-color: #d5a94b;
+  border-radius: 7px;
   background:
-    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px) 0 0 / 16px 16px,
-    linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px) 0 0 / 16px 16px,
-    #061914 !important;
-  box-shadow: inset 0 0 16px rgba(0, 0, 0, 0.34) !important;
+    linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px) 0 0 / 18px 18px,
+    linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px) 0 0 / 18px 18px,
+    #071d1a;
+  box-shadow:
+    inset 0 0 0 4px #0d2c27,
+    inset 0 0 24px rgba(0, 0, 0, 0.52),
+    0 4px 0 #3f2819;
 }
 
-body .room-section.is-playing .hangman-base,
-body .room-section.is-playing .hangman-brace {
+body .room-section.is-playing .hangman-robot-bay::before,
+body .room-section.is-playing .hangman-robot-bay::after {
+  content: "";
   position: absolute;
-  display: block;
-  border-radius: 2px;
-  background: linear-gradient(90deg, #8b522e, #d09651 44%, #754124);
-  box-shadow: 0 2px 3px rgba(0, 0, 0, 0.36);
-}
-
-body .room-section.is-playing .hangman-base {
-  left: 16px;
-  bottom: 17px;
-  width: 80px;
-  height: 8px;
-}
-
-body .room-section.is-playing .hangman-brace {
-  left: 34px;
-  bottom: 72px;
-  width: 45px;
-  height: 5px;
-  transform: rotate(-48deg);
-  transform-origin: left center;
-}
-
-body .room-section.is-playing .hangman-post {
-  left: 34px;
-  bottom: 22px;
+  z-index: 1;
+  top: 31px;
+  bottom: 11px;
   width: 8px;
-  height: 122px;
-  border-radius: 2px;
-  background: linear-gradient(90deg, #86502d, #d39a53 48%, #704022) !important;
-  box-shadow: 2px 2px 3px rgba(0, 0, 0, 0.34);
+  border: 1px solid #5a716b;
+  background: repeating-linear-gradient(180deg, #274c44 0 9px, #102c27 9px 16px);
+  box-shadow: inset 1px 0 rgba(255, 255, 255, 0.08);
 }
 
-body .room-section.is-playing .hangman-beam {
-  left: 34px;
-  top: 18px;
-  width: 116px;
+body .room-section.is-playing .hangman-robot-bay::before { left: 7px; }
+body .room-section.is-playing .hangman-robot-bay::after { right: 7px; }
+
+body .room-section.is-playing .hangman-robot-bay-header {
+  position: absolute;
+  z-index: 8;
+  top: 7px;
+  left: 8px;
+  right: 8px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 7px;
+  padding: 0 8px;
+  border: 1px solid #48655e;
+  border-bottom-color: #8b6b2f;
+  border-radius: 4px;
+  background: #123a33;
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.08), 0 2px 0 #04100e;
+}
+
+body .room-section.is-playing .hangman-robot-brand {
+  color: #f5d885;
+  font-size: 0.56rem;
+  font-style: normal;
+  font-weight: 1000;
+  letter-spacing: 0;
+}
+
+body .room-section.is-playing .hangman-robot-stage-lights {
+  display: grid;
+  grid-template-columns: repeat(6, 8px);
+  gap: 4px;
+  font-style: normal;
+}
+
+body .room-section.is-playing .hangman-robot-stage-lights b {
+  --robot-light: #f2c94c;
+  width: 8px;
   height: 8px;
+  display: block;
+  border: 1px solid #50625e;
+  border-radius: 50%;
+  background: #14231f;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.7);
+}
+
+body .room-section.is-playing .hangman-robot-stage-lights b:nth-child(2) { --robot-light: #42b7aa; }
+body .room-section.is-playing .hangman-robot-stage-lights b:nth-child(3) { --robot-light: #ef6b61; }
+body .room-section.is-playing .hangman-robot-stage-lights b:nth-child(4) { --robot-light: #4fa9db; }
+body .room-section.is-playing .hangman-robot-stage-lights b:nth-child(5) { --robot-light: #9b78db; }
+body .room-section.is-playing .hangman-robot-stage-lights b:nth-child(6) { --robot-light: #e89a48; }
+
+body .room-section.is-playing .hangman-robot-stage-lights b.lit {
+  border-color: color-mix(in srgb, var(--robot-light) 70%, white);
+  background: var(--robot-light);
+  box-shadow: 0 0 7px var(--robot-light), inset 0 1px rgba(255, 255, 255, 0.6);
+}
+
+body .room-section.is-playing .hangman-robot-floor {
+  position: absolute;
+  z-index: 2;
+  right: 17px;
+  bottom: 6px;
+  left: 17px;
+  height: 13px;
+  border: 1px solid #a57a31;
+  border-radius: 50% 50% 4px 4px;
+  background: linear-gradient(180deg, #efc866 0 35%, #8b5b23 36% 100%);
+  box-shadow: 0 3px 0 #352015, 0 0 12px rgba(239, 200, 102, 0.18);
+}
+
+body .room-section.is-playing .hangman-robot-floor i {
+  position: absolute;
+  inset: 3px 22% auto;
+  height: 2px;
   border-radius: 2px;
-  background: linear-gradient(180deg, #d59b54, #784425) !important;
+  background: rgba(255, 246, 194, 0.58);
 }
 
-body .room-section.is-playing .hangman-rope {
-  left: 142px;
-  top: 25px;
-  width: 3px;
-  height: 25px;
-  background: #d0bb83 !important;
+body .room-section.is-playing .hangman-robot-shadow {
+  position: absolute;
+  z-index: 1;
+  bottom: 14px;
+  left: calc(50% - 53px);
+  width: 106px;
+  height: 13px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.5);
+  filter: blur(2px);
 }
 
-body .room-section.is-playing .hangman-figure {
-  left: 132px;
-  opacity: 0.16;
-  background: #fff0c7 !important;
-  filter: saturate(0.5);
+body .room-section.is-playing .hangman-robot-part {
+  --robot-color: #d3c28e;
+  --robot-highlight: #fff0bd;
+  --robot-shadow-color: #7e7048;
+  position: absolute;
+  z-index: 4;
+  display: block;
+  opacity: 0.42;
+  filter: saturate(0.48) brightness(0.88);
+  background: linear-gradient(135deg, var(--robot-highlight), var(--robot-color) 48%, var(--robot-shadow-color));
+  box-shadow:
+    inset 2px 2px rgba(255, 255, 255, 0.35),
+    inset -3px -3px rgba(33, 26, 18, 0.24),
+    0 4px 0 color-mix(in srgb, var(--robot-shadow-color) 75%, black),
+    0 6px 8px rgba(0, 0, 0, 0.38);
   transition: opacity 180ms ease, filter 180ms ease;
 }
 
-body .room-section.is-playing .hangman-figure.lit {
+body .room-section.is-playing .hangman-robot-part.is-assembled {
   opacity: 1;
   filter: none;
-  animation: hangman-part-seat 320ms ease-out both;
+  animation: hangman-robot-seat 360ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
-body .room-section.is-playing .hangman-figure.head {
-  left: 131px;
-  top: 48px;
+body .room-section.is-playing .robot-head {
+  --robot-color: #f2c84f;
+  --robot-highlight: #ffe79a;
+  --robot-shadow-color: #a4681c;
+  z-index: 7;
+  top: 45px;
+  left: calc(50% - 28px);
+  width: 56px;
+  height: 41px;
+  border: 2px solid #71471a;
+  border-radius: 9px 9px 7px 7px;
+}
+
+body .room-section.is-playing .robot-head::before {
+  content: "";
+  position: absolute;
+  top: -13px;
+  left: 23px;
+  width: 6px;
+  height: 13px;
+  border: 1px solid #79501f;
+  border-radius: 4px 4px 0 0;
+  background: #f3c84f;
+  box-shadow: 0 -4px 0 2px #ef665d;
+}
+
+body .room-section.is-playing .robot-head::after {
+  content: "";
+  position: absolute;
+  top: 10px;
+  left: -9px;
+  width: 9px;
+  height: 18px;
+  border: 1px solid #70471a;
+  border-radius: 4px 0 0 4px;
+  background: #d89b2f;
+  box-shadow: 64px 0 0 #d89b2f, 64px 0 0 1px #70471a;
+}
+
+body .room-section.is-playing .hangman-robot-face {
+  position: absolute;
+  inset: 8px 8px 7px;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding: 0 5px 6px;
+  border: 2px solid #183b38;
+  border-radius: 6px;
+  background: #0b2624;
+  box-shadow: inset 0 3px 5px rgba(0, 0, 0, 0.55);
+}
+
+body .room-section.is-playing .hangman-robot-face::after {
+  content: "";
+  position: absolute;
+  bottom: 4px;
+  left: calc(50% - 7px);
+  width: 14px;
+  height: 2px;
+  border-radius: 2px;
+  background: #75d2c6;
+}
+
+body .room-section.is-playing .hangman-robot-face b {
+  width: 8px;
+  height: 8px;
+  display: block;
+  border-radius: 3px;
+  background: #fff3aa;
+  box-shadow: 0 0 5px rgba(255, 235, 121, 0.72);
+}
+
+body .room-section.is-playing .robot-body {
+  --robot-color: #36a79a;
+  --robot-highlight: #7bd5c8;
+  --robot-shadow-color: #17665f;
+  z-index: 5;
+  top: 89px;
+  left: calc(50% - 34px);
+  width: 68px;
+  height: 54px;
+  border: 2px solid #124b46;
+  border-radius: 8px 8px 12px 12px;
+}
+
+body .room-section.is-playing .robot-body::before {
+  content: "";
+  position: absolute;
+  top: 6px;
+  left: -9px;
+  width: 9px;
+  height: 17px;
+  border: 1px solid #124b46;
+  background: #23877e;
+  box-shadow: 73px 0 0 #23877e, 73px 0 0 1px #124b46;
+}
+
+body .room-section.is-playing .hangman-robot-core {
+  position: absolute;
+  top: 10px;
+  left: 13px;
   width: 27px;
   height: 27px;
-  border: 3px solid #fff0c7;
-  background: transparent !important;
+  border: 3px solid #e7ead6;
+  border-radius: 50%;
+  background: radial-gradient(circle at 38% 32%, #fffbd2 0 13%, #ef6b61 14% 46%, #8f282d 47% 100%);
+  box-shadow: 0 0 8px rgba(239, 107, 97, 0.5), inset 0 2px rgba(255, 255, 255, 0.36);
 }
 
-body .room-section.is-playing .hangman-figure.body {
-  left: 143px;
-  top: 76px;
-  width: 4px;
-  height: 37px;
+body .room-section.is-playing .hangman-robot-dial {
+  position: absolute;
+  top: 13px;
+  right: 9px;
+  width: 9px;
+  height: 22px;
+  border-radius: 3px;
+  background: repeating-linear-gradient(180deg, #f4d976 0 4px, #153f3b 4px 7px);
 }
 
-body .room-section.is-playing .hangman-figure.arm-left,
-body .room-section.is-playing .hangman-figure.arm-right,
-body .room-section.is-playing .hangman-figure.leg-left,
-body .room-section.is-playing .hangman-figure.leg-right {
-  left: 143px;
-  width: 4px;
-  height: 30px;
+body .room-section.is-playing .robot-arm {
+  top: 94px;
+  width: 21px;
+  height: 43px;
+  border: 2px solid var(--robot-shadow-color);
+  border-radius: 8px 8px 10px 10px;
 }
 
-body .room-section.is-playing .hangman-figure.arm-left { top: 80px; transform: rotate(46deg); }
-body .room-section.is-playing .hangman-figure.arm-right { top: 80px; transform: rotate(-46deg); }
-body .room-section.is-playing .hangman-figure.leg-left { top: 110px; transform: rotate(35deg); }
-body .room-section.is-playing .hangman-figure.leg-right { top: 110px; transform: rotate(-35deg); }
+body .room-section.is-playing .robot-arm::before {
+  content: "";
+  position: absolute;
+  top: -7px;
+  left: 3px;
+  width: 11px;
+  height: 11px;
+  border: 2px solid var(--robot-shadow-color);
+  border-radius: 50%;
+  background: var(--robot-highlight);
+}
+
+body .room-section.is-playing .robot-arm::after {
+  content: "";
+  position: absolute;
+  bottom: -9px;
+  left: 1px;
+  width: 15px;
+  height: 12px;
+  border: 2px solid var(--robot-shadow-color);
+  border-radius: 4px 4px 8px 8px;
+  background: var(--robot-color);
+}
+
+body .room-section.is-playing .robot-arm-left {
+  --robot-color: #ed6a61;
+  --robot-highlight: #ffaaa0;
+  --robot-shadow-color: #8f3434;
+  left: calc(50% - 62px);
+  rotate: 5deg;
+}
+
+body .room-section.is-playing .robot-arm-right {
+  --robot-color: #4aa8d8;
+  --robot-highlight: #9ad7f1;
+  --robot-shadow-color: #25618d;
+  left: calc(50% + 41px);
+  rotate: -5deg;
+}
+
+body .room-section.is-playing .robot-leg {
+  top: 140px;
+  width: 23px;
+  height: 28px;
+  border: 2px solid var(--robot-shadow-color);
+  border-radius: 5px 5px 8px 8px;
+}
+
+body .room-section.is-playing .robot-leg::after {
+  content: "";
+  position: absolute;
+  bottom: -8px;
+  left: -4px;
+  width: 27px;
+  height: 11px;
+  border: 2px solid var(--robot-shadow-color);
+  border-radius: 7px 7px 4px 4px;
+  background: var(--robot-color);
+}
+
+body .room-section.is-playing .robot-leg-left {
+  --robot-color: #9874d5;
+  --robot-highlight: #c9b4ef;
+  --robot-shadow-color: #58428d;
+  left: calc(50% - 29px);
+}
+
+body .room-section.is-playing .robot-leg-right {
+  --robot-color: #e69646;
+  --robot-highlight: #ffc57f;
+  --robot-shadow-color: #8b5124;
+  left: calc(50% + 6px);
+}
 
 body .room-section.is-playing .hangman-miss-track {
   grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
@@ -1329,8 +1571,8 @@ body .room-section.is-playing .hangman-console-top .hangman-toy-letters {
   display: none !important;
 }
 
-body .room-section.is-playing .hangman-console-top .hangman-gallows {
-  min-height: 150px !important;
+body .room-section.is-playing .hangman-console-top .hangman-robot-bay {
+  min-height: 184px;
 }
 
 body .room-section.is-playing .hangman-alphabet {
@@ -1494,6 +1736,12 @@ body .room-section.is-playing .hangman-round-complete {
   to { opacity: 1; filter: none; }
 }
 
+@keyframes hangman-robot-seat {
+  0% { opacity: 0.25; filter: brightness(1.7); transform: translateY(-12px) scale(0.88); }
+  64% { opacity: 1; filter: none; transform: translateY(2px) scale(1.06); }
+  100% { opacity: 1; filter: none; transform: translateY(0) scale(1); }
+}
+
 @media (max-width: 900px) {
   body .room-section.is-playing .hangman-guess-panel {
     grid-template-columns: minmax(0, 1fr) 220px !important;
@@ -1578,8 +1826,8 @@ body .room-section.is-playing .hangman-round-complete {
     display: grid !important;
   }
 
-  body .room-section.is-playing .hangman-console-top .hangman-gallows {
-    min-height: 154px !important;
+  body .room-section.is-playing .hangman-console-top .hangman-robot-bay {
+    min-height: 184px;
   }
 
   body .room-section.is-playing .hangman-alphabet {
@@ -1614,13 +1862,15 @@ body .room-section.is-playing .hangman-round-complete {
 
 @media (prefers-reduced-motion: reduce) {
   body .room-section.is-playing .hangman-last-verdict,
-  body .room-section.is-playing .hangman-figure.lit {
+  body .room-section.is-playing .hangman-figure.lit,
+  body .room-section.is-playing .hangman-robot-part.is-assembled {
     animation: none !important;
   }
 
   body .room-section.is-playing .hangman-toy-board::after,
   body .room-section.is-playing .hangman-letter-button,
-  body .room-section.is-playing .hangman-figure {
+  body .room-section.is-playing .hangman-figure,
+  body .room-section.is-playing .hangman-robot-part {
     transition: none !important;
   }
 }

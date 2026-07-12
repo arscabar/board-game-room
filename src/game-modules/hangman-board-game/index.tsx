@@ -551,7 +551,7 @@ function HangmanToyBoard({ misses = 0, maxMisses = MAX_MISSES }: { misses?: numb
   return (
     <div className="hangman-toy-board" style={{ "--hangman-progress": progress } as CSSProperties} aria-hidden="true">
       <div className="hangman-toy-status">
-        <span>오답 조립 단계</span>
+        <span>토이 로봇 조립 단계</span>
         <strong>{misses}<small>/{maxMisses}</small></strong>
       </div>
       <div className="hangman-toy-letters">
@@ -562,18 +562,28 @@ function HangmanToyBoard({ misses = 0, maxMisses = MAX_MISSES }: { misses?: numb
         ))}
       </div>
       <div className="hangman-toy-figure">
-        <div className="hangman-gallows">
-          <span className="hangman-base" />
-          <span className="hangman-brace" />
-          <span className="hangman-post" />
-          <span className="hangman-beam" />
-          <span className="hangman-rope" />
-          <span className={`hangman-figure head ${misses >= 1 ? "lit" : ""}`} />
-          <span className={`hangman-figure body ${misses >= 2 ? "lit" : ""}`} />
-          <span className={`hangman-figure arm-left ${misses >= 3 ? "lit" : ""}`} />
-          <span className={`hangman-figure arm-right ${misses >= 4 ? "lit" : ""}`} />
-          <span className={`hangman-figure leg-left ${misses >= 5 ? "lit" : ""}`} />
-          <span className={`hangman-figure leg-right ${misses >= 6 ? "lit" : ""}`} />
+        <div className="hangman-robot-bay">
+          <span className="hangman-robot-bay-header">
+            <i className="hangman-robot-brand">TOY LAB</i>
+            <i className="hangman-robot-stage-lights">
+              {Array.from({ length: maxMisses }, (_, index) => (
+                <b className={index < misses ? "lit" : ""} key={index} />
+              ))}
+            </i>
+          </span>
+          <span className="hangman-robot-shadow" />
+          <span className="hangman-robot-floor"><i /></span>
+          <span className={`hangman-robot-part robot-head ${misses >= 1 ? "is-assembled" : ""}`}>
+            <i className="hangman-robot-face"><b /><b /></i>
+          </span>
+          <span className={`hangman-robot-part robot-body ${misses >= 2 ? "is-assembled" : ""}`}>
+            <i className="hangman-robot-core" />
+            <i className="hangman-robot-dial" />
+          </span>
+          <span className={`hangman-robot-part robot-arm robot-arm-left ${misses >= 3 ? "is-assembled" : ""}`} />
+          <span className={`hangman-robot-part robot-arm robot-arm-right ${misses >= 4 ? "is-assembled" : ""}`} />
+          <span className={`hangman-robot-part robot-leg robot-leg-left ${misses >= 5 ? "is-assembled" : ""}`} />
+          <span className={`hangman-robot-part robot-leg robot-leg-right ${misses >= 6 ? "is-assembled" : ""}`} />
         </div>
         <div className="hangman-miss-track">
           {Array.from({ length: maxMisses }, (_, index) => (
@@ -808,7 +818,7 @@ export function Component({
             ) : null}
 
             <div className="hangman-console-top" aria-hidden="true">
-              <span className="hangman-console-label">오답 조립판</span>
+              <span className="hangman-console-label">토이 로봇 조립판</span>
               <HangmanToyBoard misses={myProgress?.misses ?? 0} maxMisses={state.maxMisses} />
             </div>
 
