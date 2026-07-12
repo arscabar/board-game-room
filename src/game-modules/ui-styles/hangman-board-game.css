@@ -1179,7 +1179,7 @@ body .room-section.is-playing .hangman-robot-bay {
   isolation: isolate;
   width: 100%;
   max-width: 236px;
-  min-height: 184px;
+  min-height: 220px;
   margin-inline: auto;
   overflow: hidden;
   border: 2px solid #38534d;
@@ -1291,14 +1291,89 @@ body .room-section.is-playing .hangman-robot-floor i {
 
 body .room-section.is-playing .hangman-robot-shadow {
   position: absolute;
-  z-index: 1;
-  bottom: 14px;
+  z-index: 3;
+  bottom: 10px;
   left: calc(50% - 53px);
   width: 106px;
   height: 13px;
   border-radius: 50%;
   background: rgba(0, 0, 0, 0.5);
   filter: blur(2px);
+}
+
+body .room-section.is-playing .hangman-robot-rig {
+  position: absolute;
+  z-index: 6;
+  inset: 0;
+  display: block;
+  pointer-events: none;
+  transform-origin: 50% 29px;
+  animation: hangman-robot-sway 3.8s ease-in-out infinite;
+}
+
+body .room-section.is-playing .hangman-robot-cable {
+  position: absolute;
+  z-index: 9;
+  top: 28px;
+  left: calc(50% - 2px);
+  width: 4px;
+  height: 30px;
+  display: block;
+  border: 1px solid #263d39;
+  background:
+    repeating-linear-gradient(180deg, transparent 0 3px, rgba(31, 50, 46, 0.35) 3px 5px),
+    linear-gradient(90deg, #536b66, #eef4e6 48%, #465c58);
+  box-shadow: 0 0 5px rgba(215, 229, 218, 0.42);
+}
+
+body .room-section.is-playing .hangman-robot-clamp {
+  position: absolute;
+  z-index: 10;
+  top: 55px;
+  left: calc(50% - 22px);
+  width: 44px;
+  height: 11px;
+  display: block;
+  border: 2px solid #583525;
+  border-radius: 5px;
+  background: linear-gradient(180deg, #ffcf5c, #c77928);
+  box-shadow: inset 0 2px rgba(255, 247, 188, 0.5), 0 3px 0 #3d241d;
+}
+
+body .room-section.is-playing .hangman-robot-clamp::before {
+  content: "";
+  position: absolute;
+  top: -7px;
+  left: calc(50% - 7px);
+  width: 14px;
+  height: 7px;
+  border: 2px solid #35504a;
+  border-bottom: 0;
+  border-radius: 5px 5px 0 0;
+  background: #9fb0a8;
+}
+
+body .room-section.is-playing .hangman-robot-clamp b {
+  position: absolute;
+  top: 7px;
+  width: 7px;
+  height: 20px;
+  display: block;
+  border: 2px solid #593524;
+  border-top: 0;
+  border-radius: 0 0 6px 6px;
+  background: #e99a32;
+  transform-origin: top center;
+}
+
+body .room-section.is-playing .hangman-robot-clamp b:first-child {
+  left: 2px;
+  transform: rotate(24deg);
+}
+
+body .room-section.is-playing .hangman-robot-clamp b:last-child {
+  right: 2px;
+  transform: rotate(-24deg);
 }
 
 body .room-section.is-playing .hangman-robot-part {
@@ -1330,7 +1405,7 @@ body .room-section.is-playing .robot-head {
   --robot-highlight: #ffe79a;
   --robot-shadow-color: #a4681c;
   z-index: 7;
-  top: 45px;
+  top: 63px;
   left: calc(50% - 28px);
   width: 56px;
   height: 41px;
@@ -1402,7 +1477,7 @@ body .room-section.is-playing .robot-body {
   --robot-highlight: #7bd5c8;
   --robot-shadow-color: #17665f;
   z-index: 5;
-  top: 89px;
+  top: 107px;
   left: calc(50% - 34px);
   width: 68px;
   height: 54px;
@@ -1445,7 +1520,7 @@ body .room-section.is-playing .hangman-robot-dial {
 }
 
 body .room-section.is-playing .robot-arm {
-  top: 94px;
+  top: 112px;
   width: 21px;
   height: 43px;
   border: 2px solid var(--robot-shadow-color);
@@ -1493,7 +1568,7 @@ body .room-section.is-playing .robot-arm-right {
 }
 
 body .room-section.is-playing .robot-leg {
-  top: 140px;
+  top: 158px;
   width: 23px;
   height: 28px;
   border: 2px solid var(--robot-shadow-color);
@@ -1572,7 +1647,7 @@ body .room-section.is-playing .hangman-console-top .hangman-toy-letters {
 }
 
 body .room-section.is-playing .hangman-console-top .hangman-robot-bay {
-  min-height: 184px;
+  min-height: 220px;
 }
 
 body .room-section.is-playing .hangman-alphabet {
@@ -1742,6 +1817,11 @@ body .room-section.is-playing .hangman-round-complete {
   100% { opacity: 1; filter: none; transform: translateY(0) scale(1); }
 }
 
+@keyframes hangman-robot-sway {
+  0%, 100% { transform: rotate(-0.7deg); }
+  50% { transform: rotate(0.7deg); }
+}
+
 @media (max-width: 900px) {
   body .room-section.is-playing .hangman-guess-panel {
     grid-template-columns: minmax(0, 1fr) 220px !important;
@@ -1827,7 +1907,7 @@ body .room-section.is-playing .hangman-round-complete {
   }
 
   body .room-section.is-playing .hangman-console-top .hangman-robot-bay {
-    min-height: 184px;
+    min-height: 220px;
   }
 
   body .room-section.is-playing .hangman-alphabet {
@@ -1863,6 +1943,7 @@ body .room-section.is-playing .hangman-round-complete {
 @media (prefers-reduced-motion: reduce) {
   body .room-section.is-playing .hangman-last-verdict,
   body .room-section.is-playing .hangman-figure.lit,
+  body .room-section.is-playing .hangman-robot-rig,
   body .room-section.is-playing .hangman-robot-part.is-assembled {
     animation: none !important;
   }

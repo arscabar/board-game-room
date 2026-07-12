@@ -573,17 +573,21 @@ function HangmanToyBoard({ misses = 0, maxMisses = MAX_MISSES }: { misses?: numb
           </span>
           <span className="hangman-robot-shadow" />
           <span className="hangman-robot-floor"><i /></span>
-          <span className={`hangman-robot-part robot-head ${misses >= 1 ? "is-assembled" : ""}`}>
-            <i className="hangman-robot-face"><b /><b /></i>
+          <span className="hangman-robot-rig">
+            <i className="hangman-robot-cable" />
+            <i className="hangman-robot-clamp"><b /><b /></i>
+            <span className={`hangman-robot-part robot-head ${misses >= 1 ? "is-assembled" : ""}`}>
+              <i className="hangman-robot-face"><b /><b /></i>
+            </span>
+            <span className={`hangman-robot-part robot-body ${misses >= 2 ? "is-assembled" : ""}`}>
+              <i className="hangman-robot-core" />
+              <i className="hangman-robot-dial" />
+            </span>
+            <span className={`hangman-robot-part robot-arm robot-arm-left ${misses >= 3 ? "is-assembled" : ""}`} />
+            <span className={`hangman-robot-part robot-arm robot-arm-right ${misses >= 4 ? "is-assembled" : ""}`} />
+            <span className={`hangman-robot-part robot-leg robot-leg-left ${misses >= 5 ? "is-assembled" : ""}`} />
+            <span className={`hangman-robot-part robot-leg robot-leg-right ${misses >= 6 ? "is-assembled" : ""}`} />
           </span>
-          <span className={`hangman-robot-part robot-body ${misses >= 2 ? "is-assembled" : ""}`}>
-            <i className="hangman-robot-core" />
-            <i className="hangman-robot-dial" />
-          </span>
-          <span className={`hangman-robot-part robot-arm robot-arm-left ${misses >= 3 ? "is-assembled" : ""}`} />
-          <span className={`hangman-robot-part robot-arm robot-arm-right ${misses >= 4 ? "is-assembled" : ""}`} />
-          <span className={`hangman-robot-part robot-leg robot-leg-left ${misses >= 5 ? "is-assembled" : ""}`} />
-          <span className={`hangman-robot-part robot-leg robot-leg-right ${misses >= 6 ? "is-assembled" : ""}`} />
         </div>
         <div className="hangman-miss-track">
           {Array.from({ length: maxMisses }, (_, index) => (
