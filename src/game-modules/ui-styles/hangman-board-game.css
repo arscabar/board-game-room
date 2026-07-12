@@ -1179,7 +1179,7 @@ body .room-section.is-playing .hangman-robot-bay {
   isolation: isolate;
   width: 100%;
   max-width: 236px;
-  min-height: 288px;
+  min-height: 306px;
   margin-inline: auto;
   overflow: hidden;
   border: 2px solid #38534d;
@@ -1317,13 +1317,77 @@ body .room-section.is-playing .hangman-robot-cable {
   top: 28px;
   left: calc(50% - 2px);
   width: 4px;
-  height: 27px;
+  height: calc(27px + var(--hangman-drop, 0px));
   display: block;
   border: 1px solid #263d39;
   background:
     repeating-linear-gradient(180deg, transparent 0 3px, rgba(31, 50, 46, 0.35) 3px 5px),
     linear-gradient(90deg, #536b66, #eef4e6 48%, #465c58);
   box-shadow: 0 0 5px rgba(215, 229, 218, 0.42);
+  transition: height 240ms ease;
+}
+
+body .room-section.is-playing .hangman-mannequin-sprite {
+  position: absolute;
+  z-index: 6;
+  top: calc(45px + var(--hangman-drop, 0px));
+  left: 50%;
+  width: 157px;
+  height: 235px;
+  display: block;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+  transform: translateX(-50%);
+  transition: top 240ms ease, opacity 220ms ease, filter 220ms ease;
+}
+
+body .room-section.is-playing .hangman-mannequin-sprite.blueprint {
+  opacity: 0.23;
+  filter: grayscale(0.82) brightness(0.68) contrast(0.96);
+}
+
+body .room-section.is-playing .hangman-mannequin-sprite:not(.blueprint):not(.rendered-model) {
+  opacity: 0;
+  filter: saturate(0.8) brightness(1.2);
+  transition: opacity 180ms ease, filter 180ms ease;
+}
+
+body .room-section.is-playing .hangman-mannequin-sprite.rendered-model {
+  opacity: var(--hangman-model-opacity, 0.5);
+  filter:
+    grayscale(var(--hangman-model-grayscale, 62%))
+    brightness(var(--hangman-model-brightness, 72%));
+}
+
+body .room-section.is-playing .hangman-mannequin-sprite.part-head {
+  clip-path: polygon(39% 0, 61% 0, 61% 23%, 39% 23%);
+}
+
+body .room-section.is-playing .hangman-mannequin-sprite.part-body {
+  clip-path: polygon(31% 20%, 69% 20%, 69% 51%, 31% 51%);
+}
+
+body .room-section.is-playing .hangman-mannequin-sprite.part-arm-left {
+  clip-path: polygon(19% 20%, 42% 20%, 42% 61%, 19% 61%);
+}
+
+body .room-section.is-playing .hangman-mannequin-sprite.part-arm-right {
+  clip-path: polygon(58% 20%, 81% 20%, 81% 61%, 58% 61%);
+}
+
+body .room-section.is-playing .hangman-mannequin-sprite.part-leg-left {
+  clip-path: polygon(31% 47%, 50% 47%, 50% 97%, 31% 97%);
+}
+
+body .room-section.is-playing .hangman-mannequin-sprite.part-leg-right {
+  clip-path: polygon(50% 47%, 69% 47%, 69% 97%, 50% 97%);
+}
+
+body .room-section.is-playing .hangman-mannequin-sprite.is-assembled {
+  opacity: 1;
+  filter: none;
+  animation: hangman-mannequin-reveal 360ms ease-out both;
 }
 
 body .room-section.is-playing .hangman-robot-clamp {
@@ -1671,7 +1735,7 @@ body .room-section.is-playing .hangman-console-top .hangman-toy-letters {
 }
 
 body .room-section.is-playing .hangman-console-top .hangman-robot-bay {
-  min-height: 288px;
+  min-height: 306px;
 }
 
 body .room-section.is-playing .hangman-alphabet {
@@ -1841,6 +1905,11 @@ body .room-section.is-playing .hangman-round-complete {
   100% { opacity: 1; filter: none; transform: translateY(0) scale(1); }
 }
 
+@keyframes hangman-mannequin-reveal {
+  from { opacity: 0.16; filter: brightness(1.65) saturate(0.72); }
+  to { opacity: 1; filter: none; }
+}
+
 @keyframes hangman-robot-sway {
   0%, 100% { transform: rotate(-0.7deg); }
   50% { transform: rotate(0.7deg); }
@@ -1931,7 +2000,7 @@ body .room-section.is-playing .hangman-round-complete {
   }
 
   body .room-section.is-playing .hangman-console-top .hangman-robot-bay {
-    min-height: 288px;
+    min-height: 306px;
   }
 
   body .room-section.is-playing .hangman-alphabet {
@@ -1968,14 +2037,16 @@ body .room-section.is-playing .hangman-round-complete {
   body .room-section.is-playing .hangman-last-verdict,
   body .room-section.is-playing .hangman-figure.lit,
   body .room-section.is-playing .hangman-robot-rig,
-  body .room-section.is-playing .hangman-robot-part.is-assembled {
+  body .room-section.is-playing .hangman-robot-part.is-assembled,
+  body .room-section.is-playing .hangman-mannequin-sprite.is-assembled {
     animation: none !important;
   }
 
   body .room-section.is-playing .hangman-toy-board::after,
   body .room-section.is-playing .hangman-letter-button,
   body .room-section.is-playing .hangman-figure,
-  body .room-section.is-playing .hangman-robot-part {
+  body .room-section.is-playing .hangman-robot-part,
+  body .room-section.is-playing .hangman-mannequin-sprite {
     transition: none !important;
   }
 }

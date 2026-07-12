@@ -9,6 +9,7 @@ const MAX_WORD_LENGTH = 8;
 const MAX_MISSES = 6;
 const TARGET_WINS = 3;
 const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+const MANNEQUIN_SPRITE = "/game-assets/hangman/mannequin-full-v2.png";
 
 interface HangmanProgress {
   targetId: string;
@@ -546,12 +547,21 @@ function WordDisplay({ letters }: { letters: string[] }) {
 }
 
 function HangmanToyBoard({ misses = 0, maxMisses = MAX_MISSES }: { misses?: number; maxMisses?: number }) {
-  const progress = `${Math.min(100, Math.max(0, (misses / maxMisses) * 100))}%`;
+  const stage = Math.min(maxMisses, Math.max(0, misses));
+  const ratio = stage / Math.max(1, maxMisses);
+  const progress = `${ratio * 100}%`;
+  const boardStyle = {
+    "--hangman-progress": progress,
+    "--hangman-drop": `${stage * 3}px`,
+    "--hangman-model-opacity": (0.62 + ratio * 0.38).toFixed(2),
+    "--hangman-model-grayscale": `${Math.round((1 - ratio) * 48)}%`,
+    "--hangman-model-brightness": `${Math.round((0.8 + ratio * 0.2) * 100)}%`,
+  } as CSSProperties;
 
   return (
-    <div className="hangman-toy-board" style={{ "--hangman-progress": progress } as CSSProperties} aria-hidden="true">
+    <div className="hangman-toy-board" style={boardStyle} aria-hidden="true">
       <div className="hangman-toy-status">
-        <span>관절 마네킹 조립 단계</span>
+        <span>마네킹 경고 단계</span>
         <strong>{misses}<small>/{maxMisses}</small></strong>
       </div>
       <div className="hangman-toy-letters">
@@ -575,18 +585,13 @@ function HangmanToyBoard({ misses = 0, maxMisses = MAX_MISSES }: { misses?: numb
           <span className="hangman-robot-floor"><i /></span>
           <span className="hangman-robot-rig">
             <i className="hangman-robot-cable" />
-            <i className="hangman-robot-clamp"><b /><b /></i>
-            <span className={`hangman-robot-part robot-head ${misses >= 1 ? "is-assembled" : ""}`}>
-              <i className="hangman-robot-face" />
-            </span>
-            <span className={`hangman-robot-part robot-body ${misses >= 2 ? "is-assembled" : ""}`}>
-              <i className="hangman-mannequin-grain" />
-            </span>
-            <span className={`hangman-robot-part hangman-mannequin-pelvis ${misses >= 2 ? "is-assembled" : ""}`} />
-            <span className={`hangman-robot-part robot-arm robot-arm-left ${misses >= 3 ? "is-assembled" : ""}`} />
-            <span className={`hangman-robot-part robot-arm robot-arm-right ${misses >= 4 ? "is-assembled" : ""}`} />
-            <span className={`hangman-robot-part robot-leg robot-leg-left ${misses >= 5 ? "is-assembled" : ""}`} />
-            <span className={`hangman-robot-part robot-leg robot-leg-right ${misses >= 6 ? "is-assembled" : ""}`} />
+            <img
+              className="hangman-mannequin-sprite rendered-model"
+              src={MANNEQUIN_SPRITE}
+              alt=""
+              draggable={false}
+              decoding="async"
+            />
           </span>
         </div>
         <div className="hangman-miss-track">
@@ -822,7 +827,7 @@ export function Component({
             ) : null}
 
             <div className="hangman-console-top" aria-hidden="true">
-              <span className="hangman-console-label">관절 마네킹 조립판</span>
+              <span className="hangman-console-label">마네킹 상태</span>
               <HangmanToyBoard misses={myProgress?.misses ?? 0} maxMisses={state.maxMisses} />
             </div>
 
