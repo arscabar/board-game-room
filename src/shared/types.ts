@@ -42,6 +42,13 @@ export interface GameDefinition {
     motionHint?: string;
     texture?: "wood" | "felt" | "paper" | "tile" | "card" | "dice" | "stone";
   };
+  interaction?: {
+    mode: "turn" | "simultaneous";
+    openPhases?: string[];
+  };
+  timer?: {
+    fixedLabel: string;
+  };
 }
 
 export type PlayerAvatarBody = "pawn" | "round" | "bot" | "crest";
@@ -78,6 +85,7 @@ export type PostGameChoice = "rematch" | "game-select" | "leave-room";
 
 export interface GameRuntimeState {
   activePlayerId: string | null;
+  revision: number;
   turnNumber: number;
   roundNumber: number;
   moveLog: MoveEntry[];
@@ -98,6 +106,7 @@ export interface GameRuntimeState {
   winnerIds?: string[];
   postGameChoices?: Record<string, PostGameChoice>;
   postGameNotice?: string | null;
+  interactivePlayerIds?: string[];
 }
 
 export type RoomStatus = "lobby" | "playing";

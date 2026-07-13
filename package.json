@@ -21,7 +21,10 @@
     "qa:games": "tsx scripts/qa-all-games.ts",
     "qa:privacy": "tsx scripts/qa-privacy.ts",
     "qa:timeouts": "tsx scripts/qa-timeouts.ts",
-    "qa:max": "tsx scripts/qa-all-games.ts --max-runs"
+    "qa:new-games": "tsx scripts/qa-three-games.ts",
+    "qa:new-games:socket": "tsx scripts/qa-three-games-socket.ts",
+    "qa:max": "tsx scripts/qa-all-games.ts --max-runs",
+    "qa:all": "npm run build && npm run qa:catalog && npm run qa:new-games && npm run qa:new-games:socket && npm run qa:privacy && npm run qa:timeouts && npm run qa:games"
   },
   "dependencies": {
     "@capacitor/android": "^7.4.4",

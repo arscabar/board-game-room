@@ -1,4 +1,11 @@
-export const timedGameIds = ["davinci-code-plus", "blokus", "yacht-dice"] as const;
+export const timedGameIds = [
+  "davinci-code-plus",
+  "blokus",
+  "yacht-dice",
+  "blind-card-duel",
+  "parity-tile-duel",
+  "mosaic-rush"
+] as const;
 
 const timedGameIdSet = new Set<string>(timedGameIds);
 

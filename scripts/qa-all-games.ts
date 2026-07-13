@@ -9,6 +9,7 @@ import { module as blokusModule } from "../src/game-modules/blokus";
 import { module as kkukkkukiModule } from "../src/game-modules/kkukkkuki";
 import { module as quoridorModule } from "../src/game-modules/quoridor";
 import { module as yinshModule } from "../src/game-modules/yinsh";
+import { solutionForMosaicChallenge } from "../src/game-modules/mosaic-rush";
 import { validateGameCatalog } from "../src/game-modules/catalog";
 import { games, getGameById } from "../src/shared/games";
 import type { Ack, GameDefinition, RoomSnapshot } from "../src/shared/types";
@@ -193,7 +194,7 @@ async function startServer() {
     return { baseUrl, child: null as ChildProcessWithoutNullStreams | null };
   }
 
-  const statsFile = path.join(os.tmpdir(), `board-game-room-qa-${Date.now()}.json`);
+  const statsFile = path.join(os.tmpdir(), `board-game-room-qa-${Date.now()}-${process.pid}-${Math.random().toString(36).slice(2)}.json`);
   const tsxCli = path.join(process.cwd(), "node_modules", "tsx", "dist", "cli.mjs");
   const env = {
     ...process.env,
@@ -397,7 +398,15 @@ function winnerLabel(table: GameTable) {
 }
 
 async function gameAction(table: GameTable, client: QaClient, action: GameAction) {
-  const room = await emitAck<RoomSnapshot>(client, "game:action", { code: table.code, action });
+  assert(client.room, `${table.game.title} client room is not ready.`);
+  const state = recordFrom(client.room.gameState.publicState);
+  const scopedAction: GameAction = {
+    ...action,
+    actionId: action.actionId ?? `qa-${client.playerId}-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    expectedRevision: action.expectedRevision ?? client.room.gameState.revision,
+    scopeId: action.scopeId ?? (typeof state?.scopeId === "string" ? state.scopeId : undefined)
+  };
+  const room = await emitAck<RoomSnapshot>(client, "game:action", { code: table.code, action: scopedAction });
   client.room = room;
   await settleTable(table);
   return room;
@@ -761,6 +770,93 @@ async function playHangman(baseUrl: string, _options: PlayOptions = {}): Promise
   const completed = publicState<any>(table).phase === "complete" && winner !== "-";
   await closeTable(table);
   return { gameId: "hangman-board-game", title: "행맨 보드게임", players: 2, mode: "playthrough", actions, completed, winner, note: "best-of-three secret setup and solve" };
+}
+
+async function playBlindCardDuel(baseUrl: string, _options: PlayOptions = {}): Promise<QaResult> {
+  const table = await createStartedRoom(baseUrl, "blind-card-duel", 2);
+  let actions = 0;
+  while (!winnerLabel(table).includes("페이스업") && winnerLabel(table) === "-" && actions < 12) {
+    const first = activeClient(table);
+    const firstState = publicState<any>(table, first);
+    const target = firstState.maxBetTo;
+    assert(typeof target === "number" && target > firstState.currentBetTo, "Blind duel all-in target missing.");
+    await gameAction(table, first, { type: "blind/open", payload: { to: target } });
+    actions += 1;
+    const second = activeClient(table);
+    await gameAction(table, second, { type: "blind/call" });
+    actions += 1;
+    if (winnerLabel(table) !== "-") break;
+    await waitFor(() => {
+      const phase = publicState<any>(table).phase;
+      return phase === "betting" || phase === "complete";
+    }, 5_000, "blind duel next hand");
+  }
+  const winner = winnerLabel(table);
+  const completed = publicState<any>(table).phase === "complete" && winner !== "-";
+  await closeTable(table);
+  return { gameId: "blind-card-duel", title: "페이스업 듀얼", players: 2, mode: "playthrough", actions, completed, winner, note: "server all-in, projection, showdown lifecycle" };
+}
+
+async function playParityTileDuel(baseUrl: string, options: PlayOptions = {}): Promise<QaResult> {
+  const playerCount = options.playerCount ?? 3;
+  const table = await createStartedRoom(baseUrl, "parity-tile-duel", playerCount);
+  let actions = 0;
+  while (publicState<any>(table).phase !== "finished" && actions < 400) {
+    if (publicState<any>(table).phase === "round-result") {
+      await waitFor(() => publicState<any>(table).phase !== "round-result", 5_000, "parity next round");
+      continue;
+    }
+    const client = activeClient(table);
+    const state = publicState<any>(table, client);
+    const hand = state.hand as Array<{ id: string }>;
+    assert(hand.length > 0, "Parity active player has no projected hand.");
+    if (state.phase === "choose-attack") {
+      await gameAction(table, client, { type: "tile/attack", payload: { tileId: hand[0].id } });
+    } else if (state.phase === "await-defense") {
+      await gameAction(table, client, { type: "tile/pass" });
+    } else if (state.phase === "continuation") {
+      await gameAction(table, client, {
+        type: "tile/continue",
+        payload: hand.length >= 2
+          ? { bonusTileId: hand[0].id, attackTileId: hand[1].id }
+          : { bonusTileId: null, attackTileId: hand[0].id }
+      });
+    } else {
+      throw new Error(`Unknown parity phase ${state.phase}`);
+    }
+    actions += 1;
+  }
+  const winner = winnerLabel(table);
+  const completed = publicState<any>(table).phase === "finished" && winner !== "-";
+  await closeTable(table);
+  return { gameId: "parity-tile-duel", title: "문양 공방", players: playerCount, mode: "playthrough", actions, completed, winner, note: "private hands, pass laps, continuation and scoring" };
+}
+
+async function playMosaicRush(baseUrl: string, _options: PlayOptions = {}): Promise<QaResult> {
+  const table = await createStartedRoom(baseUrl, "mosaic-rush", 1);
+  const client = table.clients[0];
+  let actions = 0;
+  while (publicState<any>(table, client).phase !== "complete" && actions < 40) {
+    const puzzle = publicState<any>(table, client).puzzle;
+    const placements = solutionForMosaicChallenge(puzzle.card, puzzle.symbol);
+    for (const placement of placements) {
+      await gameAction(table, client, { type: "mosaic/place", payload: placement });
+      actions += 1;
+    }
+    await gameAction(table, client, { type: "mosaic/submit" });
+    actions += 1;
+    if (publicState<any>(table, client).phase === "reward") {
+      await waitFor(
+        () => publicState<any>(table, client).phase !== "reward",
+        5_000,
+        "mosaic reward phase"
+      );
+    }
+  }
+  const winner = winnerLabel(table);
+  const completed = publicState<any>(table, client).phase === "complete" && winner !== "-";
+  await closeTable(table);
+  return { gameId: "mosaic-rush", title: "모자이크 러시", players: 1, mode: "playthrough", actions, completed, winner, note: "nine server-validated simultaneous puzzle rounds" };
 }
 
 async function playQuoridor(baseUrl: string, options: PlayOptions = {}): Promise<QaResult> {
@@ -1423,7 +1519,10 @@ const scenarios: Array<{ gameId: string; play: PlayScenario }> = [
   { gameId: "masterpiece-copy", play: playMasterpieceCopy },
   { gameId: "yacht-dice", play: playYacht },
   { gameId: "yinsh", play: playYinsh },
-  { gameId: "hangman-board-game", play: playHangman }
+  { gameId: "hangman-board-game", play: playHangman },
+  { gameId: "blind-card-duel", play: playBlindCardDuel },
+  { gameId: "parity-tile-duel", play: playParityTileDuel },
+  { gameId: "mosaic-rush", play: playMosaicRush }
 ];
 
 function argValue(name: string) {
@@ -1439,6 +1538,8 @@ async function runMaxPlaythroughs(baseUrl: string) {
     seed = 1000;
   }
   const onlyGameId = argValue("max-game");
+  const configuredRunCount = Number(argValue("max-runs-count") ?? 3);
+  const runCount = Number.isSafeInteger(configuredRunCount) && configuredRunCount > 0 ? configuredRunCount : 3;
   const selectedScenarios = onlyGameId ? scenarios.filter((scenario) => scenario.gameId === onlyGameId) : scenarios;
 
   if (onlyGameId && selectedScenarios.length === 0) {
@@ -1451,8 +1552,8 @@ async function runMaxPlaythroughs(baseUrl: string) {
     const playerCount = Math.max(...game.allowedPlayerCounts);
     const scenarioSeed = !configuredSeedBase && scenario.gameId === "yinsh" ? 1010 : seed;
 
-    for (let run = 1; run <= 3; run += 1) {
-      console.log(`[max-playthrough] ${game.title} ${playerCount}p ${run}/3`);
+    for (let run = 1; run <= runCount; run += 1) {
+      console.log(`[max-playthrough] ${game.title} ${playerCount}p ${run}/${runCount}`);
       const result = await scenario.play(baseUrl, { playerCount, seed: scenarioSeed + run });
       result.mode = "max-playthrough";
       result.run = run;

@@ -1,0 +1,34 @@
+.mosaic-rush{--mr-ink:#24190f;--mr-paper:#f5e7c4;--mr-brass:#d29b42;max-width:1120px;margin:0 auto;color:#fff7e6}.mosaic-rush button{min-height:44px}.mosaic-rush__header{display:flex;justify-content:space-between;gap:18px;align-items:center;padding:16px 18px;border:1px solid #d29b4266;border-radius:18px;background:linear-gradient(135deg,#2d2118,#173d31);box-shadow:inset 0 1px #fff2}.mosaic-rush__header>div{display:grid;grid-template-columns:auto 1fr;align-items:center;column-gap:10px}.mosaic-rush__header h2,.mosaic-rush__header p{margin:0}.mosaic-rush__header h2{grid-column:2;font-family:Georgia,serif}.mosaic-rush__medallion,.mosaic-rush__rank{display:grid;place-items:center;border-radius:50%;background:#d29b42;color:#24190f;font-weight:900;box-shadow:inset 0 0 0 3px #ffe8a866}.mosaic-rush__medallion{grid-row:1/3;width:50px;height:50px;font-size:1.35rem}.mosaic-rush__message{max-width:48ch;color:#f5e7c4}.mosaic-rush__layout{display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:18px;margin-top:18px}.mosaic-rush__workbench,.mosaic-rush__score{border:1px solid #fff2;border-radius:20px;background:linear-gradient(145deg,#123c30,#0a2d25);padding:18px;box-shadow:0 18px 40px #0005,inset 0 1px #fff2}.mosaic-rush__target-title{display:flex;gap:8px;justify-content:center;align-items:center;color:#f4ce7a;font-weight:800;letter-spacing:.06em}.mosaic-rush__grid{width:min(72vw,430px);aspect-ratio:1;margin:16px auto;display:grid;grid-template-columns:repeat(3,1fr);gap:7px;padding:9px;border-radius:18px;background:#25180f;box-shadow:inset 0 0 0 2px #d29b4255}.mosaic-rush__cell{border:1px dashed #d9bd8277;border-radius:12px;background:linear-gradient(145deg,#f6e7c6,#d8c18e);color:#2b1b10;font:900 clamp(1rem,4vw,2rem)/1 Georgia,serif;box-shadow:inset 0 1px #fff,0 3px 0 #72501e;transition:transform .18s ease,background .18s ease}.mosaic-rush__cell:hover:not(:disabled){transform:translateY(-2px)}.mosaic-rush__cell.is-beam{background:repeating-linear-gradient(45deg,#e7aa36,#e7aa36 8px,#f0c35f 8px,#f0c35f 16px)}.mosaic-rush__cell.is-corner-a{background:radial-gradient(circle,#fff5 2px,transparent 3px),#c8604d;background-size:12px 12px}.mosaic-rush__cell.is-corner-b{background:linear-gradient(90deg,#4f7db0 50%,#6f9bc9 50%);background-size:16px 100%}.mosaic-rush__tools{display:flex;flex-wrap:wrap;justify-content:center;gap:8px}.mosaic-rush__tools button,.mosaic-rush__submit{display:inline-flex;align-items:center;justify-content:center;gap:7px;border:1px solid #d29b4266;border-radius:12px;padding:9px 12px;background:#1c2f29;color:#fff7e6;font-weight:750}.mosaic-rush__tools button.is-selected{background:#d29b42;color:#24190f;box-shadow:0 0 0 3px #f5cf7d33}.mosaic-rush__submit{display:flex;width:min(100%,420px);margin:14px auto 0;background:linear-gradient(#e6b751,#bd7e24);color:#24190f;border-color:#ffe6a0;font-size:1rem}.mosaic-rush__score h3{margin-top:0;color:#f4ce7a}.mosaic-rush__player{display:grid;grid-template-columns:30px 1fr auto;gap:8px;align-items:center;padding:10px 0;border-bottom:1px solid #fff2}.mosaic-rush__player em{grid-column:2/4;color:#d7caa9;font-size:.8rem}.mosaic-rush__rank{width:28px;height:28px}.mosaic-rush__score details{margin-top:16px;padding:11px;border-radius:12px;background:#071e19}.mosaic-rush__score summary{cursor:pointer;font-weight:800}.mosaic-rush__score p{color:#d7caa9;line-height:1.55}.mosaic-rush button:focus-visible{outline:3px solid #fff1a5;outline-offset:3px}@media(max-width:760px){.mosaic-rush__header{align-items:flex-start;flex-direction:column}.mosaic-rush__layout{grid-template-columns:1fr}.mosaic-rush__score{order:-1}.mosaic-rush__grid{width:min(86vw,390px)}.mosaic-rush__tools{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:400px){.mosaic-rush__workbench,.mosaic-rush__score{padding:12px}.mosaic-rush__grid{gap:5px;padding:6px}.mosaic-rush__tools{grid-template-columns:1fr 1fr}.mosaic-rush__tools button{font-size:.78rem}}@media(prefers-reduced-motion:reduce){.mosaic-rush__cell{transition:none}.mosaic-rush__cell:hover:not(:disabled){transform:none}}
+
+/* Keep intrinsic puzzle sizing inside the game frame at narrow widths. */
+.mosaic-rush,
+.mosaic-rush__layout,
+.mosaic-rush__workbench,
+.mosaic-rush__score {
+  min-inline-size: 0;
+  max-inline-size: 100%;
+}
+
+.mosaic-rush__layout > * {
+  min-inline-size: 0;
+}
+
+.mosaic-rush__grid {
+  box-sizing: border-box;
+  inline-size: min(100%, 430px);
+  max-inline-size: 100%;
+}
+
+.mosaic-rush__score {
+  align-self: start;
+}
+
+@media (max-width: 760px) {
+  .mosaic-rush__workbench {
+    order: 0;
+  }
+
+  .mosaic-rush__score {
+    order: 1;
+  }
+}

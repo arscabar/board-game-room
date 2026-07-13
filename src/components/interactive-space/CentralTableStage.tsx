@@ -38,9 +38,17 @@ export function CentralTableStage({ game, state, players = [], maxSeats = 4, tab
             </div>
           ) : (
             <div className="empty-table-slot">
-              <span className="empty-table-ring" aria-hidden="true" />
-              <span className="empty-table-emblem" aria-hidden="true"><Dices size={30} /></span>
-              <span className="empty-table-box">TABLE READY</span>
+              <img
+                className="empty-table-art"
+                src="/board-assets/generated/game-selection-empty-v2.webp"
+                alt=""
+                aria-hidden="true"
+              />
+              <span className="empty-table-copy">
+                <span className="empty-table-kicker"><Dices size={17} aria-hidden="true" /> GAME LIBRARY</span>
+                <strong>게임을 테이블에 펼쳐보세요</strong>
+                <small>목록에서 게임 상자를 선택하면 미리보기가 열립니다.</small>
+              </span>
             </div>
           )}
         </div>

@@ -8,7 +8,7 @@ import {
   type PointerEvent as ReactPointerEvent
 } from "react";
 import { games } from "../../shared/games";
-import { canPlayGame, formatAllowedPlayers } from "../../shared/eligibility";
+import { canPlayGame, formatAllowedPlayers, gameAvailabilityLabel } from "../../shared/eligibility";
 import { gameUsesTurnTimer, turnTimerOptions } from "../../shared/timers";
 import type { GameDefinition, RoomSnapshot } from "../../shared/types";
 import { CentralTableStage, type CentralTableState } from "./CentralTableStage";
@@ -88,7 +88,17 @@ export function InteractiveGameLobby({
   const tableGame = draggedGame ?? focusedGame ?? placedGame;
   const turnTimerMs = room.gameState.turnTimerMs ?? turnTimerOptions[1]?.value ?? turnTimerOptions[0].value;
   const usesTurnTimer = gameUsesTurnTimer(serverSelectedGame?.id);
+  const fixedTimerLabel = serverSelectedGame?.timer?.fixedLabel;
   const selectedMeta = serverSelectedGame ? `${serverSelectedGame.title} · ${formatAllowedPlayers(serverSelectedGame)}` : "게임 선택";
+  const startStatus = !serverSelectedGame
+    ? "게임을 선택하면 테이블에 펼쳐집니다."
+    : pendingGameId
+      ? "게임 선택을 테이블에 적용하고 있습니다."
+      : !isHost
+        ? "방장이 게임과 제한 시간을 확인한 뒤 시작합니다."
+        : canStart
+          ? `${playerCount}명 준비 완료 · 바로 시작할 수 있습니다.`
+          : `${gameAvailabilityLabel(serverSelectedGame, playerCount)} · 참가자를 기다리고 있습니다.`;
 
   const sortedGames = useMemo(
     () =>
@@ -399,13 +409,21 @@ export function InteractiveGameLobby({
 
           {serverSelectedGame ? (
             <div className="game-lobby-action-bar">
-              {usesTurnTimer ? (
+              {fixedTimerLabel ? (
+                <div className="game-lobby-timer-control is-fixed" aria-label={`고정 제한 시간: ${fixedTimerLabel}`}>
+                  <span>
+                    <Clock3 size={15} aria-hidden="true" />
+                    고정 제한 시간
+                  </span>
+                  <strong>{fixedTimerLabel}</strong>
+                </div>
+              ) : usesTurnTimer ? (
                 <label className="game-lobby-timer-control">
                   <span>
                     <Clock3 size={15} aria-hidden="true" />
                     턴 제한
                   </span>
-                  <select value={turnTimerMs} disabled={!isHost} onChange={(event) => onConfigureTimer(Number(event.currentTarget.value))}>
+                  <select aria-label="턴 제한" value={turnTimerMs} disabled={!isHost} onChange={(event) => onConfigureTimer(Number(event.currentTarget.value))}>
                     {turnTimerOptions.map((option) => (
                       <option key={option.value} value={option.value}>
                         {option.label}
@@ -419,6 +437,9 @@ export function InteractiveGameLobby({
                 <Play size={16} aria-hidden="true" />
                 <span>{isHost ? (canStart ? "시작" : "대기") : "방장 대기"}</span>
               </button>
+              <p className="game-lobby-start-status" data-ready={canStart ? "true" : "false"} aria-live="polite">
+                {startStatus}
+              </p>
             </div>
           ) : null}
         </aside>

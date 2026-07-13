@@ -6,7 +6,7 @@ import {
   type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent
 } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Search, X } from "lucide-react";
 import type { GameDefinition } from "../../shared/types";
 import { GameBoxObject, type GameBoxState, type GamePlacementSource } from "./GameBoxObject";
 
@@ -81,6 +81,7 @@ export function GameShelfViewport({
   onPointerCancel
 }: GameShelfViewportProps) {
   const [activeFilter, setActiveFilter] = useState<PlayerCountFilter>("all");
+  const [searchQuery, setSearchQuery] = useState("");
   const [pageSize, setPageSize] = useState(() => pageSizeForViewport(games.length));
   const [pageIndex, setPageIndex] = useState(0);
   const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
@@ -99,17 +100,25 @@ export function GameShelfViewport({
       })),
     [games]
   );
-  const activeGames = useMemo(
-    () => gamesForFilter(games, activeFilter),
-    [activeFilter, games]
-  );
+  const activeGames = useMemo(() => {
+    const filteredGames = gamesForFilter(games, activeFilter);
+    const query = searchQuery.trim().toLocaleLowerCase("ko-KR");
+    if (!query) return filteredGames;
+
+    return filteredGames.filter((game) =>
+      [game.title, game.original, game.genre, game.summary, game.id, game.table.kind, ...game.components]
+        .join(" ")
+        .toLocaleLowerCase("ko-KR")
+        .includes(query)
+    );
+  }, [activeFilter, games, searchQuery]);
   const pageCount = Math.max(1, Math.ceil(activeGames.length / pageSize));
   const visibleGames = activeGames.slice(pageIndex * pageSize, (pageIndex + 1) * pageSize);
   const activeTabId = `game-shelf-tab-${activeFilter}`;
 
   useEffect(() => {
     setPageIndex(0);
-  }, [activeFilter]);
+  }, [activeFilter, searchQuery]);
 
   useEffect(() => {
     setPageIndex((current) => Math.min(current, pageCount - 1));
@@ -146,11 +155,21 @@ export function GameShelfViewport({
   }
 
   return (
-    <section className="game-shelf-viewport" aria-labelledby="game-shelf-title">
+    <section
+      className="game-shelf-viewport"
+      aria-labelledby="game-shelf-title"
+      data-searching={searchQuery.trim() ? "true" : "false"}
+    >
       <div className="game-shelf-plaque">
         <div>
           <h3 id="game-shelf-title">게임 둘러보기</h3>
-          <span>{activeFilter === "all" ? `전체 게임 ${activeGames.length}개` : `${activeFilter}명용 ${activeGames.length}개`}</span>
+          <span>
+            {searchQuery.trim()
+              ? `검색 결과 ${activeGames.length}개`
+              : activeFilter === "all"
+                ? `전체 게임 ${activeGames.length}개`
+                : `${activeFilter}명용 ${activeGames.length}개`}
+          </span>
         </div>
         {pageCount > 1 ? (
           <nav className="game-shelf-compact-nav" aria-label="게임 목록 빠른 이동">
@@ -194,6 +213,35 @@ export function GameShelfViewport({
         })}
       </div>
 
+      <div className="game-shelf-tools">
+        <div className="game-shelf-search">
+          <Search size={17} aria-hidden="true" />
+          <label className="visually-hidden" htmlFor="game-shelf-search-input">게임 검색</label>
+          <input
+            id="game-shelf-search-input"
+            type="search"
+            value={searchQuery}
+            placeholder="제목·장르로 게임 찾기"
+            autoComplete="off"
+            onChange={(event) => setSearchQuery(event.currentTarget.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Escape" && searchQuery) {
+                event.preventDefault();
+                setSearchQuery("");
+              }
+            }}
+          />
+          {searchQuery ? (
+            <button type="button" onClick={() => setSearchQuery("")} aria-label="게임 검색어 지우기">
+              <X size={16} aria-hidden="true" />
+            </button>
+          ) : null}
+        </div>
+        <span className="game-shelf-result-count" aria-live="polite">
+          {searchQuery.trim() ? `${activeGames.length}개 찾음` : `${activeGames.length}개 표시`}
+        </span>
+      </div>
+
       <div
         id="game-shelf-panel"
         className="game-shelf-panel"
@@ -210,8 +258,8 @@ export function GameShelfViewport({
           }
         }}
       >
-        <div className="game-shelf-page" key={`${activeFilter}-${pageIndex}`}>
-          <div className="game-shelf-grid" role="list">
+        <div className="game-shelf-page" key={`${activeFilter}-${searchQuery}-${pageIndex}`}>
+          <div className="game-shelf-grid" role="list" data-result-count={visibleGames.length}>
           {visibleGames.map((game) => {
             const available = isGameAvailable(game);
             return (
@@ -236,6 +284,14 @@ export function GameShelfViewport({
             );
           })}
           </div>
+          {activeGames.length === 0 ? (
+            <div className="game-shelf-empty" role="status">
+              <Search size={22} aria-hidden="true" />
+              <strong>조건에 맞는 게임이 없습니다.</strong>
+              <span>검색어를 줄이거나 다른 인원 탭을 선택해보세요.</span>
+              <button type="button" onClick={() => setSearchQuery("")}>검색 초기화</button>
+            </div>
+          ) : null}
         </div>
 
         {pageCount > 1 ? (

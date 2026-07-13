@@ -10,6 +10,7 @@ import "./immersive-design.css";
 import "./gameplay-legibility.css";
 import "./gameplay-craft.css";
 import "./victory-sequence.css";
+import "./generated-design.css";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

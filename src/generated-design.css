@@ -1,0 +1,693 @@
+/* Final visual layer: Boardgame Atelier / brass-inlaid stained glass. */
+:root {
+  --atelier-obsidian: #090d0c;
+  --atelier-forest: #102d25;
+  --atelier-felt: #17463a;
+  --atelier-felt-deep: #0b2b24;
+  --atelier-walnut: #4a2e1f;
+  --atelier-walnut-dark: #27170f;
+  --atelier-brass: #d3ad67;
+  --atelier-brass-bright: #f2d497;
+  --atelier-ivory: #f4ead4;
+  --atelier-ivory-muted: #cfc2a6;
+  --atelier-oxblood: #7b2e35;
+  --atelier-blue: #326b8b;
+  --atelier-shadow-contact: 0 3px 8px rgb(0 0 0 / 38%);
+  --atelier-shadow-raised: 0 14px 34px rgb(0 0 0 / 35%);
+  --atelier-inset-line: inset 0 0 0 1px rgb(255 255 255 / 7%);
+  --atelier-surface-quiet: rgb(8 31 26 / 88%);
+  --atelier-surface-raised: rgb(20 55 46 / 94%);
+  --atelier-control-height: 44px;
+}
+
+.app-shell {
+  background:
+    radial-gradient(circle at 50% -10%, rgb(211 173 103 / 10%), transparent 32rem),
+    linear-gradient(135deg, rgb(255 255 255 / 1.5%) 0 1px, transparent 1px 12px),
+    var(--atelier-obsidian);
+  color: var(--atelier-ivory);
+}
+
+.topbar,
+.game-lobby-header,
+.play-panel-header,
+.post-game-dialog,
+.game-module-shell,
+.game-box-lid {
+  position: relative;
+}
+
+.topbar::after,
+.game-lobby-header::after,
+.play-panel-header::after,
+.post-game-dialog::after,
+.game-module-shell::after,
+.game-box-lid::after {
+  position: absolute;
+  inset: 7px;
+  z-index: 3;
+  border: 1px solid rgb(211 173 103 / 28%);
+  border-width: 1px 0;
+  clip-path: polygon(0 0, 22px 0, 22px 1px, calc(100% - 22px) 1px, calc(100% - 22px) 0, 100% 0, 100% 100%, calc(100% - 22px) 100%, calc(100% - 22px) calc(100% - 1px), 22px calc(100% - 1px), 22px 100%, 0 100%);
+  content: "";
+  pointer-events: none;
+}
+
+.topbar {
+  border-bottom-color: rgb(211 173 103 / 38%);
+  background: linear-gradient(180deg, rgb(18 45 38 / 96%), rgb(9 20 17 / 96%));
+  box-shadow: 0 8px 24px rgb(0 0 0 / 24%);
+}
+
+.brand-mark,
+.bcd-medallion,
+.ptd-medallion,
+.mosaic-rush__medallion,
+.post-game-emblem {
+  border-color: var(--atelier-brass);
+  background: radial-gradient(circle at 36% 28%, var(--atelier-brass-bright), var(--atelier-brass) 35%, #7d5c28 76%);
+  color: #25170d;
+  box-shadow: inset 0 1px 1px rgb(255 255 255 / 50%), 0 3px 9px rgb(0 0 0 / 35%);
+}
+
+.game-box-main {
+  border-color: rgb(211 173 103 / 32%);
+  background: linear-gradient(145deg, #5a3826, var(--atelier-walnut-dark));
+  box-shadow: var(--atelier-inset-line), var(--atelier-shadow-contact);
+}
+
+.game-box-main:hover .game-box-lid,
+.game-box-main:focus-visible .game-box-lid {
+  filter: saturate(1.08) brightness(1.05);
+  transform: translateY(-5px) rotateX(2deg);
+}
+
+.game-box-main:focus-visible,
+.play-mini-action:focus-visible,
+.game-module button:focus-visible,
+.mosaic-rush button:focus-visible {
+  outline: 3px solid var(--atelier-brass-bright);
+  outline-offset: 3px;
+}
+
+.game-cover-art {
+  background: var(--atelier-felt-deep);
+  filter: saturate(.96) contrast(1.04);
+}
+
+.game-box-label,
+.game-box-action,
+.play-compact-status,
+.play-timer-chip {
+  border: 1px solid rgb(211 173 103 / 38%);
+  background: linear-gradient(180deg, rgb(22 57 47 / 94%), rgb(8 31 26 / 96%));
+  box-shadow: var(--atelier-inset-line), var(--atelier-shadow-contact);
+}
+
+.player-turn-chip {
+  border-color: rgb(211 173 103 / 22%);
+  background: linear-gradient(180deg, rgb(26 49 42 / 88%), rgb(11 29 25 / 94%));
+}
+
+.player-turn-chip.active {
+  border-color: var(--atelier-brass);
+  background: linear-gradient(180deg, rgb(54 83 65 / 96%), rgb(19 55 44 / 98%));
+  box-shadow: inset 0 0 0 1px rgb(242 212 151 / 18%), 0 0 0 2px rgb(211 173 103 / 12%), var(--atelier-shadow-contact);
+}
+
+.game-shelf-compact-nav button,
+.game-shelf-pagination button {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+/* UX pass: searchable catalog, explicit readiness, persistent feedback. */
+.game-shelf-tools {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.game-shelf-search {
+  position: relative;
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) 44px;
+  align-items: center;
+  min-height: 46px;
+  overflow: hidden;
+  border: 1px solid rgb(211 173 103 / 30%);
+  border-radius: 9px;
+  background: rgb(6 23 19 / 78%);
+  color: var(--atelier-ivory-muted);
+  box-shadow: var(--atelier-inset-line);
+}
+
+.game-shelf-search > svg {
+  justify-self: end;
+}
+
+.game-shelf-search input {
+  min-width: 0;
+  height: 44px !important;
+  min-height: 44px !important;
+  border: 0;
+  outline: 0;
+  padding: 0 10px;
+  background: transparent;
+  color: var(--atelier-ivory);
+  font: inherit;
+}
+
+.game-shelf-search input::placeholder {
+  color: rgb(207 194 166 / 62%);
+}
+
+.game-shelf-search:focus-within {
+  border-color: var(--atelier-brass-bright);
+  box-shadow: 0 0 0 3px rgb(211 173 103 / 18%), var(--atelier-inset-line);
+}
+
+.game-shelf-search button {
+  display: inline-grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  background: transparent;
+  color: var(--atelier-ivory-muted);
+  cursor: pointer;
+}
+
+.game-shelf-result-count {
+  color: var(--atelier-ivory-muted);
+  font-size: .76rem;
+  white-space: nowrap;
+}
+
+.game-shelf-empty {
+  display: grid;
+  place-items: center;
+  gap: 8px;
+  min-height: 250px;
+  padding: 24px;
+  border: 1px dashed rgb(211 173 103 / 32%);
+  color: var(--atelier-ivory-muted);
+  text-align: center;
+}
+
+.game-shelf-empty strong {
+  color: var(--atelier-ivory);
+}
+
+.game-shelf-empty button {
+  min-height: 44px;
+  margin-top: 4px;
+  border: 1px solid rgb(211 173 103 / 46%);
+  border-radius: 8px;
+  padding: 0 16px;
+  background: rgb(211 173 103 / 12%);
+  color: var(--atelier-ivory);
+  cursor: pointer;
+}
+
+.game-lobby-start-status {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--atelier-ivory-muted);
+  font-size: .76rem;
+  line-height: 1.4;
+}
+
+.game-lobby-start-status[data-ready="true"] {
+  color: #9bd8b6;
+}
+
+.game-lobby-timer-control select {
+  height: 44px !important;
+  min-height: 44px !important;
+}
+
+.play-feedback-toast {
+  position: sticky;
+  top: 8px;
+  z-index: 80;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 44px;
+  align-items: center;
+  gap: 8px;
+  max-width: 720px;
+  margin: 8px auto;
+  border: 1px solid #c7807f;
+  border-left: 4px solid #e39992;
+  border-radius: 9px;
+  background: rgb(67 25 28 / 97%);
+  color: #fff0e9;
+  box-shadow: 0 12px 28px rgb(0 0 0 / 38%);
+}
+
+.play-feedback-toast span {
+  padding: 10px 0 10px 14px;
+  line-height: 1.45;
+}
+
+.play-feedback-toast button {
+  display: inline-grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.play-confirm-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgb(3 10 8 / 78%);
+  backdrop-filter: blur(5px);
+}
+
+.play-confirm-dialog {
+  width: min(460px, 100%);
+  border: 1px solid rgb(211 173 103 / 56%);
+  border-radius: 14px;
+  padding: 24px;
+  background:
+    linear-gradient(145deg, rgb(31 67 55 / 97%), rgb(9 28 24 / 99%));
+  color: var(--atelier-ivory);
+  box-shadow: var(--atelier-shadow-raised), inset 0 0 0 1px rgb(255 255 255 / 6%);
+}
+
+.play-confirm-kicker {
+  color: var(--atelier-brass-bright);
+  font-size: .72rem;
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+.play-confirm-dialog h3 {
+  margin: 8px 0 10px;
+  font-family: Georgia, "Noto Serif KR", serif;
+  font-size: clamp(1.28rem, 4vw, 1.7rem);
+}
+
+.play-confirm-dialog p {
+  margin: 0;
+  color: var(--atelier-ivory-muted);
+  line-height: 1.6;
+}
+
+.play-confirm-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 22px;
+}
+
+.play-confirm-actions button {
+  height: 48px !important;
+  min-height: 48px !important;
+}
+
+.room-flow-notice {
+  width: min(1120px, calc(100% - 24px));
+  margin: 0 auto 10px;
+  padding: 10px 12px;
+  border: 1px solid rgb(211 173 103 / 38%);
+  border-radius: 8px;
+  background: rgb(38 25 17 / 92%);
+  color: var(--atelier-ivory);
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+body .app-shell > .skip-link {
+  position: absolute;
+  display: inline-flex;
+  align-items: center;
+  min-height: 48px;
+  box-sizing: border-box;
+}
+
+body .player-token-name-field input {
+  height: 48px;
+  min-height: 48px;
+}
+
+.game-module-shell {
+  border-color: rgb(211 173 103 / 34%);
+  background: linear-gradient(145deg, rgb(42 25 17 / 88%), rgb(10 31 26 / 92%));
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 5%), var(--atelier-shadow-raised);
+}
+
+/* Hidden-card duel: a quiet casino table where the opponent's card is the focal point. */
+[data-game-id="blind-card-duel"] .blind-card-duel {
+  border: 1px solid rgb(211 173 103 / 36%);
+  background:
+    radial-gradient(ellipse at center, rgb(35 104 78 / 58%), transparent 68%),
+    repeating-linear-gradient(105deg, rgb(255 255 255 / 1.6%) 0 1px, transparent 1px 8px),
+    var(--atelier-felt-deep);
+  box-shadow: inset 0 0 0 9px var(--atelier-walnut-dark), inset 0 0 0 11px rgb(211 173 103 / 35%);
+}
+
+[data-game-id="blind-card-duel"] .bcd-card {
+  border-color: rgb(244 234 212 / 66%);
+  box-shadow: inset 0 0 0 2px rgb(123 46 53 / 24%), 0 12px 18px rgb(0 0 0 / 35%);
+}
+
+[data-game-id="blind-card-duel"] .bcd-card.back {
+  background:
+    linear-gradient(45deg, transparent 42%, rgb(242 212 151 / 28%) 43% 47%, transparent 48%) 0 0 / 18px 18px,
+    linear-gradient(135deg, transparent 42%, rgb(242 212 151 / 28%) 43% 47%, transparent 48%) 0 0 / 18px 18px,
+    var(--atelier-oxblood);
+}
+
+[data-game-id="blind-card-duel"] .bcd-pot {
+  border: 1px solid rgb(211 173 103 / 46%);
+  background: radial-gradient(circle, rgb(54 91 71 / 96%), rgb(11 38 31 / 98%));
+  box-shadow: inset 0 0 20px rgb(0 0 0 / 32%), var(--atelier-shadow-contact);
+}
+
+/* Parity tile duel: red-dot and blue-line enamel pieces on black lacquer. */
+[data-game-id="parity-tile-duel"] .parity-tile-duel {
+  border: 1px solid rgb(211 173 103 / 34%);
+  background: linear-gradient(145deg, #151a18, #080b0a);
+  box-shadow: inset 0 0 0 8px #3b2419, inset 0 0 0 10px rgb(211 173 103 / 26%);
+}
+
+[data-game-id="parity-tile-duel"] .ptd-tile {
+  border-color: rgb(244 234 212 / 42%);
+  box-shadow: inset 0 1px 1px rgb(255 255 255 / 22%), 0 7px 10px rgb(0 0 0 / 36%);
+}
+
+[data-game-id="parity-tile-duel"] .ptd-tile.odd {
+  background-color: #a33e3e;
+}
+
+[data-game-id="parity-tile-duel"] .ptd-tile.even {
+  background-color: var(--atelier-blue);
+}
+
+[data-game-id="parity-tile-duel"] .ptd-flow {
+  border-color: rgb(211 173 103 / 38%);
+  background: linear-gradient(90deg, rgb(123 46 53 / 24%), rgb(211 173 103 / 9%) 50%, rgb(50 107 139 / 24%));
+}
+
+/* Mosaic rush: jewel glass held by thin brass cames. */
+[data-game-id="mosaic-rush"] .mosaic-rush {
+  border: 1px solid rgb(211 173 103 / 40%);
+  background:
+    radial-gradient(circle at 20% 12%, rgb(69 150 118 / 18%), transparent 25rem),
+    linear-gradient(145deg, #122f27, #071a16);
+  box-shadow: inset 0 0 0 8px #3c2418, inset 0 0 0 10px rgb(211 173 103 / 28%);
+}
+
+[data-game-id="mosaic-rush"] .mosaic-rush__workbench,
+[data-game-id="mosaic-rush"] .mosaic-rush__score {
+  border-color: rgb(211 173 103 / 32%);
+  background: rgb(5 21 18 / 74%);
+  box-shadow: var(--atelier-inset-line), var(--atelier-shadow-contact);
+}
+
+[data-game-id="mosaic-rush"] .mosaic-rush__cell:not(.is-blocked) {
+  border-color: rgb(211 173 103 / 48%);
+  box-shadow: inset 0 0 8px rgb(255 255 255 / 9%);
+}
+
+[data-game-id="mosaic-rush"] .mosaic-rush__tools button.is-selected {
+  border-color: var(--atelier-brass-bright);
+  box-shadow: 0 0 0 2px rgb(211 173 103 / 18%), var(--atelier-shadow-contact);
+}
+
+@media (max-width: 767px) {
+  .topbar::after,
+  .game-lobby-header::after,
+  .play-panel-header::after,
+  .post-game-dialog::after,
+  .game-module-shell::after {
+    inset: 4px;
+  }
+
+  .play-compact-status,
+  .play-timer-chip {
+    min-height: 36px;
+  }
+
+  .game-module button,
+  .mosaic-rush button,
+  .game-lobby-start-button,
+  .game-lobby-exit-button {
+    min-height: 44px;
+  }
+
+  .game-shelf-tools {
+    grid-template-columns: 1fr;
+    gap: 5px;
+  }
+
+  .game-shelf-result-count {
+    justify-self: end;
+  }
+
+  .play-feedback-toast {
+    top: 4px;
+    margin-inline: 4px;
+  }
+
+  .play-confirm-dialog {
+    padding: 20px 16px 16px;
+  }
+
+  .play-confirm-actions {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .game-box-main:hover .game-box-lid,
+  .game-box-main:focus-visible .game-box-lid {
+    transform: none;
+  }
+}
+
+/* Responsive containment audit: keep content inside its own panel instead of
+   hiding overflow at the page boundary. Intentional hand/track scrollers stay
+   scrollable in their game-specific styles. */
+:where(
+  .app-shell,
+  .club-page-surface,
+  .room-section,
+  .work-panel,
+  .interactive-game-lobby,
+  .game-lobby-layout,
+  .game-lobby-side,
+  .game-shelf-viewport,
+  .game-shelf-panel,
+  .game-shelf-page,
+  .game-lobby-selection-rail,
+  .play-panel,
+  .game-module-shell,
+  .game-module
+) {
+  min-inline-size: 0;
+  max-inline-size: 100%;
+}
+
+:where(
+  .play-feedback-toast,
+  .play-confirm-dialog,
+  .post-game-dialog,
+  .bcd-message,
+  .ptd-flow,
+  .mosaic-rush__message
+) {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 520px) {
+  body .room-section.is-playing .play-panel-header {
+    grid-template-columns: minmax(0, 1fr) !important;
+    align-items: stretch !important;
+    gap: 6px !important;
+    padding: 7px !important;
+  }
+
+  body .room-section.is-playing .play-panel-header h2 {
+    width: auto !important;
+    max-width: 100% !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere;
+  }
+
+  body .room-section.is-playing .play-header-actions {
+    display: grid !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    width: 100% !important;
+    max-width: none !important;
+    gap: 4px !important;
+  }
+
+  body .room-section.is-playing .play-header-actions .play-timer-chip,
+  body .room-section.is-playing .play-header-actions .play-mini-action {
+    width: 100% !important;
+    min-width: 0 !important;
+    margin-inline: 0 !important;
+  }
+}
+
+/* Flow-first lobby pass: generated imagery supports selection without competing
+   with labels, filters, or the physical game boxes. */
+body .interactive-game-lobby.is-game-lobby .game-shelf-viewport {
+  isolation: isolate;
+  overflow: hidden !important;
+  position: relative;
+}
+
+body .interactive-game-lobby.is-game-lobby .game-shelf-viewport::before {
+  background:
+    linear-gradient(180deg, rgb(7 24 20 / 42%), rgb(27 14 11 / 88%) 78%, rgb(27 14 11 / 98%)),
+    url("/board-assets/generated/game-library-table-v2.webp") center 40% / cover no-repeat;
+  content: "";
+  height: 230px;
+  inset: 0 0 auto;
+  opacity: .5;
+  pointer-events: none;
+  position: absolute;
+  z-index: -1;
+}
+
+body .interactive-game-lobby.is-game-lobby .game-shelf-viewport > * {
+  position: relative;
+  z-index: 1;
+}
+
+body .room-section.is-lobby .interactive-game-lobby.is-game-lobby .game-shelf-grid[data-result-count="1"] {
+  grid-template-columns: minmax(124px, 156px) !important;
+  justify-content: center !important;
+}
+
+body .room-section.is-lobby .interactive-game-lobby.is-game-lobby .game-shelf-grid[data-result-count="1"] > .game-shelf-slot {
+  justify-self: center !important;
+  max-inline-size: 156px !important;
+}
+
+body .interactive-game-lobby.is-game-lobby .game-shelf-viewport[data-searching="true"] .game-shelf-panel {
+  border-top-color: rgb(211 173 103 / 34%);
+}
+
+body .interactive-game-lobby.is-game-lobby .empty-table-slot {
+  align-items: center;
+  display: grid;
+  gap: clamp(12px, 2vw, 22px);
+  grid-template-columns: minmax(116px, 210px) minmax(0, 1fr);
+  inline-size: min(88%, 570px);
+  justify-items: stretch;
+  transform: none;
+}
+
+body .interactive-game-lobby.is-game-lobby .empty-table-art {
+  aspect-ratio: 4 / 3;
+  border: 1px solid rgb(242 212 151 / 32%);
+  border-radius: 7px;
+  box-shadow: 0 12px 24px rgb(0 0 0 / 36%), inset 0 0 0 3px rgb(255 255 255 / 5%);
+  display: block;
+  inline-size: 100%;
+  object-fit: cover;
+  transform: rotate(-2deg);
+}
+
+body .interactive-game-lobby.is-game-lobby .empty-table-copy {
+  align-items: flex-start;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-inline-size: 0;
+  text-align: left;
+}
+
+body .interactive-game-lobby.is-game-lobby .empty-table-kicker {
+  align-items: center;
+  color: var(--atelier-brass-bright);
+  display: inline-flex;
+  font-size: .65rem;
+  font-weight: 900;
+  gap: 6px;
+  letter-spacing: .12em;
+}
+
+body .interactive-game-lobby.is-game-lobby .empty-table-copy strong {
+  color: var(--atelier-ivory);
+  font-size: clamp(1rem, 2vw, 1.35rem);
+  line-height: 1.25;
+}
+
+body .interactive-game-lobby.is-game-lobby .empty-table-copy small {
+  color: var(--atelier-ivory-muted);
+  font-size: .75rem;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 720px) {
+  body .room-section.is-lobby .interactive-game-lobby.is-game-lobby .game-shelf-grid[data-result-count="1"] {
+    grid-template-columns: minmax(136px, 168px) !important;
+  }
+
+  body .room-section.is-lobby .interactive-game-lobby.is-game-lobby .game-shelf-grid[data-result-count="1"] > .game-shelf-slot {
+    max-inline-size: 168px !important;
+  }
+
+  body .interactive-game-lobby.is-game-lobby .game-shelf-viewport::before {
+    height: 200px;
+  }
+}
+
+@media (max-width: 520px) {
+  body .interactive-game-lobby.is-game-lobby .empty-table-slot {
+    gap: 12px;
+    grid-template-columns: 112px minmax(0, 1fr);
+    inline-size: min(94%, 340px);
+  }
+
+  body .interactive-game-lobby.is-game-lobby .empty-table-copy strong {
+    font-size: .9rem;
+  }
+
+  body .interactive-game-lobby.is-game-lobby .empty-table-copy small {
+    font-size: .66rem;
+  }
+
+  body .interactive-game-lobby.is-game-lobby .empty-table-kicker {
+    font-size: .56rem;
+    letter-spacing: .08em;
+  }
+
+  body .room-section.is-playing .play-header-actions .play-mini-action {
+    align-items: center !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 2px !important;
+    justify-content: center !important;
+    min-block-size: 48px !important;
+    padding: 4px 2px !important;
+  }
+
+  body .room-section.is-playing .play-panel-header .play-header-actions .play-mini-action .play-action-label {
+    display: inline !important;
+    font-size: .58rem !important;
+    line-height: 1 !important;
+    max-inline-size: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}

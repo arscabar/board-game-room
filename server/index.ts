@@ -33,6 +33,9 @@ interface RoomRecord {
   postGameNotices: Record<string, string>;
   statsRecorded: boolean;
   createdAt: number;
+  processedActionIds: Set<string>;
+  matchRngSeed: string | null;
+  activeSocketIdByPlayerId: Map<string, string>;
 }
 
 const __filename = fileURLToPath(import.meta.url);
@@ -53,6 +56,7 @@ const EMPTY_ROOM_GRACE_MS = parsePositiveInteger(process.env.EMPTY_ROOM_GRACE_MS
 const DEFAULT_TURN_TIMER_MS = 120_000;
 const MIN_TURN_TIMER_MS = 30_000;
 const MAX_TURN_TIMER_MS = 600_000;
+const MAX_PROCESSED_ACTION_IDS = 2_048;
 const turnTimeouts = new Map<string, ReturnType<typeof setTimeout>>();
 const emptyRoomCleanupTimers = new Map<string, ReturnType<typeof setTimeout>>();
 const statsStore = createStatsStore();
@@ -109,15 +113,20 @@ app.get("/api/stats/player/:name", async (request, response) => {
   }
 });
 
-app.get("/api/stats/identity/:clientKey", async (request, response) => {
+app.post("/api/stats/identity", async (request, response) => {
   try {
     await statsReady;
-    const fallbackName = typeof request.query.name === "string" ? request.query.name : "플레이어";
+    const clientKey = normalizeClientKey(request.body?.clientKey);
+    if (!clientKey) {
+      response.status(400).json({ error: "유효한 사용자 식별자가 필요합니다." });
+      return;
+    }
+    const fallbackName = typeof request.body?.name === "string" ? request.body.name : "플레이어";
     response.json(
       await statsStore.getPlayerStatsByKey(
-        playerKeyFromClientKey(request.params.clientKey),
+        playerKeyFromClientKey(clientKey),
         normalizeName(fallbackName) || "플레이어",
-        parseLimit(request.query.limit, 10)
+        parseLimit(request.body?.limit, 10)
       )
     );
   } catch (error) {
@@ -163,6 +172,7 @@ app.get(/.*/, (_request, response) => {
 function createEmptyRuntime(): GameRuntimeState {
   return {
     activePlayerId: null,
+    revision: 0,
     turnNumber: 0,
     roundNumber: 1,
     moveLog: [],
@@ -175,7 +185,8 @@ function createEmptyRuntime(): GameRuntimeState {
     pausedBy: null,
     totalPausedMs: 0,
     timeoutCounts: {},
-    lastTimeoutAt: null
+    lastTimeoutAt: null,
+    interactivePlayerIds: []
   };
 }
 
@@ -301,7 +312,9 @@ function buildGameContext(room: RoomRecord, currentPlayerId: string) {
     activePlayerId: room.gameState.activePlayerId,
     currentPlayerId,
     turnNumber: room.gameState.turnNumber,
-    roundNumber: room.gameState.roundNumber
+    roundNumber: room.gameState.roundNumber,
+    rngSeed: room.matchRngSeed ?? undefined,
+    now: Date.now()
   };
 }
 
@@ -332,7 +345,8 @@ function canDeleteRoom(room: RoomRecord, player: MutablePlayer | PlayerSnapshot 
 
 function snapshotRoom(room: RoomRecord, viewerId: string | null = null): RoomSnapshot {
   const registration = getGameRegistration(room.selectedGameId);
-  const context = viewerId ? buildGameContext(room, viewerId) : null;
+  const projectionPlayerId = viewerId ?? snapshotPlayers(room)[0]?.id ?? null;
+  const context = projectionPlayerId ? buildGameContext(room, projectionPlayerId) : null;
   const viewerPlayer = viewerId ? room.players.find((player) => player.id === viewerId) ?? null : null;
   const publicState =
     room.status === "playing" && registration && context
@@ -487,18 +501,17 @@ function scheduleEmptyRoomCleanup(room: RoomRecord) {
 function findReturningPlayer(room: RoomRecord, playerId: unknown, clientKey: unknown) {
   const savedPlayerId = String(playerId ?? "").trim();
   const savedClientKey = normalizeClientKey(clientKey);
+  if (!savedClientKey) {
+    return null;
+  }
   if (savedPlayerId) {
     const byPlayerId = room.players.find((player) => player.id === savedPlayerId);
-    if (byPlayerId) {
+    if (byPlayerId?.clientKey && byPlayerId.clientKey === savedClientKey) {
       return byPlayerId;
     }
   }
 
-  if (savedClientKey) {
-    return room.players.find((player) => player.clientKey === savedClientKey) ?? null;
-  }
-
-  return null;
+  return room.players.find((player) => player.clientKey === savedClientKey) ?? null;
 }
 
 function attachSocketToPlayer(socket: Socket, room: RoomRecord, player: MutablePlayer, name?: string, avatar?: PlayerAvatar | null) {
@@ -508,6 +521,9 @@ function attachSocketToPlayer(socket: Socket, room: RoomRecord, player: MutableP
     const previousRoom = rooms.get(previousRoomCode);
     const previousPlayer = previousRoom?.players.find((roomPlayer) => roomPlayer.id === previousPlayerId);
     if (previousRoom && previousPlayer) {
+      if (previousRoom.activeSocketIdByPlayerId.get(previousPlayer.id) === socket.id) {
+        previousRoom.activeSocketIdByPlayerId.delete(previousPlayer.id);
+      }
       previousPlayer.connected = false;
       previousPlayer.disconnectedAt = Date.now();
       assignHost(previousRoom);
@@ -529,9 +545,14 @@ function attachSocketToPlayer(socket: Socket, room: RoomRecord, player: MutableP
   }
   player.connected = true;
   player.disconnectedAt = undefined;
+  const previousSocketId = room.activeSocketIdByPlayerId.get(player.id);
+  room.activeSocketIdByPlayerId.set(player.id, socket.id);
   socket.data.roomCode = room.code;
   socket.data.playerId = player.id;
   socket.join(room.code);
+  if (previousSocketId && previousSocketId !== socket.id) {
+    io.sockets.sockets.get(previousSocketId)?.disconnect(true);
+  }
   clearEmptyRoomCleanup(room.code);
   assignHost(room);
   clearInvalidSelection(room);
@@ -588,19 +609,31 @@ function startGameInRoom(room: RoomRecord, game: NonNullable<ReturnType<typeof g
   room.gamePrivateState = null;
   clearPostGameNotices(room);
   room.statsRecorded = false;
+  room.processedActionIds.clear();
+  room.matchRngSeed = randomUUID();
   room.gameState.activePlayerId = playerList[0]?.id ?? null;
   room.gameState.turnNumber = 1;
   room.gameState.startedAt = Date.now();
 
   const registration = getGameRegistration(game.id);
   room.gamePrivateState = registration
-    ? registration.module.createInitialState({ game, players: snapshotPlayers(room).filter((player) => player.connected) })
+    ? registration.module.createInitialState({
+        game,
+        players: snapshotPlayers(room).filter((player) => player.connected),
+        rngSeed: room.matchRngSeed ?? undefined,
+        now: Date.now()
+      })
     : null;
 
   const initialPrivateState = asRecord(room.gamePrivateState);
   if (initialPrivateState && Object.prototype.hasOwnProperty.call(initialPrivateState, "activePlayerId")) {
     room.gameState.activePlayerId =
       typeof initialPrivateState.activePlayerId === "string" ? initialPrivateState.activePlayerId : null;
+  }
+  if (initialPrivateState && Array.isArray(initialPrivateState.interactivePlayerIds)) {
+    room.gameState.interactivePlayerIds = initialPrivateState.interactivePlayerIds.filter(
+      (id): id is string => typeof id === "string"
+    );
   }
 
   if (registration) {
@@ -621,6 +654,8 @@ function resetRoomToLobby(room: RoomRecord, options: { preservePostGameNotices?:
   room.gameState = createEmptyRuntime();
   room.gamePrivateState = null;
   room.statsRecorded = false;
+  room.processedActionIds.clear();
+  room.matchRngSeed = null;
   if (!options.preservePostGameNotices) {
     clearPostGameNotices(room);
   }
@@ -887,7 +922,16 @@ function clearScheduledTurnTimeout(room: RoomRecord) {
 }
 
 function turnTimerMs(room: RoomRecord) {
+  const moduleDuration = getGameRegistration(room.selectedGameId)?.module.getTimerDurationMs?.(room.gamePrivateState);
+  if (typeof moduleDuration === "number" && Number.isFinite(moduleDuration)) {
+    return Math.min(MAX_TURN_TIMER_MS, Math.max(1_000, moduleDuration));
+  }
   return Math.min(MAX_TURN_TIMER_MS, Math.max(MIN_TURN_TIMER_MS, room.gameState.turnTimerMs ?? DEFAULT_TURN_TIMER_MS));
+}
+
+function timerCanRun(room: RoomRecord) {
+  const registration = getGameRegistration(room.selectedGameId);
+  return registration?.module.timerMode === "phase" || Boolean(room.gameState.activePlayerId);
 }
 
 function scheduleTurnTimeout(room: RoomRecord) {
@@ -896,7 +940,7 @@ function scheduleTurnTimeout(room: RoomRecord) {
     room.status !== "playing" ||
     !gameUsesTurnTimer(room.selectedGameId) ||
     room.gameState.paused ||
-    !room.gameState.activePlayerId ||
+    !timerCanRun(room) ||
     !room.gameState.turnDeadlineAt ||
     roomGameIsFinished(room)
   ) {
@@ -921,7 +965,7 @@ function scheduleTurnTimeout(room: RoomRecord) {
 
 function resetTurnClock(room: RoomRecord) {
   clearScheduledTurnTimeout(room);
-  if (room.status !== "playing" || !gameUsesTurnTimer(room.selectedGameId) || !room.gameState.activePlayerId || roomGameIsFinished(room)) {
+  if (room.status !== "playing" || !gameUsesTurnTimer(room.selectedGameId) || !timerCanRun(room) || roomGameIsFinished(room)) {
     room.gameState.turnStartedAt = null;
     room.gameState.turnDeadlineAt = null;
     room.gameState.paused = false;
@@ -997,6 +1041,10 @@ function applyGameOutcome(room: RoomRecord, outcome: GameActionResult, context: 
   if (outcome.winnerIds !== undefined) {
     room.gameState.winnerIds = outcome.winnerIds;
   }
+  if (outcome.interactivePlayerIds !== undefined) {
+    room.gameState.interactivePlayerIds = [...outcome.interactivePlayerIds];
+  }
+  room.gameState.revision = (room.gameState.revision ?? 0) + 1;
 
   room.gameState.publicState = registration.module.getPublicState(room.gamePrivateState, {
     ...context,
@@ -1008,7 +1056,8 @@ function applyGameOutcome(room: RoomRecord, outcome: GameActionResult, context: 
 
   return {
     activeChanged: outcome.activePlayerId !== undefined && outcome.activePlayerId !== previousActivePlayerId,
-    phaseChanged: outcome.phase !== undefined && outcome.phase !== previousPhase
+    phaseChanged: outcome.phase !== undefined && outcome.phase !== previousPhase,
+    resetTimer: outcome.resetTimer === true
   };
 }
 
@@ -1038,12 +1087,13 @@ function forceAdvanceBlokusTurn(room: RoomRecord) {
 function forceAdvanceRoomTurn(room: RoomRecord, systemAction: GameSystemAction, viewerId: string | null = null) {
   const registration = getGameRegistration(room.selectedGameId);
   const activePlayerId = room.gameState.activePlayerId;
-  const context = activePlayerId ? buildGameContext(room, activePlayerId) : null;
+  const executionPlayerId = activePlayerId ?? snapshotPlayers(room)[0]?.id ?? null;
+  const context = executionPlayerId ? buildGameContext(room, executionPlayerId) : null;
 
   if (registration?.module.applySystemAction && context) {
     const outcome = registration.module.applySystemAction(room.gamePrivateState, systemAction, context);
     const changes = applyGameOutcome(room, outcome, context, viewerId ?? activePlayerId);
-    if (changes.activeChanged || changes.phaseChanged || roomGameIsFinished(room)) {
+    if (changes.activeChanged || changes.phaseChanged || changes.resetTimer || roomGameIsFinished(room)) {
       resetTurnClock(room);
     } else {
       scheduleTurnTimeout(room);
@@ -1066,22 +1116,27 @@ function forceAdvanceRoomTurn(room: RoomRecord, systemAction: GameSystemAction, 
 }
 
 function handleTurnTimeout(room: RoomRecord, reason: string) {
+  const registration = getGameRegistration(room.selectedGameId);
   const activePlayer = room.players.find((player) => player.id === room.gameState.activePlayerId);
-  if (!activePlayer || room.status !== "playing" || room.gameState.paused || roomGameIsFinished(room)) {
+  const isPhaseTimer = registration?.module.timerMode === "phase";
+  if ((!activePlayer && !isPhaseTimer) || room.status !== "playing" || room.gameState.paused || roomGameIsFinished(room)) {
     return;
   }
 
-  const timeoutCounts = { ...(room.gameState.timeoutCounts ?? {}) };
-  timeoutCounts[activePlayer.id] = (timeoutCounts[activePlayer.id] ?? 0) + 1;
-  room.gameState.timeoutCounts = timeoutCounts;
+  if (activePlayer) {
+    const timeoutCounts = { ...(room.gameState.timeoutCounts ?? {}) };
+    timeoutCounts[activePlayer.id] = (timeoutCounts[activePlayer.id] ?? 0) + 1;
+    room.gameState.timeoutCounts = timeoutCounts;
+  }
   room.gameState.lastTimeoutAt = Date.now();
-  appendSystemLog(room, `${activePlayer.name} 시간 초과 (${reason})`);
+  appendSystemLog(room, activePlayer ? `${activePlayer.name} 시간 초과 (${reason})` : `단계 시간 종료 (${reason})`);
   try {
     const actionReason = reason === "자동 타임아웃" ? "auto-timeout" : "host-timeout";
-    const systemLog = forceAdvanceRoomTurn(room, { type: "system/timeout", reason: actionReason }, activePlayer.id);
+    const systemLog = forceAdvanceRoomTurn(room, { type: "system/timeout", reason: actionReason }, activePlayer?.id ?? null);
     if (systemLog) {
       appendSystemLog(room, systemLog);
     }
+    void recordRoomStatsIfFinished(room);
   } catch (error) {
     const message = error instanceof Error ? error.message : "타임아웃 처리 중 오류가 발생했습니다.";
     appendSystemLog(room, `타임아웃 처리 실패: ${message}`);
@@ -1103,6 +1158,14 @@ function scoreForPlayer(gameId: string, state: unknown, playerId: string) {
 
   if (gameId === "guryongtu") {
     return numberFromPlayerRecord(record.scores, playerId);
+  }
+
+  if (["parity-tile-duel", "mosaic-rush"].includes(gameId)) {
+    return numberFromPlayerRecord(record.scores, playerId);
+  }
+
+  if (gameId === "blind-card-duel") {
+    return numberFromPlayerRecord(record.stacks, playerId);
   }
 
   if (gameId === "hangman-board-game") {
@@ -1234,7 +1297,10 @@ io.on("connection", (socket) => {
       gamePrivateState: null,
       postGameNotices: {},
       statsRecorded: false,
-      createdAt: Date.now()
+      createdAt: Date.now(),
+      processedActionIds: new Set<string>(),
+      matchRngSeed: null,
+      activeSocketIdByPlayerId: new Map<string, string>()
     };
 
     rooms.set(code, room);
@@ -1341,6 +1407,10 @@ io.on("connection", (socket) => {
     if (player) {
       player.connected = false;
       player.disconnectedAt = Date.now();
+    }
+
+    if (room.activeSocketIdByPlayerId.get(playerId) === socket.id) {
+      room.activeSocketIdByPlayerId.delete(playerId);
     }
 
     socket.leave(code);
@@ -1470,13 +1540,44 @@ io.on("connection", (socket) => {
       return;
     }
 
+    const actionId = typeof action.actionId === "string" ? action.actionId.trim() : "";
+    if (actionId.length > 128) {
+      reply(ack, { ok: false, error: "행동 식별자가 너무 깁니다." });
+      return;
+    }
+    const dedupeKey = actionId && result.player ? `${result.player.id}:${actionId}` : "";
+    if (dedupeKey && result.room.processedActionIds.has(dedupeKey)) {
+      reply(ack, { ok: true, data: snapshotRoom(result.room, result.player?.id ?? null) });
+      return;
+    }
+
+    const currentRevision = result.room.gameState.revision ?? 0;
+    if (registration.module.concurrencyMode === "strict") {
+      if (!Number.isSafeInteger(action.expectedRevision) || action.expectedRevision !== currentRevision) {
+        reply(ack, {
+          ok: false,
+          error: "게임 상태가 이미 변경되었습니다. 최신 상태에서 다시 시도해주세요.",
+          data: snapshotRoom(result.room, result.player.id)
+        });
+        return;
+      }
+    }
+
     try {
       const outcome = registration.module.applyAction(result.room.gamePrivateState, action, context);
       const changes = applyGameOutcome(result.room, outcome, context, result.player.id);
+      if (dedupeKey) {
+        result.room.processedActionIds.add(dedupeKey);
+        while (result.room.processedActionIds.size > MAX_PROCESSED_ACTION_IDS) {
+          const oldest = result.room.processedActionIds.values().next().value as string | undefined;
+          if (!oldest) break;
+          result.room.processedActionIds.delete(oldest);
+        }
+      }
       if (outcome.log) {
         appendLog(result.room, result.player, outcome.log);
       }
-      if (changes.activeChanged || changes.phaseChanged || roomGameIsFinished(result.room)) {
+      if (changes.activeChanged || changes.phaseChanged || changes.resetTimer || roomGameIsFinished(result.room)) {
         resetTurnClock(result.room);
       } else {
         scheduleTurnTimeout(result.room);
@@ -1617,6 +1718,10 @@ io.on("connection", (socket) => {
     if (result.room.gameState.turnDeadlineAt) {
       result.room.gameState.turnDeadlineAt += pausedFor;
     }
+    const privateState = asRecord(result.room.gamePrivateState);
+    if (getGameRegistration(result.room.selectedGameId)?.module.timerMode === "phase" && typeof privateState?.deadlineAt === "number") {
+      privateState.deadlineAt += pausedFor;
+    }
     result.room.gameState.paused = false;
     result.room.gameState.pausedAt = null;
     result.room.gameState.pausedBy = null;
@@ -1639,6 +1744,10 @@ io.on("connection", (socket) => {
     }
     if (!gameUsesTurnTimer(result.room.selectedGameId)) {
       reply(ack, { ok: false, error: "선택한 게임은 턴 타이머를 사용하지 않습니다." });
+      return;
+    }
+    if (getGameById(result.room.selectedGameId)?.timer) {
+      reply(ack, { ok: false, error: "이 게임의 제한 시간은 규칙에 따라 고정됩니다." });
       return;
     }
     const nextTimerMs = Math.min(MAX_TURN_TIMER_MS, Math.max(MIN_TURN_TIMER_MS, Number(payload?.turnTimerMs) || DEFAULT_TURN_TIMER_MS));
@@ -1775,6 +1884,9 @@ io.on("connection", (socket) => {
 
       result.player.connected = false;
       result.player.disconnectedAt = Date.now();
+      if (result.room.activeSocketIdByPlayerId.get(result.player.id) === socket.id) {
+        result.room.activeSocketIdByPlayerId.delete(result.player.id);
+      }
       socket.leave(result.room.code);
       delete socket.data.roomCode;
       delete socket.data.playerId;
@@ -1824,6 +1936,11 @@ io.on("connection", (socket) => {
     if (!room) {
       return;
     }
+
+    if (room.activeSocketIdByPlayerId.get(playerId) !== socket.id) {
+      return;
+    }
+    room.activeSocketIdByPlayerId.delete(playerId);
 
     const player = room.players.find((roomPlayer) => roomPlayer.id === playerId);
     if (player) {

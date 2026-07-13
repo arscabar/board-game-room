@@ -4,7 +4,7 @@ import "./interactive-game-wrapper.css";
 
 export type InteractiveGameWrapperProps = {
   children: ReactNode;
-  isMyTurn: boolean;
+  isInteractive: boolean;
 };
 
 function isGameInteractiveTarget(target: EventTarget | null) {
@@ -19,12 +19,12 @@ function isGameInteractiveTarget(target: EventTarget | null) {
   return false;
 }
 
-export function InteractiveGameWrapper({ children, isMyTurn }: InteractiveGameWrapperProps) {
+export function InteractiveGameWrapper({ children, isInteractive }: InteractiveGameWrapperProps) {
   function handlePointerDownCapture(e: PointerEvent<HTMLDivElement>) {
     // Intercept clicks on interactive elements to inject global haptics
     if (isGameInteractiveTarget(e.target)) {
       // Vary the sound slightly based on whether it's our turn
-      if (isMyTurn) {
+      if (isInteractive) {
         playClickSound();
       } else {
         // Just a subtle tap if clicking around when it's not our turn
@@ -35,7 +35,7 @@ export function InteractiveGameWrapper({ children, isMyTurn }: InteractiveGameWr
 
   return (
     <div 
-      className={`interactive-game-wrapper ${isMyTurn ? "is-my-turn" : ""}`}
+      className={`interactive-game-wrapper ${isInteractive ? "is-my-turn" : ""}`}
       onPointerDownCapture={handlePointerDownCapture}
     >
       <div className="interactive-game-ambient-light" aria-hidden="true" />

@@ -31,7 +31,10 @@ const gameComponents: Record<string, GameComponentLoader> = {
   "masterpiece-copy": lazyGame(() => import("./masterpiece-copy"), [() => import("./ui-styles/masterpiece-copy.css")]),
   "yacht-dice": lazyGame(() => import("./yacht-dice"), [() => import("./ui-styles/yacht-dice.css")]),
   yinsh: lazyGame(() => import("./yinsh"), [() => import("./ui-styles/yinsh.css")]),
-  "hangman-board-game": lazyGame(() => import("./hangman-board-game"), [() => import("./ui-styles/hangman-board-game.css")])
+  "hangman-board-game": lazyGame(() => import("./hangman-board-game"), [() => import("./ui-styles/hangman-board-game.css")]),
+  "blind-card-duel": lazyGame(() => import("./blind-card-duel"), [() => import("./ui-styles/blind-card-duel.css")]),
+  "parity-tile-duel": lazyGame(() => import("./parity-tile-duel"), [() => import("./ui-styles/parity-tile-duel.css")]),
+  "mosaic-rush": lazyGame(() => import("./mosaic-rush"), [() => import("./ui-styles/mosaic-rush.css")])
 };
 
 export function getGameComponent(gameId: string | null | undefined) {

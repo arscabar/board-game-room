@@ -16,6 +16,9 @@ import { module as qawaleModule, Component as QawaleComponent } from "./qawale";
 import { module as quoridorModule, Component as QuoridorComponent } from "./quoridor";
 import { module as yachtModule, Component as YachtComponent } from "./yacht-dice";
 import { module as yinshModule, Component as YinshComponent } from "./yinsh";
+import { module as blindCardDuelModule, Component as BlindCardDuelComponent } from "./blind-card-duel";
+import { module as parityTileDuelModule, Component as ParityTileDuelComponent } from "./parity-tile-duel";
+import { module as mosaicRushModule, Component as MosaicRushComponent } from "./mosaic-rush";
 
 export interface GameRegistration {
   id: string;
@@ -58,7 +61,10 @@ export const gameCatalog = [
   registerGame("masterpiece-copy", masterpieceCopyModule, MasterpieceCopyComponent),
   registerGame("yacht-dice", yachtModule, YachtComponent),
   registerGame("yinsh", yinshModule, YinshComponent),
-  registerGame("hangman-board-game", hangmanModule, HangmanComponent)
+  registerGame("hangman-board-game", hangmanModule, HangmanComponent),
+  registerGame("blind-card-duel", blindCardDuelModule, BlindCardDuelComponent),
+  registerGame("parity-tile-duel", parityTileDuelModule, ParityTileDuelComponent),
+  registerGame("mosaic-rush", mosaicRushModule, MosaicRushComponent)
 ] satisfies GameRegistration[];
 
 export const gameRegistrations: Record<string, GameRegistration> = Object.fromEntries(

@@ -2,11 +2,14 @@ import type { GameDefinition } from "./types";
 
 const rasterGameCoverIds = new Set([
   "abalone-classic",
+  "blind-card-duel",
   "blokus",
   "davinci-code-plus",
   "ghosts",
   "guryongtu",
   "hangman-board-game",
+  "mosaic-rush",
+  "parity-tile-duel",
   "qawale",
   "quoridor",
   "yacht-dice",

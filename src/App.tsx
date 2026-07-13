@@ -32,6 +32,7 @@ import {
   UserCheck,
   Users,
   WifiOff,
+  X,
   type LucideIcon
 } from "lucide-react";
 import {
@@ -45,6 +46,7 @@ import {
   useRef,
   useState
 } from "react";
+import { createPortal } from "react-dom";
 import { socket } from "./lib/socket";
 import { InteractiveCafeHome } from "./components/interactive-space/InteractiveCafeHome";
 import { InteractiveGameLobby } from "./components/interactive-space/InteractiveGameLobby";
@@ -90,6 +92,13 @@ function createClientKey() {
     return crypto.randomUUID();
   }
   return `guest-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
+}
+
+function createActionId() {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return `action-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
 }
 
 function readOrCreateClientKey() {
@@ -211,7 +220,15 @@ function avatarDescription(avatar: PlayerAvatar) {
 
 function emitWithAck<T>(event: string, payload: unknown) {
   return new Promise<Ack<T>>((resolve) => {
+    let settled = false;
+    const timeout = window.setTimeout(() => {
+      settled = true;
+      resolve({ ok: false, error: "서버 응답 시간이 초과되었습니다." });
+    }, 8_000);
     socket.emit(event, payload, (response: Ack<T>) => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timeout);
       resolve(response);
     });
   });
@@ -225,8 +242,8 @@ function resolveApiUrl(path: string) {
   return base ? `${String(base).replace(/\/$/, "")}${path}` : path;
 }
 
-async function fetchJson<T>(path: string) {
-  const response = await fetch(resolveApiUrl(path));
+async function fetchJson<T>(path: string, init?: RequestInit) {
+  const response = await fetch(resolveApiUrl(path), init);
   if (!response.ok) {
     const body = (await response.json().catch(() => null)) as { error?: string } | null;
     throw new Error(body?.error ?? "서버 데이터를 불러올 수 없습니다.");
@@ -621,7 +638,20 @@ function phaseName(phase: string) {
     "round-complete": "라운드 종료",
     "ring-placement": "링 배치",
     move: "이동",
-    "remove-row": "줄 제거"
+    "remove-row": "줄 제거",
+    betting: "승부",
+    showdown: "공개",
+    attack: "공격",
+    response: "응수",
+    solving: "퍼즐 풀이",
+    "second-chance": "추가 기회",
+    "tie-break": "동점 결승",
+    "tie-break-second-chance": "결승 추가 기회",
+    reward: "라운드 정산",
+    "choose-attack": "공격 선택",
+    "await-defense": "방어 응답",
+    continuation: "연속 공격",
+    "round-result": "공방 정산"
   };
   return labels[phase] ?? "진행";
 }
@@ -670,6 +700,12 @@ function manualTurnEndRestriction(gameId: string | null | undefined, phase: stri
   if (gameId === "hangman-board-game" && phase === "guessing") {
     return "행맨은 글자나 단어를 추측해야 턴이 진행됩니다. 시간이 초과되면 차례가 넘어갑니다.";
   }
+  if (gameId === "blind-card-duel" && phase === "betting") {
+    return "페이스업 듀얼은 오픈, 콜, 레이즈 또는 폴드로 행동해야 합니다.";
+  }
+  if (gameId === "parity-tile-duel" && (phase === "choose-attack" || phase === "continuation")) {
+    return "문양 공방은 공격 타일을 선택해야 차례가 진행됩니다. 시간이 끝나면 20초 유예가 시작됩니다.";
+  }
   return "";
 }
 
@@ -684,6 +720,8 @@ function App() {
   const [roomList, setRoomList] = useState<PublicRoomListItem[]>([]);
   const [roomListLoading, setRoomListLoading] = useState(true);
   const [notice, setNotice] = useState("");
+  const [roomDeleteConfirmOpen, setRoomDeleteConfirmOpen] = useState(false);
+  const roomDeleteDialogRef = useRef<HTMLElement | null>(null);
   const resumeStateRef = useRef({
     avatar,
     clientKey: "",
@@ -958,12 +996,14 @@ function App() {
     setNotice("방에서 나왔습니다. 다시 플레이하려면 열린 방에 들어가거나 새 방을 만드세요.");
   }
 
-  async function deleteLocalRoom() {
+  function deleteLocalRoom() {
     if (!room) return;
-    const confirmed = window.confirm("이 방을 삭제할까요? 들어와 있는 플레이어 모두가 방에서 나가게 됩니다.");
-    if (!confirmed) {
-      return;
-    }
+    setRoomDeleteConfirmOpen(true);
+  }
+
+  async function confirmDeleteLocalRoom() {
+    if (!room) return;
+    setRoomDeleteConfirmOpen(false);
     const deletingCode = room.code;
     const response = await emitWithAck<{ code: string }>("room:delete", { code: deletingCode });
     if (!response.ok) {
@@ -1013,6 +1053,12 @@ function App() {
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: "auto" });
   }, [viewMode]);
+
+  useEffect(() => {
+    if (roomDeleteConfirmOpen) {
+      roomDeleteDialogRef.current?.focus();
+    }
+  }, [roomDeleteConfirmOpen]);
 
   return (
     <div
@@ -1076,6 +1122,52 @@ function App() {
           />
         )}
       </main>
+      {roomDeleteConfirmOpen && room ? createPortal(
+        <div
+          className="play-confirm-backdrop"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setRoomDeleteConfirmOpen(false);
+          }}
+        >
+          <section
+            className="play-confirm-dialog"
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="room-delete-confirm-title"
+            aria-describedby="room-delete-confirm-description"
+            ref={roomDeleteDialogRef}
+            tabIndex={-1}
+            onKeyDown={(event) => {
+              if (event.key === "Escape") {
+                event.preventDefault();
+                setRoomDeleteConfirmOpen(false);
+                return;
+              }
+              if (event.key !== "Tab") return;
+              const buttons = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>("button:not(:disabled)"));
+              if (buttons.length === 0) return;
+              const currentIndex = buttons.indexOf(document.activeElement as HTMLButtonElement);
+              const nextIndex = event.shiftKey
+                ? currentIndex <= 0 ? buttons.length - 1 : currentIndex - 1
+                : currentIndex >= buttons.length - 1 ? 0 : currentIndex + 1;
+              event.preventDefault();
+              buttons[nextIndex]?.focus();
+            }}
+          >
+            <span className="play-confirm-kicker">테이블 관리</span>
+            <h3 id="room-delete-confirm-title">이 테이블을 닫을까요?</h3>
+            <p id="room-delete-confirm-description">
+              방이 삭제되고 참가자 모두가 오늘의 테이블 화면으로 이동합니다.
+            </p>
+            <div className="play-confirm-actions">
+              <BoardButton type="button" tone="secondary" onClick={() => setRoomDeleteConfirmOpen(false)}>취소</BoardButton>
+              <BoardButton type="button" tone="danger" onClick={confirmDeleteLocalRoom}>방 삭제</BoardButton>
+            </div>
+          </section>
+        </div>,
+        document.body
+      ) : null}
     </div>
   );
 }
@@ -1521,7 +1613,12 @@ function StatsDashboard({ playerName, clientKey }: { playerName: string; clientK
           fetchJson<MatchRecord[]>("/api/stats/recent?limit=6"),
           clientKey
             ? fetchJson<PlayerStatsResponse>(
-                `/api/stats/identity/${encodeURIComponent(clientKey)}?name=${encodeURIComponent(player || "플레이어")}&limit=5`
+                "/api/stats/identity",
+                {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ clientKey, name: player || "플레이어", limit: 5 })
+                }
               )
             : player
               ? fetchJson<PlayerStatsResponse>(`/api/stats/player/${encodeURIComponent(player)}?limit=5`)
@@ -1773,6 +1870,7 @@ function RoomView({
 
   return (
     <section className={`room-section ${room.status === "lobby" ? "is-lobby" : "is-playing"}`} aria-label="게임 방">
+      {notice ? <p className="room-flow-notice" role="status">{notice}</p> : null}
       <div className={`room-layout ${room.status === "lobby" ? "interactive-lobby-layout" : ""}`}>
         {room.status !== "lobby" ? (
         <aside className="seat-panel" aria-label="플레이어">
@@ -1800,7 +1898,6 @@ function RoomView({
               return <SeatRow key={seat} seat={seat} player={player} currentPlayerId={currentRoomPlayer?.id ?? ""} />;
             })}
           </div>
-          {notice ? <p className="notice" role="status">{notice}</p> : null}
         </aside>
         ) : null}
 
@@ -1998,7 +2095,15 @@ function LegacyLobbyPanel({
           <p className="lobby-context">{playerCount}명</p>
         </div>
         <div className="lobby-panel-actions">
-          {usesTurnTimer ? (
+          {usesTurnTimer && selectedGame?.timer ? (
+            <div className="timer-select lobby-timer-select" aria-label={`고정 제한 시간 ${selectedGame.timer.fixedLabel}`}>
+              <span>
+                <Clock3 size={15} aria-hidden="true" />
+                고정 제한
+              </span>
+              <strong>{selectedGame.timer.fixedLabel}</strong>
+            </div>
+          ) : usesTurnTimer ? (
             <label className="timer-select lobby-timer-select">
               <span>
                 <Clock3 size={15} aria-hidden="true" />
@@ -2162,8 +2267,10 @@ function PlayPanel({
 }) {
   const [action, setAction] = useState("");
   const [now, setNow] = useState(() => Date.now());
+  const [exitIntent, setExitIntent] = useState<"game-select" | "leave-room" | null>(null);
   const [postGameRevealStage, setPostGameRevealStage] = useState<"idle" | "settle" | "effect" | "dialog">("idle");
   const postGameDialogRef = useRef<HTMLElement | null>(null);
+  const exitDialogRef = useRef<HTMLElement | null>(null);
   const isMyTurn = currentPlayer?.id === activePlayer?.id;
   const GameComponent = getGameComponent(selectedGame?.id);
   const phase = runtimePhase(room);
@@ -2200,7 +2307,15 @@ function PlayPanel({
   const setupOpenPhase = selectedGame?.id === "ghosts" && phase === "setup";
   const simultaneousDrawingPhase =
     selectedGame?.id === "masterpiece-copy" && (phase === "drawing" || phase === "scanning" || phase === "complete");
-  const moduleDisabled = paused || (!isMyTurn && !hangmanOpenPhase && !setupOpenPhase && !simultaneousDrawingPhase);
+  const runtimeInteractiveIds = room.gameState.interactivePlayerIds ?? [];
+  const metadataOpenPhase =
+    selectedGame?.interaction?.mode === "simultaneous" &&
+    (!selectedGame.interaction.openPhases || selectedGame.interaction.openPhases.includes(phase));
+  const isInteractive =
+    isMyTurn ||
+    Boolean(currentPlayer && runtimeInteractiveIds.includes(currentPlayer.id)) ||
+    Boolean(hangmanOpenPhase || setupOpenPhase || simultaneousDrawingPhase);
+  const moduleDisabled = paused || !isInteractive;
   const postGameChoices = stateRecord(room.gameState.postGameChoices);
   const currentPostGameChoice = currentPlayer ? String(postGameChoices?.[currentPlayer.id] ?? "") : "";
   const rematchRequesters = room.players.filter((player) => postGameChoices?.[player.id] === "rematch");
@@ -2250,7 +2365,14 @@ function PlayPanel({
     }
   }, [postGameRevealStage]);
 
+  useEffect(() => {
+    if (exitIntent) {
+      exitDialogRef.current?.focus();
+    }
+  }, [exitIntent]);
+
   async function advanceTurn() {
+    setAction("");
     const response = await emitWithAck<RoomSnapshot>("room:advance-turn", { code: room.code });
     if (!response.ok) {
       setAction(response.error ?? "턴을 넘길 수 없습니다.");
@@ -2258,6 +2380,7 @@ function PlayPanel({
   }
 
   async function pauseGame() {
+    setAction("");
     const response = await emitWithAck<RoomSnapshot>("room:pause-game", { code: room.code });
     if (!response.ok) {
       setAction(response.error ?? "일시정지할 수 없습니다.");
@@ -2265,6 +2388,7 @@ function PlayPanel({
   }
 
   async function resumeGame() {
+    setAction("");
     const response = await emitWithAck<RoomSnapshot>("room:resume-game", { code: room.code });
     if (!response.ok) {
       setAction(response.error ?? "재개할 수 없습니다.");
@@ -2272,6 +2396,7 @@ function PlayPanel({
   }
 
   async function claimTimeout() {
+    setAction("");
     const response = await emitWithAck<RoomSnapshot>("room:claim-timeout", { code: room.code });
     if (!response.ok) {
       setAction(response.error ?? "타임아웃을 처리할 수 없습니다.");
@@ -2279,7 +2404,18 @@ function PlayPanel({
   }
 
   async function sendGameAction(gameAction: GameAction) {
-    const response = await emitWithAck<RoomSnapshot>("game:action", { code: room.code, action: gameAction });
+    setAction("");
+    const scopeId = typeof publicStateRecord?.scopeId === "string" ? publicStateRecord.scopeId : undefined;
+    const actionWithId = {
+      ...gameAction,
+      actionId: gameAction.actionId ?? createActionId(),
+      expectedRevision: gameAction.expectedRevision ?? room.gameState.revision,
+      scopeId: gameAction.scopeId ?? scopeId
+    };
+    let response = await emitWithAck<RoomSnapshot>("game:action", { code: room.code, action: actionWithId });
+    if (!response.ok && response.error === "서버 응답 시간이 초과되었습니다.") {
+      response = await emitWithAck<RoomSnapshot>("game:action", { code: room.code, action: actionWithId });
+    }
     if (!response.ok) {
       setAction(response.error ?? "게임 행동을 처리할 수 없습니다.");
     }
@@ -2296,12 +2432,22 @@ function PlayPanel({
     }
   }
 
+  function confirmExit() {
+    const confirmedIntent = exitIntent;
+    setExitIntent(null);
+    if (confirmedIntent === "game-select") {
+      onReturnLobby();
+    } else if (confirmedIntent === "leave-room") {
+      onLeaveLocalRoom();
+    }
+  }
+
   return (
     <section className="work-panel play-panel" aria-labelledby="play-title">
       <p className="visually-hidden" role="status" aria-live="polite">
         {latestMove
           ? `${selectedGame?.title ?? "게임"} 진행: ${latestMove.playerName} ${latestMove.action}`
-          : `${selectedGame?.title ?? "게임"} ${phaseName(phase)} ${activePlayer?.name ?? "플레이어 없음"}`}
+          : `${selectedGame?.title ?? "게임"} ${phaseName(phase)} ${metadataOpenPhase ? "모두 동시 진행" : activePlayer?.name ?? "플레이어 없음"}`}
       </p>
       <div className="panel-header play-panel-header">
         <div className="play-match-copy">
@@ -2310,7 +2456,9 @@ function PlayPanel({
             <span className="play-phase-label">{phaseName(phase)}</span>
             <span className="play-status-separator" aria-hidden="true">·</span>
             <span className="play-turn-label">
-              {selectedGame?.id === "masterpiece-copy"
+              {metadataOpenPhase
+                ? "모두 동시 진행"
+                : selectedGame?.id === "masterpiece-copy"
                 ? phase === "drawing"
                   ? "모두 그리는 중"
                   : phase === "scanning"
@@ -2360,7 +2508,7 @@ function PlayPanel({
             </BoardButton>
           ) : null}
           {isHost ? (
-            <BoardButton className="play-mini-action" type="button" onClick={onReturnLobby} title="로비" aria-label="게임 선택 로비로 이동">
+            <BoardButton className="play-mini-action" type="button" onClick={() => setExitIntent("game-select")} title="로비" aria-label="게임 선택 로비로 이동">
               <Route size={15} aria-hidden="true" />
               <span className="play-action-label">로비</span>
             </BoardButton>
@@ -2369,7 +2517,7 @@ function PlayPanel({
             className="play-mini-action"
             tone="secondary"
             type="button"
-            onClick={onLeaveLocalRoom}
+            onClick={() => setExitIntent("leave-room")}
             title="나가기"
             aria-label="현재 방 나가기"
           >
@@ -2378,6 +2526,15 @@ function PlayPanel({
           </BoardButton>
         </div>
       </div>
+
+      {action ? (
+        <div className="play-feedback-toast" role="alert">
+          <span>{action}</span>
+          <button type="button" onClick={() => setAction("")} aria-label="오류 메시지 닫기">
+            <X size={16} aria-hidden="true" />
+          </button>
+        </div>
+      ) : null}
 
       <div
         className="player-turn-strip"
@@ -2420,7 +2577,7 @@ function PlayPanel({
           data-game-id={selectedGame.id}
           style={{ "--victory-accent": selectedGame.accent } as CSSProperties}
         >
-          <InteractiveGameWrapper isMyTurn={isMyTurn}>
+          <InteractiveGameWrapper isInteractive={isInteractive}>
             <Suspense fallback={<GameModuleLoading game={selectedGame} />}>
               <GameComponent
                 game={selectedGame}
@@ -2441,15 +2598,63 @@ function PlayPanel({
         <BoardPreview game={selectedGame} activePlayer={activePlayer} />
       )}
 
-      {canAdvanceTurn || action ? (
+      {canAdvanceTurn ? (
         <div className="turn-actions compact-turn-actions">
-          {canAdvanceTurn ? (
-            <BoardButton tone="primary" type="button" onClick={advanceTurn} title={turnEndRestriction || undefined}>
-              {isMyTurn ? "턴 종료" : "강제 턴 넘김"}
-            </BoardButton>
-          ) : null}
-          {action ? <span className="play-error-line">{action}</span> : null}
+          <BoardButton tone="primary" type="button" onClick={advanceTurn} title={turnEndRestriction || undefined}>
+            {isMyTurn ? "턴 종료" : "강제 턴 넘김"}
+          </BoardButton>
         </div>
+      ) : null}
+
+      {exitIntent ? createPortal(
+        <div
+          className="play-confirm-backdrop"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setExitIntent(null);
+          }}
+        >
+          <section
+            className="play-confirm-dialog"
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="play-confirm-title"
+            aria-describedby="play-confirm-description"
+            ref={exitDialogRef}
+            tabIndex={-1}
+            onKeyDown={(event) => {
+              if (event.key === "Escape") {
+                event.preventDefault();
+                setExitIntent(null);
+                return;
+              }
+              if (event.key !== "Tab") return;
+              const buttons = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>("button:not(:disabled)"));
+              if (buttons.length === 0) return;
+              const currentIndex = buttons.indexOf(document.activeElement as HTMLButtonElement);
+              const nextIndex = event.shiftKey
+                ? currentIndex <= 0 ? buttons.length - 1 : currentIndex - 1
+                : currentIndex >= buttons.length - 1 ? 0 : currentIndex + 1;
+              event.preventDefault();
+              buttons[nextIndex]?.focus();
+            }}
+          >
+            <span className="play-confirm-kicker">진행 중인 게임</span>
+            <h3 id="play-confirm-title">{exitIntent === "game-select" ? "게임 선택으로 돌아갈까요?" : "현재 방에서 나갈까요?"}</h3>
+            <p id="play-confirm-description">
+              {exitIntent === "game-select"
+                ? "현재 판은 종료되고 참가자 모두가 게임 선택 화면으로 이동합니다."
+                : "현재 판에서 빠져나갑니다. 다시 입장할 때 진행 상태가 달라질 수 있습니다."}
+            </p>
+            <div className="play-confirm-actions">
+              <BoardButton type="button" tone="secondary" onClick={() => setExitIntent(null)}>계속 플레이</BoardButton>
+              <BoardButton type="button" tone="danger" onClick={confirmExit}>
+                {exitIntent === "game-select" ? "현재 판 종료" : "방 나가기"}
+              </BoardButton>
+            </div>
+          </section>
+        </div>,
+        document.body
       ) : null}
 
       {showPostGameEffect ? (

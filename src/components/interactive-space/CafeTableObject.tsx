@@ -152,9 +152,10 @@ export function CafeTableObject({
       data-room-state={state}
       aria-pressed={isSelected}
       aria-label={`${hostTableName(room)}, ${room.playerCount}명 중 ${room.maxPlayers}명, ${gameLabel}, ${
-        canUseRoom ? "입장 가능" : "입장 대기"
-      }`}
+        roomStateLabel(state)
+      }, 상세 보기`}
       onClick={() => onSelectRoom(room)}
+      onFocus={() => onSelectRoom(room)}
       onPointerDown={(event) => event.stopPropagation()}
     >
       <span className="cafe-table-visual" aria-hidden="true">

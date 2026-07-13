@@ -7,11 +7,16 @@ export interface GameContext {
   currentPlayerId: string;
   turnNumber: number;
   roundNumber: number;
+  rngSeed?: string;
+  now?: number;
 }
 
 export interface GameAction {
   type: string;
   payload?: unknown;
+  actionId?: string;
+  expectedRevision?: number;
+  scopeId?: string;
 }
 
 export type GameSystemActionReason = "manual-pass" | "host-timeout" | "auto-timeout";
@@ -31,11 +36,16 @@ export interface GameActionResult {
   message?: string;
   winnerId?: string | null;
   winnerIds?: string[];
+  interactivePlayerIds?: string[];
+  resetTimer?: boolean;
 }
 
 export interface GameModule {
   id: string;
-  createInitialState: (context: Pick<GameContext, "game" | "players">) => unknown;
+  concurrencyMode?: "legacy" | "strict" | "phase-scoped";
+  timerMode?: "turn" | "phase";
+  getTimerDurationMs?: (state: unknown) => number | null;
+  createInitialState: (context: Pick<GameContext, "game" | "players" | "rngSeed" | "now">) => unknown;
   getPublicState: (state: unknown, context: GameContext & { viewerId: string | null }) => unknown;
   applyAction: (state: unknown, action: GameAction, context: GameContext) => GameActionResult;
   applySystemAction?: (state: unknown, action: GameSystemAction, context: GameContext) => GameActionResult;
