@@ -18,7 +18,7 @@
 - Surface: obsidian/forest felt, walnut frame, brass edge
 - Type: serif display headings + Korean-readable sans body
 - Spacing: 4–8px compact action gaps, 44px minimum interactive targets
-- Responsive behavior: 520px 이하 경기 헤더 2단, 820px 이하 문양 공방 헤더/점수판 재배치
+- Responsive behavior: 520px 이하 경기 헤더 2단, 820px 이하 타이거 앤 드래곤 헤더/점수판 재배치
 - Overflow policy: page overflow 금지, wrapping 우선, 타일 기록/손패는 명시적 horizontal scroller
 
 ## Build plan and applied fixes
@@ -26,8 +26,8 @@
 - 공통 패널과 게임 모듈에 최소 폭 0 및 최대 폭 100% containment 추가
 - 360px 경기 헤더를 제목/상태와 4개 액션의 2단 구조로 변경해 게임명 말줄임 제거
 - 모바일 게임 선반의 음수 좌우 여백 제거
-- 모자이크 러시 격자의 content-box 폭 계산을 border-box/부모 폭 기준으로 변경
-- 문양 공방의 태블릿 점수판을 2열로 전환하고 공개 타일의 flex 축소 방지
+- 우봉고 격자의 content-box 폭 계산을 border-box/부모 폭 기준으로 변경
+- 타이거 앤 드래곤의 태블릿 점수판을 2열로 전환하고 공개 타일의 flex 축소 방지
 - 긴 메시지와 확인 문구에 안전한 줄바꿈 적용
 
 ## QA and critique
@@ -38,8 +38,8 @@ Measured with the in-app browser at 360×900, 768×900, and 1280×900.
 | --- | --- | --- |
 | Home | page overflow 0 | page overflow 0 |
 | Game library | shelf clipped by 4px at 360px | clipped candidates 0 |
-| Mosaic Rush | title ellipsis + module clipped by 9px at 360px | clipped/outside candidates 0 at all widths |
-| Face-up Duel | title ellipsis at 360px | clipped candidates 0 |
+| 우봉고 | title ellipsis + module clipped by 9px at 360px | clipped/outside candidates 0 at all widths |
+| 인디언 포커 | title ellipsis at 360px | clipped candidates 0 |
 | Pattern Workshop | names clipped at 768px; first compact record tile collapsed to 0px | clipped candidates 0 |
 
 The tile hand and public-history rows can extend beyond the viewport by design, but remain contained by their own `overflow-x: auto` scrollers. No global `overflow: hidden`, font shrinking, or whole-game scaling was introduced.

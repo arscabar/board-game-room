@@ -1,7 +1,7 @@
 # 우봉고 · 타이거 앤 드래곤 · 블라인드 카드 포커 조사 보고서
 
 - 조사일: 2026-07-14
-- 최근 검증: 2026-07-14 2차 교차 감사
+- 최근 검증: 2026-07-14 3차 지속 검증
 - 목적: BoardGameWebAPP의 신규 게임 후보 3종에 대한 규칙, 판본 차이, 디자인, 디지털 구현 요구사항, 권리 위험 수집
 - 원칙: 공식 자료를 우선하고, 공식 자료에 없는 세부 수치는 보조 자료로 교차 확인했다. 공식 규칙 문장과 그래픽은 복제하지 않고 요약했다.
 - 현재 판정: 우봉고 2022 핵심 규칙 `높음`, 타이거 앤 드래곤 기본 흐름 `높음`·세부 점수 `중간`, 52장 블라인드 포커 `중상`, 한국형 방송 규칙 재구성 `중간`
@@ -29,6 +29,8 @@
 ### 2.1 조사 기준과 판본 차이
 
 기본 기준은 현재 확인되는 [KOSMOS 2022 `Ubongo Classic` 제품 페이지](https://www.kosmos.de/products/ubongo-classic)와 [2022 공식 규칙서 PDF](https://cms.kosmos.de/game-instructions/4002051683092_Ubongo_Basis_Manual_web.pdf)다.
+
+KOSMOS의 별도 브랜드 소개 페이지에는 `Ubongo Classic` 구성물로 36개 양면 보드, 4개 말, 84개 보석이 함께 남아 있다. 같은 페이지의 제품 링크는 현재 2022 제품으로 이어지지만, 현재 판매 제품 상세와 2022 규칙서가 EAN `4002051683092`, 54개 보드, 58개 보석을 명시하므로 웹 구현 기준은 계속 2022 제품 상세·규칙서로 둔다. 브랜드 소개 페이지의 36보드·84보석 정보는 구판 또는 홍보 페이지 잔존 정보로 보고 판본 혼합 경고로만 사용한다.
 
 | 판본 | 주요 차이 |
 |---|---|
@@ -287,7 +289,7 @@ function canDefend(attack: Tile, defense: Tile): boolean {
 ### 3.8 시각·물성 디자인 분석
 
 - 박스는 강한 마젠타와 청록으로 양분되고, 검은 타이거·드래곤 기하학 실루엣이 맞붙는다.
-- 홀수·드래곤은 적색 계열, 짝수·타이거는 청색 계열로 연결된다.
+- 짝수·타이거는 적색 계열, 홀수·드래곤은 청색 계열로 연결된다.
 - 흰색 타일에는 양방향에서 읽히는 큰 숫자가 있어 마작패 같은 묵직한 촉감과 소리를 만든다.
 - 개인 보드는 검정 바탕에 공격·방어의 두 행과 연결선을 명확히 보여 준다.
 - 전장 카드는 멀리서도 읽히도록 큰 숫자와 아이콘 중심이다.
@@ -337,7 +339,7 @@ interface TileDuelState {
 - 현재 응답자와 이미 패스한 좌석을 연결선과 텍스트로 표시
 - 방어 가능한 타일을 강조하되 `패스`는 항상 명시적 버튼으로 유지
 - 모바일은 `점수·전장 요약 → 현재 공격·응답 순서 → 내 패 → 행동 버튼`의 세로 구조
-- 적/청만으로 홀짝을 구분하지 않고 `홀/짝`, 점·선 패턴, 텍스트를 병기
+- 숫자 타일에는 숫자를 가장 크게 두고, 별도 규칙표에 `같은 숫자끼리`, `호랑이 ↔ 2·4·6·8`, `용 ↔ 1·3·5·7`을 색과 무관하게 병기
 - 타일 버튼 44×44px 이상, 키보드 화살표·Enter·패스 단축키 지원
 - 뒷면 타일은 접근성 트리에도 정체를 넣지 않고 `보너스 타일 2개`처럼 읽음
 - 점수 결과에는 전장식, 마지막 타일, 보너스 항목을 분해해 표시
@@ -675,6 +677,7 @@ interface BlindCardState {
 
 - [KOSMOS Ubongo Classic 공식 제품](https://www.kosmos.de/products/ubongo-classic)
 - [KOSMOS 2022 공식 규칙서 PDF](https://cms.kosmos.de/game-instructions/4002051683092_Ubongo_Basis_Manual_web.pdf)
+- [KOSMOS Ubongo 브랜드 소개](https://www.kosmos.de/pages/markenwelt/willkommen-in-der-welt-von-ubongo)
 - [Thames & Kosmos 2015 영문 규칙서](https://thamesandkosmos.com/manuals/full/696184_ubongo_manual.pdf)
 - [공식 60초 데모 시트](https://www.thamesandkosmos.com/downloads/Ubongo_Demo_Sheet.pdf)
 
@@ -724,8 +727,18 @@ interface BlindCardState {
 - 한국 등급분류, 등급 표시, 온라인 베팅 모사 카드게임 특별 준수사항을 현행 공식 법령으로 보강했다.
 - 온라인 카드게임 구매한도에 관한 70만원 자료와 100만원 현행 자료의 충돌은 2026-02-03 개정 공식 별표의 **100만원**을 기준으로 해결했다.
 
+### 2026-07-14 3차 지속 검증
+
+- 공식 KOSMOS 독일어·영어 제품 페이지와 2022 규칙서 PDF를 재확인했다. 2022 기준 EAN `4002051683092`, 54개 보드, 648문제, 58개 보석, 9라운드 구조는 변동 없음. 출처: `https://www.kosmos.de/products/ubongo-classic`, `https://www.kosmos.de/en/products/ubongo-classic`, `https://cms.kosmos.de/game-instructions/4002051683092_Ubongo_Basis_Manual_web.pdf`. 신뢰도: 높음.
+- KOSMOS의 Ubongo 브랜드 소개 페이지에 36개 양면 보드, 4개 말, 84개 보석 구성 정보가 남아 있음을 확인했다. 현재 제품 상세·규칙서와 충돌하므로 2022 구현 기준을 바꾸지 않고 판본 혼합 주의 문구와 출처만 추가했다. 출처: `https://www.kosmos.de/pages/markenwelt/willkommen-in-der-welt-von-ubongo`. 신뢰도: 중간.
+- Arclight 공식 제품 페이지와 2023 영어판·구성물 변경 공지를 재확인했다. 기본 흐름, 2–5인, 10점 개인전, 15점 4인 팀전, 2023 생산분 규칙 변경 없음 주장은 유지된다. 출처: `https://arclightgames.jp/product/606tigerdragon/`, `https://arclightgames.jp/news/2306/`. 신뢰도: 높음.
+- Oink Games 공식 제품 페이지를 재확인했다. 36개 숫자 타일과 2개 특수 타일, 고이타 기반, 2–5인, 20분, 8세 이상 정보는 유지된다. 별도 Tiger and Dragon FAQ·에라타 공식 항목은 검색에서 찾지 못했다. 출처: `https://oinkgames.com/en/games/analog/tiger-and-dragon/`. 신뢰도: 높음.
+- Pagat와 Bicycle의 Indian Poker 자료를 재확인했다. 52장 덱, 1장 블라인드 공개, 1회 베팅, 쇼다운 기본 구조는 기존 서술과 일치하고, 한국형 2인 숫자 듀얼의 세부 베팅·벌칙은 여전히 독자 하우스 룰로 분리해야 한다. 출처: `https://www.pagat.com/poker/variants/indian.html`, `https://bicyclecards.com/how-to-play/indian-poker`. 신뢰도: 중상.
+- 국가법령정보센터에서 게임산업진흥에 관한 법률, 시행령 별표 3, 2026-02-03 개정 시행령 별표 2 제8호를 재확인했다. 온라인·모바일 표시 의무와 베팅·배당 모사 카드게임 월 구매한도 100만원 서술은 유지된다. 출처: `https://www.law.go.kr/LSW/lsInfoP.do?lsiSeq=265811`, `https://www.law.go.kr/LSW/flDownload.do?bylClsCd=110201&flSeq=156672039`, `https://law.go.kr/LSW/flDownload.do?flSeq=162430729`. 신뢰도: 높음.
+
 ### 아직 확정되지 않은 항목
 
+- KOSMOS 브랜드 소개 페이지의 36보드·84보석 `Ubongo Classic` 정보가 어느 SKU·연도 판본을 가리키는지
 - 타이거 앤 드래곤 계약 판본 실물 규칙서에 따른 전장 10종 수치와 2인·특수 타일 보너스 예외 최종 확인
 - 절벽 전장에서 공개 타일을 누가 몇 개 선택하는지와 동일 타일 ID 판정의 원문 확인
 - 한국형 방송 숫자 듀얼의 공식 규칙 카드 또는 제작진 1차 자료 확보

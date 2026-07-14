@@ -75,6 +75,7 @@ export function GameBoxObject({
   onPointerCancel: (event: ReactPointerEvent<HTMLButtonElement>) => void;
 }) {
   const canPlace = available && isHost;
+  const hasCommercialCover = game.id === "blind-card-duel" || game.id === "parity-tile-duel" || game.id === "mosaic-rush";
   const stateLabel = selected
     ? "선택됨"
     : !available
@@ -96,6 +97,7 @@ export function GameBoxObject({
       data-available={available ? "true" : "false"}
       data-selected={selected ? "true" : "false"}
       data-browse-only={canPlace ? "false" : "true"}
+      data-commercial-cover={hasCommercialCover ? "true" : "false"}
       style={rootStyle}
     >
       <button
@@ -135,6 +137,12 @@ export function GameBoxObject({
           transition={{ layout: { type: "spring", stiffness: 430, damping: 34, mass: 0.72 } }}
         >
           <GameCover game={game} className="game-cover-art" />
+          {hasCommercialCover ? (
+            <span className="game-cover-title-lockup" aria-hidden="true">
+              <small>WEB TABLE EDITION</small>
+              <strong>{game.title}</strong>
+            </span>
+          ) : null}
         </m.span>
         <span className="game-box-spine" aria-hidden="true" />
         <span className="game-box-label">

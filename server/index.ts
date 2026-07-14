@@ -41,7 +41,7 @@ interface RoomRecord {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const app = express();
-app.set("etag", false);
+app.set("etag", "weak");
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
   cors: {
@@ -143,30 +143,57 @@ app.get("/api/stats/recent", async (request, response) => {
   }
 });
 
-function setNoStoreHeaders(response: express.Response, clearCache = false) {
-  response.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+const distPath = path.resolve(__dirname, "../dist");
+const oneDaySeconds = 24 * 60 * 60;
+const sevenDaysSeconds = 7 * oneDaySeconds;
+const oneYearSeconds = 365 * oneDaySeconds;
+const hashedViteAssetPattern = /^assets\/(?:.+\/)?[^/]+-[A-Za-z0-9_-]{8,}\.[^/]+$/;
+
+function normalizedDistPath(filePath: string) {
+  return path.relative(distPath, filePath).split(path.sep).join("/");
+}
+
+function setStaticCacheHeaders(response: express.Response, filePath: string) {
+  const relativePath = normalizedDistPath(filePath);
+
+  if (relativePath === "index.html") {
+    setHtmlNoStoreHeaders(response);
+    return;
+  }
+
+  if (hashedViteAssetPattern.test(relativePath)) {
+    response.setHeader("Cache-Control", `public, max-age=${oneYearSeconds}, immutable`);
+    return;
+  }
+
+  if (/^(?:board-assets|brand|game-assets)\//.test(relativePath)) {
+    response.setHeader("Cache-Control", `public, max-age=${sevenDaysSeconds}, stale-while-revalidate=${oneDaySeconds}`);
+    return;
+  }
+
+  response.setHeader("Cache-Control", `public, max-age=${oneDaySeconds}, stale-while-revalidate=${sevenDaysSeconds}`);
+}
+
+function setHtmlNoStoreHeaders(response: express.Response) {
+  response.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
   response.setHeader("Pragma", "no-cache");
   response.setHeader("Expires", "0");
   response.setHeader("Surrogate-Control", "no-store");
-  if (clearCache) {
-    response.setHeader("Clear-Site-Data", '"cache"');
-  }
 }
 
-const distPath = path.resolve(__dirname, "../dist");
 app.use(
   express.static(distPath, {
-    etag: false,
+    etag: true,
     index: false,
-    lastModified: false,
-    setHeaders: (response) => {
-      setNoStoreHeaders(response);
-    }
+    lastModified: true,
+    setHeaders: setStaticCacheHeaders
   })
 );
 app.get(/.*/, (_request, response) => {
-  setNoStoreHeaders(response, true);
-  response.sendFile(path.join(distPath, "index.html"));
+  setHtmlNoStoreHeaders(response);
+  response.sendFile(path.join(distPath, "index.html"), {
+    lastModified: true
+  });
 });
 
 function createEmptyRuntime(): GameRuntimeState {
@@ -528,7 +555,9 @@ function attachSocketToPlayer(socket: Socket, room: RoomRecord, player: MutableP
       previousPlayer.disconnectedAt = Date.now();
       assignHost(previousRoom);
       clearInvalidSelection(previousRoom);
-      finishRoomIfPlayersCannotContinue(previousRoom, previousPlayer.name);
+      if (!recoverInterruptedBattlefieldSetup(previousRoom, previousPlayer.name)) {
+        finishRoomIfPlayersCannotContinue(previousRoom, previousPlayer.name);
+      }
       scheduleEmptyRoomCleanup(previousRoom);
       void broadcastRoom(previousRoom);
     }
@@ -664,6 +693,20 @@ function resetRoomToLobby(room: RoomRecord, options: { preservePostGameNotices?:
   } else {
     clearInvalidSelection(room);
   }
+}
+
+function recoverInterruptedBattlefieldSetup(room: RoomRecord, departedName = "플레이어") {
+  if (
+    room.status !== "playing" ||
+    room.selectedGameId !== "parity-tile-duel" ||
+    !["battlefield-reveal", "battlefield-applying"].includes(phaseFrom(room))
+  ) {
+    return false;
+  }
+
+  resetRoomToLobby(room);
+  appendSystemLog(room, `${departedName}님이 전장 준비 중 나가서 대결을 취소하고 로비로 돌아왔습니다.`);
+  return true;
 }
 
 function normalizePostGameChoice(choice: unknown) {
@@ -905,6 +948,31 @@ function phaseFrom(room: RoomRecord) {
   return String(room.gameState.phase ?? privateState?.phase ?? publicState?.phase ?? "");
 }
 
+function canApplyStaleBattlefieldAcknowledgement(
+  room: RoomRecord,
+  playerId: string,
+  action: GameAction,
+  currentRevision: number
+) {
+  if (
+    room.selectedGameId !== "parity-tile-duel" ||
+    action.type !== "tile/acknowledge-battlefield" ||
+    !Number.isSafeInteger(action.expectedRevision) ||
+    (action.expectedRevision as number) < 0 ||
+    (action.expectedRevision as number) >= currentRevision ||
+    phaseFrom(room) !== "battlefield-reveal"
+  ) {
+    return false;
+  }
+
+  const privateState = asRecord(room.gamePrivateState);
+  const playerIds = Array.isArray(privateState?.playerIds) ? privateState.playerIds : [];
+  const acknowledgedPlayerIds = Array.isArray(privateState?.battlefieldAcknowledgedPlayerIds)
+    ? privateState.battlefieldAcknowledgedPlayerIds
+    : [];
+  return playerIds.includes(playerId) && !acknowledgedPlayerIds.includes(playerId);
+}
+
 function roomGameIsFinished(room: RoomRecord) {
   if (winnerIdsFrom(room).length > 0) {
     return true;
@@ -924,14 +992,17 @@ function clearScheduledTurnTimeout(room: RoomRecord) {
 function turnTimerMs(room: RoomRecord) {
   const moduleDuration = getGameRegistration(room.selectedGameId)?.module.getTimerDurationMs?.(room.gamePrivateState);
   if (typeof moduleDuration === "number" && Number.isFinite(moduleDuration)) {
-    return Math.min(MAX_TURN_TIMER_MS, Math.max(1_000, moduleDuration));
+    return Math.min(MAX_TURN_TIMER_MS, Math.max(1, moduleDuration));
   }
   return Math.min(MAX_TURN_TIMER_MS, Math.max(MIN_TURN_TIMER_MS, room.gameState.turnTimerMs ?? DEFAULT_TURN_TIMER_MS));
 }
 
 function timerCanRun(room: RoomRecord) {
   const registration = getGameRegistration(room.selectedGameId);
-  return registration?.module.timerMode === "phase" || Boolean(room.gameState.activePlayerId);
+  if (registration?.module.timerMode === "phase") {
+    return registration.module.getTimerDurationMs?.(room.gamePrivateState) !== null;
+  }
+  return Boolean(room.gameState.activePlayerId);
 }
 
 function scheduleTurnTimeout(room: RoomRecord) {
@@ -1419,7 +1490,9 @@ io.on("connection", (socket) => {
 
     assignHost(room);
     clearInvalidSelection(room);
-    finishRoomIfPlayersCannotContinue(room, player?.name);
+    if (!recoverInterruptedBattlefieldSetup(room, player?.name)) {
+      finishRoomIfPlayersCannotContinue(room, player?.name);
+    }
     const empty = connectedPlayers(room).length === 0;
     scheduleEmptyRoomCleanup(room);
     if (!empty) {
@@ -1553,7 +1626,11 @@ io.on("connection", (socket) => {
 
     const currentRevision = result.room.gameState.revision ?? 0;
     if (registration.module.concurrencyMode === "strict") {
-      if (!Number.isSafeInteger(action.expectedRevision) || action.expectedRevision !== currentRevision) {
+      const revisionMatches = Number.isSafeInteger(action.expectedRevision) && action.expectedRevision === currentRevision;
+      const canMergeBattlefieldAcknowledgement = Boolean(
+        result.player && canApplyStaleBattlefieldAcknowledgement(result.room, result.player.id, action, currentRevision)
+      );
+      if (!revisionMatches && !canMergeBattlefieldAcknowledgement) {
         reply(ack, {
           ok: false,
           error: "게임 상태가 이미 변경되었습니다. 최신 상태에서 다시 시도해주세요.",
@@ -1950,8 +2027,9 @@ io.on("connection", (socket) => {
 
     assignHost(room);
     clearInvalidSelection(room);
+    const recoveredBattlefieldSetup = recoverInterruptedBattlefieldSetup(room, player?.name);
     scheduleEmptyRoomCleanup(room);
-    if (room.status === "playing" && room.gameState.activePlayerId === playerId && !roomGameIsFinished(room)) {
+    if (!recoveredBattlefieldSetup && room.status === "playing" && room.gameState.activePlayerId === playerId && !roomGameIsFinished(room)) {
       appendSystemLog(room, `${player?.name ?? "플레이어"} 연결 끊김. 제한 시간 안에 다시 들어오면 이어서 진행합니다.`);
       scheduleTurnTimeout(room);
     }

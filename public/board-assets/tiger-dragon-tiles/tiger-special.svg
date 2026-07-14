@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 152">
+  <defs>
+    <radialGradient id="sun">
+      <stop stop-color="#d76446"/>
+      <stop offset=".54" stop-color="#6e2328"/>
+      <stop offset="1" stop-color="#210d15"/>
+    </radialGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#fff0b8"/>
+      <stop offset=".48" stop-color="#d6a44d"/>
+      <stop offset="1" stop-color="#775022"/>
+    </linearGradient>
+  </defs>
+  <rect width="128" height="152" rx="12" fill="#1c0c13"/>
+  <rect x="5" y="5" width="118" height="142" rx="9" fill="url(#sun)" stroke="url(#gold)" stroke-width="4"/>
+  <g transform="translate(64 75)" stroke="#efc875" stroke-opacity=".24">
+    <path d="M0-59V59M-51-30 51 30M-51 30 51-30M-59 0H59"/>
+    <circle r="46" fill="none"/>
+  </g>
+  <g transform="translate(20 30)" fill="#12090d" stroke="url(#gold)" stroke-linecap="round" stroke-linejoin="round" stroke-width="3.2">
+    <path d="M12 29 7 7l23 15M74 29 79 7 56 22M18 27C26 14 36 9 43 9s17 5 25 18l5 17C77 61 64 79 43 79S9 61 13 44l5-17Z"/>
+    <path d="M29 38c5-3 9-3 14 0 5-3 9-3 14 0M31 52h24L43 66 31 52ZM20 44l17 4M66 44l-17 4M24 25l13 13M62 25 49 38" fill="none"/>
+  </g>
+  <path d="M41 116h46" stroke="#f4d586" stroke-opacity=".5"/>
+  <text x="64" y="130" fill="#ffe9ad" font-family="Georgia,serif" font-size="11" font-weight="700" text-anchor="middle" letter-spacing="4">TIGER</text>
+</svg>

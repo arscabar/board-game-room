@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import type { PlayerSnapshot } from "../../shared/types";
 import { useInteractionGate } from "../useInteractionGate";
 import type {
@@ -9,9 +10,9 @@ import type {
   GameModule,
   GameSystemAction
 } from "../types";
-import { BATTLEFIELDS, getBattlefield, type ParityTile } from "./battlefields";
+import { BATTLEFIELDS, getBattlefield, getBattlefieldDisplay, type ParityTile } from "./battlefields";
 
-export type ParityTilePhase = "choose-attack" | "await-defense" | "continuation" | "round-result" | "finished";
+export type ParityTilePhase = "battlefield-reveal" | "battlefield-applying" | "choose-attack" | "await-defense" | "continuation" | "round-result" | "finished";
 export type BoardLocation =
   | { playerId: string; slot: "opening" }
   | { playerId: string; slot: "pair-attack"; pairIndex: number };
@@ -44,6 +45,7 @@ export interface ParityTileDuelState {
   playerIds: string[];
   seed: string;
   battlefieldId: string;
+  battlefieldAcknowledgedPlayerIds: string[];
   targetScore: number;
   roundNumber: number;
   startPlayerId: string | null;
@@ -81,6 +83,7 @@ interface PublicPlayerBoard {
 export interface ParityTileDuelPublicState {
   playerIds: string[];
   battlefield: { id: string; name: string; description: string };
+  battlefieldAcknowledgedPlayerIds: string[];
   targetScore: number;
   roundNumber: number;
   startPlayerId: string | null;
@@ -187,6 +190,7 @@ function cloneState(state: ParityTileDuelState): ParityTileDuelState {
   return {
     ...state,
     playerIds: [...state.playerIds],
+    battlefieldAcknowledgedPlayerIds: [...state.battlefieldAcknowledgedPlayerIds],
     interactivePlayerIds: [...state.interactivePlayerIds],
     hands: Object.fromEntries(Object.entries(state.hands).map(([id, hand]) => [id, hand.map((tile) => ({ ...tile }))])),
     unusedTiles: state.unusedTiles.map((tile) => ({ ...tile })),
@@ -256,6 +260,7 @@ function createState(context: Pick<GameContext, "players" | "rngSeed">): ParityT
     playerIds,
     seed,
     battlefieldId: fixture.id,
+    battlefieldAcknowledgedPlayerIds: [],
     targetScore: 10,
     roundNumber: 1,
     startPlayerId,
@@ -278,7 +283,15 @@ function createState(context: Pick<GameContext, "players" | "rngSeed">): ParityT
     roundForfeitPlayerId: null,
     message: startPlayerId ? "첫 공격을 준비합니다." : "플레이어가 부족합니다."
   };
-  return startPlayerId ? setupRound(base, 1, startPlayerId) : base;
+  if (!startPlayerId) return base;
+  const prepared = setupRound(base, 1, startPlayerId);
+  return {
+    ...prepared,
+    activePlayerId: null,
+    interactivePlayerIds: [...playerIds],
+    phase: "battlefield-reveal",
+    message: "이번 대결의 전장이 공개됩니다. 환경 효과를 확인해주세요."
+  };
 }
 
 function tileFromAction(action: GameAction, key = "tileId") {
@@ -340,9 +353,11 @@ function publicBoard(board: PlayerBoard, playerId: string, revealHidden: boolean
 
 function publicState(state: ParityTileDuelState, viewerId: string | null): ParityTileDuelPublicState {
   const battlefield = getBattlefield(state.battlefieldId);
+  const battlefieldDisplay = getBattlefieldDisplay(battlefield, state.playerIds.length);
   return {
     playerIds: [...state.playerIds],
-    battlefield: { id: battlefield.id, name: battlefield.name, description: battlefield.description },
+    battlefield: { id: battlefield.id, name: battlefield.name, description: battlefieldDisplay.description },
+    battlefieldAcknowledgedPlayerIds: [...state.battlefieldAcknowledgedPlayerIds],
     targetScore: state.targetScore,
     roundNumber: state.roundNumber,
     startPlayerId: state.startPlayerId,
@@ -460,6 +475,28 @@ function performAction(current: ParityTileDuelState, action: GameAction, context
   if (current.phase === "finished") return rejected(current, "이미 끝난 대결입니다.");
   const actorId = context.currentPlayerId;
   const actorName = context.players.find((player) => player.id === actorId)?.name ?? "플레이어";
+  if (current.phase === "battlefield-reveal") {
+    if (action.type !== "tile/acknowledge-battlefield" || !current.playerIds.includes(actorId)) {
+      return rejected(current, "전장 환경을 먼저 확인해주세요.");
+    }
+    if (current.battlefieldAcknowledgedPlayerIds.includes(actorId)) {
+      return rejected(current, "이미 전장 환경을 확인했습니다.");
+    }
+    const state = cloneState(current);
+    state.battlefieldAcknowledgedPlayerIds.push(actorId);
+    const pendingPlayerIds = state.playerIds.filter((id) => !state.battlefieldAcknowledgedPlayerIds.includes(id));
+    if (pendingPlayerIds.length === 0) {
+      state.activePlayerId = null;
+      state.interactivePlayerIds = [];
+      state.phase = "battlefield-applying";
+      state.message = "모두 환경을 확인했습니다. 전장 환경을 게임판에 적용 중입니다.";
+      return result(state, context, "전장 환경 적용 시작");
+    }
+    state.activePlayerId = null;
+    state.interactivePlayerIds = pendingPlayerIds;
+    state.message = `${actorName}님이 환경을 확인했습니다. 다른 플레이어를 기다립니다.`;
+    return result(state, context, "전장 환경 확인");
+  }
   if (actorId !== current.activePlayerId || !current.playerIds.includes(actorId)) {
     return rejected(current, "현재 행동할 차례가 아닙니다.");
   }
@@ -479,7 +516,7 @@ function performAction(current: ParityTileDuelState, action: GameAction, context
       finishRound(state, actorId, tile, actorName);
     }
     else startResponse(state, actorId, tile, location);
-    return result(state, context, `${tileLabel(tile)} 타일 공격`);
+    return result(state, context, `${tileLabel(tile)} 공격`);
   }
 
   if (action.type === "tile/defend") {
@@ -505,7 +542,7 @@ function performAction(current: ParityTileDuelState, action: GameAction, context
       state.phase = "choose-attack";
       state.message = "방어에 성공했습니다. 이어서 새 공격을 고르세요.";
     }
-    return result(state, context, `${tileLabel(tile)} 타일 방어`);
+    return result(state, context, `${tileLabel(tile)} 방어`);
   }
 
   if (action.type === "tile/pass") {
@@ -558,14 +595,14 @@ function performAction(current: ParityTileDuelState, action: GameAction, context
     return result(state, context, "연속 공격");
   }
 
-  return rejected(current, "지원하지 않는 문양 공방 행동입니다.");
+  return rejected(current, "지원하지 않는 타이거 앤 드래곤 행동입니다.");
 }
 
 export function tileLabel(tile: ParityTile | null) {
   if (!tile) return "빈 칸";
-  if (tile.kind === "odd-special") return "홀 문양";
-  if (tile.kind === "even-special") return "짝 문양";
-  return `${tile.value}번 ${tile.value! % 2 === 0 ? "짝수" : "홀수"}`;
+  if (tile.kind === "odd-special") return "용 특수 타일";
+  if (tile.kind === "even-special") return "호랑이 특수 타일";
+  return `숫자 ${tile.value} 타일`;
 }
 
 export const module: GameModule = {
@@ -575,7 +612,8 @@ export const module: GameModule = {
   getTimerDurationMs: (state) => {
     const parityState = state as ParityTileDuelState;
     const phase = parityState.phase;
-    if (phase === "finished") return null;
+    if (phase === "finished" || phase === "battlefield-reveal") return null;
+    if (phase === "battlefield-applying") return 800;
     if (phase === "round-result") return 2_500;
     if (phase === "await-defense") return 25_000;
     return parityState.attackGracePlayerId === parityState.activePlayerId ? 20_000 : 40_000;
@@ -585,6 +623,15 @@ export const module: GameModule = {
   applyAction: (state, action, context) => performAction(state as ParityTileDuelState, action, context),
   applySystemAction: (state, action: GameSystemAction, context) => {
     const current = state as ParityTileDuelState;
+    if (current.phase === "battlefield-applying") {
+      if (action.type !== "system/timeout") return rejected(current, "전장 환경 적용이 끝날 때까지 기다려주세요.");
+      const next = cloneState(current);
+      next.activePlayerId = next.startPlayerId;
+      next.interactivePlayerIds = next.startPlayerId ? [next.startPlayerId] : [];
+      next.phase = "choose-attack";
+      next.message = "전장 환경 적용을 마쳤습니다. 시작 플레이어가 첫 공격을 고릅니다.";
+      return result(next, context, "전장 환경 적용 완료");
+    }
     if (current.phase === "round-result") {
       const next = cloneState(current);
       const winnerId = next.lastRound?.winnerId ?? next.startPlayerId ?? next.playerIds[0];
@@ -617,13 +664,83 @@ function getPlayerName(players: PlayerSnapshot[], id: string | null) {
   return players.find((player) => player.id === id)?.name ?? "플레이어";
 }
 
-function TileFace({ tile, hidden = false, compact = false }: { tile: ParityTile | null; hidden?: boolean; compact?: boolean }) {
-  const parity = tile?.kind === "number" ? (tile.value! % 2 === 0 ? "even" : "odd") : tile?.kind === "even-special" ? "even" : "odd";
+function TigerCrest({ className = "" }: { className?: string }) {
   return (
-    <span className={`ptd-tile ${parity} ${hidden ? "hidden" : ""} ${compact ? "compact" : ""}`} aria-label={hidden ? "뒷면 보너스 타일" : tileLabel(tile)}>
-      <small>{hidden ? "보너스" : parity === "even" ? "짝 · 선" : "홀 · 점"}</small>
-      <strong>{hidden ? "?" : tile?.kind === "number" ? tile.value : "문"}</strong>
+    <svg className={className} viewBox="0 0 64 64" aria-hidden="true">
+      <path d="M14 24 10 9l14 8M50 24l4-15-14 8M18 22c4-7 10-10 14-10s10 3 14 10l4 11c2 10-6 22-18 22S12 43 14 33l4-11Z" />
+      <path d="M24 27c3-2 5-2 8 0 3-2 5-2 8 0M25 36h14l-7 8-7-8ZM19 31l9 2M45 31l-9 2M21 20l7 6M43 20l-7 6" />
+    </svg>
+  );
+}
+
+function DragonCrest({ className = "" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 64 64" aria-hidden="true">
+      <path d="M13 42c5 9 20 10 29 3 8-6 8-17 2-22-5-5-13-4-17 1-4 5-1 12 5 12 5 0 8-5 6-9" />
+      <path d="m38 18 2-9 6 8 9-2-4 8 6 6-9 1M15 42 7 38l5-5-5-6 9 1M21 47l-3 8 8-4 6 5 1-9M43 39l9 4-2-9" />
+      <circle cx="43" cy="23" r="1.8" />
+    </svg>
+  );
+}
+
+const BATTLEFIELD_PRESENTATION: Record<string, { glyph: string; eyebrow: string; atmosphere: string }> = {
+  "balance-hall": {
+    glyph: "균",
+    eyebrow: "대칭 전장",
+    atmosphere: "호랑이와 용의 힘이 팽팽히 맞서는 회랑입니다. 어느 계열로 마무리할지 손패를 끝까지 조율하세요."
+  },
+  "patient-kiln": {
+    glyph: "화",
+    eyebrow: "축적 전장",
+    atmosphere: "불씨를 오래 지킬수록 강해지는 가마입니다. 한 바퀴 패스를 유도해 보너스를 쌓는 운영이 중요합니다."
+  },
+  "high-window": {
+    glyph: "창",
+    eyebrow: "고점 전장",
+    atmosphere: "높은 수가 빛을 받는 공방입니다. 강한 숫자를 지키되 상대에게 마무리 기회를 내주지 마세요."
+  }
+};
+
+const TILE_ART = {
+  tigerNumber: "/board-assets/tiger-dragon-tiles/tiger-number.svg",
+  dragonNumber: "/board-assets/tiger-dragon-tiles/dragon-number.svg",
+  tigerSpecial: "/board-assets/tiger-dragon-tiles/tiger-special.svg",
+  dragonSpecial: "/board-assets/tiger-dragon-tiles/dragon-special.svg",
+  back: "/board-assets/tiger-dragon-tiles/tile-back.svg"
+} as const;
+
+function TileFace({ tile, hidden = false, compact = false }: { tile: ParityTile | null; hidden?: boolean; compact?: boolean }) {
+  const empty = !tile && !hidden;
+  const family = tile?.kind === "number" ? (tile.value! % 2 === 0 ? "tiger" : "dragon") : tile?.kind === "even-special" ? "tiger" : "dragon";
+  const special = tile?.kind === "even-special" ? "tiger" : tile?.kind === "odd-special" ? "dragon" : null;
+  const artSource = empty
+    ? null
+    : hidden
+    ? TILE_ART.back
+    : special === "tiger"
+      ? TILE_ART.tigerSpecial
+      : special === "dragon"
+        ? TILE_ART.dragonSpecial
+        : family === "tiger"
+          ? TILE_ART.tigerNumber
+          : TILE_ART.dragonNumber;
+  return (
+    <span className={`ptd-tile ${empty ? "empty" : family} ${special ? "special" : ""} ${hidden ? "hidden" : ""} ${compact ? "compact" : ""}`} aria-label={hidden ? "뒷면 보너스 타일" : tileLabel(tile)}>
+      {artSource ? <img className="ptd-tile-art" src={artSource} alt="" aria-hidden="true" draggable={false} /> : null}
+      {empty || hidden || special ? <small>{empty ? "대기" : hidden ? "보너스" : special === "tiger" ? "호랑이" : "용"}</small> : null}
+      {empty ? <strong aria-hidden="true">—</strong> : hidden ? <strong>?</strong> : special ? null : <strong>{tile?.value}</strong>}
     </span>
+  );
+}
+
+function DefenseGuide() {
+  return (
+    <aside className="ptd-defense-guide" aria-label="타일 방어 규칙">
+      <strong>공격을 막을 때 낼 수 있는 타일</strong>
+      <span className="number-pair">같은 숫자끼리</span>
+      <span className="tiger-pair"><TigerCrest /><b>호랑이</b><i aria-hidden="true">↔</i>2·4·6·8</span>
+      <span className="dragon-pair"><DragonCrest /><b>용</b><i aria-hidden="true">↔</i>1·3·5·7</span>
+    </aside>
   );
 }
 
@@ -632,9 +749,20 @@ export function Component({ players, currentPlayer, publicState: state, disabled
   const [selectedTileId, setSelectedTileId] = useState<string | null>(null);
   const [bonusTileId, setBonusTileId] = useState<string | null>(null);
   const [continuationStep, setContinuationStep] = useState<"bonus" | "attack">("bonus");
+  const [battlefieldInfoOpen, setBattlefieldInfoOpen] = useState(false);
+  const [battlefieldRevealReady, setBattlefieldRevealReady] = useState(false);
+  const [battlefieldRevealSessionOpen, setBattlefieldRevealSessionOpen] = useState(
+    state.phase === "battlefield-reveal" || state.phase === "battlefield-applying"
+  );
+  const battlefieldDialogRef = useRef<HTMLElement | null>(null);
+  const battlefieldDialogActionRef = useRef<HTMLButtonElement | null>(null);
+  const battlefieldSealRef = useRef<HTMLButtonElement | null>(null);
+  const battlefieldReturnFocusRef = useRef<HTMLButtonElement | null>(null);
+  const battlefieldFocusFrameRef = useRef<number | null>(null);
+  const previousBattlefieldPhaseRef = useRef<ParityTilePhase>(state.phase);
   const { isSubmitting, submitAction } = useInteractionGate(
     onAction,
-    [state.phase, state.activePlayerId, state.roundNumber, state.hand.length, state.currentAttack?.tile.id],
+    [state.phase, state.activePlayerId, state.roundNumber, state.hand.length, state.currentAttack?.tile.id, state.battlefieldAcknowledgedPlayerIds.length],
     { cooldownMs: 500 }
   );
 
@@ -644,11 +772,192 @@ export function Component({ players, currentPlayer, publicState: state, disabled
     setContinuationStep("bonus");
   }, [state.phase, state.activePlayerId, state.roundNumber, state.hand.length]);
 
+  const isInitialBattlefieldReveal = state.phase === "battlefield-reveal";
+  const isBattlefieldApplying = state.phase === "battlefield-applying";
+  const showBattlefieldDialog = battlefieldRevealSessionOpen || battlefieldInfoOpen;
+  const isBattlefieldRevealDialog = battlefieldRevealSessionOpen;
+  const battlefieldRevealComplete = !isInitialBattlefieldReveal || battlefieldRevealReady;
+  const hasAcknowledgedBattlefield = Boolean(myId && state.battlefieldAcknowledgedPlayerIds.includes(myId));
+  const canAcknowledgeBattlefield = Boolean(
+    myId &&
+    state.playerIds.includes(myId) &&
+    !hasAcknowledgedBattlefield &&
+    !disabled &&
+    !isSubmitting
+  );
+
+  const openBattlefieldInfo = (trigger: HTMLButtonElement) => {
+    battlefieldReturnFocusRef.current = trigger;
+    setBattlefieldInfoOpen(true);
+  };
+
+  const scheduleBattlefieldFocus = (target: () => HTMLElement | null | undefined) => {
+    if (battlefieldFocusFrameRef.current !== null) {
+      window.cancelAnimationFrame(battlefieldFocusFrameRef.current);
+    }
+    battlefieldFocusFrameRef.current = window.requestAnimationFrame(() => {
+      battlefieldFocusFrameRef.current = null;
+      target()?.focus();
+    });
+  };
+
+  const closeBattlefieldInfo = () => {
+    setBattlefieldInfoOpen(false);
+    const trigger = battlefieldReturnFocusRef.current;
+    scheduleBattlefieldFocus(() => trigger);
+  };
+
+  useEffect(() => () => {
+    if (battlefieldFocusFrameRef.current !== null) {
+      window.cancelAnimationFrame(battlefieldFocusFrameRef.current);
+    }
+  }, []);
+
+  useEffect(() => {
+    const previousPhase = previousBattlefieldPhaseRef.current;
+    previousBattlefieldPhaseRef.current = state.phase;
+
+    if (state.phase === "battlefield-reveal" || state.phase === "battlefield-applying") {
+      setBattlefieldRevealSessionOpen(true);
+      return;
+    }
+    if (previousPhase === "battlefield-applying" && battlefieldRevealSessionOpen) {
+      setBattlefieldRevealSessionOpen(false);
+      scheduleBattlefieldFocus(() => battlefieldSealRef.current);
+    }
+  }, [battlefieldRevealSessionOpen, state.phase]);
+
+  useEffect(() => {
+    if (!isInitialBattlefieldReveal) {
+      setBattlefieldRevealReady(true);
+      return;
+    }
+    setBattlefieldRevealReady(false);
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduceMotion) {
+      setBattlefieldRevealReady(true);
+      return;
+    }
+    const timer = window.setTimeout(() => setBattlefieldRevealReady(true), 1_450);
+    return () => window.clearTimeout(timer);
+  }, [isInitialBattlefieldReveal, state.battlefield.id]);
+
+  useLayoutEffect(() => {
+    if (!showBattlefieldDialog) return;
+
+    const dialog = battlefieldDialogRef.current;
+    const portalRoot = dialog?.closest<HTMLElement>("[data-ptd-battlefield-portal]") ?? null;
+    dialog?.focus({ preventScroll: true });
+
+    const previousBackgroundState = new Map<HTMLElement, { hadInert: boolean; ariaHidden: string | null }>();
+    const previousBodyOverflow = document.body.style.overflow;
+
+    const protectBackgroundElement = (element: HTMLElement) => {
+      if (
+        element === portalRoot ||
+        element.tagName === "SCRIPT" ||
+        element.tagName === "STYLE"
+      ) {
+        return;
+      }
+      if (!previousBackgroundState.has(element)) {
+        previousBackgroundState.set(element, {
+          hadInert: element.hasAttribute("inert"),
+          ariaHidden: element.getAttribute("aria-hidden")
+        });
+      }
+      element.setAttribute("inert", "");
+      element.setAttribute("aria-hidden", "true");
+    };
+
+    for (const element of Array.from(document.body.children)) {
+      if (element instanceof HTMLElement) protectBackgroundElement(element);
+    }
+
+    const backgroundObserver = new MutationObserver((records) => {
+      for (const record of records) {
+        for (const addedNode of Array.from(record.addedNodes)) {
+          if (addedNode instanceof HTMLElement) protectBackgroundElement(addedNode);
+        }
+      }
+    });
+    backgroundObserver.observe(document.body, { childList: true });
+
+    const keepFocusInPortal = (event: FocusEvent) => {
+      if (!portalRoot || portalRoot.contains(event.target as Node)) return;
+      dialog?.focus({ preventScroll: true });
+    };
+    document.addEventListener("focusin", keepFocusInPortal, true);
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      backgroundObserver.disconnect();
+      document.removeEventListener("focusin", keepFocusInPortal, true);
+      for (const [element, { hadInert, ariaHidden }] of previousBackgroundState) {
+        if (!hadInert) element.removeAttribute("inert");
+        if (ariaHidden === null) element.removeAttribute("aria-hidden");
+        else element.setAttribute("aria-hidden", ariaHidden);
+      }
+      document.body.style.overflow = previousBodyOverflow;
+    };
+  }, [showBattlefieldDialog]);
+
+  useEffect(() => {
+    if (!showBattlefieldDialog || !battlefieldRevealComplete) return;
+    const action = battlefieldDialogActionRef.current;
+    if (action && !action.disabled) action.focus();
+    else battlefieldDialogRef.current?.focus();
+  }, [battlefieldRevealComplete, isBattlefieldApplying, showBattlefieldDialog]);
+
+  useEffect(() => {
+    if (!showBattlefieldDialog || !isBattlefieldRevealDialog || !hasAcknowledgedBattlefield) return;
+    scheduleBattlefieldFocus(() => battlefieldDialogRef.current);
+  }, [hasAcknowledgedBattlefield, isBattlefieldRevealDialog, showBattlefieldDialog]);
+
+  useEffect(() => {
+    if (!showBattlefieldDialog) return;
+    const keepFocusInDialog = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && battlefieldInfoOpen && !isInitialBattlefieldReveal) {
+        closeBattlefieldInfo();
+        return;
+      }
+      if (event.key !== "Tab" || !battlefieldDialogRef.current) return;
+      const focusable = Array.from(
+        battlefieldDialogRef.current.querySelectorAll<HTMLElement>("button:not(:disabled), [href], [tabindex]:not([tabindex='-1'])")
+      );
+      if (focusable.length === 0) {
+        event.preventDefault();
+        battlefieldDialogRef.current.focus();
+        return;
+      }
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    window.addEventListener("keydown", keepFocusInDialog);
+    return () => window.removeEventListener("keydown", keepFocusInDialog);
+  }, [battlefieldInfoOpen, isInitialBattlefieldReveal, showBattlefieldDialog]);
+
   const myTurn = Boolean(myId && state.activePlayerId === myId && state.interactivePlayerIds.includes(myId));
   const selectedTile = state.hand.find((tile) => tile.id === selectedTileId) ?? null;
   const canUseSelectedForDefense = Boolean(selectedTile && state.currentAttack && canDefend(state.currentAttack.tile, selectedTile));
-  const controlsDisabled = disabled || !myTurn || isSubmitting;
+  const controlsDisabled = disabled || !myTurn || isSubmitting || isBattlefieldApplying;
   const battlefield = state.battlefield;
+  const fieldPresentation = BATTLEFIELD_PRESENTATION[battlefield.id] ?? BATTLEFIELD_PRESENTATION["balance-hall"];
+  const battlefieldDisplay = getBattlefieldDisplay(getBattlefield(battlefield.id), state.playerIds.length);
+  const showRoundOutcome = Boolean(state.lastRound && state.phase === "round-result");
+  const showOutcomePanel = state.phase === "round-result" || state.phase === "finished";
+  const outcomeWinnerNames = state.phase === "finished"
+    ? state.winnerIds.map((id) => getPlayerName(players, id)).join(", ")
+    : state.lastRound
+      ? getPlayerName(players, state.lastRound.winnerId)
+      : "결과 집계 중";
 
   const chooseTile = (tileId: string) => {
     if (state.phase !== "continuation") {
@@ -679,38 +988,136 @@ export function Component({ players, currentPlayer, publicState: state, disabled
   };
 
   return (
-    <section className={`game-module parity-tile-duel ${state.phase} ${isSubmitting ? "is-submitting" : ""}`} aria-label="문양 공방 게임판">
+    <section className={`game-module parity-tile-duel ${state.phase} ${isSubmitting ? "is-submitting" : ""} ${isBattlefieldApplying ? "is-battlefield-applying" : ""}`} data-battlefield={battlefield.id} aria-busy={isBattlefieldApplying} aria-label={`타이거 앤 드래곤 ${battlefield.name} 게임판`}>
+      <div className="ptd-arena-crests" aria-hidden="true">
+        <TigerCrest className="ptd-arena-tiger" />
+        <DragonCrest className="ptd-arena-dragon" />
+        <span className="ptd-field-landmark"><i /><i /><i /></span>
+      </div>
+      {showBattlefieldDialog && typeof document !== "undefined" ? createPortal(
+        <div className="ptd-battlefield-portal" data-ptd-battlefield-portal data-battlefield={battlefield.id}>
+          <div className={`ptd-battlefield-overlay ${battlefieldRevealComplete ? "is-revealed" : "is-drawing"} ${isBattlefieldApplying ? "is-applying" : ""}`}>
+          <section
+            ref={battlefieldDialogRef}
+            className="ptd-battlefield-dialog"
+            role="dialog"
+            tabIndex={-1}
+            aria-modal="true"
+            aria-labelledby="ptd-battlefield-dialog-title"
+            aria-describedby="ptd-battlefield-dialog-description"
+          >
+            <div className="ptd-battlefield-draw" aria-hidden="true">
+              <span className="ptd-draw-card ptd-draw-card-left"><img src={TILE_ART.back} alt="" /></span>
+              <span className="ptd-draw-card ptd-draw-card-right"><img src={TILE_ART.back} alt="" /></span>
+              <span className="ptd-draw-card ptd-draw-card-chosen">
+                <span className="ptd-draw-card-back"><img src={TILE_ART.back} alt="" /></span>
+                <span className="ptd-draw-card-front"><b>{fieldPresentation.glyph}</b><small>{fieldPresentation.eyebrow}</small></span>
+              </span>
+            </div>
+
+            <div className="ptd-battlefield-copy" aria-live="polite">
+              <span className="ptd-kicker">{isBattlefieldApplying ? "전장 환경을 게임판에 적용합니다" : isBattlefieldRevealDialog ? "이번 대결의 환경을 뽑았습니다" : "현재 적용 중인 환경"}</span>
+              <h2 id="ptd-battlefield-dialog-title">{battlefieldRevealComplete ? battlefield.name : "전장 선택 중"}</h2>
+              {battlefieldRevealComplete ? (
+                <>
+                  <p id="ptd-battlefield-dialog-description">{fieldPresentation.atmosphere}</p>
+                  <div className="ptd-battlefield-effect">
+                    <span>환경 효과</span>
+                    <strong>{battlefieldDisplay.bonusLabel}</strong>
+                    <p>{battlefield.description}</p>
+                  </div>
+                  <ul>
+                    {battlefieldDisplay.rules.map((rule) => <li key={rule}>{rule}</li>)}
+                  </ul>
+                </>
+              ) : (
+                <p id="ptd-battlefield-dialog-description">봉인된 전장 카드가 곧 공개됩니다.</p>
+              )}
+            </div>
+
+            {battlefieldRevealComplete ? (
+              <div className="ptd-battlefield-dialog-footer">
+                {isBattlefieldRevealDialog && !isBattlefieldApplying ? (
+                  <div className="ptd-battlefield-acknowledgements" role="status" aria-live="polite" aria-atomic="true" aria-label="환경 확인 현황">
+                    <span>
+                      {state.battlefieldAcknowledgedPlayerIds.length}/{state.playerIds.length} 확인
+                      {state.battlefieldAcknowledgedPlayerIds.length === state.playerIds.length ? " · 전원 확인 완료" : " · 다른 플레이어를 기다리는 중"}
+                    </span>
+                    <div>
+                      {state.playerIds.map((id) => (
+                        <i className={state.battlefieldAcknowledgedPlayerIds.includes(id) ? "confirmed" : ""} key={id}>
+                          {getPlayerName(players, id)}
+                        </i>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+                {isBattlefieldApplying ? (
+                  <p className="ptd-battlefield-apply-status" role="status" aria-live="assertive">환경을 게임판에 적용 중입니다</p>
+                ) : isBattlefieldRevealDialog ? (
+                  <button
+                    ref={battlefieldDialogActionRef}
+                    type="button"
+                    disabled={!canAcknowledgeBattlefield || hasAcknowledgedBattlefield}
+                    onClick={() => submitAction({ type: "tile/acknowledge-battlefield" })}
+                  >
+                    {hasAcknowledgedBattlefield ? "다른 플레이어 확인 대기 중" : myId ? "환경 이해됐습니다" : "플레이어 확인 대기 중"}
+                  </button>
+                ) : (
+                  <button
+                    ref={battlefieldDialogActionRef}
+                    type="button"
+                    onClick={closeBattlefieldInfo}
+                  >게임으로 돌아가기</button>
+                )}
+              </div>
+            ) : null}
+            </section>
+          </div>
+        </div>,
+        document.body
+      ) : null}
       <header className="ptd-header">
-        <div>
-          <span className="ptd-kicker">제 {state.roundNumber} 공방 · 목표 {state.targetScore}점</span>
-          <h2>{battlefield.name}</h2>
-          <p>{battlefield.description}</p>
+        <div className="ptd-field-title">
+          <button ref={battlefieldSealRef} className="ptd-field-seal" type="button" aria-label={`${battlefield.name} 환경 설명 다시 보기`} onClick={(event) => openBattlefieldInfo(event.currentTarget)}>{fieldPresentation.glyph}</button>
+          <div>
+            <span className="ptd-kicker">제 {state.roundNumber} 공방 · 목표 {state.targetScore}점</span>
+            <h2>{battlefield.name}</h2>
+            <p>{battlefield.description}</p>
+            <button className="ptd-field-info-trigger" type="button" onClick={(event) => openBattlefieldInfo(event.currentTarget)}>적용 환경 읽어보기</button>
+          </div>
+          <span className="ptd-field-trait"><small>{fieldPresentation.eyebrow}</small><strong>{battlefieldDisplay.bonusLabel}</strong></span>
         </div>
         <div className="ptd-scoreboard" data-player-count={state.playerIds.length} aria-label="플레이어 점수">
           {state.playerIds.map((id, index) => (
             <div className={id === state.activePlayerId ? "active" : ""} key={id}>
               <span className="ptd-medallion" aria-hidden="true">{index + 1}</span>
               <span>{getPlayerName(players, id)}</span>
-              <strong>{state.scores[id] ?? 0}</strong>
+              <strong key={`${id}-score-${state.scores[id] ?? 0}`}>{state.scores[id] ?? 0}</strong>
               <small>패 {state.handCounts[id] ?? 0}</small>
             </div>
           ))}
         </div>
       </header>
 
-      <div className="ptd-flow" aria-live="polite">
+      <DefenseGuide />
+
+      {state.phase !== "finished" ? <div className="ptd-flow" aria-live="polite">
         <div className="ptd-flow-label">
-          <span>현재 공격</span>
-          <strong>{state.currentAttack ? getPlayerName(players, state.attackerId) : "공격 준비"}</strong>
+          <span>{showRoundOutcome ? "마지막 타일" : "현재 공격"}</span>
+          <strong>{showRoundOutcome && state.lastRound ? tileLabel(state.lastRound.finishTile) : state.currentAttack ? getPlayerName(players, state.attackerId) : "공격 준비"}</strong>
         </div>
-        <TileFace tile={state.currentAttack?.tile ?? null} />
-        <span className="ptd-arrow" aria-hidden="true">→</span>
+        <TileFace
+          key={showRoundOutcome && state.lastRound ? `finish-${state.lastRound.finishTile.id}` : state.currentAttack?.tile.id ?? "attack-ready"}
+          tile={showRoundOutcome && state.lastRound ? state.lastRound.finishTile : state.currentAttack?.tile ?? null}
+        />
+        <span className="ptd-arrow" key={`arrow-${showRoundOutcome && state.lastRound ? state.lastRound.finishTile.id : state.currentAttack?.tile.id ?? "ready"}`} aria-hidden="true">→</span>
         <div className="ptd-flow-label responder">
-          <span>{state.phase === "continuation" ? "연속 공격" : "응답 차례"}</span>
-          <strong>{getPlayerName(players, state.activePlayerId)}</strong>
+          <span>{showRoundOutcome ? "공방 승자" : state.phase === "continuation" ? "연속 공격" : "응답 차례"}</span>
+          <strong>{showRoundOutcome && state.lastRound ? getPlayerName(players, state.lastRound.winnerId) : getPlayerName(players, state.activePlayerId)}</strong>
         </div>
-        <p>{state.message}</p>
-      </div>
+        <p key={state.message}>{state.message}</p>
+      </div> : null}
 
       <div className="ptd-boards" aria-label="공개 타일 기록">
         {state.playerIds.map((id, index) => {
@@ -737,7 +1144,7 @@ export function Component({ players, currentPlayer, publicState: state, disabled
         })}
       </div>
 
-      {state.lastRound ? (
+      {state.lastRound && !showOutcomePanel ? (
         <aside className="ptd-last-result" aria-label="직전 라운드 결과">
           <span className="ptd-medallion" aria-hidden="true">✓</span>
           <div>
@@ -747,7 +1154,7 @@ export function Component({ players, currentPlayer, publicState: state, disabled
         </aside>
       ) : null}
 
-      <section className="ptd-rack" aria-label="내 타일 패">
+      {!showOutcomePanel ? <section className="ptd-rack" aria-label="내 타일 패">
         <div className="ptd-rack-heading">
           <div>
             <span className="ptd-kicker">내 작업대</span>
@@ -801,15 +1208,27 @@ export function Component({ players, currentPlayer, publicState: state, disabled
             {state.phase === "await-defense" ? "선택 타일로 방어" : state.phase === "continuation" ? "보너스와 공격 확정" : "선택 타일로 공격"}
           </button>
         </div>
-      </section>
-
-      {state.phase === "finished" ? (
-        <div className="ptd-finish" role="status">
-          <span className="ptd-medallion" aria-hidden="true">★</span>
-          <strong>{state.winnerIds.map((id) => getPlayerName(players, id)).join(", ")} 승리</strong>
-          <span>{state.roundForfeitPlayerId ? "상대의 누적 시간 초과로 승리했습니다." : `목표 ${state.targetScore}점에 먼저 도달했습니다.`}</span>
-        </div>
-      ) : null}
+      </section> : (
+        <section className={`ptd-outcome-panel ${state.phase}`} role="status" aria-live="polite" aria-label={state.phase === "finished" ? "최종 대결 결과" : "공방 결과"}>
+          <span className="ptd-outcome-seal" aria-hidden="true">{state.phase === "finished" ? "勝" : "決"}</span>
+          <div>
+            <span className="ptd-kicker">{state.phase === "finished" ? "대결 종료" : `제 ${state.roundNumber} 공방 결과`}</span>
+            <h3>{outcomeWinnerNames || "승자 없음"}{state.phase === "finished" ? " 승리" : " 공방 승리"}</h3>
+            <p>
+              {state.phase === "finished"
+                ? state.roundForfeitPlayerId
+                  ? "상대의 누적 시간 초과로 최종 승리했습니다."
+                  : `목표 ${state.targetScore}점에 먼저 도달했습니다.`
+                : state.lastRound
+                  ? `마지막 ${tileLabel(state.lastRound.finishTile)} · ${state.lastRound.reasons.join(" · ")}`
+                  : "다음 공방을 준비하고 있습니다."}
+            </p>
+          </div>
+          {state.phase === "round-result" && state.lastRound ? (
+            <strong className="ptd-outcome-points">+{state.lastRound.points}점</strong>
+          ) : null}
+        </section>
+      )}
     </section>
   );
 }

@@ -43,7 +43,7 @@ type ActionConcurrency = "strict" | "phase-scoped";
 ```
 
 - `strict`: 포커·타일 공방처럼 전역 revision이 정확히 일치해야 한다.
-- `phase-scoped`: 모자이크 러시처럼 payload의 `roundId`, `puzzleId`, 개인 `draftRevision`이 현재 값과 일치하고 해당 플레이어가 아직 완료하지 않았다면, 다른 플레이어 때문에 전역 revision이 증가했어도 제출을 허용한다.
+- `phase-scoped`: 우봉고(`mosaic-rush`)처럼 payload의 `roundId`, `puzzleId`, 개인 `draftRevision`이 현재 값과 일치하고 해당 플레이어가 아직 완료하지 않았다면, 다른 플레이어 때문에 전역 revision이 증가했어도 제출을 허용한다.
 - phase-scoped도 이전 라운드 제출, 이미 완료한 사람의 재제출, 마감 후 제출은 거절한다.
 - actionId 멱등성은 두 방식 모두 동일하다.
 

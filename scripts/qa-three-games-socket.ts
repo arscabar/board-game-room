@@ -165,11 +165,117 @@ async function main() {
     replacement.socket.disconnect();
     close(blind);
 
+    const interruptedParity = await startedRoom(baseUrl, "parity-tile-duel", 3);
+    assert.equal((interruptedParity.clients[0].room!.gameState.publicState as any).phase, "battlefield-reveal");
+    interruptedParity.clients[2].socket.disconnect();
+    await waitFor(
+      () => interruptedParity.clients.slice(0, 2).every((client) => client.room?.status === "lobby"),
+      "parity battlefield disconnect returns the room to lobby"
+    );
+    for (const client of interruptedParity.clients.slice(0, 2)) {
+      assert.equal(client.room!.gameState.publicState ?? null, null, "disconnect recovery must clear the interrupted match state");
+      assert.equal(client.room!.gameState.turnDeadlineAt, null, "disconnect recovery must leave no match timer running");
+    }
+    close(interruptedParity);
+
+    const interruptedApplyingParity = await startedRoom(baseUrl, "parity-tile-duel", 3);
+    for (const client of interruptedApplyingParity.clients) {
+      await emit<RoomSnapshot>(client, "game:action", {
+        code: interruptedApplyingParity.code,
+        action: actionFor(client, { type: "tile/acknowledge-battlefield", actionId: `applying-disconnect-${client.id}` })
+      });
+    }
+    await waitFor(
+      () => interruptedApplyingParity.clients.every((client) => (client.room?.gameState.publicState as any)?.phase === "battlefield-applying"),
+      "parity battlefield applying before disconnect"
+    );
+    interruptedApplyingParity.clients[2].socket.disconnect();
+    await waitFor(
+      () => interruptedApplyingParity.clients.slice(0, 2).every((client) => client.room?.status === "lobby"),
+      "parity battlefield applying disconnect returns the room to lobby"
+    );
+    for (const client of interruptedApplyingParity.clients.slice(0, 2)) {
+      assert.equal(client.room!.gameState.publicState ?? null, null, "applying-phase disconnect recovery must clear match state");
+      assert.equal(client.room!.gameState.turnDeadlineAt, null, "applying-phase disconnect recovery must clear the 800ms deadline");
+    }
+    close(interruptedApplyingParity);
+
     const parity = await startedRoom(baseUrl, "parity-tile-duel", 3);
+    assert.equal((parity.clients[0].room!.gameState.publicState as any).phase, "battlefield-reveal");
+    assert.equal(parity.clients[0].room!.gameState.turnDeadlineAt, null, "battlefield explanation must not start the turn timer");
+    const firstAcknowledgement = await emit<RoomSnapshot>(parity.clients[0], "game:action", {
+      code: parity.code,
+      action: actionFor(parity.clients[0], { type: "tile/acknowledge-battlefield", actionId: `battlefield-${parity.clients[0].id}` })
+    });
+    await waitFor(
+      () => parity.clients.every((client) => client.room?.gameState.revision === firstAcknowledgement.gameState.revision),
+      "first parity battlefield acknowledgement broadcast"
+    );
+    assert.equal((parity.clients[1].room!.gameState.publicState as any).phase, "battlefield-reveal");
+    assert.equal(parity.clients[1].room!.gameState.turnDeadlineAt, null, "partial battlefield acknowledgement must not start the timer");
+    const sharedRevision = parity.clients[1].room!.gameState.revision;
+    const simultaneousAcknowledgements = parity.clients.slice(1).map((client) => emit<RoomSnapshot>(client, "game:action", {
+      code: parity.code,
+      action: {
+        type: "tile/acknowledge-battlefield",
+        actionId: `battlefield-${client.id}`,
+        expectedRevision: sharedRevision
+      }
+    }));
+    await Promise.all(simultaneousAcknowledgements);
+    await waitFor(
+      () => parity.clients.every((client) => (client.room?.gameState.publicState as any)?.phase === "battlefield-applying"),
+      "simultaneous parity battlefield acknowledgements enter applying phase"
+    );
+    const applyingRuntime = parity.clients[0].room!.gameState;
+    const applyingState = applyingRuntime.publicState as any;
+    assert.equal(applyingState.phase, "battlefield-applying");
+    assert.equal(applyingState.battlefieldAcknowledgedPlayerIds.length, parity.clients.length);
+    assert.equal(applyingRuntime.activePlayerId, null, "battlefield application must have no active player");
+    assert.deepEqual(applyingRuntime.interactivePlayerIds, [], "battlefield application must reject all player interaction");
+    assert(applyingRuntime.turnDeadlineAt, "battlefield application must have a server deadline");
+    assert(applyingRuntime.turnStartedAt, "battlefield application must record its server start");
+    assert.equal(applyingRuntime.turnDeadlineAt - applyingRuntime.turnStartedAt, 800, "battlefield application deadline must be exactly 800ms");
+    const applyingRemainingMs = applyingRuntime.turnDeadlineAt - Date.now();
+    assert(applyingRemainingMs > 0 && applyingRemainingMs <= 800, `battlefield application must still be pending, got ${applyingRemainingMs}ms remaining`);
+    const applyingAttackTile = applyingState.hand[0];
+    const attackDuringApplying = await emitResponse<RoomSnapshot>(parity.clients[0], "game:action", {
+      code: parity.code,
+      action: actionFor(parity.clients[0], {
+        type: "tile/attack",
+        payload: { tileId: applyingAttackTile.id },
+        actionId: "attack-during-battlefield-application"
+      })
+    });
+    assert.equal(attackDuringApplying.ok, false, "attacks must be rejected during battlefield application");
+    await waitFor(
+      () => parity.clients.every((client) => (client.room?.gameState.publicState as any)?.phase === "choose-attack"),
+      "authoritative battlefield application timeout"
+    );
+    const attackRuntime = parity.clients[0].room!.gameState;
+    assert.equal((attackRuntime.publicState as any).phase, "choose-attack");
+    assert(attackRuntime.activePlayerId, "first attacker must become active after battlefield application");
+    assert.deepEqual(attackRuntime.interactivePlayerIds, [attackRuntime.activePlayerId]);
+    assert(attackRuntime.turnDeadlineAt, "the first attack must start a fresh deadline");
+    assert(attackRuntime.turnStartedAt, "the first attack must record its server start");
+    assert.equal(attackRuntime.turnDeadlineAt - attackRuntime.turnStartedAt, 40_000, "the first attack deadline must be exactly 40 seconds");
+    const attackRemainingMs = attackRuntime.turnDeadlineAt - Date.now();
+    assert(attackRemainingMs > 0 && attackRemainingMs <= 40_000, `first attack clock must be running, got ${attackRemainingMs}ms remaining`);
+    assert((attackRuntime.turnStartedAt ?? 0) >= (applyingRuntime.turnDeadlineAt ?? 0), "attack clock must start only after battlefield application ends");
     const parityActor = active(parity);
     const parityState = parityActor.room!.gameState.publicState as any;
     const attackTile = parityState.hand[0];
     assert(attackTile?.id);
+    const staleParityAttack = await emitResponse<RoomSnapshot>(parityActor, "game:action", {
+      code: parity.code,
+      action: {
+        type: "tile/attack",
+        payload: { tileId: attackTile.id },
+        actionId: "stale-attack-after-battlefield",
+        expectedRevision: sharedRevision
+      }
+    });
+    assert.equal(staleParityAttack.ok, false, "ordinary parity actions must still reject an old revision after the battlefield reveal");
     await emit<RoomSnapshot>(parityActor, "game:action", { code: parity.code, action: actionFor(parityActor, { type: "tile/attack", payload: { tileId: attackTile.id }, actionId: "attack-1" }) });
     await waitFor(() => parity.clients.every((client) => (client.room?.gameState.publicState as any)?.phase === "await-defense"), "parity attack broadcast");
     const responder = active(parity);
@@ -200,9 +306,9 @@ async function main() {
     close(mosaic);
 
     console.table([
-      { game: "페이스업 듀얼", socket: "viewer projection + actionId dedupe + seat auth" },
-      { game: "문양 공방", socket: "viewer-specific hand + broadcast" },
-      { game: "모자이크 러시", socket: "active=null phase timer + simultaneous privacy" }
+      { game: "인디언 포커", socket: "viewer projection + actionId dedupe + seat auth" },
+      { game: "타이거 앤 드래곤", socket: "battlefield concurrency + disconnect recovery + timer gate + viewer privacy" },
+      { game: "우봉고", socket: "active=null phase timer + simultaneous privacy" }
     ]);
   } finally {
     child.kill();

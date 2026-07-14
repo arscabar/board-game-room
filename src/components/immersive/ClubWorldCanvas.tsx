@@ -15,6 +15,53 @@ type FloatingPiece = {
   spin: number;
 };
 
+export type ClubWorldRenderCapabilities = {
+  reducedMotion: boolean;
+  saveData: boolean;
+  hardwareConcurrency: number | null;
+  deviceMemoryGb: number | null;
+};
+
+type NavigatorWithPerformanceHints = Navigator & {
+  connection?: { saveData?: boolean };
+  deviceMemory?: number;
+};
+
+export function shouldUseClubWorldFallback(capabilities: ClubWorldRenderCapabilities) {
+  return Boolean(
+    capabilities.reducedMotion ||
+    capabilities.saveData ||
+    (capabilities.hardwareConcurrency !== null && capabilities.hardwareConcurrency <= 2) ||
+    (capabilities.deviceMemoryGb !== null && capabilities.deviceMemoryGb <= 4)
+  );
+}
+
+function readRenderCapabilities(reducedMotion: boolean): ClubWorldRenderCapabilities {
+  const navigatorWithHints = navigator as NavigatorWithPerformanceHints;
+  return {
+    reducedMotion,
+    saveData: navigatorWithHints.connection?.saveData === true,
+    hardwareConcurrency: Number.isFinite(navigator.hardwareConcurrency) ? navigator.hardwareConcurrency : null,
+    deviceMemoryGb: Number.isFinite(navigatorWithHints.deviceMemory) ? navigatorWithHints.deviceMemory! : null
+  };
+}
+
+function scheduleIdleWork(work: () => void) {
+  let idleHandle: number | null = null;
+  const delayHandle = window.setTimeout(() => {
+    if (typeof window.requestIdleCallback === "function") {
+      idleHandle = window.requestIdleCallback(work, { timeout: 1_500 });
+      return;
+    }
+    work();
+  }, 900);
+
+  return () => {
+    window.clearTimeout(delayHandle);
+    if (idleHandle !== null) window.cancelIdleCallback(idleHandle);
+  };
+}
+
 export function ClubWorldCanvas({ mode, accent = "#d6ad62" }: ClubWorldCanvasProps) {
   const hostRef = useRef<HTMLDivElement | null>(null);
 
@@ -25,14 +72,35 @@ export function ClubWorldCanvas({ mode, accent = "#d6ad62" }: ClubWorldCanvasPro
     }
 
     let disposed = false;
-    let disposeScene = () => undefined;
+    let disposeScene: () => void = () => undefined;
+    let cancelIdleWork: () => void = () => undefined;
+    let initializationScheduled = false;
+    let initializationStarted = false;
 
-    void import("three").then((THREE) => {
+    const reducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const capabilities = readRenderCapabilities(reducedMotionQuery.matches);
+    if (shouldUseClubWorldFallback(capabilities)) {
+      host.dataset.rendered = "fallback";
+      host.dataset.fallbackReason = capabilities.reducedMotion
+        ? "reduced-motion"
+        : capabilities.saveData
+          ? "save-data"
+          : "constrained-device";
+      return () => {
+        disposed = true;
+      };
+    }
+
+    const initializeScene = () => {
+      initializationScheduled = false;
+      if (disposed || initializationStarted || document.hidden) return;
+      initializationStarted = true;
+
+      void import("three").then((THREE) => {
       if (disposed || !hostRef.current) {
         return;
       }
 
-      const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
       const renderer = new THREE.WebGLRenderer({
         alpha: true,
         antialias: window.innerWidth > 640,
@@ -232,10 +300,6 @@ export function ClubWorldCanvas({ mode, accent = "#d6ad62" }: ClubWorldCanvasPro
         camera.aspect = width / height;
         camera.fov = mobile ? 52 : 42;
         camera.updateProjectionMatrix();
-        if (reducedMotion.matches) {
-          renderer.render(scene, camera);
-          host.dataset.rendered = "true";
-        }
       };
 
       const onPointerMove = (event: PointerEvent) => {
@@ -251,35 +315,36 @@ export function ClubWorldCanvas({ mode, accent = "#d6ad62" }: ClubWorldCanvasPro
 
       const onVisibilityChange = () => {
         isVisible = !document.hidden;
-        if (isVisible) {
-          timer.reset();
+        if (!isVisible) {
+          window.cancelAnimationFrame(frame);
+          frame = 0;
+          return;
         }
+        timer.reset();
+        if (frame === 0) frame = window.requestAnimationFrame(render);
       };
 
       const render = (timestamp?: number) => {
         timer.update(timestamp);
         const elapsed = timer.getElapsed();
-        const allowMotion = !reducedMotion.matches;
-        if (allowMotion) {
-          floatingPieces.forEach((piece) => {
-            piece.object.position.y = piece.baseY + Math.sin(elapsed * piece.speed + piece.phase) * 0.13;
-            piece.object.rotation.y += piece.spin * 0.008;
-          });
-          dust.rotation.y = elapsed * 0.018;
-          const targetX = cameraBase.x + pointerX * (mode === "play" ? 0.18 : 0.46);
-          const targetY = cameraBase.y - pointerY * (mode === "play" ? 0.08 : 0.22);
-          camera.position.x += (targetX - camera.position.x) * 0.035;
-          camera.position.y += (targetY - camera.position.y) * 0.035;
-          root.rotation.z += ((pointerX * 0.012) - root.rotation.z) * 0.025;
-          keyLight.position.x = -4.8 + pointerX * 1.2;
-          rimLight.position.y = 2.8 - pointerY * 0.8;
-          camera.lookAt(0, -0.45, 0);
-        }
-        if (isVisible) {
-          renderer.render(scene, camera);
-          host.dataset.rendered = "true";
-        }
-        frame = allowMotion ? window.requestAnimationFrame(render) : 0;
+        frame = 0;
+        if (!isVisible || document.hidden) return;
+        floatingPieces.forEach((piece) => {
+          piece.object.position.y = piece.baseY + Math.sin(elapsed * piece.speed + piece.phase) * 0.13;
+          piece.object.rotation.y += piece.spin * 0.008;
+        });
+        dust.rotation.y = elapsed * 0.018;
+        const targetX = cameraBase.x + pointerX * (mode === "play" ? 0.18 : 0.46);
+        const targetY = cameraBase.y - pointerY * (mode === "play" ? 0.08 : 0.22);
+        camera.position.x += (targetX - camera.position.x) * 0.035;
+        camera.position.y += (targetY - camera.position.y) * 0.035;
+        root.rotation.z += ((pointerX * 0.012) - root.rotation.z) * 0.025;
+        keyLight.position.x = -4.8 + pointerX * 1.2;
+        rimLight.position.y = 2.8 - pointerY * 0.8;
+        camera.lookAt(0, -0.45, 0);
+        renderer.render(scene, camera);
+        host.dataset.rendered = "true";
+        frame = window.requestAnimationFrame(render);
       };
 
       const resizeObserver = new ResizeObserver(resize);
@@ -287,7 +352,7 @@ export function ClubWorldCanvas({ mode, accent = "#d6ad62" }: ClubWorldCanvasPro
       window.addEventListener("pointermove", onPointerMove, { passive: true });
       document.addEventListener("visibilitychange", onVisibilityChange);
       resize();
-      render();
+      if (isVisible) frame = window.requestAnimationFrame(render);
 
       disposeScene = () => {
         window.cancelAnimationFrame(frame);
@@ -311,12 +376,44 @@ export function ClubWorldCanvas({ mode, accent = "#d6ad62" }: ClubWorldCanvasPro
         renderer.forceContextLoss();
         renderer.domElement.remove();
       };
-    }).catch(() => {
+      }).catch(() => {
+        if (!disposed) host.dataset.rendered = "fallback";
+      });
+    };
+
+    const scheduleInitialization = () => {
+      if (disposed || initializationStarted || initializationScheduled || document.hidden) return;
+      initializationScheduled = true;
+      cancelIdleWork = scheduleIdleWork(initializeScene);
+    };
+
+    const onPreInitializationVisibilityChange = () => {
+      if (document.hidden) {
+        cancelIdleWork();
+        initializationScheduled = false;
+        return;
+      }
+      scheduleInitialization();
+    };
+
+    document.addEventListener("visibilitychange", onPreInitializationVisibilityChange);
+    const onReducedMotionChange = (event: MediaQueryListEvent) => {
+      if (!event.matches || disposed) return;
+      disposed = true;
+      cancelIdleWork();
+      disposeScene();
+      disposeScene = () => undefined;
       host.dataset.rendered = "fallback";
-    });
+      host.dataset.fallbackReason = "reduced-motion";
+    };
+    reducedMotionQuery.addEventListener("change", onReducedMotionChange);
+    scheduleInitialization();
 
     return () => {
       disposed = true;
+      cancelIdleWork();
+      document.removeEventListener("visibilitychange", onPreInitializationVisibilityChange);
+      reducedMotionQuery.removeEventListener("change", onReducedMotionChange);
       disposeScene();
     };
   }, [accent, mode]);

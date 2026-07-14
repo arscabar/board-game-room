@@ -1,5 +1,6 @@
 import { CheckCircle2, FlipHorizontal2, RotateCw, TimerReset, Undo2 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
+import type { CSSProperties } from "react";
 import type { GameAction, GameActionResult, GameComponentProps, GameContext, GameModule } from "../types";
 
 const ROUND_MS = 60_000;
@@ -116,25 +117,53 @@ const pieceLabels: Record<PieceId, string> = {
   "beam-4": "네칸 막대",
   "cross-5": "다섯칸 십자",
   "cup-5": "다섯칸 컵",
-  "pocket-5": "다섯칸 주머니",
+  "pocket-5": "다섯칸 P자",
   "vane-5": "다섯칸 날개",
   "wave-5": "다섯칸 물결"
 };
 
-const pieceVisuals: Record<PieceId, { mark: string; background: string }> = {
-  "beam-3": { mark: "I3", background: "repeating-linear-gradient(45deg,#e7aa36,#e7aa36 8px,#f0c35f 8px,#f0c35f 16px)" },
-  "corner-3": { mark: "L3", background: "radial-gradient(circle,#fff5 2px,transparent 3px),#c8604d" },
-  "square-4": { mark: "O4", background: "linear-gradient(90deg,#4f7db0 50%,#6f9bc9 50%)" },
-  "tee-4": { mark: "T4", background: "repeating-linear-gradient(0deg,#6f5da8 0 7px,#8e7ac5 7px 14px)" },
-  "zig-4": { mark: "Z4", background: "repeating-linear-gradient(90deg,#3f8b6b 0 6px,#66ad8d 6px 12px)" },
-  "hook-4": { mark: "L4", background: "radial-gradient(circle at 30% 30%,#ffe8a8 0 3px,transparent 4px),#b66b35" },
-  "beam-4": { mark: "I4", background: "repeating-linear-gradient(135deg,#315f85 0 8px,#5686aa 8px 16px)" },
-  "cross-5": { mark: "X5", background: "radial-gradient(circle,#f6d66d 0 3px,#805c21 4px 6px,#c49332 7px)" },
-  "cup-5": { mark: "U5", background: "repeating-linear-gradient(0deg,#9e4c68 0 5px,#c86f8a 5px 10px)" },
-  "pocket-5": { mark: "P5", background: "linear-gradient(45deg,#426d63 25%,#6b9b8d 25% 50%,#426d63 50% 75%,#6b9b8d 75%)" },
-  "vane-5": { mark: "V5", background: "repeating-radial-gradient(circle,#d87b3f 0 3px,#9e4a2c 4px 7px)" },
-  "wave-5": { mark: "W5", background: "repeating-linear-gradient(45deg,#49799b 0 5px,#77a6bf 5px 10px)" }
+type GemTone = "amber" | "coral" | "cobalt" | "violet" | "emerald" | "topaz";
+
+const pieceVisuals: Record<PieceId, { mark: string; tone: GemTone }> = {
+  "beam-3": { mark: "I3", tone: "amber" },
+  "corner-3": { mark: "L3", tone: "coral" },
+  "square-4": { mark: "O4", tone: "cobalt" },
+  "tee-4": { mark: "T4", tone: "violet" },
+  "zig-4": { mark: "Z4", tone: "emerald" },
+  "hook-4": { mark: "L4", tone: "topaz" },
+  "beam-4": { mark: "I4", tone: "cobalt" },
+  "cross-5": { mark: "X5", tone: "amber" },
+  "cup-5": { mark: "U5", tone: "coral" },
+  "pocket-5": { mark: "P5", tone: "emerald" },
+  "vane-5": { mark: "V5", tone: "topaz" },
+  "wave-5": { mark: "W5", tone: "violet" }
 };
+
+function PieceSilhouette({
+  id,
+  rotation = 0,
+  flipped = false,
+  showAnchor = false
+}: {
+  id: PieceId;
+  rotation?: number;
+  flipped?: boolean;
+  showAnchor?: boolean;
+}) {
+  const cells = cellsForPlacement({ pieceId: id, x: 0, y: 0, rotation, flipped });
+  const columns = Math.max(...cells.map(([x]) => x)) + 1;
+  const rows = Math.max(...cells.map(([, y]) => y)) + 1;
+  const style = {
+    "--piece-columns": columns,
+    "--piece-rows": rows
+  } as CSSProperties;
+  return (
+    <span className={`mosaic-rush__piece-shape ${showAnchor ? "has-anchor" : ""}`} data-gem={pieceVisuals[id].tone} style={style} aria-hidden="true">
+      {cells.map(([x, y]) => <i key={`${x}:${y}`} style={{ gridColumn: x + 1, gridRow: y + 1 }} />)}
+      {showAnchor ? <b className="mosaic-rush__piece-anchor" /> : null}
+    </span>
+  );
+}
 
 function hashSeed(seed: string) {
   let value = 2166136261;
@@ -258,8 +287,16 @@ function buildChallengeBank() {
           continue;
         }
         const occupiedKeys = new Set(occupied.map(cellKey));
-        const boundary = occupied.flatMap(([x, y]) => [[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]] as Cell[])
-          .filter((cell, index, all) => !occupiedKeys.has(cellKey(cell)) && all.findIndex((entry) => cellKey(entry) === cellKey(cell)) === index);
+        const boundaryKeys = new Set<string>();
+        const boundary: Cell[] = [];
+        for (const [x, y] of occupied) {
+          for (const cell of [[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]] as Cell[]) {
+            const key = cellKey(cell);
+            if (occupiedKeys.has(key) || boundaryKeys.has(key)) continue;
+            boundaryKeys.add(key);
+            boundary.push(cell);
+          }
+        }
         let placed = false;
         for (let attachAttempt = 0; attachAttempt < 80 && !placed; attachAttempt += 1) {
           const anchor = boundary[Math.floor(random() * boundary.length)];
@@ -661,6 +698,7 @@ export const module: GameModule = {
 
 export function Component({ players, currentPlayer, publicState: rawState, disabled, onAction }: GameComponentProps<MosaicRushPublicState>) {
   const state = rawState as MosaicRushPublicState;
+  const placementGuideId = useId();
   const [pieceId, setPieceId] = useState<PieceId>(state.puzzle?.requiredPieceIds[0] ?? "beam-3");
   const [rotation, setRotation] = useState(0);
   const [flipped, setFlipped] = useState(false);
@@ -669,14 +707,43 @@ export function Component({ players, currentPlayer, publicState: rawState, disab
     state.placements.forEach((placement) => cellsForPlacement(placement).forEach(([x, y]) => map.set(`${x}:${y}`, placement.pieceId)));
     return map;
   }, [state.placements]);
+  const pieceMarkByCell = useMemo(() => {
+    const map = new Map<string, string>();
+    state.placements.forEach((placement) => {
+      const cells = cellsForPlacement(placement).sort((left, right) => left[1] - right[1] || left[0] - right[0]);
+      const anchor = cells[0];
+      if (anchor) map.set(cellKey(anchor), pieceVisuals[placement.pieceId].mark);
+    });
+    return map;
+  }, [state.placements]);
   const targetCells = useMemo(() => new Set((state.puzzle?.target ?? []).map(cellKey)), [state.puzzle]);
   const gridWidth = state.puzzle?.width ?? 3;
   const gridHeight = state.puzzle?.height ?? 3;
   const me = state.players.find((player) => player.id === currentPlayer?.id);
   const controlsDisabled = disabled || !state.canInteract || Boolean(me?.solved) || state.phase === "complete" || state.phase === "reward";
+  const orientationLabel = `${rotation * 90}도 · ${flipped ? "좌우 반전" : "기본 면"}`;
+  const playerName = (id: string) => players.find((player) => player.id === id)?.name ?? "플레이어";
+  const winnerNames = state.winnerIds.map(playerName);
+  const lastRankEntries = state.lastRanks.map((id, index) => ({
+    id,
+    name: playerName(id),
+    reward: [4, 3, 2, 1][index] ?? 0
+  }));
+  const gridStyle = {
+    "--mosaic-columns": gridWidth,
+    "--mosaic-rows": gridHeight,
+    "--mosaic-aspect": `${gridWidth} / ${gridHeight}`,
+    "--mosaic-fit-width": `${Math.min(430, (430 * gridWidth) / gridHeight)}px`,
+    gridTemplateColumns: `repeat(${gridWidth}, minmax(44px, 1fr))`,
+    gridTemplateRows: `repeat(${gridHeight}, minmax(44px, 1fr))`
+  } as CSSProperties;
+  const seatOrder = useMemo(
+    () => new Map(players.map((player, index) => [player.id, index])),
+    [players]
+  );
   const rankedPlayers = useMemo(
-    () => [...state.players].sort((left, right) => right.score - left.score || players.findIndex((player) => player.id === left.id) - players.findIndex((player) => player.id === right.id)),
-    [players, state.players]
+    () => [...state.players].sort((left, right) => right.score - left.score || (seatOrder.get(left.id) ?? Number.MAX_SAFE_INTEGER) - (seatOrder.get(right.id) ?? Number.MAX_SAFE_INTEGER)),
+    [seatOrder, state.players]
   );
 
   useEffect(() => {
@@ -687,54 +754,98 @@ export function Component({ players, currentPlayer, publicState: rawState, disab
   }, [state.puzzle?.id]);
 
   return (
-    <section className="mosaic-rush" data-player-count={state.players.length} aria-label="모자이크 러시 게임판">
+    <section className={`mosaic-rush ${me?.solved ? "is-solved" : ""}`} data-player-count={state.players.length} aria-label="우봉고 게임판">
       <header className="mosaic-rush__header">
-        <div><span className="mosaic-rush__medallion">{state.phase.startsWith("tie-break") ? "T" : state.round}</span><p>{state.phase.startsWith("tie-break") ? `TIE BREAK ${state.tieBreakAttempt} / 3` : `ROUND ${state.round} / ${state.roundLimit}`}</p><h2>모자이크 러시</h2></div>
-        <p className="mosaic-rush__message" aria-live="polite">{state.message}</p>
+        <div><span className="mosaic-rush__medallion" key={`round-${state.round}-${state.tieBreakAttempt}`}>{state.phase.startsWith("tie-break") ? "T" : state.round}</span><p>{state.phase.startsWith("tie-break") ? `TIE BREAK ${state.tieBreakAttempt} / 3` : `ROUND ${state.round} / ${state.roundLimit}`}</p><h2>우봉고</h2></div>
+        <p className="mosaic-rush__message" key={state.message} aria-live="polite">{state.message}</p>
       </header>
 
       <div className="mosaic-rush__layout">
         <div className="mosaic-rush__workbench">
           <div className="mosaic-rush__target-title"><TimerReset size={18} /> 목표 문양 {state.puzzle ? state.puzzle.symbol + 1 : "비공개"}</div>
-          <div className="mosaic-rush__grid" role="grid" aria-label={`${gridWidth} 곱하기 ${gridHeight} 퍼즐 격자`} style={{ gridTemplateColumns: `repeat(${gridWidth}, 1fr)` }}>
-            {Array.from({ length: gridWidth * gridHeight }, (_, index) => {
-              const x = index % gridWidth;
-              const y = Math.floor(index / gridWidth);
-              const occupant = placedByCell.get(`${x}:${y}`);
-              const isTarget = targetCells.has(`${x}:${y}`);
-              return (
-                <button
-                  key={index}
-                  type="button"
-                  role="gridcell"
-                  className={`mosaic-rush__cell ${!isTarget ? "is-blocked" : ""} ${occupant ? `is-${occupant}` : ""}`}
-                  style={!isTarget ? { opacity: 0.18, boxShadow: "none" } : occupant ? { background: pieceVisuals[occupant].background } : undefined}
-                  disabled={!isTarget || controlsDisabled}
-                  aria-label={`${y + 1}행 ${x + 1}열${!isTarget ? ", 목표 밖" : occupant ? `, ${pieceLabels[occupant]}` : ", 빈칸"}`}
-                  onClick={() => onAction({ type: "mosaic/place", payload: { pieceId, x, y, rotation, flipped } })}
-                >{occupant ? pieceVisuals[occupant].mark : ""}</button>
-              );
-            })}
+          <div
+            className="mosaic-rush__grid-scroll"
+            role="region"
+            aria-label={`${gridWidth} 곱하기 ${gridHeight} 퍼즐판. 좁은 화면에서는 좌우로 스크롤할 수 있습니다.`}
+            tabIndex={0}
+          >
+            <div
+              className="mosaic-rush__grid"
+              key={state.puzzle?.id ?? "hidden-puzzle"}
+              role="group"
+              aria-label="배치 가능한 퍼즐 칸"
+              aria-describedby={placementGuideId}
+              style={gridStyle}
+            >
+              {Array.from({ length: gridWidth * gridHeight }, (_, index) => {
+                const x = index % gridWidth;
+                const y = Math.floor(index / gridWidth);
+                const occupant = placedByCell.get(`${x}:${y}`);
+                const isTarget = targetCells.has(`${x}:${y}`);
+                return (
+                  <button
+                    key={index}
+                    type="button"
+                    className={`mosaic-rush__cell ${!isTarget ? "is-blocked" : ""} ${occupant ? `is-${occupant}` : ""}`}
+                    data-gem={occupant ? pieceVisuals[occupant].tone : undefined}
+                    style={!isTarget ? { opacity: 0.18, boxShadow: "none" } : undefined}
+                    disabled={!isTarget || controlsDisabled}
+                    aria-label={`${y + 1}행 ${x + 1}열${!isTarget ? ", 목표 밖" : occupant ? `, ${pieceLabels[occupant]}` : ", 빈칸"}`}
+                    onClick={() => onAction({ type: "mosaic/place", payload: { pieceId, x, y, rotation, flipped } })}
+                  >{pieceMarkByCell.get(`${x}:${y}`) ?? ""}</button>
+                );
+              })}
+            </div>
           </div>
+
+          {state.puzzle ? (
+            <div className="mosaic-rush__orientation" id={placementGuideId} role="status" aria-live="polite">
+              <PieceSilhouette id={pieceId} rotation={rotation} flipped={flipped} showAnchor />
+              <span>
+                <strong>{pieceLabels[pieceId]} · {orientationLabel}</strong>
+                <small>점이 표시된 실루엣 좌상단을 기준으로, 놓을 격자 칸을 선택하세요.</small>
+              </span>
+            </div>
+          ) : null}
 
           <div className="mosaic-rush__tools" aria-label="퍼즐 도구">
             {(state.puzzle?.requiredPieceIds ?? []).map((id) => (
-              <button key={id} type="button" aria-pressed={pieceId === id} className={pieceId === id ? "is-selected" : ""} onClick={() => setPieceId(id)}>{pieceLabels[id]}</button>
+              <button key={id} type="button" disabled={controlsDisabled} aria-pressed={pieceId === id} className={`mosaic-rush__piece-button ${pieceId === id ? "is-selected" : ""}`} onClick={() => setPieceId(id)}>
+                <PieceSilhouette id={id} rotation={pieceId === id ? rotation : 0} flipped={pieceId === id ? flipped : false} showAnchor={pieceId === id} />
+                <span><strong>{pieceVisuals[id].mark}</strong><small>{pieceLabels[id]}</small></span>
+              </button>
             ))}
-            <button type="button" disabled={controlsDisabled} onClick={() => setRotation((value) => (value + 1) % 4)}><RotateCw size={17} /> 회전</button>
-            <button type="button" disabled={controlsDisabled} aria-pressed={flipped} onClick={() => setFlipped((value) => !value)}><FlipHorizontal2 size={17} /> 뒤집기</button>
+            <button className="mosaic-rush__orientation-toggle" type="button" disabled={controlsDisabled} aria-label={`회전. 현재 ${rotation * 90}도`} onClick={() => setRotation((value) => (value + 1) % 4)}><RotateCw size={17} /> 회전 {rotation * 90}°</button>
+            <button className="mosaic-rush__orientation-toggle" type="button" disabled={controlsDisabled} aria-pressed={flipped} onClick={() => setFlipped((value) => !value)}><FlipHorizontal2 size={17} /> {flipped ? "반전됨" : "뒤집기"}</button>
             <button type="button" disabled={controlsDisabled} onClick={() => onAction({ type: "mosaic/remove", payload: { pieceId } })}><Undo2 size={17} /> 선택 조각 회수</button>
           </div>
-          <button className="mosaic-rush__submit" type="button" disabled={controlsDisabled} onClick={() => onAction({ type: "mosaic/submit" })}>
+          <button className={`mosaic-rush__submit ${me?.solved ? "is-complete" : ""}`} type="button" disabled={controlsDisabled} onClick={() => onAction({ type: "mosaic/submit" })}>
             <CheckCircle2 size={20} /> {me?.solved ? "완성 확인됨" : "모자이크 완성 확인"}
           </button>
         </div>
 
         <aside className="mosaic-rush__score" aria-label="장인 점수">
           <h3>장인 기록</h3>
+          {state.phase === "reward" ? (
+            <section className="mosaic-rush__result" aria-label={`${state.round}라운드 결과`} aria-live="polite">
+              <h4>{state.round}라운드 완성 순위</h4>
+              {lastRankEntries.length > 0 ? (
+                <ol>
+                  {lastRankEntries.map((entry) => <li key={entry.id}><strong>{entry.name}</strong><span>+{entry.reward}점</span></li>)}
+                </ol>
+              ) : <p>제한 시간 안에 완성한 장인이 없습니다.</p>}
+            </section>
+          ) : null}
+          {state.phase === "complete" ? (
+            <section className="mosaic-rush__result is-final" aria-label="최종 우승 결과" role="status" aria-live="polite">
+              <h4>최종 우승</h4>
+              <p>{winnerNames.length > 0 ? `${winnerNames.join(", ")} 장인이 우승했습니다.` : "우승 결과를 집계하고 있습니다."}</p>
+            </section>
+          ) : null}
           {rankedPlayers.map((entry, index) => {
             const player = players.find((candidate) => candidate.id === entry.id);
-            return <div className="mosaic-rush__player" key={entry.id}><span className="mosaic-rush__rank">{index + 1}</span><strong>{player?.name ?? "플레이어"}</strong><span>{entry.score}점</span><em>{entry.solved ? "완성" : "작업 중"}</em></div>;
+            const isWinner = state.phase === "complete" && state.winnerIds.includes(entry.id);
+            return <div className={`mosaic-rush__player ${entry.solved ? "is-solved" : ""} ${isWinner ? "is-winner" : ""}`} key={`${entry.id}-${entry.score}-${entry.solved}`}><span className="mosaic-rush__rank">{index + 1}</span><strong>{player?.name ?? "플레이어"}</strong><span>{entry.score}점</span><em>{isWinner ? "최종 우승" : entry.solved ? "완성" : "작업 중"}</em></div>;
           })}
           <details><summary>배치 규칙</summary><p>화면에 표시된 세 조각을 겹치지 않게 사용해 모든 목표 칸을 채우세요. 조각을 고른 뒤 격자의 기준 칸을 누릅니다.</p></details>
         </aside>

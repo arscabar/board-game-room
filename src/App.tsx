@@ -41,6 +41,7 @@ import {
   type DragEvent,
   type FormEvent,
   type PointerEvent as ReactPointerEvent,
+  lazy,
   useEffect,
   useMemo,
   useRef,
@@ -49,7 +50,6 @@ import {
 import { createPortal } from "react-dom";
 import { socket } from "./lib/socket";
 import { InteractiveCafeHome } from "./components/interactive-space/InteractiveCafeHome";
-import { InteractiveGameLobby } from "./components/interactive-space/InteractiveGameLobby";
 import { InteractiveGameWrapper } from "./components/interactive-space/InteractiveGameWrapper";
 import { PlayerTokenPawn } from "./components/interactive-space/PlayerTokenDock";
 import { ClubWorldCanvas, type ClubWorldMode } from "./components/immersive/ClubWorldCanvas";
@@ -62,6 +62,8 @@ import { getGameComponent } from "./game-modules/ui-registry";
 import type { GameAction } from "./game-modules/types";
 import type { LeaderboardEntry, MatchRecord, PlayerStatsResponse, StatsSummary } from "./shared/stats";
 import { BoardButton, BoardIconButton } from "./ui/BoardKit";
+
+const InteractiveGameLobby = lazy(() => import("./components/interactive-space/InteractiveGameLobby"));
 
 type JoinResult = {
   room: RoomSnapshot;
@@ -651,6 +653,8 @@ function phaseName(phase: string) {
     "choose-attack": "공격 선택",
     "await-defense": "방어 응답",
     continuation: "연속 공격",
+    "battlefield-reveal": "전장 공개",
+    "battlefield-applying": "환경 적용",
     "round-result": "공방 정산"
   };
   return labels[phase] ?? "진행";
@@ -701,10 +705,12 @@ function manualTurnEndRestriction(gameId: string | null | undefined, phase: stri
     return "행맨은 글자나 단어를 추측해야 턴이 진행됩니다. 시간이 초과되면 차례가 넘어갑니다.";
   }
   if (gameId === "blind-card-duel" && phase === "betting") {
-    return "페이스업 듀얼은 오픈, 콜, 레이즈 또는 폴드로 행동해야 합니다.";
+    return "인디언 포커는 오픈, 콜, 레이즈 또는 폴드로 행동해야 합니다.";
   }
-  if (gameId === "parity-tile-duel" && (phase === "choose-attack" || phase === "continuation")) {
-    return "문양 공방은 공격 타일을 선택해야 차례가 진행됩니다. 시간이 끝나면 20초 유예가 시작됩니다.";
+  if (gameId === "parity-tile-duel" && (phase === "choose-attack" || phase === "await-defense" || phase === "continuation")) {
+    return phase === "await-defense"
+      ? "타이거 앤 드래곤은 방어 타일을 선택하거나 패스해야 차례가 진행됩니다."
+      : "타이거 앤 드래곤은 공격 타일을 선택해야 차례가 진행됩니다. 시간이 끝나면 20초 유예가 시작됩니다.";
   }
   return "";
 }
@@ -745,16 +751,28 @@ function App() {
   }, [avatar, clientKey, lastRoomCode, name, playerId, room?.code]);
 
   useEffect(() => {
-    socket.connect();
+    let roomListFallbackTimer: number | null = null;
+
+    const clearRoomListFallback = () => {
+      if (roomListFallbackTimer !== null) {
+        window.clearTimeout(roomListFallbackTimer);
+        roomListFallbackTimer = null;
+      }
+    };
 
     const handleConnect = () => {
       setConnection("connected");
-      void refreshRoomList(false);
       void resumeSocketRoom();
     };
     const handleDisconnect = () => setConnection("offline");
+    const handleConnectError = () => {
+      setConnection("offline");
+      clearRoomListFallback();
+      void refreshRoomList(false);
+    };
     const handleRoomState = (nextRoom: RoomSnapshot) => setRoom(nextRoom);
     const handleRoomList = (nextRooms: PublicRoomListItem[]) => {
+      clearRoomListFallback();
       setRoomList(nextRooms);
       setRoomListLoading(false);
     };
@@ -781,14 +799,21 @@ function App() {
 
     socket.on("connect", handleConnect);
     socket.on("disconnect", handleDisconnect);
+    socket.on("connect_error", handleConnectError);
     socket.on("room:state", handleRoomState);
     socket.on("rooms:list", handleRoomList);
     socket.on("room:deleted", handleRoomDeleted);
-    void refreshRoomList(false);
+    roomListFallbackTimer = window.setTimeout(() => {
+      roomListFallbackTimer = null;
+      void refreshRoomList(false);
+    }, 1_500);
+    socket.connect();
 
     return () => {
+      clearRoomListFallback();
       socket.off("connect", handleConnect);
       socket.off("disconnect", handleDisconnect);
+      socket.off("connect_error", handleConnectError);
       socket.off("room:state", handleRoomState);
       socket.off("rooms:list", handleRoomList);
       socket.off("room:deleted", handleRoomDeleted);
@@ -1975,7 +2000,11 @@ function LobbyPanel(props: {
   onLeaveRoom: () => void;
   onDeleteRoom: () => void;
 }) {
-  return <InteractiveGameLobby {...props} />;
+  return (
+    <Suspense fallback={<div className="room-list-placeholder">게임 로비를 준비하고 있습니다.</div>}>
+      <InteractiveGameLobby {...props} />
+    </Suspense>
+  );
 }
 
 function LegacyLobbyPanel({
@@ -2275,6 +2304,9 @@ function PlayPanel({
   const GameComponent = getGameComponent(selectedGame?.id);
   const phase = runtimePhase(room);
   const usesTurnTimer = gameUsesTurnTimer(selectedGame?.id);
+  const isBattlefieldExplanationPhase = selectedGame?.id === "parity-tile-duel" && phase === "battlefield-reveal";
+  const isBattlefieldApplyingPhase = selectedGame?.id === "parity-tile-duel" && phase === "battlefield-applying";
+  const isBattlefieldSetupPhase = isBattlefieldExplanationPhase || isBattlefieldApplyingPhase;
   const winnerIds = runtimeWinnerIds(room);
   const winnerId = runtimeWinnerId(room);
   const paused = Boolean(room.gameState.paused);
@@ -2447,7 +2479,7 @@ function PlayPanel({
       <p className="visually-hidden" role="status" aria-live="polite">
         {latestMove
           ? `${selectedGame?.title ?? "게임"} 진행: ${latestMove.playerName} ${latestMove.action}`
-          : `${selectedGame?.title ?? "게임"} ${phaseName(phase)} ${metadataOpenPhase ? "모두 동시 진행" : activePlayer?.name ?? "플레이어 없음"}`}
+          : `${selectedGame?.title ?? "게임"} ${phaseName(phase)} ${isBattlefieldApplyingPhase ? "환경 적용 중" : isBattlefieldExplanationPhase ? "환경 확인 중" : metadataOpenPhase ? "모두 동시 진행" : activePlayer?.name ?? "플레이어 없음"}`}
       </p>
       <div className="panel-header play-panel-header">
         <div className="play-match-copy">
@@ -2456,7 +2488,9 @@ function PlayPanel({
             <span className="play-phase-label">{phaseName(phase)}</span>
             <span className="play-status-separator" aria-hidden="true">·</span>
             <span className="play-turn-label">
-              {metadataOpenPhase
+              {isBattlefieldSetupPhase
+                ? isBattlefieldApplyingPhase ? "환경 적용 중" : "환경 확인 중"
+                : metadataOpenPhase
                 ? "모두 동시 진행"
                 : selectedGame?.id === "masterpiece-copy"
                 ? phase === "drawing"
@@ -2469,7 +2503,7 @@ function PlayPanel({
           </p>
         </div>
         <div className="play-header-actions">
-          {usesTurnTimer ? (
+          {usesTurnTimer && !isBattlefieldSetupPhase ? (
             <div className={`play-timer-chip ${timerExpired ? "expired" : ""} ${timerUrgent ? "urgent" : ""}`} aria-label="턴 타이머">
               {timerExpired ? <TimerOff size={16} aria-hidden="true" /> : <Clock3 size={16} aria-hidden="true" />}
               <span>{paused ? "일시정지" : formatTimer(remainingMs)}</span>

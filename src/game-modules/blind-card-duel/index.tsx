@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { GameAction, GameActionResult, GameComponentProps, GameContext, GameModule, GameSystemAction } from "../types";
 import { useInteractionGate } from "../useInteractionGate";
 
@@ -372,7 +372,7 @@ function applyPlayerAction(state: BlindCardState, action: GameAction, context: G
     return resultFor(next, context, "폴드");
   }
 
-  throw new Error("지원하지 않는 페이스업 듀얼 행동입니다.");
+  throw new Error("지원하지 않는 인디언 포커 행동입니다.");
 }
 
 function applySystemAction(state: BlindCardState, action: GameSystemAction, context: GameContext): GameActionResult {
@@ -385,7 +385,7 @@ function applySystemAction(state: BlindCardState, action: GameSystemAction, cont
   if (next.phase !== "betting" || !next.activePlayerId) return resultFor(next, context, "진행 대기");
 
   const actorId = next.activePlayerId;
-  if (action.type === "system/pass") throw new Error("페이스업 듀얼은 오픈, 콜, 레이즈 또는 폴드로만 진행합니다.");
+  if (action.type === "system/pass") throw new Error("인디언 포커는 오픈, 콜, 레이즈 또는 폴드로만 진행합니다.");
 
   if ((next.timeBankMs[actorId] ?? 0) > 0 && next.timeBankActiveForId !== actorId) {
     next.timeBankMs[actorId] = 0;
@@ -411,7 +411,7 @@ function applySystemAction(state: BlindCardState, action: GameSystemAction, cont
 
 export function createBlindCardState(context: Pick<GameContext, "game" | "players" | "rngSeed" | "now">): BlindCardState {
   const seated = context.players.filter((player) => player.connected).sort((a, b) => a.seat - b.seat);
-  if (seated.length !== 2) throw new Error("페이스업 듀얼은 정확히 2명이 필요합니다.");
+  if (seated.length !== 2) throw new Error("인디언 포커는 정확히 2명이 필요합니다.");
   const players: [BlindCardPlayer, BlindCardPlayer] = [
     { id: seated[0].id, name: seated[0].name, seat: seated[0].seat },
     { id: seated[1].id, name: seated[1].name, seat: seated[1].seat }
@@ -526,16 +526,40 @@ function chipLabel(value: number) {
   return `${value}칩`;
 }
 
+function CardArtwork({ rank, hiddenMark }: { rank: number | null | undefined; hiddenMark: "✦" | "?" }) {
+  if (typeof rank !== "number") {
+    return <span className="bcd-card-back-mark" aria-hidden="true">{hiddenMark}</span>;
+  }
+
+  return (
+    <>
+      <span className="bcd-card-corner is-top" aria-hidden="true"><b>{rank}</b><i>✦</i></span>
+      <strong className="bcd-card-rank" aria-hidden="true">{rank}</strong>
+      <span className="bcd-card-pip" aria-hidden="true">✦</span>
+      <span className="bcd-card-corner is-bottom" aria-hidden="true"><b>{rank}</b><i>✦</i></span>
+    </>
+  );
+}
+
 export function Component({ currentPlayer, publicState, disabled, onAction }: GameComponentProps<BlindCardPublicState>) {
   const state = publicState;
   const me = state.players.find((player) => player.id === currentPlayer?.id) ?? null;
+  const isSpectating = me === null;
   const opponent = me ? state.players.find((player) => player.id !== me.id) ?? null : state.players[0] ?? null;
+  const selfSeat = me ?? state.players[1] ?? null;
+  const opponentLabel = isSpectating ? "플레이어 1" : "상대";
+  const selfLabel = isSpectating ? "플레이어 2" : "나";
   const actor = state.players.find((player) => player.id === state.actorId) ?? null;
   const canAct = Boolean(me && state.actorId === me.id && state.phase === "betting" && !disabled);
   const minRaise = state.minRaiseTo ?? 0;
   const maxRaise = state.maxBetTo ?? 0;
   const [raiseTo, setRaiseTo] = useState(minRaise);
   const [confirmFold, setConfirmFold] = useState(false);
+  const foldButtonRef = useRef<HTMLButtonElement>(null);
+  const confirmFoldButtonRef = useRef<HTMLButtonElement>(null);
+  const messageRef = useRef<HTMLParagraphElement>(null);
+  const restoreFoldFocusRef = useRef(false);
+  const focusFoldResultRef = useRef(false);
   const { isSubmitting, submitAction } = useInteractionGate(
     onAction,
     [state.phase, state.actorId, state.currentBetTo, state.handNumber, state.message],
@@ -547,15 +571,32 @@ export function Component({ currentPlayer, publicState, disabled, onAction }: Ga
     setConfirmFold(false);
   }, [minRaise, state.actorId, state.handNumber]);
 
+  useEffect(() => {
+    if (confirmFold) {
+      confirmFoldButtonRef.current?.focus();
+      return;
+    }
+    if (restoreFoldFocusRef.current) {
+      restoreFoldFocusRef.current = false;
+      foldButtonRef.current?.focus();
+    }
+  }, [confirmFold]);
+
+  useEffect(() => {
+    if (!focusFoldResultRef.current || state.phase === "betting") return;
+    focusFoldResultRef.current = false;
+    messageRef.current?.focus({ preventScroll: true });
+  }, [state.phase]);
+
   const legal = useMemo(() => new Set(state.legalActions), [state.legalActions]);
   const controlsDisabled = !canAct || isSubmitting;
   const betAction = legal.has("open") ? "open" : "raise-to";
   const betLabel = legal.has("open") ? "오픈" : "레이즈";
 
   return (
-    <section className={`game-module blind-card-duel ${state.phase}`} aria-label="페이스업 듀얼 게임판">
+    <section className={`game-module blind-card-duel ${state.phase}`} aria-label="인디언 포커 게임판">
       <header className="bcd-rule-rail">
-        <span className="bcd-medallion" aria-hidden="true">{state.handNumber}</span>
+        <span className="bcd-medallion" key={`hand-${state.handNumber}`} aria-hidden="true">{state.handNumber}</span>
         <div>
           <strong>{state.phase === "complete" ? "대결 종료" : `${state.handNumber}번째 손`}</strong>
           <small>{state.carriedFromTie ? "동률 팟 이월 중" : `${actor?.name ?? "정산"} ${actor ? "행동 차례" : "결과 확인"}`}</small>
@@ -564,13 +605,18 @@ export function Component({ currentPlayer, publicState, disabled, onAction }: Ga
       </header>
 
       <div className="bcd-table">
-        <article className="bcd-player opponent" aria-label="상대 영역">
+        <article className="bcd-player opponent" aria-label={`${opponentLabel} 영역`}>
           <div className="bcd-player-heading">
-            <div><small>상대 · 타임뱅크 {opponent?.timeBankSeconds ?? 0}초</small><strong>{opponent?.name ?? "관전자 화면"}</strong></div>
+            <div><small>{opponentLabel} · 타임뱅크 {opponent?.timeBankSeconds ?? 0}초</small><strong>{opponent?.name ?? "빈 좌석"}</strong></div>
             <span>{chipLabel(opponent?.stack ?? 0)}</span>
           </div>
-          <div className={`bcd-card ${opponent?.visibleCardRank ? "face" : "back"}`} aria-label={opponent?.visibleCardRank ? `상대 카드 ${opponent.visibleCardRank}` : "가려진 카드"}>
-            {opponent?.visibleCardRank ?? <span aria-hidden="true">✦</span>}
+          <div
+            key={`opponent-card-${state.handNumber}-${opponent?.visibleCardRank ?? "back"}`}
+            className={`bcd-card ${opponent?.visibleCardRank ? "face" : "back"}`}
+            role="img"
+            aria-label={opponent?.visibleCardRank ? `${opponentLabel} 카드 ${opponent.visibleCardRank}` : `${opponentLabel}의 가려진 카드`}
+          >
+            <CardArtwork rank={opponent?.visibleCardRank} hiddenMark="✦" />
           </div>
           <p>이번 손 투입 <strong>{chipLabel(opponent?.contribution ?? 0)}</strong></p>
         </article>
@@ -578,23 +624,30 @@ export function Component({ currentPlayer, publicState, disabled, onAction }: Ga
         <div className="bcd-pot" aria-live="polite">
           <span className="bcd-medallion" aria-hidden="true">P</span>
           <small>테이블 팟</small>
-          <strong>{chipLabel(state.pot)}</strong>
+          <strong className="bcd-pot-value" key={`pot-${state.pot}`}>{chipLabel(state.pot)}</strong>
           <span>현재 기준 {chipLabel(state.currentBetTo)}</span>
         </div>
 
-        <article className="bcd-player self" aria-label="내 영역">
-          <div className={`bcd-card ${state.cardsRevealed && me?.visibleCardRank ? "face" : "back"}`} aria-label={state.cardsRevealed && me?.visibleCardRank ? `내 카드 ${me.visibleCardRank}` : "내 카드는 볼 수 없습니다"}>
-            {state.cardsRevealed && me?.visibleCardRank ? me.visibleCardRank : <span aria-hidden="true">?</span>}
+        <article className="bcd-player self" aria-label={`${selfLabel} 영역`}>
+          <div
+            key={`self-card-${state.handNumber}-${state.cardsRevealed ? selfSeat?.visibleCardRank ?? "face" : "back"}`}
+            className={`bcd-card ${state.cardsRevealed && selfSeat?.visibleCardRank ? "face" : "back"}`}
+            role="img"
+            aria-label={state.cardsRevealed && selfSeat?.visibleCardRank
+              ? `${selfLabel} 카드 ${selfSeat.visibleCardRank}`
+              : isSpectating ? `${selfLabel}의 가려진 카드` : "내 카드는 볼 수 없습니다"}
+          >
+            <CardArtwork rank={state.cardsRevealed ? selfSeat?.visibleCardRank : null} hiddenMark="?" />
           </div>
           <div className="bcd-player-heading">
-            <div><small>나 · 타임뱅크 {me?.timeBankSeconds ?? 0}초</small><strong>{me?.name ?? "관전 중"}</strong></div>
-            <span>{chipLabel(me?.stack ?? 0)}</span>
+            <div><small>{selfLabel} · 타임뱅크 {selfSeat?.timeBankSeconds ?? 0}초</small><strong>{selfSeat?.name ?? "빈 좌석"}</strong></div>
+            <span>{chipLabel(selfSeat?.stack ?? 0)}</span>
           </div>
-          <p>이번 손 투입 <strong>{chipLabel(me?.contribution ?? 0)}</strong></p>
+          <p>이번 손 투입 <strong>{chipLabel(selfSeat?.contribution ?? 0)}</strong></p>
         </article>
       </div>
 
-      <p className="bcd-message" aria-live="polite">{state.message}</p>
+      <p ref={messageRef} className="bcd-message" key={state.message} tabIndex={-1} data-bcd-focus-target="status" aria-live="polite">{state.message}</p>
 
       {state.phase === "betting" ? (
         <div className="bcd-actions" aria-label="베팅 행동">
@@ -611,11 +664,26 @@ export function Component({ currentPlayer, publicState, disabled, onAction }: Ga
           {confirmFold ? (
             <div className="bcd-fold-confirm" role="group" aria-label="폴드 확인">
               <span>이 손을 포기할까요?</span>
-              <button type="button" disabled={controlsDisabled} onClick={() => submitAction({ type: "fold" })}>폴드 확정</button>
-              <button type="button" onClick={() => setConfirmFold(false)}>취소</button>
+              <button
+                ref={confirmFoldButtonRef}
+                type="button"
+                data-bcd-focus-target="fold-confirm"
+                disabled={controlsDisabled}
+                onClick={() => {
+                  if (submitAction({ type: "fold" })) focusFoldResultRef.current = true;
+                }}
+              >폴드 확정</button>
+              <button type="button" onClick={() => {
+                focusFoldResultRef.current = false;
+                restoreFoldFocusRef.current = true;
+                setConfirmFold(false);
+              }}>취소</button>
             </div>
           ) : (
-            <button className="bcd-fold" type="button" disabled={controlsDisabled || !legal.has("fold")} onClick={() => setConfirmFold(true)}>폴드</button>
+            <button ref={foldButtonRef} className="bcd-fold" type="button" data-bcd-focus-target="fold" disabled={controlsDisabled || !legal.has("fold")} onClick={() => {
+              focusFoldResultRef.current = false;
+              setConfirmFold(true);
+            }}>폴드</button>
           )}
         </div>
       ) : null}

@@ -1,5 +1,5 @@
 import { RefreshCw } from "lucide-react";
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import type { PlayerAvatar, PublicRoomListItem } from "../../shared/types";
 import { CafeViewport } from "./CafeViewport";
 import type { CafeTablePlacement } from "./CafeTableObject";
@@ -23,9 +23,9 @@ export type InteractiveCafeHomeProps = {
   onNameChange: (value: string) => void;
   onAvatarChange: (value: PlayerAvatar) => void;
   onCreateRoom: (event: FormEvent) => void;
-  onJoinListedRoom: (code: string) => void;
+  onJoinListedRoom: (code: string) => void | Promise<void>;
   onRefreshRooms: () => void;
-  onResumeSavedRoom: () => void;
+  onResumeSavedRoom: () => void | Promise<void>;
   onResetLocalIdentity: () => void;
 };
 
@@ -90,6 +90,9 @@ export function InteractiveCafeHome({
   const [selectedRoomCode, setSelectedRoomCode] = useState("");
   const [createState, setCreateState] = useState<"idle" | "placing">("idle");
   const [joinTransition, setJoinTransition] = useState(false);
+  const joinTimerRef = useRef<number | null>(null);
+  const joinPendingRef = useRef(false);
+  const mountedRef = useRef(false);
 
   const canCreate = connection === "connected" && Boolean(name.trim());
   const savedRoom = lastRoomCode ? rooms.find((room) => room.code === lastRoomCode) ?? null : null;
@@ -100,6 +103,18 @@ export function InteractiveCafeHome({
   const canEnterSelectedRoom = Boolean(
     activeRoom && connection === "connected" && Boolean(name.trim()) && (activeRoom.code === lastRoomCode || (activeRoom.canJoin && activeRoom.status === "lobby"))
   );
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      joinPendingRef.current = false;
+      if (joinTimerRef.current !== null) {
+        window.clearTimeout(joinTimerRef.current);
+        joinTimerRef.current = null;
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (!selectedRoomCode) {
@@ -186,16 +201,29 @@ export function InteractiveCafeHome({
       return;
     }
 
-    if (room.code === lastRoomCode) {
-      playJoinSound();
-      setJoinTransition(true);
-      window.setTimeout(onResumeSavedRoom, 360);
+    if (joinPendingRef.current) {
       return;
     }
 
     playJoinSound();
+    joinPendingRef.current = true;
     setJoinTransition(true);
-    window.setTimeout(() => onJoinListedRoom(room.code), 360);
+    joinTimerRef.current = window.setTimeout(() => {
+      joinTimerRef.current = null;
+      const action = room.code === lastRoomCode
+        ? onResumeSavedRoom
+        : () => onJoinListedRoom(room.code);
+
+      void Promise.resolve()
+        .then(action)
+        .catch(() => undefined)
+        .finally(() => {
+          joinPendingRef.current = false;
+          if (mountedRef.current) {
+            setJoinTransition(false);
+          }
+        });
+    }, 360);
   }
 
   return (

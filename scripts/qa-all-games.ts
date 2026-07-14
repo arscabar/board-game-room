@@ -70,6 +70,8 @@ const qaAvatar = {
   palette: "teal"
 } as const;
 
+const liveSockets = new Set<Socket>();
+
 const qawaleScript: Array<{ playerIndex: number; action: GameAction }> = [
   {
     playerIndex: 0,
@@ -185,6 +187,31 @@ async function waitForHealth(baseUrl: string) {
   }, 15000, "server health");
 }
 
+async function runTimedStep<T>(label: string, action: () => Promise<T>, timeoutMs = 60_000) {
+  const startedAt = Date.now();
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  console.log(`[start] ${label} (timeout=${timeoutMs}ms)`);
+
+  try {
+    const result = await Promise.race([
+      action(),
+      new Promise<never>((_, reject) => {
+        timeout = setTimeout(() => reject(new Error(`${label} timed out after ${timeoutMs}ms.`)), timeoutMs);
+        timeout.unref?.();
+      })
+    ]);
+    console.log(`[done] ${label} (${Date.now() - startedAt}ms)`);
+    return result;
+  } catch (error) {
+    console.error(`[fail] ${label} (${Date.now() - startedAt}ms)`);
+    throw error;
+  } finally {
+    if (timeout) {
+      clearTimeout(timeout);
+    }
+  }
+}
+
 async function startServer() {
   const port = process.env.QA_PORT ? Number(process.env.QA_PORT) : await findFreePort();
   const baseUrl = `http://127.0.0.1:${port}`;
@@ -222,7 +249,7 @@ async function startServer() {
   try {
     await waitForHealth(baseUrl);
   } catch (error) {
-    child.kill();
+    await stopServer(child);
     throw new Error(`${error instanceof Error ? error.message : String(error)}\n${lines.join("\n")}`);
   }
 
@@ -257,12 +284,25 @@ async function createClient(baseUrl: string, name: string): Promise<QaClient> {
     transports: ["websocket", "polling"]
   });
   const client: QaClient = { name, socket, playerId: "", room: null };
+  liveSockets.add(socket);
+  socket.once("disconnect", () => liveSockets.delete(socket));
   socket.on("room:state", (room: RoomSnapshot) => {
     client.room = room;
   });
   socket.connect();
   await waitFor(() => socket.connected, 5000, `${name} socket connection`);
   return client;
+}
+
+async function disconnectAllClients() {
+  const sockets = [...liveSockets];
+  liveSockets.clear();
+  for (const socket of sockets) {
+    socket.disconnect();
+  }
+  if (sockets.length > 0) {
+    await delay(20);
+  }
 }
 
 async function emitAck<T>(client: QaClient, event: string, payload: unknown): Promise<T> {
@@ -284,23 +324,29 @@ async function emitAck<T>(client: QaClient, event: string, payload: unknown): Pr
   });
 }
 
-async function settleTable(table: GameTable) {
-  const reference = table.clients.find((client) => client.room)?.room;
-  if (!reference) {
-    return;
-  }
+async function settleTable(table: GameTable, minimumRevision = 0) {
   await waitFor(
-    () =>
-      table.clients.every(
-        (client) =>
-          client.room?.code === table.code &&
-          client.room.gameState.activePlayerId === reference.gameState.activePlayerId &&
-          client.room.gameState.turnNumber === reference.gameState.turnNumber &&
-          client.room.gameState.phase === reference.gameState.phase
-      ),
-    1500,
+    () => {
+      const rooms = table.clients.map((client) => client.room);
+      const reference = rooms[0];
+      if (!reference || rooms.some((room) => !room)) {
+        return false;
+      }
+      if (reference.gameState.revision < minimumRevision) {
+        return false;
+      }
+      return rooms.every(
+        (room) =>
+          room?.code === table.code &&
+          room.gameState.revision === reference.gameState.revision &&
+          room.gameState.activePlayerId === reference.gameState.activePlayerId &&
+          room.gameState.turnNumber === reference.gameState.turnNumber &&
+          room.gameState.phase === reference.gameState.phase
+      );
+    },
+    3000,
     `${table.game.id} room broadcast`
-  ).catch(() => undefined);
+  );
 }
 
 async function createStartedRoom(baseUrl: string, gameId: string, playerCount: number): Promise<GameTable> {
@@ -408,7 +454,7 @@ async function gameAction(table: GameTable, client: QaClient, action: GameAction
   };
   const room = await emitAck<RoomSnapshot>(client, "game:action", { code: table.code, action: scopedAction });
   client.room = room;
-  await settleTable(table);
+  await settleTable(table, room.gameState.revision);
   return room;
 }
 
@@ -794,13 +840,24 @@ async function playBlindCardDuel(baseUrl: string, _options: PlayOptions = {}): P
   const winner = winnerLabel(table);
   const completed = publicState<any>(table).phase === "complete" && winner !== "-";
   await closeTable(table);
-  return { gameId: "blind-card-duel", title: "페이스업 듀얼", players: 2, mode: "playthrough", actions, completed, winner, note: "server all-in, projection, showdown lifecycle" };
+  return { gameId: "blind-card-duel", title: "인디언 포커", players: 2, mode: "playthrough", actions, completed, winner, note: "server all-in, projection, showdown lifecycle" };
 }
 
 async function playParityTileDuel(baseUrl: string, options: PlayOptions = {}): Promise<QaResult> {
   const playerCount = options.playerCount ?? 3;
   const table = await createStartedRoom(baseUrl, "parity-tile-duel", playerCount);
   let actions = 0;
+  let observedApplyingPhase = false;
+  for (const client of table.clients) {
+    const room = await gameAction(table, client, { type: "tile/acknowledge-battlefield" });
+    observedApplyingPhase ||= recordFrom(room.gameState.publicState)?.phase === "battlefield-applying";
+    actions += 1;
+  }
+  assert(
+    observedApplyingPhase,
+    "Parity battlefield acknowledgement must start environment application."
+  );
+  await waitFor(() => publicState<any>(table).phase === "choose-attack", 3_000, "parity battlefield application");
   while (publicState<any>(table).phase !== "finished" && actions < 400) {
     if (publicState<any>(table).phase === "round-result") {
       await waitFor(() => publicState<any>(table).phase !== "round-result", 5_000, "parity next round");
@@ -829,7 +886,7 @@ async function playParityTileDuel(baseUrl: string, options: PlayOptions = {}): P
   const winner = winnerLabel(table);
   const completed = publicState<any>(table).phase === "finished" && winner !== "-";
   await closeTable(table);
-  return { gameId: "parity-tile-duel", title: "문양 공방", players: playerCount, mode: "playthrough", actions, completed, winner, note: "private hands, pass laps, continuation and scoring" };
+  return { gameId: "parity-tile-duel", title: "타이거 앤 드래곤", players: playerCount, mode: "playthrough", actions, completed, winner, note: "private hands, pass laps, continuation and scoring" };
 }
 
 async function playMosaicRush(baseUrl: string, _options: PlayOptions = {}): Promise<QaResult> {
@@ -856,7 +913,7 @@ async function playMosaicRush(baseUrl: string, _options: PlayOptions = {}): Prom
   const winner = winnerLabel(table);
   const completed = publicState<any>(table, client).phase === "complete" && winner !== "-";
   await closeTable(table);
-  return { gameId: "mosaic-rush", title: "모자이크 러시", players: 1, mode: "playthrough", actions, completed, winner, note: "nine server-validated simultaneous puzzle rounds" };
+  return { gameId: "mosaic-rush", title: "우봉고", players: 1, mode: "playthrough", actions, completed, winner, note: "nine server-validated simultaneous puzzle rounds" };
 }
 
 async function playQuoridor(baseUrl: string, options: PlayOptions = {}): Promise<QaResult> {
@@ -1540,6 +1597,8 @@ async function runMaxPlaythroughs(baseUrl: string) {
   const onlyGameId = argValue("max-game");
   const configuredRunCount = Number(argValue("max-runs-count") ?? 3);
   const runCount = Number.isSafeInteger(configuredRunCount) && configuredRunCount > 0 ? configuredRunCount : 3;
+  const configuredTimeout = Number(argValue("scenario-timeout-ms") ?? 60_000);
+  const scenarioTimeoutMs = Number.isSafeInteger(configuredTimeout) && configuredTimeout > 0 ? configuredTimeout : 60_000;
   const selectedScenarios = onlyGameId ? scenarios.filter((scenario) => scenario.gameId === onlyGameId) : scenarios;
 
   if (onlyGameId && selectedScenarios.length === 0) {
@@ -1554,7 +1613,11 @@ async function runMaxPlaythroughs(baseUrl: string) {
 
     for (let run = 1; run <= runCount; run += 1) {
       console.log(`[max-playthrough] ${game.title} ${playerCount}p ${run}/${runCount}`);
-      const result = await scenario.play(baseUrl, { playerCount, seed: scenarioSeed + run });
+      const result = await runTimedStep(
+        `${scenario.gameId} max-playthrough ${run}/${runCount}`,
+        () => scenario.play(baseUrl, { playerCount, seed: scenarioSeed + run }),
+        scenarioTimeoutMs
+      );
       result.mode = "max-playthrough";
       result.run = run;
       result.players = playerCount;
@@ -1611,9 +1674,12 @@ async function main() {
 
     results.push(...await runStartMatrix(baseUrl));
 
+    const configuredTimeout = Number(argValue("scenario-timeout-ms") ?? 60_000);
+    const scenarioTimeoutMs = Number.isSafeInteger(configuredTimeout) && configuredTimeout > 0 ? configuredTimeout : 60_000;
+
     for (const scenario of scenarios) {
       console.log(`[playthrough] ${scenario.play.name}`);
-      const result = await scenario.play(baseUrl);
+      const result = await runTimedStep(scenario.gameId, () => scenario.play(baseUrl), scenarioTimeoutMs);
       results.push(result);
       console.log(`[ok] ${result.title} ${result.mode}: ${result.actions} actions, completed=${result.completed}, winner=${result.winner}`);
     }
@@ -1627,6 +1693,7 @@ async function main() {
       throw new Error(`QA failed: ${failed.map((result) => `${result.title}/${result.mode}/${result.players}p`).join(", ")}`);
     }
   } finally {
+    await disconnectAllClients();
     await stopServer(child);
   }
 }

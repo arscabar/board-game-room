@@ -1,4 +1,4 @@
-import { Button, Card, IconButton, type ButtonProps, type CardProps, type IconButtonProps } from "@radix-ui/themes";
+import type { ButtonHTMLAttributes, HTMLAttributes } from "react";
 
 function cx(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
@@ -12,13 +12,26 @@ function toneClass(tone: BoardTone) {
   return "secondary-button";
 }
 
-export function BoardButton({ className, tone = "secondary", variant = "surface", radius = "small", ...props }: ButtonProps & { tone?: BoardTone }) {
+type BoardButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
+  tone?: BoardTone;
+  variant?: "surface" | "solid" | "soft" | "outline" | "ghost";
+  radius?: "none" | "small" | "medium" | "large" | "full";
+};
+
+type BoardCardProps = HTMLAttributes<HTMLDivElement> & {
+  size?: "1" | "2" | "3" | "4" | "5";
+  variant?: "surface" | "classic" | "ghost";
+};
+
+export function BoardButton({ className, tone = "secondary", variant = "surface", radius = "small", disabled, ...props }: BoardButtonProps) {
   return (
-    <Button
+    <button
       {...props}
-      radius={radius}
-      variant={variant}
-      className={cx("board-sdk-button", toneClass(tone), className)}
+      disabled={disabled}
+      data-disabled={disabled ? "" : undefined}
+      data-radius={radius}
+      data-variant={variant}
+      className={cx("rt-reset", "rt-BaseButton", "rt-Button", "board-sdk-button", toneClass(tone), className)}
     />
   );
 }
@@ -28,18 +41,21 @@ export function BoardIconButton({
   tone = "secondary",
   variant = "surface",
   radius = "small",
+  disabled,
   ...props
-}: IconButtonProps & { tone?: BoardTone }) {
+}: BoardButtonProps) {
   return (
-    <IconButton
+    <button
       {...props}
-      radius={radius}
-      variant={variant}
-      className={cx("board-sdk-icon-button", toneClass(tone), tone === "primary" && "strong", className)}
+      disabled={disabled}
+      data-disabled={disabled ? "" : undefined}
+      data-radius={radius}
+      data-variant={variant}
+      className={cx("rt-reset", "rt-BaseButton", "rt-IconButton", "board-sdk-icon-button", toneClass(tone), tone === "primary" && "strong", className)}
     />
   );
 }
 
-export function BoardCard({ className, size = "1", variant = "surface", ...props }: CardProps) {
-  return <Card {...props} size={size} variant={variant} className={cx("board-sdk-card", className)} />;
+export function BoardCard({ className, size = "1", variant = "surface", ...props }: BoardCardProps) {
+  return <div {...props} data-size={size} data-variant={variant} className={cx("rt-BaseCard", "rt-Card", "board-sdk-card", className)} />;
 }

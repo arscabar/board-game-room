@@ -6854,12 +6854,32 @@ main {
 .board-sdk-icon-button.rt-IconButton {
   --base-button-height: 38px;
   --base-button-radius: var(--club-radius);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  flex-shrink: 0;
   gap: 7px;
   min-height: 38px;
+  margin: 0;
   border-width: 1px;
+  appearance: none;
+  cursor: pointer;
+  font: inherit;
+  line-height: 1;
+  text-decoration: none;
   font-weight: 850;
   letter-spacing: 0;
   user-select: none;
+}
+
+.board-sdk-button.rt-Button:disabled,
+.board-sdk-icon-button.rt-IconButton:disabled {
+  cursor: not-allowed;
+}
+
+.board-sdk-card.rt-Card {
+  box-sizing: border-box;
 }
 
 .board-sdk-button.rt-Button {

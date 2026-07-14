@@ -377,8 +377,8 @@ export const games: GameDefinition[] = [
   },
   {
     id: "blind-card-duel",
-    title: "페이스업 듀얼",
-    original: "Original web game",
+    title: "인디언 포커",
+    original: "Indian Poker / Blind Man's Bluff",
     allowedPlayerCounts: [2],
     scoreState: "점수제 아님",
     priority: "높음",
@@ -400,8 +400,8 @@ export const games: GameDefinition[] = [
   },
   {
     id: "parity-tile-duel",
-    title: "문양 공방",
-    original: "Original web game",
+    title: "타이거 앤 드래곤",
+    original: "Tiger & Dragon",
     allowedPlayerCounts: [2, 3, 4],
     scoreState: "점수제",
     priority: "높음",
@@ -423,8 +423,8 @@ export const games: GameDefinition[] = [
   },
   {
     id: "mosaic-rush",
-    title: "모자이크 러시",
-    original: "Original web game",
+    title: "우봉고",
+    original: "Ubongo",
     allowedPlayerCounts: [1, 2, 3, 4],
     scoreState: "점수제",
     priority: "높음",

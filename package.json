@@ -22,14 +22,15 @@
     "qa:privacy": "tsx scripts/qa-privacy.ts",
     "qa:timeouts": "tsx scripts/qa-timeouts.ts",
     "qa:new-games": "tsx scripts/qa-three-games.ts",
+    "qa:new-games:a11y": "tsx scripts/qa-three-games-accessibility-contracts.ts",
     "qa:new-games:socket": "tsx scripts/qa-three-games-socket.ts",
+    "qa:performance": "tsx scripts/qa-initial-bundle-budget.ts && tsx scripts/qa-club-world-canvas.ts && tsx scripts/qa-static-cache-headers.ts",
     "qa:max": "tsx scripts/qa-all-games.ts --max-runs",
-    "qa:all": "npm run build && npm run qa:catalog && npm run qa:new-games && npm run qa:new-games:socket && npm run qa:privacy && npm run qa:timeouts && npm run qa:games"
+    "qa:all": "npm run build && npm run qa:performance && npm run qa:catalog && npm run qa:new-games && npm run qa:new-games:a11y && npm run qa:new-games:socket && npm run qa:privacy && npm run qa:timeouts && npm run qa:games"
   },
   "dependencies": {
     "@capacitor/android": "^7.4.4",
     "@capacitor/core": "^7.4.4",
-    "@radix-ui/themes": "^3.3.0",
     "@types/matter-js": "^0.20.2",
     "@vitejs/plugin-react": "^5.1.2",
     "cors": "^2.8.5",
