@@ -722,6 +722,15 @@ export function Component({ players, currentPlayer, publicState: rawState, disab
   const me = state.players.find((player) => player.id === currentPlayer?.id);
   const controlsDisabled = disabled || !state.canInteract || Boolean(me?.solved) || state.phase === "complete" || state.phase === "reward";
   const orientationLabel = `${rotation * 90}도 · ${flipped ? "좌우 반전" : "기본 면"}`;
+  const selectedPieceLabel = pieceLabels[pieceId];
+  const selectedPieceCells = pieces[pieceId].length;
+  const targetCount = targetCells.size;
+  const filledCount = [...placedByCell.keys()].filter((key) => targetCells.has(key)).length;
+  const emptyCount = Math.max(0, targetCount - filledCount);
+  const placedPieceCount = new Set(state.placements.map((placement) => placement.pieceId)).size;
+  const puzzleReadiness = emptyCount === 0 && placedPieceCount === (state.puzzle?.requiredPieceIds.length ?? 0)
+    ? "완성 확인 가능"
+    : `${placedPieceCount}/${state.puzzle?.requiredPieceIds.length ?? 0} 조각 배치`;
   const playerName = (id: string) => players.find((player) => player.id === id)?.name ?? "플레이어";
   const winnerNames = state.winnerIds.map(playerName);
   const lastRankEntries = state.lastRanks.map((id, index) => ({
@@ -802,9 +811,27 @@ export function Component({ players, currentPlayer, publicState: rawState, disab
             <div className="mosaic-rush__orientation" id={placementGuideId} role="status" aria-live="polite">
               <PieceSilhouette id={pieceId} rotation={rotation} flipped={flipped} showAnchor />
               <span>
-                <strong>{pieceLabels[pieceId]} · {orientationLabel}</strong>
+                <strong>{selectedPieceLabel} · {orientationLabel}</strong>
                 <small>점이 표시된 실루엣 좌상단을 기준으로, 놓을 격자 칸을 선택하세요.</small>
               </span>
+            </div>
+          ) : null}
+
+          {state.puzzle ? (
+            <div className="mosaic-rush__status-rail" aria-label="퍼즐 진행 정보">
+              <span><b>{targetCount}</b><small>목표 칸</small></span>
+              <span><b>{filledCount}</b><small>채운 칸</small></span>
+              <span><b>{emptyCount}</b><small>남은 칸</small></span>
+              <span><b>{selectedPieceCells}</b><small>선택 조각</small></span>
+              <span className="is-wide"><b>{puzzleReadiness}</b><small>확인 상태</small></span>
+            </div>
+          ) : null}
+
+          {state.puzzle ? (
+            <div className="mosaic-rush__mobile-action-cue" role="status" aria-live="polite">
+              <span>선택 조각</span>
+              <strong>{pieceVisuals[pieceId].mark} · {selectedPieceLabel}</strong>
+              <small>{orientationLabel} · {puzzleReadiness}</small>
             </div>
           ) : null}
 

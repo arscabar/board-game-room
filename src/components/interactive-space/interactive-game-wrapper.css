@@ -4,6 +4,8 @@
   position: relative;
   width: 100%;
   height: 100%;
+  min-width: 0;
+  isolation: isolate;
   animation: game-board-enter 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
@@ -20,21 +22,78 @@
 
 .interactive-game-content {
   position: relative;
+  z-index: 1;
   width: 100%;
   height: 100%;
   min-width: 0;
 }
 
 .interactive-game-ambient-light {
-  display: none;
+  position: absolute;
+  inset: -10px;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.42;
+  background:
+    radial-gradient(circle at 18% 12%, rgba(236, 185, 98, 0.18), transparent 34%),
+    radial-gradient(circle at 92% 70%, rgba(83, 164, 132, 0.13), transparent 36%);
+  filter: blur(2px);
+  transition: opacity 220ms ease, transform 220ms ease;
+}
+
+.interactive-game-state-glow {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  opacity: 0;
+  box-shadow:
+    inset 0 0 0 1px rgba(244, 203, 116, 0.24),
+    inset 0 0 28px rgba(244, 203, 116, 0.08);
+  transition: opacity 180ms ease;
+}
+
+.interactive-game-wrapper.is-my-turn .interactive-game-ambient-light {
+  opacity: 0.78;
+  transform: scale(1.01);
+}
+
+.interactive-game-wrapper.is-my-turn .interactive-game-state-glow {
+  opacity: 1;
 }
 
 .game-module-shell {
   position: relative;
 }
 
+.interactive-game-wrapper button,
+.interactive-game-wrapper [role="button"],
+.interactive-game-wrapper input,
+.interactive-game-wrapper select,
+.interactive-game-wrapper textarea {
+  -webkit-tap-highlight-color: rgba(244, 203, 116, 0.22);
+}
+
+.interactive-game-wrapper button:focus-visible,
+.interactive-game-wrapper [role="button"]:focus-visible,
+.interactive-game-wrapper input:focus-visible,
+.interactive-game-wrapper select:focus-visible,
+.interactive-game-wrapper textarea:focus-visible {
+  outline: 3px solid rgba(255, 226, 161, 0.95);
+  outline-offset: 3px;
+}
+
+.interactive-game-wrapper [aria-disabled="true"],
+.interactive-game-wrapper button:disabled {
+  cursor: not-allowed;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .interactive-game-wrapper {
+  .interactive-game-wrapper,
+  .interactive-game-ambient-light,
+  .interactive-game-state-glow {
     animation: none;
+    transition: none;
   }
 }

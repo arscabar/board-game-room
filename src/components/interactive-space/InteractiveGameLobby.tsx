@@ -7,6 +7,7 @@ import {
   useState,
   type PointerEvent as ReactPointerEvent
 } from "react";
+import { createPortal } from "react-dom";
 import { games } from "../../shared/games";
 import { canPlayGame, formatAllowedPlayers, gameAvailabilityLabel } from "../../shared/eligibility";
 import { gameUsesTurnTimer, turnTimerOptions } from "../../shared/timers";
@@ -396,7 +397,11 @@ export function InteractiveGameLobby({
           />
         </div>
 
-        <aside className="game-lobby-selection-rail" aria-label="선택한 게임">
+        <aside
+          className={`game-lobby-selection-rail ${serverSelectedGame ? "has-selected-game" : "is-empty"}`}
+          data-has-selection={serverSelectedGame ? "true" : "false"}
+          aria-label={serverSelectedGame ? `선택한 게임: ${serverSelectedGame.title}` : "선택한 게임"}
+        >
           <CentralTableStage
             game={tableGame}
             state={tableState}
@@ -444,6 +449,37 @@ export function InteractiveGameLobby({
           ) : null}
         </aside>
       </div>
+      {serverSelectedGame && typeof document !== "undefined" ? createPortal(
+        <div className="game-lobby-mobile-start-dock" role="region" aria-label={`선택한 게임 시작: ${serverSelectedGame.title}`}>
+          <div className="game-lobby-mobile-start-copy">
+            <span>선택됨</span>
+            <strong>{serverSelectedGame.title}</strong>
+            <small>{startStatus}</small>
+          </div>
+          {fixedTimerLabel ? (
+            <div className="game-lobby-mobile-timer" aria-label={`고정 제한 시간: ${fixedTimerLabel}`}>
+              <Clock3 size={14} aria-hidden="true" />
+              <strong>{fixedTimerLabel}</strong>
+            </div>
+          ) : usesTurnTimer ? (
+            <label className="game-lobby-mobile-timer">
+              <Clock3 size={14} aria-hidden="true" />
+              <select aria-label="턴 제한" value={turnTimerMs} disabled={!isHost} onChange={(event) => onConfigureTimer(Number(event.currentTarget.value))}>
+                {turnTimerOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
+          <button className="game-lobby-mobile-start-button" type="button" disabled={!isHost || !canStart} onClick={onStartGame}>
+            <Play size={16} aria-hidden="true" />
+            <span>{isHost ? (canStart ? "시작" : "대기") : "방장 대기"}</span>
+          </button>
+        </div>,
+        document.body
+      ) : null}
         </section>
       </MotionConfig>
     </LazyMotion>

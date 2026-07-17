@@ -592,6 +592,21 @@ export function Component({ currentPlayer, publicState, disabled, onAction }: Ga
   const controlsDisabled = !canAct || isSubmitting;
   const betAction = legal.has("open") ? "open" : "raise-to";
   const betLabel = legal.has("open") ? "오픈" : "레이즈";
+  const callPressure = state.callAmount <= 0
+    ? "선 베팅 가능"
+    : state.callAmount >= 8
+      ? "큰 콜 압박"
+      : state.callAmount >= 4
+        ? "중간 콜 압박"
+        : "가벼운 콜";
+  const visibleOpponentRank = opponent?.visibleCardRank ?? null;
+  const opponentPressure = visibleOpponentRank === null
+    ? "카드 비공개"
+    : visibleOpponentRank >= 8
+      ? "상대 고카드"
+      : visibleOpponentRank >= 5
+        ? "상대 중간패"
+        : "상대 낮은패";
 
   return (
     <section className={`game-module blind-card-duel ${state.phase}`} aria-label="인디언 포커 게임판">
@@ -648,6 +663,15 @@ export function Component({ currentPlayer, publicState, disabled, onAction }: Ga
       </div>
 
       <p ref={messageRef} className="bcd-message" key={state.message} tabIndex={-1} data-bcd-focus-target="status" aria-live="polite">{state.message}</p>
+
+      {state.phase === "betting" ? (
+        <div className="bcd-state-rail" aria-label="베팅 판단 정보">
+          <span><small>콜 필요</small><strong>{chipLabel(state.callAmount)}</strong></span>
+          <span><small>상태</small><strong>{callPressure}</strong></span>
+          <span><small>레이즈 범위</small><strong>{state.minRaiseTo && state.maxBetTo ? `${state.minRaiseTo}-${state.maxBetTo}` : "없음"}</strong></span>
+          <span><small>상대 카드</small><strong>{opponentPressure}</strong></span>
+        </div>
+      ) : null}
 
       {state.phase === "betting" ? (
         <div className="bcd-actions" aria-label="베팅 행동">

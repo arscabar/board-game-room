@@ -683,21 +683,27 @@ function DragonCrest({ className = "" }: { className?: string }) {
   );
 }
 
-const BATTLEFIELD_PRESENTATION: Record<string, { glyph: string; eyebrow: string; atmosphere: string }> = {
+const BATTLEFIELD_PRESENTATION: Record<string, { glyph: string; eyebrow: string; atmosphere: string; tactic: string; visualCue: string }> = {
   "balance-hall": {
     glyph: "균",
     eyebrow: "대칭 전장",
-    atmosphere: "호랑이와 용의 힘이 팽팽히 맞서는 회랑입니다. 어느 계열로 마무리할지 손패를 끝까지 조율하세요."
+    atmosphere: "호랑이와 용의 힘이 팽팽히 맞서는 회랑입니다. 어느 계열로 마무리할지 손패를 끝까지 조율하세요.",
+    tactic: "짝수 마무리가 살짝 더 강합니다.",
+    visualCue: "중앙 원형 표식"
   },
   "patient-kiln": {
     glyph: "화",
     eyebrow: "축적 전장",
-    atmosphere: "불씨를 오래 지킬수록 강해지는 가마입니다. 한 바퀴 패스를 유도해 보너스를 쌓는 운영이 중요합니다."
+    atmosphere: "불씨를 오래 지킬수록 강해지는 가마입니다. 한 바퀴 패스를 유도해 보너스를 쌓는 운영이 중요합니다.",
+    tactic: "보너스를 쌓을수록 점수가 커집니다.",
+    visualCue: "하단 가마 불씨"
   },
   "high-window": {
     glyph: "창",
     eyebrow: "고점 전장",
-    atmosphere: "높은 수가 빛을 받는 공방입니다. 강한 숫자를 지키되 상대에게 마무리 기회를 내주지 마세요."
+    atmosphere: "높은 수가 빛을 받는 공방입니다. 강한 숫자를 지키되 상대에게 마무리 기회를 내주지 마세요.",
+    tactic: "6·7·8 마무리가 크게 빛납니다.",
+    visualCue: "상단 창문 빛"
   }
 };
 
@@ -946,6 +952,7 @@ export function Component({ players, currentPlayer, publicState: state, disabled
 
   const myTurn = Boolean(myId && state.activePlayerId === myId && state.interactivePlayerIds.includes(myId));
   const selectedTile = state.hand.find((tile) => tile.id === selectedTileId) ?? null;
+  const bonusTile = state.hand.find((tile) => tile.id === bonusTileId) ?? null;
   const canUseSelectedForDefense = Boolean(selectedTile && state.currentAttack && canDefend(state.currentAttack.tile, selectedTile));
   const controlsDisabled = disabled || !myTurn || isSubmitting || isBattlefieldApplying;
   const battlefield = state.battlefield;
@@ -958,6 +965,18 @@ export function Component({ players, currentPlayer, publicState: state, disabled
     : state.lastRound
       ? getPlayerName(players, state.lastRound.winnerId)
       : "결과 집계 중";
+  const defendableCount = state.currentAttack
+    ? state.hand.filter((tile) => canDefend(state.currentAttack!.tile, tile)).length
+    : 0;
+  const rackInstruction = state.phase === "await-defense"
+    ? defendableCount > 0
+      ? `방어 가능 ${defendableCount}장`
+      : "방어 불가, 패스 필요"
+    : state.phase === "continuation"
+      ? "보너스 1장과 다음 공격 1장을 고르세요"
+      : myTurn
+        ? "공격할 타일을 선택하세요"
+        : `${getPlayerName(players, state.activePlayerId)} 차례`;
 
   const chooseTile = (tileId: string) => {
     if (state.phase !== "continuation") {
@@ -1088,6 +1107,11 @@ export function Component({ players, currentPlayer, publicState: state, disabled
           </div>
           <span className="ptd-field-trait"><small>{fieldPresentation.eyebrow}</small><strong>{battlefieldDisplay.bonusLabel}</strong></span>
         </div>
+        <div className="ptd-field-map" aria-label="현재 전장 핵심 정보">
+          <span><small>눈에 띄는 표식</small><strong>{fieldPresentation.visualCue}</strong></span>
+          <span><small>운영 포인트</small><strong>{fieldPresentation.tactic}</strong></span>
+          <span><small>점수 기준</small><strong>{battlefieldDisplay.rules[1] ?? battlefieldDisplay.bonusLabel}</strong></span>
+        </div>
         <div className="ptd-scoreboard" data-player-count={state.playerIds.length} aria-label="플레이어 점수">
           {state.playerIds.map((id, index) => (
             <div className={id === state.activePlayerId ? "active" : ""} key={id}>
@@ -1158,7 +1182,7 @@ export function Component({ players, currentPlayer, publicState: state, disabled
         <div className="ptd-rack-heading">
           <div>
             <span className="ptd-kicker">내 작업대</span>
-            <strong>{myTurn ? "타일을 선택하세요" : `${getPlayerName(players, state.activePlayerId)} 차례`}</strong>
+            <strong>{rackInstruction}</strong>
           </div>
           {state.phase === "continuation" && state.hand.length >= 2 ? (
             <div className="ptd-step-switch" role="group" aria-label="연속 공격 선택 단계">
@@ -1184,10 +1208,27 @@ export function Component({ players, currentPlayer, publicState: state, disabled
                 onClick={() => chooseTile(tile.id)}
               >
                 <TileFace tile={tile} />
-                {bonus ? <small>보너스</small> : selected ? <small>{state.phase === "await-defense" ? "방어" : "공격"}</small> : null}
+                {bonus ? <small>보너스</small> : selected ? <small>{state.phase === "await-defense" ? "방어" : "공격"}</small> : defendable && state.phase === "await-defense" ? <small>방어 가능</small> : null}
               </button>
             );
           })}
+        </div>
+        <div className="ptd-selection-summary" role="status" aria-live="polite">
+          <span>{state.phase === "continuation" ? "연속 공격 선택" : "현재 선택"}</span>
+          <strong>{selectedTile ? tileLabel(selectedTile) : "타일 미선택"}</strong>
+          <small>
+            {state.phase === "continuation" && state.hand.length >= 2
+              ? `보너스 ${bonusTile ? tileLabel(bonusTile) : "미선택"} · 공격 ${selectedTile ? tileLabel(selectedTile) : "미선택"}`
+              : state.phase === "await-defense"
+                ? selectedTile
+                  ? canUseSelectedForDefense
+                    ? "방어 가능"
+                    : "현재 공격을 막을 수 없음"
+                  : "방어 타일을 고르거나 패스하세요"
+                : selectedTile
+                  ? "공격 확정 가능"
+                  : "공격 타일을 고르세요"}
+          </small>
         </div>
         <div className="ptd-actions">
           {state.phase === "await-defense" ? (

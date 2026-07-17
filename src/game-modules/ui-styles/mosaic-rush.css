@@ -479,11 +479,54 @@
   line-height: 1.4;
 }
 
+.mosaic-rush__status-rail {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 7px;
+  width: min(100%, 520px);
+  margin: 0 auto 12px;
+}
+
+.mosaic-rush__status-rail span {
+  display: grid;
+  min-width: 0;
+  padding: 8px 9px;
+  border: 1px solid rgba(210, 155, 66, .28);
+  border-radius: 12px;
+  background: rgba(7, 30, 25, .6);
+  text-align: center;
+}
+
+.mosaic-rush__status-rail b {
+  color: #ffe0a1;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(.86rem, 1.6vw, 1.05rem);
+  line-height: 1.12;
+  overflow-wrap: anywhere;
+}
+
+.mosaic-rush__status-rail small {
+  margin-top: 3px;
+  overflow: hidden;
+  color: var(--mr-muted);
+  font-size: .67rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mosaic-rush__status-rail .is-wide {
+  grid-column: 1 / -1;
+}
+
 .mosaic-rush__tools .mosaic-rush__orientation-toggle[aria-pressed="true"] {
   border-color: #ffe2a0;
   background: #d29b42;
   color: #24190f;
   box-shadow: 0 0 0 3px rgba(245, 207, 125, .2);
+}
+
+.mosaic-rush__mobile-action-cue {
+  display: none;
 }
 
 .mosaic-rush__tools button:disabled,
@@ -600,6 +643,15 @@
     gap: 8px;
     padding-inline: 9px;
   }
+
+  .mosaic-rush__status-rail {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .mosaic-rush__status-rail .is-wide {
+    grid-column: 1 / -1;
+  }
 }
 
 /* Short, state-led motion: puzzle reveal, piece placement, and solve confirmation. */
@@ -702,6 +754,52 @@
 
 @media (max-width: 400px) {
   .mosaic-rush::after { opacity: .16; }
+}
+
+@media (max-width: 760px) {
+  .mosaic-rush {
+    overflow: visible;
+  }
+
+  .mosaic-rush__workbench {
+    overflow: visible;
+    padding-block-end: 14px;
+  }
+
+  .mosaic-rush__mobile-action-cue {
+    display: grid;
+    gap: 2px;
+    margin: 0 auto 10px;
+    width: min(100%, 520px);
+    padding: 9px 11px;
+    border: 1px solid rgba(210, 155, 66, .38);
+    border-radius: 12px;
+    background: rgba(7, 30, 25, .82);
+  }
+
+  .mosaic-rush__mobile-action-cue span {
+    color: var(--mr-muted);
+    font-size: .66rem;
+    font-weight: 850;
+    letter-spacing: .08em;
+  }
+
+  .mosaic-rush__mobile-action-cue strong {
+    color: #ffe0a1;
+    overflow-wrap: anywhere;
+  }
+
+  .mosaic-rush__mobile-action-cue small {
+    color: var(--mr-muted);
+    line-height: 1.35;
+  }
+
+  .mosaic-rush__submit {
+    position: sticky;
+    bottom: max(6px, env(safe-area-inset-bottom));
+    z-index: 8;
+    box-shadow: 0 -8px 22px rgba(0, 0, 0, .26), 0 0 0 1px rgba(255, 230, 160, .32);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

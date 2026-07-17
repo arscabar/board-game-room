@@ -6,6 +6,64 @@
 .yinsh-marker {
   filter: drop-shadow(0 5px 4px rgba(31, 22, 16, 0.22));
 }
+
+.game-module {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.game-module [aria-live],
+.game-module [role="status"] {
+  overflow-wrap: anywhere;
+}
+
+.game-module button,
+.game-module [role="button"] {
+  touch-action: manipulation;
+}
+
+.game-module button:not(:disabled):not([aria-disabled="true"]) {
+  transform-origin: 50% 70%;
+}
+
+.game-module button:not(:disabled):not([aria-disabled="true"]):active {
+  transform: translateY(1px) scale(0.985);
+}
+
+.game-module button:disabled,
+.game-module [aria-disabled="true"] {
+  filter: saturate(0.72) brightness(0.86);
+}
+
+.game-module [class*="status"],
+.game-module [class*="message"],
+.game-module [class*="score"],
+.game-module [class*="result"] {
+  min-width: 0;
+}
+
+.game-module [class*="rack"],
+.game-module [class*="hand"],
+.game-module [class*="track"],
+.game-module [class*="palette"] {
+  scrollbar-color: rgba(232, 181, 101, 0.7) rgba(8, 14, 12, 0.35);
+  scrollbar-width: thin;
+}
+
+.game-module [class*="rack"]::-webkit-scrollbar,
+.game-module [class*="hand"]::-webkit-scrollbar,
+.game-module [class*="track"]::-webkit-scrollbar,
+.game-module [class*="palette"]::-webkit-scrollbar {
+  height: 8px;
+}
+
+.game-module [class*="rack"]::-webkit-scrollbar-thumb,
+.game-module [class*="hand"]::-webkit-scrollbar-thumb,
+.game-module [class*="track"]::-webkit-scrollbar-thumb,
+.game-module [class*="palette"]::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(232, 181, 101, 0.66);
+}
 .guryongtu-tile-button,
 .qdr-pawn,
 .abl-marble,
@@ -142,6 +200,14 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .game-module *,
+  .game-module *::before,
+  .game-module *::after {
+    transition-duration: 1ms !important;
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+  }
+
   .game-module.is-submitting *,
   .abl-shell.is-submitting *,
   .qdr-shell.is-submitting *,

@@ -3580,3 +3580,157 @@ body .room-section.is-lobby .interactive-game-lobby.is-game-lobby .game-shelf-gr
     animation: none;
   }
 }
+
+/* Mobile action audit: selected game and start controls must stay visible. */
+@media (max-width: 760px) {
+  body .room-section.is-lobby .interactive-game-lobby.is-game-lobby {
+    padding-block-end: calc(12px + env(safe-area-inset-bottom)) !important;
+  }
+
+  body .room-section.is-lobby .interactive-game-lobby.is-game-lobby:has(.game-lobby-selection-rail.has-selected-game) {
+    padding-block-end: calc(96px + env(safe-area-inset-bottom)) !important;
+  }
+
+  body .room-section.is-lobby .interactive-game-lobby.is-game-lobby .game-lobby-layout {
+    display: grid !important;
+    gap: 12px !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    padding-top: 0 !important;
+  }
+
+  body .room-section.is-lobby .interactive-game-lobby.is-game-lobby .game-lobby-selection-rail.is-empty {
+    display: none !important;
+  }
+
+  body .room-section.is-lobby .interactive-game-lobby.is-game-lobby .game-lobby-side {
+    grid-column: 1 !important;
+    grid-row: 2 !important;
+  }
+
+  body .room-section.is-lobby .interactive-game-lobby.is-game-lobby .game-box-object[data-selected="true"] .game-box-action {
+    align-items: center !important;
+    background: rgba(224, 180, 92, 0.16) !important;
+    border: 1px solid rgba(224, 180, 92, 0.44) !important;
+    border-radius: 4px !important;
+    color: var(--space-brass) !important;
+    display: inline-flex !important;
+    font-size: 0.72rem !important;
+    font-weight: 850 !important;
+    justify-content: center !important;
+    margin-block-start: 5px !important;
+    min-block-size: 24px !important;
+    padding: 2px 6px !important;
+  }
+
+  body .room-section.is-lobby .interactive-game-lobby.is-game-lobby .game-lobby-selection-rail.has-selected-game {
+    display: none !important;
+  }
+}
+
+.game-lobby-mobile-start-dock {
+  display: none;
+}
+
+@media (max-width: 760px) {
+  .game-lobby-mobile-start-dock {
+    align-items: center;
+    background: rgba(18, 12, 8, 0.98);
+    border: 1px solid rgba(234, 207, 153, 0.24);
+    border-radius: 8px;
+    bottom: max(8px, env(safe-area-inset-bottom));
+    box-shadow: 0 -12px 34px rgba(0, 0, 0, 0.38);
+    color: #fff3d2;
+    display: grid;
+    gap: 8px;
+    grid-template-columns: minmax(0, 1fr) auto;
+    inset-inline: 10px;
+    margin-inline: auto;
+    max-inline-size: 520px;
+    padding: 8px;
+    position: fixed;
+    z-index: 2147482500;
+  }
+
+  .game-lobby-mobile-start-copy {
+    display: grid;
+    gap: 2px;
+    min-inline-size: 0;
+  }
+
+  .game-lobby-mobile-start-copy span {
+    color: #d0a047;
+    font-size: 0.66rem;
+    font-weight: 850;
+    letter-spacing: 0.08em;
+  }
+
+  .game-lobby-mobile-start-copy strong,
+  .game-lobby-mobile-start-copy small {
+    min-inline-size: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .game-lobby-mobile-start-copy strong {
+    color: #fff3d2;
+    font-size: 0.95rem;
+  }
+
+  .game-lobby-mobile-start-copy small {
+    color: rgba(255, 239, 200, 0.68);
+    font-size: 0.72rem;
+  }
+
+  .game-lobby-mobile-timer {
+    align-items: center;
+    border: 1px solid rgba(234, 207, 153, 0.2);
+    border-radius: 5px;
+    color: rgba(255, 239, 200, 0.78);
+    display: inline-flex;
+    gap: 5px;
+    grid-column: 1;
+    min-block-size: 36px;
+    min-inline-size: 0;
+    padding-inline: 8px;
+  }
+
+  .game-lobby-mobile-timer select {
+    background: #1d130d;
+    border: 0;
+    color: #fff3d2;
+    font: inherit;
+    inline-size: 100%;
+    min-inline-size: 0;
+  }
+
+  .game-lobby-mobile-start-button {
+    align-items: center;
+    align-self: stretch;
+    background: #d0a047;
+    border: 0;
+    border-radius: 5px;
+    color: #241407;
+    display: inline-flex;
+    font: inherit;
+    font-weight: 900;
+    gap: 6px;
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    justify-content: center;
+    min-block-size: 52px;
+    min-inline-size: 96px;
+    padding-inline: 12px;
+  }
+
+  .game-lobby-mobile-start-button:disabled {
+    background: rgba(242, 223, 173, 0.16);
+    color: rgba(255, 239, 200, 0.52);
+  }
+
+  .game-lobby-mobile-start-button:focus-visible,
+  .game-lobby-mobile-timer select:focus-visible {
+    outline: 3px solid #f4c76f;
+    outline-offset: 3px;
+  }
+}

@@ -37,8 +37,10 @@ export function InteractiveGameWrapper({ children, isInteractive }: InteractiveG
     <div 
       className={`interactive-game-wrapper ${isInteractive ? "is-my-turn" : ""}`}
       onPointerDownCapture={handlePointerDownCapture}
+      data-play-state={isInteractive ? "active" : "observing"}
     >
       <div className="interactive-game-ambient-light" aria-hidden="true" />
+      <div className="interactive-game-state-glow" aria-hidden="true" />
       <div className="interactive-game-content">
         {children}
       </div>
